@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /
+
+# CKP Digital — BPS Kabupaten Belitung
+# Internal system — not for public indexing

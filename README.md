@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CKP Digital — BPS Kabupaten Belitung
 
-## Getting Started
+Sistem Rekap Capaian Kinerja Pegawai (CKP) digital untuk BPS Kabupaten Belitung. Aplikasi web internal untuk upload, review, dan kelola kinerja pegawai.
 
-First, run the development server:
+## Fitur Utama
 
+### Pegawai
+- ✅ Login dengan email & password
+- ✅ Upload file Excel CKP per bulan
+- ✅ Preview data sebelum submit
+- ✅ Lihat status upload dan approval
+- ✅ Upload ulang jika draft/revisi
+- ✅ Export data ke Excel
+
+### Pimpinan
+- ✅ Dashboard ringkasan semua pegawai
+- ✅ Filter bulan, tahun, status, dan nama pegawai
+- ✅ Review detail kegiatan harian
+- ✅ Approve / Reject / Minta Revisi dengan catatan
+- ✅ Buka link bukti dukung (Google Drive)
+- ✅ Export rekap ke Excel
+- ✅ Lihat riwayat approval
+- ✅ Notifikasi pegawai yang belum upload
+
+## Tech Stack
+
+- **Framework**: Next.js 14 (App Router) + TypeScript
+- **Styling**: Tailwind CSS v3
+- **Backend**: Supabase (Auth, PostgreSQL, Storage)
+- **Excel**: xlsx (SheetJS)
+- **UI**: Custom components (shadcn/ui style)
+- **Icons**: Lucide React
+- **Notifications**: Sonner
+
+## Setup
+
+### 1. Prerequisites
+- Node.js 18+
+- npm
+- Akun Supabase (gratis di [supabase.com](https://supabase.com))
+
+### 2. Buat Project Supabase
+1. Buka [supabase.com](https://supabase.com) dan buat project baru
+2. Buka **SQL Editor** dan jalankan file `supabase/migrations/001_initial_schema.sql`
+3. (Opsional) Jalankan `supabase/seed.sql` untuk data contoh
+4. Buat Storage Bucket bernama `ckp-files` (private)
+5. Catat URL dan Keys dari **Settings > API**
+
+### 3. Buat User di Supabase
+Buka **Authentication > Users** dan buat user manual:
+- Pimpinan: `pimpinan@bps.go.id` (set metadata: `{"full_name": "Nama Pimpinan", "role": "pimpinan", "nip": "..."}`)
+- Pegawai: `pegawai@bps.go.id` (set metadata: `{"full_name": "Nama Pegawai", "role": "pegawai", "nip": "..."}`)
+
+### 4. Setup Environment
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Edit `.env.local`:
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 5. Install & Run
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Buka [http://localhost:3000](http://localhost:3000)
 
-## Learn More
+## Struktur Folder
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/              # Pages (App Router)
+│   ├── login/        # Halaman login
+│   ├── pegawai/      # Halaman pegawai
+│   └── pimpinan/     # Halaman pimpinan
+├── components/       # React components
+│   ├── ui/           # Base UI components
+│   ├── layout/       # Sidebar, header
+│   ├── dashboard/    # Stat cards, filters
+│   └── ckp/          # CKP-specific components
+├── hooks/            # Custom React hooks
+├── lib/              # Utilities & helpers
+│   ├── supabase/     # Supabase clients
+│   └── excel/        # Parser, exporter, mapping
+└── types/            # TypeScript types
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Format Excel CKP
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+File Excel harus memiliki minimal kolom **Kegiatan**. Kolom yang dikenali:
+- No
+- Tanggal Mulai / Tanggal Selesai
+- Jam Mulai / Jam Selesai
+- Rencana Kinerja
+- Kegiatan *(wajib)*
+- Progres (%)
+- Capaian
+- Data Dukung (link Google Drive)
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Kolom tambahan akan disimpan sebagai data ekstra.
