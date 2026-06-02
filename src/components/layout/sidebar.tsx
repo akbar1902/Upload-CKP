@@ -29,15 +29,11 @@ interface NavItem {
 const pegawaiNav: NavItem[] = [
   { href: '/pegawai',        label: 'Dashboard',  icon: LayoutDashboard, emoji: '🏠' },
   { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload,          emoji: '📤' },
-  { href: '#analytics',      label: 'Analytics',  icon: BarChart3,       emoji: '📊' },
-  { href: '#settings',       label: 'Settings',   icon: Settings,        emoji: '⚙' },
 ];
 
 const pimpinanNav: NavItem[] = [
   { href: '/pimpinan',         label: 'Dashboard',    icon: LayoutDashboard, emoji: '🏠' },
   { href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users,           emoji: '👥' },
-  { href: '#analytics',        label: 'Analytics',    icon: BarChart3,       emoji: '📊' },
-  { href: '#settings',         label: 'Settings',     icon: Settings,        emoji: '⚙' },
 ];
 
 const SIDEBAR_EXPANDED = 260;

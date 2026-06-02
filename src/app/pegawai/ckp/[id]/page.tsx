@@ -5,56 +5,327 @@ import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { Header } from '@/components/layout/header';
-import { UploadStatusBadge } from '@/components/dashboard/upload-status-badge';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
-  ArrowLeft,
-  Download,
-  Upload,
-  Calendar,
-  Clock,
-  FileText,
-  BarChart3,
-  MessageSquare,
-  RefreshCw,
+  ArrowLeft, Download, FileText, MessageSquare,
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import Link from 'next/link';
 
+// ── Helpers ────────────────────────────────────────────────
+const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
+                        'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+const WEEKDAYS   = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+const ACTIVITY_COLORS = [
+  { bg: '#EFF6FF', icon: '#2563EB' },
+  { bg: '#F5F3FF', icon: '#7C3AED' },
+  { bg: '#FFF7ED', icon: '#EA580C' },
+  { bg: '#F0FDF4', icon: '#16A34A' },
+  { bg: '#FFF1F2', icon: '#E11D48' },
+  { bg: '#ECFDF5', icon: '#059669' },
+  { bg: '#FFFBEB', icon: '#D97706' },
+  { bg: '#F0F9FF', icon: '#0284C7' },
+];
+function getActivityColor(idx: number) {
+  return ACTIVITY_COLORS[idx % ACTIVITY_COLORS.length];
+}
+
+function getProgressClass(pct: number): string {
+  if (pct >= 100) return 'progress-green';
+  if (pct >= 71)  return 'progress-orange';
+  if (pct >= 31)  return 'progress-blue';
+  return 'progress-gray';
+}
+
+// ── Upload status badge ────────────────────────────────────
+const STATUS_CFG = {
+  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
+  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '🟢' },
+  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '🔴' },
+  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '🟠' },
+  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '⚪' },
+} as const;
+
+function UploadBadge({ status }: { status: string }) {
+  const cfg = STATUS_CFG[status as keyof typeof STATUS_CFG] ?? { label: status, cls: 'badge-draft', dot: '⚪' };
+  return (
+    <span className={`badge-pill ${cfg.cls}`} role="status" aria-label={cfg.label}>
+      <span aria-hidden="true">{cfg.dot}</span> {cfg.label}
+    </span>
+  );
+}
+
+// Entry-level status badge
+function EntryStatusBadge({ progres }: { progres: number }) {
+  if (progres >= 100) return (
+    <span className="badge-pill badge-approved" role="status">● Completed</span>
+  );
+  if (progres > 0) return (
+    <span className="badge-pill" style={{ background: '#EFF6FF', color: '#1D4ED8' }} role="status">● In Progress</span>
+  );
+  return (
+    <span className="badge-pill badge-draft" role="status">● Pending</span>
+  );
+}
+
+// ── KPI Card ───────────────────────────────────────────────
+function KPICard({ emoji, value, label, sub, iconBg }: {
+  emoji: string; value: string | number; label: string; sub?: string; iconBg: string;
+}) {
+  return (
+    <div className="kpi-card p-5 flex items-start gap-4">
+      <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+           style={{ background: iconBg }}>
+        {emoji}
+      </div>
+      <div className="min-w-0">
+        <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
+          {value}
+        </p>
+        <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
+        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+// ── Entry Activity Card ────────────────────────────────────
+function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const dt = entry.tanggal_mulai ? new Date(entry.tanggal_mulai) : null;
+  const day      = dt ? dt.getDate() : '—';
+  const monthAbbr = entry.tanggal_mulai
+    ? MONTH_ABBR[new Date(entry.tanggal_mulai).getMonth() + 1] ?? '—'
+    : '—';
+  const yearNum = dt ? dt.getFullYear() : '';
+  const weekday = dt ? WEEKDAYS[dt.getDay()] : '';
+
+  const pct = Math.min(entry.progres || 0, 100);
+  const progressClass = getProgressClass(pct);
+  const color = getActivityColor(index);
+
+  return (
+    <div className="activity-card" aria-expanded={expanded}>
+      {/* ── Main row ─────────────────────────────── */}
+      <div className="flex items-start gap-4 p-5">
+
+        {/* Date block */}
+        <div className="date-block hidden sm:flex flex-shrink-0">
+          <span className="day">{day}</span>
+          <span className="month">{monthAbbr} {yearNum}</span>
+          <span className="weekday">{weekday}</span>
+        </div>
+
+        {/* Activity icon + content */}
+        <div className="flex items-start gap-3 flex-1 min-w-0">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
+            style={{ background: color.bg, border: `1px solid ${color.icon}22` }}
+            aria-hidden="true"
+          >
+            <FileText size={18} style={{ color: color.icon }} />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            {/* Rencana Kinerja */}
+            <p className="text-[11px] font-semibold uppercase tracking-wider mb-0.5"
+               style={{ color: 'var(--text-secondary)' }}>
+              Rencana Kinerja
+            </p>
+            <p className="text-[14px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+              {entry.rencana_kinerja || '—'}
+            </p>
+
+            {/* Kegiatan */}
+            <p className="text-[11px] font-semibold uppercase tracking-wider mt-2 mb-0.5"
+               style={{ color: 'var(--text-secondary)' }}>
+              Kegiatan
+            </p>
+            <p className="text-[13px] font-semibold" style={{ color: color.icon }}>
+              {entry.kegiatan || '—'}
+            </p>
+
+            {/* Capaian preview */}
+            {entry.capaian && (
+              <p className="text-[12px] mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
+                {entry.capaian}
+              </p>
+            )}
+
+            {/* Mobile date */}
+            <p className="text-[11px] mt-1 sm:hidden" style={{ color: 'var(--text-secondary)' }}>
+              {formatDate(entry.tanggal_mulai)}
+              {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0 hidden md:flex" style={{ minWidth: 120 }}>
+          <p className="text-[11px] font-semibold uppercase tracking-wider"
+             style={{ color: 'var(--text-secondary)' }}>Progres</p>
+          <div className="flex items-center gap-2 w-full justify-end">
+            <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
+              <div
+                className={`h-full rounded-full progress-bar ${progressClass}`}
+                style={{ width: `${pct}%` }}
+                role="progressbar"
+                aria-valuenow={pct}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              />
+            </div>
+            <span className="text-[13px] font-bold tabular-nums"
+                  style={{ color: 'var(--text-primary)', minWidth: 36, textAlign: 'right' }}>
+              {pct}%
+            </span>
+          </div>
+        </div>
+
+        {/* Status + Bukti Dukung + expand */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-right mb-1"
+               style={{ color: 'var(--text-secondary)' }}>Status</p>
+            <EntryStatusBadge progres={pct} />
+          </div>
+
+          {entry.data_dukung && (
+            <div className="text-right">
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
+              <DataDukungLink value={entry.data_dukung} />
+            </div>
+          )}
+
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#F1F5F9'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
+          >
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Expanded detail ─────────────────────────── */}
+      {expanded && (
+        <div
+          className="card-expanded-content border-t px-5 py-4"
+          style={{ borderColor: 'var(--border)', background: '#FAFBFC' }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>Tanggal</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                {formatDate(entry.tanggal_mulai)}
+                {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
+                  <> – {formatDate(entry.tanggal_selesai)}</>
+                )}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>Waktu</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                {formatTime(entry.jam_mulai)} – {formatTime(entry.jam_selesai)}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>Progres</p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F1F5F9', maxWidth: 80 }}>
+                  <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
+                </div>
+                <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>No. Baris</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>#{entry.row_number}</p>
+            </div>
+          </div>
+          {entry.capaian && (
+            <div className="mt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
+                 style={{ color: 'var(--text-secondary)' }}>Capaian Lengkap</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{entry.capaian}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Skeleton ───────────────────────────────────────────────
+function EntryCardSkeleton() {
+  return (
+    <div className="activity-card p-5">
+      <div className="flex items-start gap-4">
+        <div className="skeleton w-16 h-20 rounded-xl hidden sm:block flex-shrink-0" />
+        <div className="flex items-start gap-3 flex-1">
+          <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <div className="skeleton h-3 w-24 rounded" />
+            <div className="skeleton h-4 w-48 rounded" />
+            <div className="skeleton h-3 w-20 rounded" />
+            <div className="skeleton h-4 w-36 rounded" />
+          </div>
+        </div>
+        <div className="flex flex-col gap-2 items-end hidden md:flex">
+          <div className="skeleton h-3 w-14 rounded" />
+          <div className="skeleton h-2.5 w-28 rounded-full" />
+        </div>
+        <div className="flex flex-col gap-2 items-end">
+          <div className="skeleton h-6 w-24 rounded-full" />
+          <div className="skeleton h-6 w-6 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────
 export default function CKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [upload, setUpload] = useState<CKPUpload | null>(null);
-  const [entries, setEntries] = useState<CKPEntry[]>([]);
+  const [upload, setUpload]       = useState<CKPUpload | null>(null);
+  const [entries, setEntries]     = useState<CKPEntry[]>([]);
   const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading]     = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-
       const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
         supabase.from('ckp_uploads').select('*').eq('id', id).single(),
         supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number'),
         supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }),
       ]);
-
       setUpload(uploadRes.data as CKPUpload);
       setEntries(entriesRes.data as CKPEntry[] || []);
       setApprovals((approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-        ...a,
-        reviewer: a.reviewer as User | undefined,
+        ...a, reviewer: a.reviewer as User | undefined,
       })) as Approval[]);
       setLoading(false);
     };
@@ -67,14 +338,38 @@ export default function CKPDetailPage() {
     toast.success('File Excel berhasil diunduh');
   };
 
+  // Filter + pagination
+  const filteredEntries = useMemo(() => {
+    if (!searchQuery.trim()) return entries;
+    const q = searchQuery.toLowerCase();
+    return entries.filter(e =>
+      e.kegiatan?.toLowerCase().includes(q) ||
+      e.rencana_kinerja?.toLowerCase().includes(q) ||
+      e.capaian?.toLowerCase().includes(q)
+    );
+  }, [entries, searchQuery]);
+
+  const totalPages  = Math.ceil(filteredEntries.length / PAGE_SIZE);
+  const pagedEntries = filteredEntries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const completedCount   = entries.filter(e => e.progres >= 100).length;
+  const dataDukungCount  = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
+  const avgPct           = Math.min(upload?.avg_progres || 0, 100);
+
+  // Loading
   if (loading) {
     return (
       <>
         <Header />
-        <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-32 rounded-xl" />
-          <Skeleton className="h-64 rounded-xl" />
+        <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6">
+          <div className="skeleton h-4 w-32 rounded" />
+          <div className="skeleton h-12 w-64 rounded-xl" />
+          <div className="grid grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <div key={i} className="skeleton h-28 rounded-2xl" />)}
+          </div>
+          <div className="space-y-3">
+            {[...Array(4)].map((_, i) => <EntryCardSkeleton key={i} />)}
+          </div>
         </div>
       </>
     );
@@ -84,208 +379,235 @@ export default function CKPDetailPage() {
     return (
       <>
         <Header />
-        <div className="p-4 lg:p-8 max-w-5xl mx-auto text-center py-20">
+        <div className="p-5 lg:p-8 max-w-6xl mx-auto text-center py-20">
           <p className="text-slate-500">CKP tidak ditemukan.</p>
-          <Button variant="outline" className="mt-4" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" /> Kembali
-          </Button>
+          <button onClick={() => router.back()} className="btn-secondary mt-4">
+            <ArrowLeft size={14} /> Kembali
+          </button>
         </div>
       </>
     );
   }
 
   const canReupload = upload.status === 'draft' || upload.status === 'revision_required';
+  const bulanNama   = getBulanName(upload.bulan);
 
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        {/* Back */}
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Kembali
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+
+        {/* ── Back ──────────────────────────────────── */}
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 text-[13px] font-medium transition-colors"
+          style={{ color: 'var(--text-secondary)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
+        >
+          <ArrowLeft size={14} /> Kembali
         </button>
 
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        {/* ── Page header ───────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-2xl font-bold text-slate-900">
-                CKP {getBulanName(upload.bulan)} {upload.tahun}
+            {/* Breadcrumb */}
+            <p className="text-[12px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+              Dashboard &rsaquo; CKP &rsaquo; {bulanNama} {upload.tahun}
+            </p>
+
+            {/* Title + status */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-4xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                CKP {bulanNama} {upload.tahun}
               </h2>
-              <UploadStatusBadge status={upload.status} />
-              {upload.version > 1 && <Badge variant="outline">v{upload.version}</Badge>}
+              <UploadBadge status={upload.status} />
+              {upload.version > 1 && (
+                <span className="badge-pill badge-draft">v{upload.version}</span>
+              )}
             </div>
-            <p className="text-sm text-slate-500 mt-1">
-              Diupload {formatDateTime(upload.uploaded_at)}
+
+            {/* Meta */}
+            <p className="text-[13px] mt-2" style={{ color: 'var(--text-secondary)' }}>
+              Diupload: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                {formatDateTime(upload.uploaded_at)}
+              </span>
+              {upload.approved_at && (
+                <> · Terakhir diperbarui: <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
+                  {formatDateTime(upload.approved_at)}
+                </span></>
+              )}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport}>
-              <Download className="h-4 w-4" /> Export Excel
-            </Button>
+
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={handleExport} className="btn-primary">
+              <Download size={14} /> Export Excel
+            </button>
             {canReupload && (
               <Link href="/pegawai/upload">
-                <Button variant="warning" size="sm">
-                  <RefreshCw className="h-4 w-4" /> Upload Ulang
-                </Button>
+                <button className="btn-secondary"
+                        style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+                  <RefreshCw size={14} /> Upload Ulang
+                </button>
               </Link>
             )}
           </div>
         </div>
 
-        {/* Catatan pimpinan */}
+        {/* ── Catatan pimpinan ──────────────────────── */}
         {upload.catatan_pimpinan && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 border border-blue-200" role="alert">
-            <MessageSquare className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div
+            className="flex items-start gap-3 p-4 rounded-2xl"
+            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}
+            role="alert"
+          >
+            <MessageSquare size={16} style={{ color: '#2563EB', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <p className="text-sm font-medium text-blue-800">Catatan Pimpinan</p>
-              <p className="text-sm text-blue-700 mt-1">{upload.catatan_pimpinan}</p>
+              <p className="text-[13px] font-semibold" style={{ color: '#1E40AF' }}>Catatan Pimpinan</p>
+              <p className="text-[13px] mt-0.5" style={{ color: '#1D4ED8' }}>{upload.catatan_pimpinan}</p>
             </div>
           </div>
         )}
 
-        {/* Alert for rejected status */}
+        {/* Rejected alert */}
         {upload.status === 'rejected' && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200" role="alert">
-            <ArrowLeft className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+          <div
+            className="flex items-start gap-3 p-4 rounded-2xl"
+            style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
+            role="alert"
+          >
+            <div className="text-lg" aria-hidden="true">🔴</div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">CKP Ini Ditolak</p>
-              <p className="text-sm text-red-600 mt-0.5">CKP Anda telah ditolak. Silakan upload ulang setelah diperbaiki.</p>
+              <p className="text-[13px] font-semibold" style={{ color: '#991B1B' }}>CKP Ini Ditolak</p>
+              <p className="text-[12px] mt-0.5" style={{ color: '#B91C1C' }}>
+                CKP Anda telah ditolak. Silakan upload ulang setelah diperbaiki.
+              </p>
             </div>
             <Link href="/pegawai/upload">
-              <Button variant="destructive" size="sm">Upload Ulang</Button>
+              <button className="btn-primary text-[12px] py-1.5 px-3"
+                      style={{ background: '#DC2626' }}>Upload Ulang</button>
             </Link>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-50">
-                <FileText className="h-4 w-4 text-blue-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{upload.total_entries}</p>
-                <p className="text-xs text-slate-500">Total Kegiatan</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-emerald-50">
-                <BarChart3 className="h-4 w-4 text-emerald-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{(upload.avg_progres || 0).toFixed(0)}%</p>
-                <p className="text-xs text-slate-500">Rata-rata Progres</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-50">
-                <Calendar className="h-4 w-4 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-slate-900">{upload.version}</p>
-                <p className="text-xs text-slate-500">Versi</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-purple-50">
-                <Clock className="h-4 w-4 text-purple-500" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-slate-900 truncate">{upload.file_name || '-'}</p>
-                <p className="text-xs text-slate-500">File</p>
-              </div>
-            </div>
-          </Card>
+        {/* ── KPI Cards ─────────────────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+          <KPICard emoji="📄" value={upload.total_entries} label="Total Kegiatan"
+            sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
+          <KPICard emoji="📈" value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
+            sub="Rata-rata dari seluruh kegiatan" iconBg="#F0FDF4" />
+          <KPICard emoji="✅" value={completedCount} label="Completed"
+            sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
+          <KPICard emoji="📁" value={dataDukungCount} label="Dokumen Pendukung"
+            sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
         </div>
 
-        {/* Entries Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-slate-400" />
-              Detail Kegiatan
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="w-full text-sm" style={{ tableLayout: 'auto' }}>
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap w-10">No</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Tanggal</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap hidden sm:table-cell">Jam</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 hidden md:table-cell">Rencana Kinerja</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500">Kegiatan</th>
-                    <th scope="col" className="text-center py-3 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap w-24">Progres</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 hidden lg:table-cell">Capaian</th>
-                    <th scope="col" className="text-left py-3 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Bukti Dukung</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {entries.map((entry) => (
-                    <tr key={entry.id} className="border-b border-slate-100 hover:bg-slate-50/60 transition-colors">
-                      <td className="py-3 px-3 text-slate-400 text-center text-xs">{entry.row_number}</td>
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="text-xs text-slate-700">{formatDate(entry.tanggal_mulai)}</div>
-                        {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
-                          <div className="text-xs text-slate-400 mt-0.5">s.d. {formatDate(entry.tanggal_selesai)}</div>
-                        )}
-                      </td>
-                      <td className="py-3 px-3 whitespace-nowrap text-xs text-slate-500 hidden sm:table-cell">
-                        {formatTime(entry.jam_mulai)} – {formatTime(entry.jam_selesai)}
-                      </td>
-                      <td className="py-3 px-3 text-xs text-slate-600 leading-relaxed hidden md:table-cell">
-                        {entry.rencana_kinerja || '—'}
-                      </td>
-                      <td className="py-3 px-3 text-xs text-slate-800 leading-relaxed">
-                        {entry.kegiatan || '—'}
-                      </td>
-                      <td className="py-3 px-3 text-center">
-                        <div className="inline-flex items-center gap-1.5">
-                          <div className="w-14 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full progress-bar"
-                              style={{ width: `${Math.min(entry.progres, 100)}%` }}
-                            />
-                          </div>
-                          <span className="text-xs font-semibold text-slate-600 tabular-nums">{entry.progres}%</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-3 text-xs text-slate-600 leading-relaxed hidden lg:table-cell">
-                        {entry.capaian || '—'}
-                      </td>
-                      <td className="py-3 px-3">
-                        <DataDukungLink value={entry.data_dukung} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* ── Daftar Kegiatan ───────────────────────── */}
+        <div>
+          {/* Section header */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+            <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              Daftar Kegiatan
+            </h3>
+            <div className="filter-bar">
+              <div className="search-input">
+                <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                <input
+                  type="search"
+                  placeholder="Cari kegiatan..."
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  aria-label="Cari kegiatan"
+                />
+              </div>
+              <button className="filter-btn" aria-label="Filter">
+                <SlidersHorizontal size={13} /> Filter
+              </button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
+          {/* Entry cards */}
+          {pagedEntries.length === 0 ? (
+            <div
+              className="flex flex-col items-center justify-center py-16 text-center rounded-2xl"
+              style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
+            >
+              <div className="text-3xl mb-3">📂</div>
+              <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                {searchQuery ? 'Tidak ada kegiatan ditemukan' : 'Belum ada kegiatan'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 card-list">
+              {pagedEntries.map((entry, i) => (
+                <EntryCard key={entry.id} entry={entry} index={(currentPage - 1) * PAGE_SIZE + i} />
+              ))}
+            </div>
+          )}
 
-        {/* Approval History */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="h-5 w-5 text-slate-400" />
-              Riwayat Review
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-6 pt-4"
+                 style={{ borderTop: '1px solid var(--border)' }}>
+              <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                Menampilkan {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredEntries.length)} dari {filteredEntries.length} kegiatan
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  aria-label="Halaman sebelumnya"
+                >‹</button>
+                {[...Array(totalPages)].map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-medium transition-colors"
+                    style={{
+                      background: currentPage === i + 1 ? 'var(--primary)' : 'transparent',
+                      color: currentPage === i + 1 ? '#fff' : 'var(--text-secondary)',
+                      border: `1px solid ${currentPage === i + 1 ? 'var(--primary)' : 'var(--border)'}`,
+                    }}
+                    aria-label={`Halaman ${i + 1}`}
+                    aria-current={currentPage === i + 1 ? 'page' : undefined}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
+                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
+                  aria-label="Halaman berikutnya"
+                >›</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ── Riwayat Review ────────────────────────── */}
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+        >
+          <div className="px-5 py-4" style={{ borderBottom: '1px solid var(--border)' }}>
+            <div className="flex items-center gap-2">
+              <MessageSquare size={16} style={{ color: 'var(--text-secondary)' }} />
+              <h4 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Riwayat Review
+              </h4>
+            </div>
+          </div>
+          <div className="px-5 py-4">
             <ApprovalHistory approvals={approvals} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
       </div>
     </>
   );

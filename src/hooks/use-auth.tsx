@@ -156,7 +156,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, 3000);
 
     try {
-      await supabase.auth.signOut({ scope: 'local' });
+      await supabase.auth.signOut();
     } catch (err) {
       console.warn('[Auth] SignOut error:', err);
     }
