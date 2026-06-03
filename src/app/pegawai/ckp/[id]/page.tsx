@@ -12,7 +12,7 @@ import { exportToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Download, FileText, MessageSquare,
+  ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
   RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -75,14 +75,14 @@ function EntryStatusBadge({ progres }: { progres: number }) {
 }
 
 // ── KPI Card ───────────────────────────────────────────────
-function KPICard({ emoji, value, label, sub, iconBg }: {
-  emoji: string; value: string | number; label: string; sub?: string; iconBg: string;
+function KPICard({ icon, value, label, sub, iconBg }: {
+  icon: React.ReactNode; value: string | number; label: string; sub?: string; iconBg: string;
 }) {
   return (
     <div className="kpi-card p-5 flex items-start gap-4">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
            style={{ background: iconBg }}>
-        {emoji}
+        {icon}
       </div>
       <div className="min-w-0">
         <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
@@ -117,60 +117,42 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
       <div className="flex items-start gap-4 p-5">
 
         {/* Date block */}
-        <div className="date-block hidden sm:flex flex-shrink-0">
-          <span className="day">{day}</span>
-          <span className="month">{monthAbbr} {yearNum}</span>
-          <span className="weekday">{weekday}</span>
+        <div className="hidden sm:flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-xl w-16 h-16 flex-shrink-0 text-center shadow-sm">
+          <span className="text-xl font-bold text-slate-700 leading-none">{day}</span>
+          <span className="text-[10px] font-semibold text-slate-500 uppercase mt-1 tracking-widest">{monthAbbr}</span>
         </div>
 
-        {/* Activity icon + content */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-            style={{ background: color.bg, border: `1px solid ${color.icon}22` }}
-            aria-hidden="true"
-          >
-            <FileText size={18} style={{ color: color.icon }} />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            {/* Rencana Kinerja */}
-            <p className="text-[11px] font-semibold uppercase tracking-wider mb-0.5"
-               style={{ color: 'var(--text-secondary)' }}>
-              Rencana Kinerja
-            </p>
-            <p className="text-[14px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>
+        {/* Content */}
+        <div className="flex flex-col flex-1 min-w-0 justify-center">
+          <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-x-4 gap-y-2 mb-2">
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Rencana Kinerja</p>
+            <p className="text-[14px] font-semibold text-slate-800 leading-snug">
               {entry.rencana_kinerja || '—'}
             </p>
 
-            {/* Kegiatan */}
-            <p className="text-[11px] font-semibold uppercase tracking-wider mt-2 mb-0.5"
-               style={{ color: 'var(--text-secondary)' }}>
-              Kegiatan
-            </p>
-            <p className="text-[13px] font-semibold" style={{ color: color.icon }}>
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Kegiatan</p>
+            <p className="text-[13px] text-slate-700">
               {entry.kegiatan || '—'}
             </p>
 
-            {/* Capaian preview */}
-            {entry.capaian && (
-              <p className="text-[12px] mt-1 line-clamp-2" style={{ color: 'var(--text-secondary)' }}>
-                {entry.capaian}
-              </p>
-            )}
-
-            {/* Mobile date */}
-            <p className="text-[11px] mt-1 sm:hidden" style={{ color: 'var(--text-secondary)' }}>
-              {formatDate(entry.tanggal_mulai)}
-              {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Capaian</p>
+            <p className="text-[13px] text-slate-700 whitespace-pre-wrap">
+              {entry.capaian || '—'}
             </p>
           </div>
+          
+          {/* Mobile date */}
+          <p className="text-[11px] mt-2 sm:hidden text-slate-500 font-medium">
+            {formatDate(entry.tanggal_mulai)}
+            {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
+          </p>
         </div>
 
         {/* Progress */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0 hidden md:flex" style={{ minWidth: 120 }}>
-          <p className="text-[11px] font-semibold uppercase tracking-wider"
-             style={{ color: 'var(--text-secondary)' }}>Progres</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+            Progres
+          </p>
           <div className="flex items-center gap-2 w-full justify-end">
             <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
               <div
@@ -182,21 +164,15 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
                 aria-valuemax={100}
               />
             </div>
-            <span className="text-[13px] font-bold tabular-nums"
-                  style={{ color: 'var(--text-primary)', minWidth: 36, textAlign: 'right' }}>
+            <span className="text-[13px] font-bold tabular-nums" style={{ color: 'var(--text-primary)', minWidth: 36, textAlign: 'right' }}>
               {pct}%
             </span>
           </div>
         </div>
 
-        {/* Status + Bukti Dukung + expand */}
+        {/* Bukti Dukung + expand */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-right mb-1"
-               style={{ color: 'var(--text-secondary)' }}>Status</p>
-            <EntryStatusBadge progres={pct} />
-          </div>
-
+          {/* Bukti dukung */}
           {entry.data_dukung && (
             <div className="text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
@@ -205,6 +181,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
           )}
 
+          {/* Expand toggle */}
           <button
             onClick={() => setExpanded(e => !e)}
             className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
@@ -244,7 +221,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Progres</p>
+                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F1F5F9', maxWidth: 80 }}>
                   <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
@@ -258,12 +235,10 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>#{entry.row_number}</p>
             </div>
           </div>
-          {entry.capaian && (
-            <div className="mt-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Capaian Lengkap</p>
-              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{entry.capaian}</p>
-            </div>
+          {!entry.data_dukung && (
+            <p className="text-[12px] mt-3 italic" style={{ color: 'var(--text-secondary)' }}>
+              Tidak ada bukti dukung.
+            </p>
           )}
         </div>
       )}
@@ -271,7 +246,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
   );
 }
 
-// ── Skeleton ───────────────────────────────────────────────
+// ── Skeleton entry card ────────────────────────────────────
 function EntryCardSkeleton() {
   return (
     <div className="activity-card p-5">
@@ -292,7 +267,7 @@ function EntryCardSkeleton() {
         </div>
         <div className="flex flex-col gap-2 items-end">
           <div className="skeleton h-6 w-24 rounded-full" />
-          <div className="skeleton h-6 w-6 rounded-lg" />
+          <div className="skeleton h-6 w-16 rounded-lg" />
         </div>
       </div>
     </div>
@@ -311,8 +286,8 @@ export default function CKPDetailPage() {
   const [approvals, setApprovals] = useState<Approval[]>([]);
   const [loading, setLoading]     = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  
+  
 
   useEffect(() => {
     const fetchData = async () => {
@@ -349,8 +324,8 @@ export default function CKPDetailPage() {
     );
   }, [entries, searchQuery]);
 
-  const totalPages  = Math.ceil(filteredEntries.length / PAGE_SIZE);
-  const pagedEntries = filteredEntries.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  
+  const pagedEntries = filteredEntries;
 
   const completedCount   = entries.filter(e => e.progres >= 100).length;
   const dataDukungCount  = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
@@ -494,13 +469,13 @@ export default function CKPDetailPage() {
 
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
-          <KPICard emoji="📄" value={upload.total_entries} label="Total Kegiatan"
+          <KPICard icon={<FileText size={18} style={{ color: "#2563EB" }} />} value={upload.total_entries} label="Total Kegiatan"
             sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
-          <KPICard emoji="📈" value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
+          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
             sub="Rata-rata dari seluruh kegiatan" iconBg="#F0FDF4" />
-          <KPICard emoji="✅" value={completedCount} label="Completed"
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={completedCount} label="Completed"
             sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
-          <KPICard emoji="📁" value={dataDukungCount} label="Dokumen Pendukung"
+          <KPICard icon={<Folder size={18} style={{ color: "#7C3AED" }} />} value={dataDukungCount} label="Dokumen Pendukung"
             sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
         </div>
 
@@ -518,7 +493,7 @@ export default function CKPDetailPage() {
                   type="search"
                   placeholder="Cari kegiatan..."
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                  onChange={(e) => { setSearchQuery(e.target.value);  }}
                   aria-label="Cari kegiatan"
                 />
               </div>
@@ -542,52 +517,11 @@ export default function CKPDetailPage() {
           ) : (
             <div className="space-y-3 card-list">
               {pagedEntries.map((entry, i) => (
-                <EntryCard key={entry.id} entry={entry} index={(currentPage - 1) * PAGE_SIZE + i} />
+                <EntryCard key={entry.id} entry={entry} index={i} />
               ))}
             </div>
           )}
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-4"
-                 style={{ borderTop: '1px solid var(--border)' }}>
-              <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-                Menampilkan {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, filteredEntries.length)} dari {filteredEntries.length} kegiatan
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-                  aria-label="Halaman sebelumnya"
-                >‹</button>
-                {[...Array(totalPages)].map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrentPage(i + 1)}
-                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-medium transition-colors"
-                    style={{
-                      background: currentPage === i + 1 ? 'var(--primary)' : 'transparent',
-                      color: currentPage === i + 1 ? '#fff' : 'var(--text-secondary)',
-                      border: `1px solid ${currentPage === i + 1 ? 'var(--primary)' : 'var(--border)'}`,
-                    }}
-                    aria-label={`Halaman ${i + 1}`}
-                    aria-current={currentPage === i + 1 ? 'page' : undefined}
-                  >
-                    {i + 1}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors disabled:opacity-40"
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-secondary)' }}
-                  aria-label="Halaman berikutnya"
-                >›</button>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ── Riwayat Review ────────────────────────── */}

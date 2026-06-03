@@ -178,14 +178,14 @@ function PegawaiCardSkeleton() {
 
 // ─── KPI Card ──────────────────────────────────────────────
 interface KPICardProps {
-  emoji: string;
+  icon: React.ReactNode;
   value: string | number;
   label: string;
   sub?: string;
   iconBg: string;
   loading?: boolean;
 }
-function KPICard({ emoji, value, label, sub, iconBg, loading }: KPICardProps) {
+function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardProps) {
   return (
     <div className="kpi-card p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ function KPICard({ emoji, value, label, sub, iconBg, loading }: KPICardProps) {
         </p>
         <div className="w-9 h-9 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
              style={{ background: iconBg }}>
-          {emoji}
+          {icon}
         </div>
       </div>
       {loading
@@ -431,10 +431,10 @@ export default function PimpinanDashboard() {
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard emoji="👥" value={totalPegawai}    label="Total Pegawai"     sub="Aktif terdaftar" iconBg="#EFF6FF" loading={loading} />
-          <KPICard emoji="⏳" value={pendingCount}    label="Menunggu Review"   sub="Perlu diproses"  iconBg="#FFFBEB" loading={loading} />
-          <KPICard emoji="✅" value={approvedCount}   label="Disetujui"         sub="Bulan ini"       iconBg="#F0FDF4" loading={loading} />
-          <KPICard emoji="📈" value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini"  iconBg="#F5F3FF" loading={loading} />
+          <KPICard icon={<Users size={18} style={{ color: "#2563EB" }} />} value={totalPegawai}    label="Total Pegawai"     sub="Aktif terdaftar" iconBg="#EFF6FF" loading={loading} />
+          <KPICard icon={<Clock size={18} style={{ color: "#D97706" }} />} value={pendingCount}    label="Menunggu Review"   sub="Perlu diproses"  iconBg="#FFFBEB" loading={loading} />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={approvedCount}   label="Disetujui"         sub="Bulan ini"       iconBg="#F0FDF4" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini"  iconBg="#F5F3FF" loading={loading} />
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}

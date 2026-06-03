@@ -23,17 +23,17 @@ interface NavItem {
   href: string;
   label: string;
   icon: React.ElementType;
-  emoji: string;
+  
 }
 
 const pegawaiNav: NavItem[] = [
-  { href: '/pegawai',        label: 'Dashboard',  icon: LayoutDashboard, emoji: '🏠' },
-  { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload,          emoji: '📤' },
+  { href: '/pegawai',        label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload },
 ];
 
 const pimpinanNav: NavItem[] = [
-  { href: '/pimpinan',         label: 'Dashboard',    icon: LayoutDashboard, emoji: '🏠' },
-  { href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users,           emoji: '👥' },
+  { href: '/pimpinan',         label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users },
 ];
 
 const SIDEBAR_EXPANDED = 260;
@@ -68,16 +68,7 @@ export function Sidebar() {
     .join('')
     .toUpperCase() || 'U';
 
-  const AVATAR_GRADIENTS = [
-    'linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%)',
-    'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
-    'linear-gradient(135deg, #059669 0%, #0EA5E9 100%)',
-    'linear-gradient(135deg, #DB2777 0%, #9333EA 100%)',
-    'linear-gradient(135deg, #EA580C 0%, #EAB308 100%)',
-    'linear-gradient(135deg, #0F766E 0%, #2563EB 100%)',
-    'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)',
-    'linear-gradient(135deg, #1D4ED8 0%, #0E7490 100%)',
-  ];
+  const AVATAR_GRADIENTS = ['#1E293B'];
   const avatarGrad = AVATAR_GRADIENTS[
     ((user?.full_name?.charCodeAt(0) || 0) + (user?.full_name?.charCodeAt(1) || 0)) % AVATAR_GRADIENTS.length
   ];
@@ -200,9 +191,7 @@ export function Sidebar() {
                 }
               }}
             >
-              <span className="text-base flex-shrink-0" aria-hidden="true">
-                {item.emoji}
-              </span>
+              <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
               {!collapsed && active && (
                 <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true" />
@@ -301,7 +290,7 @@ export function Sidebar() {
         )}
         style={{
           width: SIDEBAR_EXPANDED,
-          background: 'linear-gradient(180deg, #0F172A 0%, #1E293B 100%)',
+          background: '#0F172A',
           borderRight: '1px solid rgba(255,255,255,0.06)',
         }}
       >
@@ -323,7 +312,7 @@ export function Sidebar() {
         className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-30"
         style={{
           width: sidebarW,
-          background: 'linear-gradient(180deg, #0F172A 0%, #1A2744 50%, #1E293B 100%)',
+          background: '#0F172A',
           borderRight: '1px solid rgba(255,255,255,0.05)',
           transition: 'width 0.2s ease',
         }}

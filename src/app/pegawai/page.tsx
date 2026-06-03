@@ -8,7 +8,7 @@ import { Header } from '@/components/layout/header';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import {
-  FileText, Plus, AlertTriangle, XCircle, Search,
+  FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
   ChevronUp, ArrowRight, Upload, FileCheck,
 } from 'lucide-react';
@@ -49,14 +49,14 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── KPI Card ───────────────────────────────────────────────
 interface KPICardProps {
-  emoji: string;
+  icon: React.ReactNode;
   value: string | number;
   label: string;
   sub?: string;
   iconBg: string;
   loading?: boolean;
 }
-function KPICard({ emoji, value, label, sub, iconBg, loading }: KPICardProps) {
+function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardProps) {
   return (
     <div className="kpi-card p-6 flex flex-col gap-3">
       <div className="flex items-center justify-between">
@@ -67,7 +67,7 @@ function KPICard({ emoji, value, label, sub, iconBg, loading }: KPICardProps) {
           className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
           style={{ background: iconBg }}
         >
-          {emoji}
+          {icon}
         </div>
       </div>
       {loading
@@ -395,10 +395,10 @@ export default function PegawaiDashboard() {
 
   // KPI cards config
   const kpiCards = [
-    { emoji: '📄', value: stats.total,       label: 'Total Upload',      sub: 'semua periode',        iconBg: '#EFF6FF' },
-    { emoji: '📈', value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: '#F0FDF4' },
-    { emoji: '✅', value: stats.approved,    label: 'Disetujui',         sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
-    { emoji: '⏳', value: stats.pending,     label: 'Menunggu Review',   sub: 'belum diproses',       iconBg: '#FFFBEB' },
+    { icon: <FileText size={18} style={{ color: "#2563EB" }} />, value: stats.total,       label: 'Total Upload',      sub: 'semua periode',        iconBg: '#EFF6FF' },
+    { icon: <TrendingUp size={18} style={{ color: "#16A34A" }} />, value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: '#F0FDF4' },
+    { icon: <CheckCircle2 size={18} style={{ color: "#059669" }} />, value: stats.approved,    label: 'Disetujui',         sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
+    { icon: <Clock size={18} style={{ color: "#D97706" }} />, value: stats.pending,     label: 'Menunggu Review',   sub: 'belum diproses',       iconBg: '#FFFBEB' },
   ];
 
   return (

@@ -13,7 +13,7 @@ import { exportToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Download, FileText, CheckCircle2, XCircle,
+  ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
   RefreshCw, MessageSquare, Unlock, User as UserIcon,
   Briefcase, Search, SlidersHorizontal, LayoutList,
   LayoutGrid, ChevronDown, ChevronUp,
@@ -67,14 +67,14 @@ function EntryStatusBadge({ progres }: { progres: number }) {
 }
 
 // ── KPI Card ───────────────────────────────────────────────
-function KPICard({ emoji, value, label, sub, iconBg }: {
-  emoji: string; value: string | number; label: string; sub?: string; iconBg: string;
+function KPICard({ icon, value, label, sub, iconBg }: {
+  icon: React.ReactNode; value: string | number; label: string; sub?: string; iconBg: string;
 }) {
   return (
     <div className="kpi-card p-5 flex items-start gap-4">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
            style={{ background: iconBg }}>
-        {emoji}
+        {icon}
       </div>
       <div className="min-w-0">
         <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
@@ -514,13 +514,13 @@ export default function PimpinanCKPDetailPage() {
 
         {/* ── KPI Cards (4 columns) ─────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
-          <KPICard emoji="📄" value={upload.total_entries} label="Total Kegiatan"
+          <KPICard icon={<FileText size={18} style={{ color: "#2563EB" }} />} value={upload.total_entries} label="Total Kegiatan"
             sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
-          <KPICard emoji="📈" value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
+          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
             sub="Rata-rata dari seluruh kegiatan" iconBg="#F0FDF4" />
-          <KPICard emoji="✅" value={completedCount} label="Completed"
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={completedCount} label="Completed"
             sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
-          <KPICard emoji="📁" value={dataDukungCount} label="Dokumen Pendukung"
+          <KPICard icon={<Folder size={18} style={{ color: "#7C3AED" }} />} value={dataDukungCount} label="Dokumen Pendukung"
             sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
         </div>
 
