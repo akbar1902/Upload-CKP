@@ -282,29 +282,37 @@ export default function PimpinanCKPDetailPage() {
     queryKey: ['pimpinan-ckp-detail', id],
     queryFn: async () => {
       if (!id) throw new Error("ID not found");
-      const { data: uploadData, error: uploadError } = await supabase
-        .from('ckp_uploads').select('*').eq('id', id).single();
-      
-      if (uploadError) throw new Error(uploadError.message);
-      if (!uploadData) throw new Error("Upload not found");
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
-        supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
-        supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number'),
-        supabase.from('approvals')
-          .select('*, reviewer:reviewer_id(id, full_name)')
-          .eq('upload_id', id)
-          .order('created_at', { ascending: false }),
-      ]);
+      try {
+        const { data: uploadData, error: uploadError } = await supabase
+          .from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal);
+        
+        if (uploadError) throw new Error(uploadError.message);
+        if (!uploadData) throw new Error("Upload not found");
 
-      return {
-        upload: uploadData as CKPUpload,
-        employee: employeeRes.data as User,
-        entries: (entriesRes.data as CKPEntry[]) || [],
-        approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-          ...a, reviewer: a.reviewer as User | undefined,
-        })) as Approval[],
-      };
+        const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
+          supabase.from('users').select('*').eq('id', uploadData.user_id).single().abortSignal(controller.signal),
+          supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
+          supabase.from('approvals')
+            .select('*, reviewer:reviewer_id(id, full_name)')
+            .eq('upload_id', id)
+            .order('created_at', { ascending: false })
+            .abortSignal(controller.signal),
+        ]);
+
+        return {
+          upload: uploadData as CKPUpload,
+          employee: employeeRes.data as User,
+          entries: (entriesRes.data as CKPEntry[]) || [],
+          approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+            ...a, reviewer: a.reviewer as User | undefined,
+          })) as Approval[],
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     enabled: !!id,
   });

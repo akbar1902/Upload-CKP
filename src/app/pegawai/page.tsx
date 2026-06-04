@@ -90,16 +90,25 @@ export default function PegawaiDashboard() {
     queryKey: ['pegawai-uploads', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      const { data, error } = await supabase
-        .from('ckp_uploads')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('tahun', { ascending: false })
-        .order('bulan', { ascending: false })
-        .order('uploaded_at', { ascending: false });
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (error) throw new Error(error.message);
-      return data as CKPUpload[];
+      try {
+        const { data, error } = await supabase
+          .from('ckp_uploads')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('tahun', { ascending: false })
+          .order('bulan', { ascending: false })
+          .order('uploaded_at', { ascending: false })
+          .abortSignal(controller.signal);
+
+        if (error) throw new Error(error.message);
+        return data as CKPUpload[];
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     enabled: !!user && !authLoading,
   });

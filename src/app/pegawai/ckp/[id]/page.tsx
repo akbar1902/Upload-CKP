@@ -288,21 +288,28 @@ export default function CKPDetailPage() {
     queryKey: ['ckp-detail', id],
     queryFn: async () => {
       if (!id) throw new Error("ID not found");
-      const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
-        supabase.from('ckp_uploads').select('*').eq('id', id).single(),
-        supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number'),
-        supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }),
-      ]);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (uploadRes.error) throw new Error(uploadRes.error.message);
+      try {
+        const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
+          supabase.from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal),
+          supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
+          supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(controller.signal),
+        ]);
 
-      return {
-        upload: uploadRes.data as CKPUpload,
-        entries: (entriesRes.data as CKPEntry[]) || [],
-        approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-          ...a, reviewer: a.reviewer as User | undefined,
-        })) as Approval[],
-      };
+        if (uploadRes.error) throw new Error(uploadRes.error.message);
+
+        return {
+          upload: uploadRes.data as CKPUpload,
+          entries: (entriesRes.data as CKPEntry[]) || [],
+          approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+            ...a, reviewer: a.reviewer as User | undefined,
+          })) as Approval[],
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
     },
     enabled: !!id,
   });

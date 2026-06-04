@@ -85,32 +85,41 @@ export default function PimpinanDashboard() {
   const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
-      const [uploadsRes, usersRes] = await Promise.all([
-        supabase
-          .from('ckp_uploads')
-          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-          .eq('bulan', bulan)
-          .eq('tahun', tahun)
-          .order('uploaded_at', { ascending: false }),
-        supabase
-          .from('users')
-          .select('*')
-          .eq('role', 'pegawai')
-          .eq('is_active', true)
-          .order('full_name'),
-      ]);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
-      if (usersRes.error)  throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
+      try {
+        const [uploadsRes, usersRes] = await Promise.all([
+          supabase
+            .from('ckp_uploads')
+            .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+            .eq('bulan', bulan)
+            .eq('tahun', tahun)
+            .order('uploaded_at', { ascending: false })
+            .abortSignal(controller.signal),
+          supabase
+            .from('users')
+            .select('*')
+            .eq('role', 'pegawai')
+            .eq('is_active', true)
+            .order('full_name')
+            .abortSignal(controller.signal),
+        ]);
 
-      const newUploads = (uploadsRes.data || []).map((u: Record<string, unknown>) => ({
-        ...u,
-        user: u.user as User | undefined,
-      })) as (CKPUpload & { user?: User })[];
-      
-      const newUsers = usersRes.data as User[] || [];
+        if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
+        if (usersRes.error)  throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
 
-      return { uploads: newUploads, users: newUsers };
+        const newUploads = (uploadsRes.data || []).map((u: Record<string, unknown>) => ({
+          ...u,
+          user: u.user as User | undefined,
+        })) as (CKPUpload & { user?: User })[];
+        
+        const newUsers = usersRes.data as User[] || [];
+
+        return { uploads: newUploads, users: newUsers };
+      } finally {
+        clearTimeout(timeoutId);
+      }
     }
   });
 
