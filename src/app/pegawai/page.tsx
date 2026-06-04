@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
@@ -330,38 +330,91 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
 
 // ── Main page ──────────────────────────────────────────────
 export default function PegawaiDashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, ensureSession } = useAuth();
   const [uploads, setUploads] = useState<CKPUpload[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const supabase = useMemo(() => createClient(), []);
+  const fetchedRef = useRef(false);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear  = new Date().getFullYear();
 
+  const fetchUploads = useCallback(async (userId: string) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const { data, error } = await supabase
+        .from('ckp_uploads')
+        .select('*')
+        .eq('user_id', userId)
+        .order('tahun', { ascending: false })
+        .order('bulan', { ascending: false })
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
+
+      if (error) {
+        console.error('[Pegawai] Fetch error:', error.message);
+        return;
+      }
+      setUploads(data || []);
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('[Pegawai] Fetch timed out after 15s');
+      } else {
+        console.error('[Pegawai] Error fetching uploads:', err);
+      }
+    } finally {
+      setDataLoading(false);
+    }
+  }, [supabase]);
+
+  // Main data fetch effect
   useEffect(() => {
     if (authLoading) return;
     if (!user) { setDataLoading(false); return; }
+
     let cancelled = false;
-    const fetchUploads = async () => {
-      try {
-        const { data } = await supabase
-          .from('ckp_uploads')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('tahun', { ascending: false })
-          .order('bulan', { ascending: false });
-        if (!cancelled) setUploads(data || []);
-      } catch (err) {
-        console.error('Error fetching uploads:', err);
-      } finally {
-        if (!cancelled) setDataLoading(false);
+
+    const doFetch = async () => {
+      // Ensure session is valid before fetching data
+      const sessionValid = await ensureSession();
+      if (cancelled) return;
+
+      if (!sessionValid) {
+        console.warn('[Pegawai] Session invalid, skipping data fetch');
+        setDataLoading(false);
+        return;
+      }
+
+      await fetchUploads(user.id);
+      if (!cancelled) fetchedRef.current = true;
+    };
+
+    doFetch();
+    return () => { cancelled = true; };
+  }, [user, authLoading, ensureSession, fetchUploads]);
+
+  // Re-fetch when tab becomes visible (prevents stale/stuck state)
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible' && user && fetchedRef.current) {
+        // Only refetch if we've fetched before (prevents double-fetch on init)
+        console.log('[Pegawai] Tab visible, refreshing data...');
+        const sessionValid = await ensureSession();
+        if (sessionValid && user) {
+          await fetchUploads(user.id);
+        }
       }
     };
-    fetchUploads();
-    return () => { cancelled = true; };
-  }, [user, authLoading, supabase]);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [user, ensureSession, fetchUploads]);
 
   // Stats
   const stats = useMemo(() => ({

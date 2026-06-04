@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
 import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck } from 'lucide-react';
@@ -131,30 +132,64 @@ function StaffCardSkeleton() {
 // ── Main page ──────────────────────────────────────────────
 export default function PimpinanPegawaiPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { ensureSession } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const fetchedRef = useRef(false);
+
+  const fetchUsers = useCallback(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      // Ensure session is valid before fetching
+      await ensureSession();
+
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('role', 'pegawai')
+        .eq('is_active', true)
+        .order('full_name')
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeout);
+
+      if (error) {
+        console.error('[PimpinanPegawai] Fetch error:', error.message);
+        return;
+      }
+      setUsers(data as User[] || []);
+      fetchedRef.current = true;
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.warn('[PimpinanPegawai] Fetch timed out after 15s');
+      } else {
+        console.error('[PimpinanPegawai] Fetch error:', err);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, ensureSession]);
 
   useEffect(() => {
-    let cancelled = false;
-    const fetchUsers = async () => {
-      try {
-        const { data } = await supabase
-          .from('users')
-          .select('*')
-          .eq('role', 'pegawai')
-          .eq('is_active', true)
-          .order('full_name');
-        if (!cancelled) setUsers(data as User[] || []);
-      } catch (err) {
-        console.error('[PimpinanPegawai] Fetch error:', err);
-      } finally {
-        if (!cancelled) setLoading(false);
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Re-fetch when tab becomes visible
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible' && fetchedRef.current) {
+        console.log('[PimpinanPegawai] Tab visible, refreshing data...');
+        await fetchUsers();
       }
     };
-    fetchUsers();
-    return () => { cancelled = true; };
-  }, [supabase]);
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchUsers]);
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;

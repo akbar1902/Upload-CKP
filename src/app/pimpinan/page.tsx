@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -260,6 +261,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
 // ─── Main page ─────────────────────────────────────────────
 export default function PimpinanDashboard() {
   const supabase = useMemo(() => createClient(), []);
+  const { ensureSession } = useAuth();
 
   const [uploads, setUploads] = useState<(CKPUpload & { user?: User })[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -267,6 +269,7 @@ export default function PimpinanDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const fetchedRef = useRef(false);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear  = new Date().getFullYear();
@@ -277,6 +280,23 @@ export default function PimpinanDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
+
+    // Ensure session is valid before making API calls
+    try {
+      const sessionValid = await ensureSession();
+      if (!sessionValid) {
+        setError('Sesi telah berakhir. Silakan login kembali.');
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // If ensureSession fails, try to fetch anyway
+      console.warn('[Pimpinan] ensureSession failed, trying fetch anyway');
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
     try {
       const [uploadsRes, usersRes] = await Promise.all([
         supabase
@@ -284,14 +304,19 @@ export default function PimpinanDashboard() {
           .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
           .eq('bulan', bulan)
           .eq('tahun', tahun)
-          .order('uploaded_at', { ascending: false }),
+          .order('uploaded_at', { ascending: false })
+          .abortSignal(controller.signal),
         supabase
           .from('users')
           .select('*')
           .eq('role', 'pegawai')
           .eq('is_active', true)
-          .order('full_name'),
+          .order('full_name')
+          .abortSignal(controller.signal),
       ]);
+
+      clearTimeout(timeout);
+
       if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
       if (usersRes.error)  throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
 
@@ -303,26 +328,48 @@ export default function PimpinanDashboard() {
       setUploads(uploadsData);
       setAllUsers(usersRes.data as User[] || []);
       setLastRefreshed(new Date());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat data');
+      fetchedRef.current = true;
+    } catch (err: unknown) {
+      clearTimeout(timeout);
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Waktu permintaan habis. Silakan coba lagi.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Gagal memuat data');
+      }
     } finally {
       setLoading(false);
     }
-  }, [supabase, bulan, tahun]);
+  }, [supabase, bulan, tahun, ensureSession]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Realtime
+  // Realtime — with proper cleanup
   useEffect(() => {
+    const channelName = `pimpinan-${bulan}-${tahun}-${Date.now()}`;
     const channel = supabase
-      .channel(`pimpinan-${bulan}-${tahun}`)
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'ckp_uploads',
         filter: `bulan=eq.${bulan}`,
       }, () => fetchData())
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [supabase, bulan, tahun, fetchData]);
+
+  // Re-fetch when tab becomes visible (prevents stale/stuck state)
+  useEffect(() => {
+    const handleVisibility = async () => {
+      if (document.visibilityState === 'visible' && fetchedRef.current) {
+        console.log('[Pimpinan] Tab visible, refreshing data...');
+        await fetchData();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [fetchData]);
 
   // Build rows
   const pegawaiRows = useMemo((): PegawaiRow[] =>

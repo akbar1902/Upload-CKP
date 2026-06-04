@@ -12,6 +12,8 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  /** Call this whenever you navigate or need fresh auth state */
+  ensureSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -21,6 +23,7 @@ const AuthContext = createContext<AuthContextType>({
   signIn: async () => ({ error: null }),
   signOut: async () => { },
   refreshUser: async () => { },
+  ensureSession: async () => false,
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -32,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // to guarantee the same object identity across renders.
   const supabase = useMemo(() => createClient(), []);
   const mountedRef = useRef(true);
+  const initCompletedRef = useRef(false);
 
   /**
    * Build a fallback User from Supabase Auth metadata.
@@ -75,16 +79,86 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [supabase, buildFallbackUser]);
 
+  /**
+   * ensureSession: Attempts to refresh the session if stale.
+   * Returns true if we have a valid session, false otherwise.
+   * This is the KEY fix — call this on navigation to prevent stuck states.
+   */
+  const ensureSession = useCallback(async (): Promise<boolean> => {
+    try {
+      // First try the fast path: local cache
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        // Check if the token is about to expire (within 60 seconds)
+        const expiresAt = session.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        const isExpiringSoon = expiresAt ? (expiresAt - now) < 60 : false;
+
+        if (isExpiringSoon) {
+          console.log('[Auth] Session expiring soon, refreshing...');
+          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshed?.session) {
+            console.warn('[Auth] Session refresh failed:', refreshError?.message);
+            // Token expired and can't refresh — force re-auth
+            if (mountedRef.current) {
+              setSupabaseUser(null);
+              setUser(null);
+              setLoading(false);
+            }
+            return false;
+          }
+          if (mountedRef.current) {
+            setSupabaseUser(refreshed.session.user);
+            await fetchUserProfile(refreshed.session.user);
+          }
+          return true;
+        }
+
+        // Session is still valid
+        if (mountedRef.current && !user) {
+          setSupabaseUser(session.user);
+          await fetchUserProfile(session.user);
+          setLoading(false);
+        }
+        return true;
+      }
+
+      // No cached session — try server validation
+      const { data: { user: serverUser } } = await supabase.auth.getUser();
+      if (serverUser) {
+        if (mountedRef.current) {
+          setSupabaseUser(serverUser);
+          await fetchUserProfile(serverUser);
+          setLoading(false);
+        }
+        return true;
+      }
+
+      // No valid session at all
+      if (mountedRef.current) {
+        setSupabaseUser(null);
+        setUser(null);
+        setLoading(false);
+      }
+      return false;
+    } catch (err) {
+      console.error('[Auth] ensureSession error:', err);
+      if (mountedRef.current) setLoading(false);
+      return false;
+    }
+  }, [supabase, fetchUserProfile, user]);
+
   useEffect(() => {
     mountedRef.current = true;
 
-    // Safety timeout: never stay in loading state forever (10s for slow connections)
+    // Safety timeout: never stay in loading state forever (8s for slow connections)
     const safetyTimeout = setTimeout(() => {
-      if (mountedRef.current) {
+      if (mountedRef.current && loading) {
         console.warn('[Auth] Safety timeout: forcing loading=false');
         setLoading(false);
       }
-    }, 10000);
+    }, 8000);
 
     const init = async () => {
       try {
@@ -93,29 +167,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mountedRef.current) return;
 
         if (session?.user) {
-          // Set UI immediately from cached session
-          setSupabaseUser(session.user);
-          await fetchUserProfile(session.user);
+          // Check if token is expired
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const isExpired = expiresAt ? (expiresAt - now) < 0 : false;
+
+          if (isExpired) {
+            console.log('[Auth] Cached session expired, attempting refresh...');
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (!mountedRef.current) return;
+
+            if (refreshed?.session?.user) {
+              setSupabaseUser(refreshed.session.user);
+              await fetchUserProfile(refreshed.session.user);
+            } else {
+              // Can't refresh — clear state
+              setSupabaseUser(null);
+              setUser(null);
+            }
+          } else {
+            // Set UI immediately from cached session
+            setSupabaseUser(session.user);
+            await fetchUserProfile(session.user);
+          }
+
           if (mountedRef.current) setLoading(false);
 
           // Then validate with server in background (security check)
-          void (async () => {
-            try {
-              const bgResult = await supabase.auth.getUser();
-              if (!mountedRef.current) return;
-              if (!bgResult.data?.user) {
-                setSupabaseUser(null);
-                setUser(null);
-              }
-            } catch { /* ignore */ }
-          })();
+          if (!isExpired) {
+            void (async () => {
+              try {
+                const bgResult = await supabase.auth.getUser();
+                if (!mountedRef.current) return;
+                if (!bgResult.data?.user) {
+                  setSupabaseUser(null);
+                  setUser(null);
+                }
+              } catch { /* ignore */ }
+            })();
+          }
         } else {
           if (mountedRef.current) setLoading(false);
         }
       } catch (err) {
         console.error('[Auth] Init error:', err);
       } finally {
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current) {
+          setLoading(false);
+          initCompletedRef.current = true;
+        }
       }
     };
 
@@ -124,6 +224,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event: AuthChangeEvent, session: Session | null) => {
         if (!mountedRef.current) return;
+
+        console.log('[Auth] Auth state changed:', event);
+
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          setSupabaseUser(session.user);
+          await fetchUserProfile(session.user);
+          setLoading(false);
+          return;
+        }
+
+        if (event === 'SIGNED_OUT') {
+          setSupabaseUser(null);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
         setSupabaseUser(session?.user ?? null);
         if (session?.user) {
           await fetchUserProfile(session.user);
@@ -134,10 +251,67 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
+    // Periodic session check: refresh token before it expires
+    // This prevents the "stuck after idle" issue
+    const refreshInterval = setInterval(async () => {
+      if (!mountedRef.current) return;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const expiresAt = session.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        // Refresh if token expires within 5 minutes
+        if (expiresAt && (expiresAt - now) < 300) {
+          console.log('[Auth] Proactive token refresh (expires in', expiresAt - now, 'seconds)');
+          await supabase.auth.refreshSession();
+        }
+      } catch {
+        // Silently ignore — will retry next interval
+      }
+    }, 60_000); // Check every minute
+
+    // Handle visibility change: refresh session when tab becomes visible
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && mountedRef.current) {
+        console.log('[Auth] Tab became visible, checking session...');
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session) {
+            // No session — user might have logged out in another tab
+            if (mountedRef.current) {
+              setSupabaseUser(null);
+              setUser(null);
+            }
+            return;
+          }
+
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+
+          if (expiresAt && (expiresAt - now) < 300) {
+            // Token is stale or about to expire — refresh
+            console.log('[Auth] Refreshing stale session after tab focus');
+            const { data: refreshed } = await supabase.auth.refreshSession();
+            if (mountedRef.current && refreshed?.session?.user) {
+              setSupabaseUser(refreshed.session.user);
+              await fetchUserProfile(refreshed.session.user);
+            }
+          }
+        } catch (err) {
+          console.warn('[Auth] Visibility check error:', err);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
       clearTimeout(safetyTimeout);
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // supabase and fetchUserProfile are stable — safe to omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -187,8 +361,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabaseUser, fetchUserProfile]);
 
   const value = useMemo(() => ({
-    supabaseUser, user, loading, signIn, signOut, refreshUser
-  }), [supabaseUser, user, loading, signIn, signOut, refreshUser]);
+    supabaseUser, user, loading, signIn, signOut, refreshUser, ensureSession
+  }), [supabaseUser, user, loading, signIn, signOut, refreshUser, ensureSession]);
 
   return (
     <AuthContext.Provider value={value}>
