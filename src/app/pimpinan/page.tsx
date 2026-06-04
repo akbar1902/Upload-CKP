@@ -261,7 +261,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
 // ─── Main page ─────────────────────────────────────────────
 export default function PimpinanDashboard() {
   const supabase = useMemo(() => createClient(), []);
-  const { ensureSession } = useAuth();
+  const { user } = useAuth();
 
   const [uploads, setUploads] = useState<(CKPUpload & { user?: User })[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -280,19 +280,6 @@ export default function PimpinanDashboard() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
-
-    // Ensure session is valid before making API calls
-    try {
-      const sessionValid = await ensureSession();
-      if (!sessionValid) {
-        setError('Sesi telah berakhir. Silakan login kembali.');
-        setLoading(false);
-        return;
-      }
-    } catch {
-      // If ensureSession fails, try to fetch anyway
-      console.warn('[Pimpinan] ensureSession failed, trying fetch anyway');
-    }
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
@@ -339,7 +326,7 @@ export default function PimpinanDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, bulan, tahun, ensureSession]);
+  }, [supabase, bulan, tahun]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -393,11 +380,16 @@ export default function PimpinanDashboard() {
 
   // Stats
   const totalPegawai  = allUsers.length;
-  const uploadedCount = uploads.length;
-  const pendingCount  = uploads.filter(u => u.status === 'submitted').length;
-  const approvedCount = uploads.filter(u => u.status === 'approved').length;
-  const avgCapaian    = uploads.length > 0
-    ? Math.round(uploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uploads.length)
+  
+  const uniqueUploads = useMemo(() => {
+    return pegawaiRows.map(r => r.upload).filter((u): u is CKPUpload & { user?: User } => u !== null);
+  }, [pegawaiRows]);
+
+  const uploadedCount = uniqueUploads.length;
+  const pendingCount  = uniqueUploads.filter(u => u.status === 'submitted').length;
+  const approvedCount = uniqueUploads.filter(u => u.status === 'approved').length;
+  const avgCapaian    = uniqueUploads.length > 0
+    ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length)
     : 0;
 
   const handleExportRekap = () => {

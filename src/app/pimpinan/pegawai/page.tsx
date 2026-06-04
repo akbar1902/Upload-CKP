@@ -132,7 +132,7 @@ function StaffCardSkeleton() {
 // ── Main page ──────────────────────────────────────────────
 export default function PimpinanPegawaiPage() {
   const supabase = useMemo(() => createClient(), []);
-  const { ensureSession } = useAuth();
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -143,8 +143,6 @@ export default function PimpinanPegawaiPage() {
     const timeout = setTimeout(() => controller.abort(), 15000);
 
     try {
-      // Ensure session is valid before fetching
-      await ensureSession();
 
       const { data, error } = await supabase
         .from('users')
@@ -172,7 +170,7 @@ export default function PimpinanPegawaiPage() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, ensureSession]);
+  }, [supabase]);
 
   useEffect(() => {
     fetchUsers();

@@ -278,7 +278,7 @@ function EntryCardSkeleton() {
 export default function CKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user, ensureSession } = useAuth();
+  const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
   const [upload, setUpload]       = useState<CKPUpload | null>(null);
@@ -292,9 +292,6 @@ export default function CKPDetailPage() {
   useEffect(() => {
     const fetchData = async () => {
       if (!id) return;
-
-      // Ensure session is valid before fetching
-      try { await ensureSession(); } catch { /* proceed anyway */ }
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
@@ -319,7 +316,7 @@ export default function CKPDetailPage() {
       }
     };
     fetchData();
-  }, [id, supabase, ensureSession]);
+  }, [id, supabase]);
 
   const handleExport = () => {
     if (!upload || !user) return;

@@ -330,7 +330,7 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
 
 // ── Main page ──────────────────────────────────────────────
 export default function PegawaiDashboard() {
-  const { user, loading: authLoading, ensureSession } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [uploads, setUploads] = useState<CKPUpload[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -381,23 +381,13 @@ export default function PegawaiDashboard() {
     let cancelled = false;
 
     const doFetch = async () => {
-      // Ensure session is valid before fetching data
-      const sessionValid = await ensureSession();
-      if (cancelled) return;
-
-      if (!sessionValid) {
-        console.warn('[Pegawai] Session invalid, skipping data fetch');
-        setDataLoading(false);
-        return;
-      }
-
       await fetchUploads(user.id);
       if (!cancelled) fetchedRef.current = true;
     };
 
     doFetch();
     return () => { cancelled = true; };
-  }, [user, authLoading, ensureSession, fetchUploads]);
+  }, [user, authLoading, fetchUploads]);
 
   // Re-fetch when tab becomes visible (prevents stale/stuck state)
   useEffect(() => {
@@ -405,8 +395,7 @@ export default function PegawaiDashboard() {
       if (document.visibilityState === 'visible' && user && fetchedRef.current) {
         // Only refetch if we've fetched before (prevents double-fetch on init)
         console.log('[Pegawai] Tab visible, refreshing data...');
-        const sessionValid = await ensureSession();
-        if (sessionValid && user) {
+        if (user) {
           await fetchUploads(user.id);
         }
       }
@@ -414,7 +403,7 @@ export default function PegawaiDashboard() {
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [user, ensureSession, fetchUploads]);
+  }, [user, fetchUploads]);
 
   // Stats
   const stats = useMemo(() => ({

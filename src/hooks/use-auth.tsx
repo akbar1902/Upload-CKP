@@ -85,67 +85,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * This is the KEY fix — call this on navigation to prevent stuck states.
    */
   const ensureSession = useCallback(async (): Promise<boolean> => {
-    try {
-      // First try the fast path: local cache
-      const { data: { session } } = await supabase.auth.getSession();
+    const doEnsure = async (): Promise<boolean> => {
+      try {
+        // First try the fast path: local cache
+        const { data: { session } } = await supabase.auth.getSession();
 
-      if (session?.user) {
-        // Check if the token is about to expire (within 60 seconds)
-        const expiresAt = session.expires_at;
-        const now = Math.floor(Date.now() / 1000);
-        const isExpiringSoon = expiresAt ? (expiresAt - now) < 60 : false;
+        if (session?.user) {
+          // Check if the token is about to expire (within 60 seconds)
+          const expiresAt = session.expires_at;
+          const now = Math.floor(Date.now() / 1000);
+          const isExpiringSoon = expiresAt ? (expiresAt - now) < 60 : false;
 
-        if (isExpiringSoon) {
-          console.log('[Auth] Session expiring soon, refreshing...');
-          const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-          if (refreshError || !refreshed?.session) {
-            console.warn('[Auth] Session refresh failed:', refreshError?.message);
-            // Token expired and can't refresh — force re-auth
-            if (mountedRef.current) {
-              setSupabaseUser(null);
-              setUser(null);
-              setLoading(false);
+          if (isExpiringSoon) {
+            console.log('[Auth] Session expiring soon, refreshing...');
+            const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+            if (refreshError || !refreshed?.session) {
+              console.warn('[Auth] Session refresh failed:', refreshError?.message);
+              // Token expired and can't refresh — force re-auth
+              if (mountedRef.current) {
+                setSupabaseUser(null);
+                setUser(null);
+                setLoading(false);
+              }
+              return false;
             }
-            return false;
+            if (mountedRef.current) {
+              setSupabaseUser(refreshed.session.user);
+              await fetchUserProfile(refreshed.session.user);
+            }
+            return true;
           }
-          if (mountedRef.current) {
-            setSupabaseUser(refreshed.session.user);
-            await fetchUserProfile(refreshed.session.user);
+
+          // Session is still valid
+          if (mountedRef.current && !user) {
+            setSupabaseUser(session.user);
+            await fetchUserProfile(session.user);
+            setLoading(false);
           }
           return true;
         }
 
-        // Session is still valid
-        if (mountedRef.current && !user) {
-          setSupabaseUser(session.user);
-          await fetchUserProfile(session.user);
-          setLoading(false);
+        // No cached session — try server validation
+        const { data: { user: serverUser } } = await supabase.auth.getUser();
+        if (serverUser) {
+          if (mountedRef.current) {
+            setSupabaseUser(serverUser);
+            await fetchUserProfile(serverUser);
+            setLoading(false);
+          }
+          return true;
         }
-        return true;
-      }
 
-      // No cached session — try server validation
-      const { data: { user: serverUser } } = await supabase.auth.getUser();
-      if (serverUser) {
+        // No valid session at all
         if (mountedRef.current) {
-          setSupabaseUser(serverUser);
-          await fetchUserProfile(serverUser);
+          setSupabaseUser(null);
+          setUser(null);
           setLoading(false);
         }
-        return true;
+        return false;
+      } catch (err) {
+        console.error('[Auth] ensureSession error:', err);
+        if (mountedRef.current) setLoading(false);
+        return false;
       }
+    };
 
-      // No valid session at all
-      if (mountedRef.current) {
-        setSupabaseUser(null);
-        setUser(null);
-        setLoading(false);
-      }
-      return false;
+    try {
+      return await Promise.race([
+        doEnsure(),
+        new Promise<boolean>((_, reject) => 
+          setTimeout(() => reject(new Error('ensureSession timed out')), 8000)
+        )
+      ]);
     } catch (err) {
-      console.error('[Auth] ensureSession error:', err);
-      if (mountedRef.current) setLoading(false);
-      return false;
+      console.warn('[Auth] ensureSession failed or timed out:', err);
+      // We throw so that callers know it failed, rather than returning false 
+      // which would incorrectly trigger a "session expired" logout.
+      throw err;
     }
   }, [supabase, fetchUserProfile, user]);
 

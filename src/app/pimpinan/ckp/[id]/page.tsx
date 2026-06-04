@@ -270,7 +270,7 @@ function EntryCardSkeleton() {
 export default function PimpinanCKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user: currentUser, ensureSession } = useAuth();
+  const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
   const [upload, setUpload]           = useState<CKPUpload | null>(null);
@@ -288,8 +288,7 @@ export default function PimpinanCKPDetailPage() {
     const fetchData = async () => {
       if (!id) return;
 
-      // Ensure session is valid before fetching
-      try { await ensureSession(); } catch { /* proceed anyway */ }
+
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 15000);
@@ -324,11 +323,11 @@ export default function PimpinanCKPDetailPage() {
       }
     };
     fetchData();
-  }, [id, supabase, ensureSession]);
+  }, [id, supabase]);
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
-    const newStatus = action === 'reopened' ? 'draft' : action;
+    const newStatus = action === 'reopened' ? 'submitted' : action;
     const updateData: Record<string, unknown> = {
       status: newStatus,
       catatan_pimpinan: catatan || null,
