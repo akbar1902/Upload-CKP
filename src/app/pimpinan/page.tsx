@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
@@ -68,21 +69,12 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
   );
 }
 
-// ── Simple Cache ───────────────────────────────────────────
-const pimpinanCache: Record<string, { uploads: any[], users: any[] }> = {};
-
 // ─── Main page ─────────────────────────────────────────────
 export default function PimpinanDashboard() {
   const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
 
-  const [uploads, setUploads] = useState<(CKPUpload & { user?: User })[]>([]);
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const fetchedRef = useRef(false);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear  = new Date().getFullYear();
@@ -90,39 +82,23 @@ export default function PimpinanDashboard() {
   const [tahun, setTahun] = useState(currentYear);
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
-  const fetchData = useCallback(async () => {
-    const cacheKey = `${bulan}-${tahun}`;
-    if (pimpinanCache[cacheKey]) {
-      setUploads(pimpinanCache[cacheKey].uploads);
-      setAllUsers(pimpinanCache[cacheKey].users);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-    setError(null);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    try {
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+    queryKey: ['pimpinan-uploads', bulan, tahun],
+    queryFn: async () => {
       const [uploadsRes, usersRes] = await Promise.all([
         supabase
           .from('ckp_uploads')
           .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
           .eq('bulan', bulan)
           .eq('tahun', tahun)
-          .order('uploaded_at', { ascending: false })
-          .abortSignal(controller.signal),
+          .order('uploaded_at', { ascending: false }),
         supabase
           .from('users')
           .select('*')
           .eq('role', 'pegawai')
           .eq('is_active', true)
-          .order('full_name')
-          .abortSignal(controller.signal),
+          .order('full_name'),
       ]);
-
-      clearTimeout(timeout);
 
       if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
       if (usersRes.error)  throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
@@ -134,28 +110,15 @@ export default function PimpinanDashboard() {
       
       const newUsers = usersRes.data as User[] || [];
 
-      const cacheKey = `${bulan}-${tahun}`;
-      pimpinanCache[cacheKey] = { uploads: newUploads, users: newUsers };
-
-      setUploads(newUploads);
-      setAllUsers(newUsers);
-      setLastRefreshed(new Date());
-      fetchedRef.current = true;
-    } catch (err: unknown) {
-      clearTimeout(timeout);
-      if (err instanceof Error && err.name === 'AbortError') {
-        setError('Waktu permintaan habis. Silakan coba lagi.');
-      } else {
-        setError(err instanceof Error ? err.message : 'Gagal memuat data');
-      }
-    } finally {
-      setLoading(false);
+      return { uploads: newUploads, users: newUsers };
     }
-  }, [supabase, bulan, tahun]);
+  });
 
-  useEffect(() => { fetchData(); }, [fetchData]);
+  const uploads = data?.uploads || [];
+  const allUsers = data?.users || [];
+  const error = queryError ? queryError.message : null;
 
-  // Realtime — with proper cleanup
+  // Realtime
   useEffect(() => {
     const channelName = `pimpinan-${bulan}-${tahun}-${Date.now()}`;
     const channel = supabase
@@ -163,25 +126,12 @@ export default function PimpinanDashboard() {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'ckp_uploads',
         filter: `bulan=eq.${bulan}`,
-      }, () => fetchData())
+      }, () => refetch())
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [supabase, bulan, tahun, fetchData]);
-
-  // Re-fetch when tab becomes visible (prevents stale/stuck state)
-  useEffect(() => {
-    const handleVisibility = async () => {
-      if (document.visibilityState === 'visible' && fetchedRef.current) {
-        console.log('[Pimpinan] Tab visible, refreshing data...');
-        await fetchData();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchData]);
+  }, [supabase, bulan, tahun, refetch]);
 
   // Build rows
   const pegawaiRows = useMemo((): PegawaiRow[] =>
@@ -234,7 +184,7 @@ export default function PimpinanDashboard() {
           <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
           <p className="text-sm text-slate-400 mb-6">{error}</p>
           <button
-            onClick={fetchData}
+            onClick={() => refetch()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
           >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
@@ -261,11 +211,6 @@ export default function PimpinanDashboard() {
                   Filter aktif
                 </span>
               )}
-              {lastRefreshed && (
-                <span className="text-[11px] text-slate-400">
-                  · Diperbarui {lastRefreshed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              )}
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -274,7 +219,7 @@ export default function PimpinanDashboard() {
               onBulanChange={setBulan} onTahunChange={setTahun}
             />
             <button
-              onClick={fetchData}
+              onClick={() => refetch()}
               className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
               title="Refresh data"
               aria-label="Refresh data"

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
@@ -272,58 +273,46 @@ export default function PimpinanCKPDetailPage() {
   const router = useRouter();
   const { user: currentUser } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const queryClient = useQueryClient();
 
-  const [upload, setUpload]           = useState<CKPUpload | null>(null);
-  const [employee, setEmployee]       = useState<User | null>(null);
-  const [entries, setEntries]         = useState<CKPEntry[]>([]);
-  const [approvals, setApprovals]     = useState<Approval[]>([]);
-  const [loading, setLoading]         = useState(true);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
   const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const PAGE_SIZE = 10;
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['pimpinan-ckp-detail', id],
+    queryFn: async () => {
+      if (!id) throw new Error("ID not found");
+      const { data: uploadData, error: uploadError } = await supabase
+        .from('ckp_uploads').select('*').eq('id', id).single();
+      
+      if (uploadError) throw new Error(uploadError.message);
+      if (!uploadData) throw new Error("Upload not found");
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
+      const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
+        supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
+        supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number'),
+        supabase.from('approvals')
+          .select('*, reviewer:reviewer_id(id, full_name)')
+          .eq('upload_id', id)
+          .order('created_at', { ascending: false }),
+      ]);
 
+      return {
+        upload: uploadData as CKPUpload,
+        employee: employeeRes.data as User,
+        entries: (entriesRes.data as CKPEntry[]) || [],
+        approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+          ...a, reviewer: a.reviewer as User | undefined,
+        })) as Approval[],
+      };
+    },
+    enabled: !!id,
+  });
 
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        const { data: uploadData } = await supabase
-          .from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal);
-
-        if (uploadData) {
-          setUpload(uploadData as CKPUpload);
-          const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
-            supabase.from('users').select('*').eq('id', uploadData.user_id).single().abortSignal(controller.signal),
-            supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
-            supabase.from('approvals')
-              .select('*, reviewer:reviewer_id(id, full_name)')
-              .eq('upload_id', id)
-              .order('created_at', { ascending: false })
-              .abortSignal(controller.signal),
-          ]);
-          setEmployee(employeeRes.data as User);
-          setEntries(entriesRes.data as CKPEntry[] || []);
-          setApprovals((approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-            ...a, reviewer: a.reviewer as User | undefined,
-          })) as Approval[]);
-        }
-      } catch (err: unknown) {
-        clearTimeout(timeout);
-        console.error('[PimpinanCKPDetail] Fetch error:', err);
-      } finally {
-        clearTimeout(timeout);
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id, supabase]);
+  const upload = data?.upload || null;
+  const employee = data?.employee || null;
+  const entries = data?.entries || [];
+  const approvals = data?.approvals || [];
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
@@ -345,13 +334,7 @@ export default function PimpinanCKPDetailPage() {
       entity_type: 'ckp_uploads', entity_id: upload.id,
       new_data: { status: newStatus, catatan },
     });
-    setUpload({ ...upload, status: newStatus as CKPUpload['status'], catatan_pimpinan: catatan });
-    const { data: newApprovals } = await supabase.from('approvals')
-      .select('*, reviewer:reviewer_id(id, full_name)').eq('upload_id', upload.id)
-      .order('created_at', { ascending: false });
-    setApprovals((newApprovals || []).map((a: Record<string, unknown>) => ({
-      ...a, reviewer: a.reviewer as User | undefined,
-    })) as Approval[]);
+    await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
     const label = action === 'approved' ? 'disetujui' : action === 'rejected' ? 'ditolak'
       : action === 'revision_required' ? 'diminta revisi' : 'dibuka kembali';
     toast.success(`CKP berhasil ${label}`);
@@ -577,7 +560,7 @@ export default function PimpinanCKPDetailPage() {
           ) : (
             <div className="space-y-3 card-list">
               {pagedEntries.map((entry, i) => (
-                <EntryCard key={entry.id} entry={entry} index={(currentPage - 1) * PAGE_SIZE + i} />
+                <EntryCard key={entry.id} entry={entry} index={i} />
               ))}
             </div>
           )}

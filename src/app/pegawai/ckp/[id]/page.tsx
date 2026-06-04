@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
@@ -281,42 +282,34 @@ export default function CKPDetailPage() {
   const { user } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
-  const [upload, setUpload]       = useState<CKPUpload | null>(null);
-  const [entries, setEntries]     = useState<CKPEntry[]>([]);
-  const [approvals, setApprovals] = useState<Approval[]>([]);
-  const [loading, setLoading]     = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
-  
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['ckp-detail', id],
+    queryFn: async () => {
+      if (!id) throw new Error("ID not found");
+      const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
+        supabase.from('ckp_uploads').select('*').eq('id', id).single(),
+        supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number'),
+        supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }),
+      ]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!id) return;
+      if (uploadRes.error) throw new Error(uploadRes.error.message);
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-
-      try {
-        const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
-          supabase.from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal),
-          supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
-          supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(controller.signal),
-        ]);
-        clearTimeout(timeout);
-        setUpload(uploadRes.data as CKPUpload);
-        setEntries(entriesRes.data as CKPEntry[] || []);
-        setApprovals((approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+      return {
+        upload: uploadRes.data as CKPUpload,
+        entries: (entriesRes.data as CKPEntry[]) || [],
+        approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
           ...a, reviewer: a.reviewer as User | undefined,
-        })) as Approval[]);
-      } catch (err: unknown) {
-        clearTimeout(timeout);
-        console.error('[CKPDetail] Fetch error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [id, supabase]);
+        })) as Approval[],
+      };
+    },
+    enabled: !!id,
+  });
+
+  const upload = data?.upload || null;
+  const entries = data?.entries || [];
+  const approvals = data?.approvals || [];
 
   const handleExport = () => {
     if (!upload || !user) return;

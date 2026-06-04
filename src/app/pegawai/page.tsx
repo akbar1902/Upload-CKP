@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
@@ -75,94 +76,35 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
   );
 }
 
-// ── Simple Cache ───────────────────────────────────────────
-const uploadsCache: Record<string, CKPUpload[]> = {};
-
 // ── Main page ──────────────────────────────────────────────
 export default function PegawaiDashboard() {
   const { user, loading: authLoading } = useAuth();
-  const [uploads, setUploads] = useState<CKPUpload[]>([]);
-  const [dataLoading, setDataLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const supabase = useMemo(() => createClient(), []);
-  const fetchedRef = useRef(false);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear  = new Date().getFullYear();
 
-  const fetchUploads = useCallback(async (userId: string) => {
-    // Optimistic UI: use cache immediately if available
-    if (uploadsCache[userId]) {
-      setUploads(uploadsCache[userId]);
-      setDataLoading(false);
-    }
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
-
-    try {
+  const { data: uploads = [], isLoading: queryLoading } = useQuery({
+    queryKey: ['pegawai-uploads', user?.id],
+    queryFn: async () => {
+      if (!user) return [];
       const { data, error } = await supabase
         .from('ckp_uploads')
         .select('*')
-        .eq('user_id', userId)
+        .eq('user_id', user.id)
         .order('tahun', { ascending: false })
         .order('bulan', { ascending: false })
-        .order('uploaded_at', { ascending: false })
-        .abortSignal(controller.signal);
+        .order('uploaded_at', { ascending: false });
 
-      clearTimeout(timeout);
+      if (error) throw new Error(error.message);
+      return data as CKPUpload[];
+    },
+    enabled: !!user && !authLoading,
+  });
 
-      if (error) {
-        console.error('[Pegawai] Fetch error:', error.message);
-        return;
-      }
-      const newUploads = data || [];
-      uploadsCache[userId] = newUploads;
-      setUploads(newUploads);
-    } catch (err: unknown) {
-      clearTimeout(timeout);
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.warn('[Pegawai] Fetch timed out after 15s');
-      } else {
-        console.error('[Pegawai] Error fetching uploads:', err);
-      }
-    } finally {
-      setDataLoading(false);
-    }
-  }, [supabase]);
-
-  // Main data fetch effect
-  useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setDataLoading(false); return; }
-
-    let cancelled = false;
-
-    const doFetch = async () => {
-      await fetchUploads(user.id);
-      if (!cancelled) fetchedRef.current = true;
-    };
-
-    doFetch();
-    return () => { cancelled = true; };
-  }, [user, authLoading, fetchUploads]);
-
-  // Re-fetch when tab becomes visible (prevents stale/stuck state)
-  useEffect(() => {
-    const handleVisibility = async () => {
-      if (document.visibilityState === 'visible' && user && fetchedRef.current) {
-        // Only refetch if we've fetched before (prevents double-fetch on init)
-        console.log('[Pegawai] Tab visible, refreshing data...');
-        if (user) {
-          await fetchUploads(user.id);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [user, fetchUploads]);
+  const dataLoading = authLoading || queryLoading;
 
   // Only consider the latest upload per period (bulan-tahun)
   const uniqueUploads = useMemo(() => {
