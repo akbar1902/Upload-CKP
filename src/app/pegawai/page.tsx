@@ -27,262 +27,9 @@ function getProgressClass(pct: number): string {
   return 'progress-gray';
 }
 
-// ── Status badge ───────────────────────────────────────────
-const STATUS_CONFIG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '🟢' },
-  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '🟠' },
-  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '⚪' },
-} as const;
-
-function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
-    ?? { label: status, cls: 'badge-draft', dot: '⚪' };
-  return (
-    <span className={`badge-pill ${cfg.cls}`} role="status" aria-label={`Status: ${cfg.label}`}>
-      <span aria-hidden="true">{cfg.dot}</span>
-      {cfg.label}
-    </span>
-  );
-}
-
-// ── KPI Card ───────────────────────────────────────────────
-interface KPICardProps {
-  icon: React.ReactNode;
-  value: string | number;
-  label: string;
-  sub?: string;
-  iconBg: string;
-  loading?: boolean;
-}
-function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardProps) {
-  return (
-    <div className="kpi-card p-6 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-[12px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-          {label}
-        </p>
-        <div
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-          style={{ background: iconBg }}
-        >
-          {icon}
-        </div>
-      </div>
-      {loading
-        ? <div className="skeleton h-9 w-20 rounded-xl" />
-        : <p className="text-4xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-            {value}
-          </p>
-      }
-      {sub && <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
-    </div>
-  );
-}
-
-// ── Activity Card (upload entry) ───────────────────────────
-interface ActivityCardProps {
-  upload: CKPUpload;
-}
-function ActivityCard({ upload }: ActivityCardProps) {
-  const [expanded, setExpanded] = useState(false);
-
-  // Date from uploaded_at
-  const dt = new Date(upload.uploaded_at);
-  const day = dt.getDate();
-  const monthAbbr = MONTH_ABBR[upload.bulan] ?? '---';
-  const weekday = WEEKDAYS[dt.getDay()];
-
-  const pct = Math.min(upload.avg_progres || 0, 100);
-  const progressClass = getProgressClass(pct);
-
-  const statusCfg = STATUS_CONFIG[upload.status as keyof typeof STATUS_CONFIG]
-    ?? { label: upload.status, cls: 'badge-draft', dot: '⚪' };
-
-  return (
-    <div className="activity-card" aria-expanded={expanded}>
-      {/* ── Main card row ──────────────────────────── */}
-      <div className="flex items-center gap-4 p-5">
-
-        {/* Date block */}
-        <div className="date-block hidden sm:flex">
-          <span className="day">{day}</span>
-          <span className="month">{monthAbbr}</span>
-          <span className="weekday">{weekday}</span>
-        </div>
-
-        {/* Period icon + info */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {/* Colored status icon */}
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.15)' }}
-            aria-hidden="true"
-          >
-            <FileCheck size={18} style={{ color: 'var(--primary)' }} />
-          </div>
-
-          <div className="min-w-0 flex-1">
-            {/* Period title */}
-            <p className="text-[15px] font-bold leading-snug truncate" style={{ color: 'var(--text-primary)' }}>
-              CKP {MONTH_FULL[upload.bulan]} {upload.tahun}
-              {upload.version > 1 && (
-                <span className="ml-2 text-[11px] font-normal px-1.5 py-0.5 rounded-md"
-                      style={{ background: '#F1F5F9', color: 'var(--text-secondary)' }}>
-                  v{upload.version}
-                </span>
-              )}
-            </p>
-            {/* File name */}
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-              📄 {upload.file_name || 'Tidak ada nama file'}
-            </p>
-            {/* Mobile date */}
-            <p className="text-[11px] mt-0.5 sm:hidden" style={{ color: 'var(--text-secondary)' }}>
-              Upload: {formatDateTime(upload.uploaded_at)}
-            </p>
-          </div>
-        </div>
-
-        {/* Progress */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0 min-w-[100px] hidden md:flex">
-          <div className="flex items-center gap-2 w-full justify-end">
-            <span className="text-[13px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
-              {pct.toFixed(0)}%
-            </span>
-          </div>
-          <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
-            <div
-              className={`h-full rounded-full progress-bar ${progressClass}`}
-              style={{ width: `${pct}%` }}
-              role="progressbar"
-              aria-valuenow={pct}
-              aria-valuemin={0}
-              aria-valuemax={100}
-            />
-          </div>
-          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-            {upload.total_entries} kegiatan
-          </span>
-        </div>
-
-        {/* Status + expand */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          <StatusBadge status={upload.status} />
-          <button
-            onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#F1F5F9'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-            aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
-          >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            <span className="hidden sm:inline">{expanded ? 'Tutup' : 'Detail'}</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Expanded detail panel ───────────────────── */}
-      {expanded && (
-        <div
-          className="card-expanded-content border-t px-5 py-4"
-          style={{ borderColor: 'var(--border)', background: '#FAFBFC' }}
-        >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Periode</p>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {MONTH_FULL[upload.bulan]} {upload.tahun}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Total Kegiatan</p>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {upload.total_entries} kegiatan
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Rata-rata Progres</p>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {pct.toFixed(0)}%
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Diupload</p>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {formatDateTime(upload.uploaded_at)}
-              </p>
-            </div>
-          </div>
-
-          {/* File attachment */}
-          {upload.file_name && (
-            <div className="flex items-center gap-2 mb-4 p-3 rounded-xl"
-                 style={{ background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.12)' }}>
-              <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-              <span className="text-[12px] font-medium truncate" style={{ color: 'var(--primary)' }}>
-                {upload.file_name}
-              </span>
-            </div>
-          )}
-
-          {/* Notes from pimpinan */}
-          {upload.catatan_pimpinan && (
-            <div className="mb-4 p-3 rounded-xl"
-                 style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: '#92400E' }}>Catatan Pimpinan</p>
-              <p className="text-[13px]" style={{ color: '#78350F' }}>
-                {upload.catatan_pimpinan}
-              </p>
-            </div>
-          )}
-
-          {/* CTA */}
-          <Link
-            href={`/pegawai/ckp/${upload.id}`}
-            className="inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
-            style={{ color: 'var(--primary)' }}
-          >
-            Lihat Detail Lengkap <ArrowRight size={13} />
-          </Link>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Skeleton card ──────────────────────────────────────────
-function ActivityCardSkeleton() {
-  return (
-    <div className="activity-card p-5">
-      <div className="flex items-center gap-4">
-        <div className="skeleton w-16 h-20 rounded-xl hidden sm:block" />
-        <div className="flex items-center gap-3 flex-1">
-          <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="skeleton h-4 w-48 rounded" />
-            <div className="skeleton h-3 w-32 rounded" />
-          </div>
-        </div>
-        <div className="flex flex-col gap-2 items-end hidden md:flex">
-          <div className="skeleton h-3 w-12 rounded" />
-          <div className="skeleton h-2.5 w-24 rounded-full" />
-        </div>
-        <div className="flex flex-col gap-2 items-end">
-          <div className="skeleton h-6 w-24 rounded-full" />
-          <div className="skeleton h-6 w-16 rounded-lg" />
-        </div>
-      </div>
-    </div>
-  );
-}
+import { KPICard } from '@/components/dashboard/kpi-card';
+import { StatusBadge } from '@/components/dashboard/status-badge';
+import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
 
 // ── Grid card (alternate view) ─────────────────────────────
 function ActivityGridCard({ upload }: ActivityCardProps) {
@@ -328,6 +75,9 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
   );
 }
 
+// ── Simple Cache ───────────────────────────────────────────
+const uploadsCache: Record<string, CKPUpload[]> = {};
+
 // ── Main page ──────────────────────────────────────────────
 export default function PegawaiDashboard() {
   const { user, loading: authLoading } = useAuth();
@@ -342,6 +92,12 @@ export default function PegawaiDashboard() {
   const currentYear  = new Date().getFullYear();
 
   const fetchUploads = useCallback(async (userId: string) => {
+    // Optimistic UI: use cache immediately if available
+    if (uploadsCache[userId]) {
+      setUploads(uploadsCache[userId]);
+      setDataLoading(false);
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
@@ -352,6 +108,7 @@ export default function PegawaiDashboard() {
         .eq('user_id', userId)
         .order('tahun', { ascending: false })
         .order('bulan', { ascending: false })
+        .order('uploaded_at', { ascending: false })
         .abortSignal(controller.signal);
 
       clearTimeout(timeout);
@@ -360,7 +117,9 @@ export default function PegawaiDashboard() {
         console.error('[Pegawai] Fetch error:', error.message);
         return;
       }
-      setUploads(data || []);
+      const newUploads = data || [];
+      uploadsCache[userId] = newUploads;
+      setUploads(newUploads);
     } catch (err: unknown) {
       clearTimeout(timeout);
       if (err instanceof Error && err.name === 'AbortError') {
@@ -405,17 +164,28 @@ export default function PegawaiDashboard() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [user, fetchUploads]);
 
+  // Only consider the latest upload per period (bulan-tahun)
+  const uniqueUploads = useMemo(() => {
+    const seen = new Set<string>();
+    return uploads.filter(u => {
+      const key = `${u.bulan}-${u.tahun}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [uploads]);
+
   // Stats
   const stats = useMemo(() => ({
-    total:      uploads.length,
-    approved:   uploads.filter(u => u.status === 'approved').length,
-    pending:    uploads.filter(u => u.status === 'submitted').length,
-    rejected:   uploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
-    avgProgres: uploads.length
-      ? (uploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uploads.length).toFixed(0)
+    total:      uploads.length, // keep total as historical count
+    approved:   uniqueUploads.filter(u => u.status === 'approved').length,
+    pending:    uniqueUploads.filter(u => u.status === 'submitted').length,
+    rejected:   uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
+    avgProgres: uniqueUploads.length
+      ? (uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length).toFixed(0)
       : '0',
-    totalKegiatan: uploads.reduce((s, u) => s + (u.total_entries || 0), 0),
-  }), [uploads]);
+    totalKegiatan: uniqueUploads.reduce((s, u) => s + (u.total_entries || 0), 0),
+  }), [uploads, uniqueUploads]);
 
   const currentMonthUpload = useMemo(
     () => uploads.find(u => u.bulan === currentMonth && u.tahun === currentYear),
