@@ -17,7 +17,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Zap,
+  Lock,
 } from 'lucide-react';
+import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
 interface NavItem {
   href: string;
@@ -45,6 +47,7 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
   const navItems = isPimpinan ? pimpinanNav : pegawaiNav;
@@ -229,6 +232,31 @@ export function Sidebar() {
           }
         </button>
 
+        {/* Change Password */}
+        <button
+          onClick={() => setChangePasswordOpen(true)}
+          title="Ganti Password"
+          aria-label="Ganti password akun"
+          className={cn(
+            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+            collapsed && "justify-center"
+          )}
+          style={{ color: 'rgba(100,116,139,0.8)', border: '1px solid transparent' }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
+            (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.background = 'transparent';
+            (e.currentTarget as HTMLElement).style.color = 'rgba(100,116,139,0.8)';
+          }}
+        >
+          <Lock size={15} className="flex-shrink-0" />
+          {!collapsed && (
+            <span>Ganti Password</span>
+          )}
+        </button>
+
         {/* Logout */}
         <button
           onClick={handleSignOut}
@@ -325,6 +353,12 @@ export function Sidebar() {
         className="hidden lg:block lg:flex-shrink-0"
         style={{ width: sidebarW, transition: 'width 0.2s ease' }}
         aria-hidden="true"
+      />
+
+      {/* Modals */}
+      <ChangePasswordModal 
+        open={changePasswordOpen} 
+        onClose={() => setChangePasswordOpen(false)} 
       />
     </>
   );
