@@ -115,58 +115,58 @@ export default function UploadPage() {
     }
 
     setUploading(true);
+    const toastId = toast.loading('Memulai persiapan upload...');
 
     try {
-      // Tentukan versi baru
-      // Jika ada draft/revision_required → hapus dulu, pakai version yang sama
-      // Jika tidak ada → versi 1
       let newVersion = 1;
       let oldUploadId: string | null = null;
 
       if (existingUpload && (existingUpload.status === 'draft' || existingUpload.status === 'revision_required')) {
-        // Hapus entri dan upload lama sebelum buat yang baru
         oldUploadId = existingUpload.id;
-        newVersion = existingUpload.version; // pakai version yang sama
+        newVersion = existingUpload.version;
       } else if (!existingUpload) {
         newVersion = 1;
       } else {
-        // Status lain selain draft/revision/submitted/approved — pakai version +1
         newVersion = existingUpload.version + 1;
       }
 
-      // Upload file ke storage
+      toast.loading('Langkah 1/4: Mengupload file ke Storage...', { id: toastId });
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${file.name}`;
-      const { error: storageError } = await supabase.storage
+      
+      // Use Promise.race to prevent infinite hanging
+      const storageUploadPromise = supabase.storage
         .from('ckp-files')
         .upload(storagePath, file, { upsert: true });
+        
+      const storageRes = await Promise.race([
+        storageUploadPromise,
+        new Promise<{error: {message: string}}>((_, reject) => setTimeout(() => reject(new Error('Timeout upload file (15 detik)')), 15000))
+      ]);
+      const storageError = storageRes?.error;
 
       if (storageError) {
         console.warn('Storage upload warning:', storageError.message);
-        // Storage error bukan blocker jika bucket tidak ada — tetap lanjut
       }
 
-      // Hapus entri lama jika ada draft/revision yang akan diganti
       if (oldUploadId) {
-        const { error: delEntriesErr } = await supabase
-          .from('ckp_entries')
-          .delete()
-          .eq('upload_id', oldUploadId);
-        if (delEntriesErr) console.warn('Delete entries warning:', delEntriesErr.message);
-
-        const { error: delUploadErr } = await supabase
-          .from('ckp_uploads')
-          .delete()
-          .eq('id', oldUploadId);
-        if (delUploadErr) console.warn('Delete upload warning:', delUploadErr.message);
+        toast.loading('Langkah 2/4: Menghapus data lama...', { id: toastId });
+        await Promise.race([
+          supabase.from('ckp_entries').delete().eq('upload_id', oldUploadId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout hapus entri lama')), 10000))
+        ]);
+        await Promise.race([
+          supabase.from('ckp_uploads').delete().eq('id', oldUploadId),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout hapus upload lama')), 10000))
+        ]);
       }
 
-      // Buat record upload baru
       const totalEntries = parseResult.entries.length;
       const avgProgres = totalEntries > 0
         ? parseResult.entries.reduce((s, e) => s + (Number(e.progres) || 0), 0) / totalEntries
         : 0;
 
-      const { data: uploadData, error: uploadError } = await supabase
+      toast.loading('Langkah 3/4: Menyimpan informasi CKP...', { id: toastId });
+      const uploadReqPromise = supabase
         .from('ckp_uploads')
         .insert({
           user_id: user.id,
@@ -181,22 +181,18 @@ export default function UploadPage() {
         })
         .select()
         .single();
+        
+      const uploadRes = await Promise.race([
+        uploadReqPromise,
+        new Promise<{data: any, error: any}>((_, reject) => setTimeout(() => reject(new Error('Timeout menyimpan CKP (10 detik)')), 10000))
+      ]) as any;
 
-      if (uploadError) {
-        console.error('❌ ckp_uploads insert error:', {
-          code: uploadError.code,
-          msg: uploadError.message,
-          details: uploadError.details,
-          hint: uploadError.hint,
-        });
-        throw new Error(`Gagal menyimpan data upload: ${uploadError.message}`);
-      }
+      const { data: uploadData, error: uploadError } = uploadRes;
 
-      if (!uploadData) {
-        throw new Error('Upload berhasil tapi data tidak diterima dari server');
-      }
+      if (uploadError) throw new Error(`Gagal menyimpan data upload: ${uploadError.message}`);
+      if (!uploadData) throw new Error('Upload berhasil tapi data tidak diterima dari server');
 
-      // Insert entri-entri CKP
+      toast.loading(`Langkah 4/4: Menyimpan ${parseResult.entries.length} entri kegiatan...`, { id: toastId });
       const entries = parseResult.entries.map((entry) => ({
         upload_id: uploadData.id,
         row_number: entry.row_number || 0,
@@ -212,23 +208,18 @@ export default function UploadPage() {
         extra_columns: entry.extra_columns || {},
       }));
 
-      const { error: entriesError } = await supabase
-        .from('ckp_entries')
-        .insert(entries);
+      const entriesPromise = supabase.from('ckp_entries').insert(entries);
+      const entriesRes = await Promise.race([
+        entriesPromise,
+        new Promise<{error: any}>((_, reject) => setTimeout(() => reject(new Error('Timeout menyimpan entri CKP (15 detik)')), 15000))
+      ]) as any;
 
-      if (entriesError) {
-        console.error('❌ ckp_entries insert error:', {
-          code: entriesError.code,
-          msg: entriesError.message,
-          details: entriesError.details,
-        });
-        // Rollback: hapus upload yang baru dibuat
+      if (entriesRes.error) {
         await supabase.from('ckp_uploads').delete().eq('id', uploadData.id);
-        throw new Error(`Gagal menyimpan entri CKP: ${entriesError.message}`);
+        throw new Error(`Gagal menyimpan entri CKP: ${entriesRes.error.message}`);
       }
 
-      // Audit log (non-fatal)
-      const auditRes = await supabase.from('audit_logs').insert({
+      await supabase.from('audit_logs').insert({
         user_id: user.id,
         action: oldUploadId ? 'replace_ckp' : 'upload_ckp',
         entity_type: 'ckp_uploads',
@@ -236,16 +227,12 @@ export default function UploadPage() {
         new_data: { bulan, tahun, version: newVersion, total_entries: entries.length },
       });
 
-      if (auditRes?.error) {
-        console.warn('⚠️ audit_logs warning:', auditRes.error.message);
-      }
-
-      toast.success(`CKP ${getBulanName(bulan)} ${tahun} berhasil diupload!`);
+      toast.success(`CKP ${getBulanName(bulan)} ${tahun} berhasil diupload!`, { id: toastId });
       router.push(`/pegawai/ckp/${uploadData.id}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui';
       console.error('[Upload] handleSubmit error:', error);
-      toast.error(`Gagal mengupload CKP: ${msg}`);
+      toast.error(`Gagal mengupload CKP: ${msg}`, { id: toastId, duration: 8000 });
     } finally {
       setUploading(false);
     }
