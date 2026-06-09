@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { QueryProvider } from "@/components/providers/query-provider";
+import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
   title: {
@@ -36,6 +37,17 @@ export default function RootLayout({
   return (
     <html lang="id">
       <body className="font-sans antialiased bg-slate-50 text-slate-900">
+        <NextTopLoader
+          color="#3B82F6"
+          initialPosition={0.08}
+          crawlSpeed={200}
+          height={3}
+          crawl={true}
+          showSpinner={true}
+          easing="ease"
+          speed={200}
+          shadow="0 0 10px #3B82F6,0 0 5px #3B82F6"
+        />
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>

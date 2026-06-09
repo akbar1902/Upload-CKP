@@ -92,7 +92,7 @@ export default function PegawaiDashboard() {
       if (!user) return [];
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
         const { data, error } = await supabase
@@ -111,6 +111,7 @@ export default function PegawaiDashboard() {
       }
     },
     enabled: !!user && !authLoading,
+    retry: 0,
   });
 
   const dataLoading = authLoading || queryLoading;

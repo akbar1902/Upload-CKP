@@ -87,6 +87,12 @@ export function Header({
   onExport,
   showExport = false,
 }: HeaderProps) {
+  const [mounted, setMounted] = React.useState(false);
+  
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const pathname = usePathname();
   const { user } = useAuth();
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
@@ -143,9 +149,15 @@ export function Header({
 
         {/* ── Center: Date meta ─────────────────────── */}
         <div className="hidden xl:flex items-center gap-1.5 text-[12px] text-slate-400 flex-shrink-0">
-          <span className="font-medium text-slate-500">{dateStr}</span>
-          <span>·</span>
-          <span>{timeStr} WIB</span>
+          {mounted ? (
+            <>
+              <span className="font-medium text-slate-500">{dateStr}</span>
+              <span>·</span>
+              <span>{timeStr} WIB</span>
+            </>
+          ) : (
+            <div className="w-32 h-4 bg-slate-100 rounded animate-pulse" />
+          )}
         </div>
 
         {/* ── Right: Actions + User ─────────────────── */}

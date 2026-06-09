@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { useAuth } from '@/hooks/use-auth';
+import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
 import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck } from 'lucide-react';
@@ -132,62 +132,42 @@ function StaffCardSkeleton() {
 // ── Main page ──────────────────────────────────────────────
 export default function PimpinanPegawaiPage() {
   const supabase = useMemo(() => createClient(), []);
-  const { user } = useAuth();
-  const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const fetchedRef = useRef(false);
 
-  const fetchUsers = useCallback(async () => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+  const { data: users = [], isLoading: loading, refetch } = useQuery({
+    queryKey: ['pimpinan-pegawai'],
+    queryFn: async () => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('role', 'pegawai')
+          .eq('is_active', true)
+          .order('full_name')
+          .abortSignal(controller.signal);
 
-    try {
-
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('role', 'pegawai')
-        .eq('is_active', true)
-        .order('full_name')
-        .abortSignal(controller.signal);
-
-      clearTimeout(timeout);
-
-      if (error) {
-        console.error('[PimpinanPegawai] Fetch error:', error.message);
-        return;
+        if (error) throw new Error(error.message);
+        return data as User[] || [];
+      } finally {
+        clearTimeout(timeoutId);
       }
-      setUsers(data as User[] || []);
-      fetchedRef.current = true;
-    } catch (err: unknown) {
-      clearTimeout(timeout);
-      if (err instanceof Error && err.name === 'AbortError') {
-        console.warn('[PimpinanPegawai] Fetch timed out after 15s');
-      } else {
-        console.error('[PimpinanPegawai] Fetch error:', err);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
+    },
+    retry: 0,
+  });
 
   // Re-fetch when tab becomes visible
   useEffect(() => {
     const handleVisibility = async () => {
-      if (document.visibilityState === 'visible' && fetchedRef.current) {
-        console.log('[PimpinanPegawai] Tab visible, refreshing data...');
-        await fetchUsers();
+      if (document.visibilityState === 'visible') {
+        await refetch();
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
     return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [fetchUsers]);
+  }, [refetch]);
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;

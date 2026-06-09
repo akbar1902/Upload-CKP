@@ -283,7 +283,7 @@ export default function PimpinanCKPDetailPage() {
     queryFn: async () => {
       if (!id) throw new Error("ID not found");
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
         const { data: uploadData, error: uploadError } = await supabase
@@ -315,6 +315,7 @@ export default function PimpinanCKPDetailPage() {
       }
     },
     enabled: !!id,
+    retry: 0,
   });
 
   const upload = data?.upload || null;

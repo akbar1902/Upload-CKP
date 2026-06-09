@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
 import { Header } from '@/components/layout/header';
 import { UploadStatusBadge } from '@/components/dashboard/upload-status-badge';
@@ -26,25 +27,35 @@ export default function PimpinanPegawaiDetailPage() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const [employee, setEmployee] = useState<User | null>(null);
-  const [uploads, setUploads] = useState<CKPUpload[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['pimpinan-pegawai-detail', userId],
+    queryFn: async () => {
+      if (!userId) throw new Error('Missing userId');
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userId) return;
+      try {
+        const [userRes, uploadsRes] = await Promise.all([
+          supabase.from('users').select('*').eq('id', userId).single().abortSignal(controller.signal),
+          supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).abortSignal(controller.signal),
+        ]);
 
-      const [userRes, uploadsRes] = await Promise.all([
-        supabase.from('users').select('*').eq('id', userId).single(),
-        supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }),
-      ]);
+        if (userRes.error) throw userRes.error;
 
-      setEmployee(userRes.data as User);
-      setUploads(uploadsRes.data as CKPUpload[] || []);
-      setLoading(false);
-    };
-    fetchData();
-  }, [userId, supabase]);
+        return {
+          employee: userRes.data as User,
+          uploads: (uploadsRes.data as CKPUpload[]) || [],
+        };
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    },
+    enabled: !!userId,
+    retry: 0,
+  });
+
+  const employee = data?.employee || null;
+  const uploads = data?.uploads || [];
 
   if (loading) {
     return (

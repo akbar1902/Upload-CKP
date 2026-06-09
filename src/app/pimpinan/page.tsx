@@ -86,7 +86,7 @@ export default function PimpinanDashboard() {
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000); // reduced from 10s to 6s for snappier feedback
 
       try {
         const [uploadsRes, usersRes] = await Promise.all([
@@ -120,7 +120,8 @@ export default function PimpinanDashboard() {
       } finally {
         clearTimeout(timeoutId);
       }
-    }
+    },
+    retry: 0, // Disable automatic retries so it immediately shows the error UI instead of hanging on skeleton
   });
 
   const uploads = data?.uploads || [];

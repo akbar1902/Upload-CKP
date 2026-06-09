@@ -287,9 +287,10 @@ export default function CKPDetailPage() {
   const { data, isLoading: loading } = useQuery({
     queryKey: ['ckp-detail', id],
     queryFn: async () => {
-      if (!id) throw new Error("ID not found");
+      if (!id || !user) throw new Error("Missing ID or User");
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
 
       try {
         const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
@@ -311,7 +312,8 @@ export default function CKPDetailPage() {
         clearTimeout(timeoutId);
       }
     },
-    enabled: !!id,
+    enabled: !!id && !!user,
+    retry: 0,
   });
 
   const upload = data?.upload || null;
