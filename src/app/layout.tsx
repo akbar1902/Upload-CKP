@@ -5,6 +5,7 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { QueryProvider } from "@/components/providers/query-provider";
+import { RecoveryManager } from "@/components/providers/recovery-manager";
 import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
@@ -51,7 +52,9 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>
-              {children}
+              <RecoveryManager>
+                {children}
+              </RecoveryManager>
               <Toaster
                 position="top-right"
                 richColors

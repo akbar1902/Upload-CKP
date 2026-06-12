@@ -11,7 +11,7 @@ import type { CKPUpload } from '@/types/database';
 import {
   FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
-  ChevronUp, ArrowRight, Upload, FileCheck,
+  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw,
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -86,13 +86,13 @@ export default function PegawaiDashboard() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear  = new Date().getFullYear();
 
-  const { data: uploads = [], isLoading: queryLoading } = useQuery({
+  const { data: uploads = [], isLoading: queryLoading, error: queryError, refetch } = useQuery({
     queryKey: ['pegawai-uploads', user?.id],
     queryFn: async () => {
       if (!user) return [];
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const { data, error } = await supabase
@@ -111,7 +111,7 @@ export default function PegawaiDashboard() {
       }
     },
     enabled: !!user && !authLoading,
-    retry: 0,
+    networkMode: 'always',
   });
 
   const dataLoading = authLoading || queryLoading;
@@ -164,6 +164,29 @@ export default function PegawaiDashboard() {
     { icon: <CheckCircle2 size={18} style={{ color: "#059669" }} />, value: stats.approved,    label: 'Disetujui',         sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
     { icon: <Clock size={18} style={{ color: "#D97706" }} />, value: stats.pending,     label: 'Menunggu Review',   sub: 'belum diproses',       iconBg: '#FFFBEB' },
   ];
+
+  const error = queryError ? queryError.message : null;
+
+  if (error && !isLoading) {
+    return (
+      <>
+        <Header />
+        <div className="p-8 max-w-md mx-auto text-center py-24">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
+            <WifiOff className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
+          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" /> Coba Lagi
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>

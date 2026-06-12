@@ -83,6 +83,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * ensureSession: Attempts to refresh the session if stale.
    * Returns true if we have a valid session, false otherwise.
    * This is the KEY fix — call this on navigation to prevent stuck states.
+   *
+   * NOTE: `user` is intentionally NOT in the dependency array.
+   * Including it caused stale closures where ensureSession would
+   * be recreated on every user state change, leading to race conditions.
    */
   const ensureSession = useCallback(async (): Promise<boolean> => {
     const doEnsure = async (): Promise<boolean> => {
@@ -116,9 +120,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return true;
           }
 
-          // Session is still valid
-          if (mountedRef.current && !user) {
+          // Session is still valid — ensure user state is populated
+          if (mountedRef.current) {
             setSupabaseUser(session.user);
+            // Always re-fetch profile to ensure fresh data after idle
             await fetchUserProfile(session.user);
             setLoading(false);
           }
@@ -154,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return await Promise.race([
         doEnsure(),
         new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error('ensureSession timed out')), 8000)
+          setTimeout(() => reject(new Error('ensureSession timed out')), 15000)
         )
       ]);
     } catch (err) {
@@ -163,18 +168,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // which would incorrectly trigger a "session expired" logout.
       throw err;
     }
-  }, [supabase, fetchUserProfile, user]);
+  }, [supabase, fetchUserProfile]); // NOTE: `user` intentionally excluded
 
   useEffect(() => {
     mountedRef.current = true;
 
-    // Safety timeout: never stay in loading state forever (8s for slow connections)
+    // Safety timeout: never stay in loading state forever (15s for slow connections)
     const safetyTimeout = setTimeout(() => {
       if (mountedRef.current && loading) {
         console.warn('[Auth] Safety timeout: forcing loading=false');
         setLoading(false);
       }
-    }, 8000);
+    }, 15000);
 
     const init = async () => {
       try {
@@ -267,67 +272,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    // Periodic session check: refresh token before it expires
-    // This prevents the "stuck after idle" issue
-    const refreshInterval = setInterval(async () => {
-      if (!mountedRef.current) return;
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
+    // NOTE: Periodic token refresh via setInterval is intentionally removed.
+    // Browsers throttle timers in background tabs (to once per minute or slower),
+    // making setInterval unreliable for token refresh during idle.
+    // The RecoveryManager uses visibilitychange/online events instead,
+    // which fire reliably when the user returns.
 
-        const expiresAt = session.expires_at;
-        const now = Math.floor(Date.now() / 1000);
-        // Refresh if token expires within 5 minutes
-        if (expiresAt && (expiresAt - now) < 300) {
-          console.log('[Auth] Proactive token refresh (expires in', expiresAt - now, 'seconds)');
-          await supabase.auth.refreshSession();
-        }
-      } catch {
-        // Silently ignore — will retry next interval
-      }
-    }, 60_000); // Check every minute
-
-    // Handle visibility change: refresh session when tab becomes visible
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible' && mountedRef.current) {
-        console.log('[Auth] Tab became visible, checking session...');
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session) {
-            // No session — user might have logged out in another tab
-            if (mountedRef.current) {
-              setSupabaseUser(null);
-              setUser(null);
-            }
-            return;
-          }
-
-          const expiresAt = session.expires_at;
-          const now = Math.floor(Date.now() / 1000);
-
-          if (expiresAt && (expiresAt - now) < 300) {
-            // Token is stale or about to expire — refresh
-            console.log('[Auth] Refreshing stale session after tab focus');
-            const { data: refreshed } = await supabase.auth.refreshSession();
-            if (mountedRef.current && refreshed?.session?.user) {
-              setSupabaseUser(refreshed.session.user);
-              await fetchUserProfile(refreshed.session.user);
-            }
-          }
-        } catch (err) {
-          console.warn('[Auth] Visibility check error:', err);
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // NOTE: visibilitychange handler is intentionally removed from here.
+    // It is now centralized in RecoveryManager to avoid duplicate handlers.
 
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
       clearTimeout(safetyTimeout);
-      clearInterval(refreshInterval);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
     // supabase and fetchUserProfile are stable — safe to omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps

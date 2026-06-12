@@ -15,7 +15,7 @@ import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/type
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
-  RefreshCw, MessageSquare, Unlock, User as UserIcon,
+  RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff,
   Briefcase, Search, SlidersHorizontal, LayoutList,
   LayoutGrid, ChevronDown, ChevronUp,
 } from 'lucide-react';
@@ -278,12 +278,12 @@ export default function PimpinanCKPDetailPage() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
   const [searchQuery, setSearchQuery] = useState('');
-  const { data, isLoading: loading } = useQuery({
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-ckp-detail', id],
     queryFn: async () => {
       if (!id) throw new Error("ID not found");
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const { data: uploadData, error: uploadError } = await supabase
@@ -315,7 +315,7 @@ export default function PimpinanCKPDetailPage() {
       }
     },
     enabled: !!id,
-    retry: 0,
+    networkMode: 'always',
   });
 
   const upload = data?.upload || null;
@@ -372,6 +372,30 @@ export default function PimpinanCKPDetailPage() {
   // Derived stats from entries
   const completedCount = entries.filter(e => e.progres >= 100).length;
   const dataDukungCount = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
+
+  const error = queryError ? queryError.message : null;
+
+  // Error state
+  if (error && !loading) {
+    return (
+      <>
+        <Header />
+        <div className="p-8 max-w-md mx-auto text-center py-24">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
+            <WifiOff className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
+          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" /> Coba Lagi
+          </button>
+        </div>
+      </>
+    );
+  }
 
   // Loading state
   if (loading) {

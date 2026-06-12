@@ -86,7 +86,7 @@ export default function PimpinanDashboard() {
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000); // reduced from 10s to 6s for snappier feedback
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const [uploadsRes, usersRes] = await Promise.all([
@@ -121,7 +121,8 @@ export default function PimpinanDashboard() {
         clearTimeout(timeoutId);
       }
     },
-    retry: 0, // Disable automatic retries so it immediately shows the error UI instead of hanging on skeleton
+    retry: 1, // Allow 1 retry for transient errors (global config handles retry logic)
+    networkMode: 'always',
   });
 
   const uploads = data?.uploads || [];
@@ -130,7 +131,7 @@ export default function PimpinanDashboard() {
 
   // Realtime
   useEffect(() => {
-    const channelName = `pimpinan-${bulan}-${tahun}-${Date.now()}`;
+    const channelName = `pimpinan-${bulan}-${tahun}`;
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', {

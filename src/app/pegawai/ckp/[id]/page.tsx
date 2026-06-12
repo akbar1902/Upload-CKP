@@ -14,7 +14,7 @@ import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp,
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -284,13 +284,13 @@ export default function CKPDetailPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
   
-  const { data, isLoading: loading } = useQuery({
+  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['ckp-detail', id],
     queryFn: async () => {
       if (!id || !user) throw new Error("Missing ID or User");
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       try {
         const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
@@ -313,7 +313,7 @@ export default function CKPDetailPage() {
       }
     },
     enabled: !!id && !!user,
-    retry: 0,
+    networkMode: 'always',
   });
 
   const upload = data?.upload || null;
@@ -343,6 +343,30 @@ export default function CKPDetailPage() {
   const completedCount   = entries.filter(e => e.progres >= 100).length;
   const dataDukungCount  = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
   const avgPct           = Math.min(upload?.avg_progres || 0, 100);
+
+  const error = queryError ? queryError.message : null;
+
+  // Error state
+  if (error && !loading) {
+    return (
+      <>
+        <Header />
+        <div className="p-8 max-w-md mx-auto text-center py-24">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
+            <WifiOff className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
+          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" /> Coba Lagi
+          </button>
+        </div>
+      </>
+    );
+  }
 
   // Loading
   if (loading) {

@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
-import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck } from 'lucide-react';
+import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck, WifiOff, RefreshCw } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
@@ -134,11 +134,11 @@ export default function PimpinanPegawaiPage() {
   const supabase = useMemo(() => createClient(), []);
   const [search, setSearch] = useState('');
 
-  const { data: users = [], isLoading: loading, refetch } = useQuery({
+  const { data: users = [], isLoading: loading, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai'],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 6000);
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
       try {
         const { data, error } = await supabase
           .from('users')
@@ -154,20 +154,11 @@ export default function PimpinanPegawaiPage() {
         clearTimeout(timeoutId);
       }
     },
-    retry: 0,
+    networkMode: 'always',
   });
 
-  // Re-fetch when tab becomes visible
-  useEffect(() => {
-    const handleVisibility = async () => {
-      if (document.visibilityState === 'visible') {
-        await refetch();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [refetch]);
+  // NOTE: visibilitychange refetch removed — RecoveryManager handles this globally
+  //       by invalidating all queries when the tab becomes visible.
 
   const filteredUsers = useMemo(() => {
     if (!search.trim()) return users;
@@ -179,6 +170,29 @@ export default function PimpinanPegawaiPage() {
       u.email.toLowerCase().includes(q)
     );
   }, [users, search]);
+
+  const error = queryError ? queryError.message : null;
+
+  if (error && !loading) {
+    return (
+      <>
+        <Header />
+        <div className="p-8 max-w-md mx-auto text-center py-24">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
+            <WifiOff className="h-6 w-6 text-slate-400" />
+          </div>
+          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
+          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" /> Coba Lagi
+          </button>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
