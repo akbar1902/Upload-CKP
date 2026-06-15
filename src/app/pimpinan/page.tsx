@@ -86,7 +86,7 @@ export default function PimpinanDashboard() {
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
         const queryPromise = Promise.all([
           supabase
@@ -107,7 +107,7 @@ export default function PimpinanDashboard() {
 
         const [uploadsRes, usersRes] = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
         ]);
 
         if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);

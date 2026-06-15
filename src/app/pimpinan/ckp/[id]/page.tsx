@@ -285,7 +285,7 @@ export default function PimpinanCKPDetailPage() {
 
       const fetchLogic = async () => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         try {
           const { data: uploadData, error: uploadError } = await supabase
@@ -319,7 +319,7 @@ export default function PimpinanCKPDetailPage() {
 
       return Promise.race([
         fetchLogic(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
       ]);
     },
     enabled: !!id,

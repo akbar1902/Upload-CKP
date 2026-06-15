@@ -92,7 +92,7 @@ export default function PegawaiDashboard() {
       if (!user) return [];
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
         const queryPromise = supabase
@@ -106,7 +106,7 @@ export default function PegawaiDashboard() {
 
         const { data, error } = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
         ]);
 
         if (error) throw new Error(error.message);

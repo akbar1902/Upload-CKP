@@ -21,8 +21,8 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
     if (typeof window !== 'undefined') {
       const lastReload = sessionStorage.getItem('last_timeout_reload');
       const now = Date.now();
-      // Prevent infinite reload loops (max 1 reload per 10 seconds)
-      if (!lastReload || now - parseInt(lastReload) > 10000) {
+      // Prevent infinite reload loops (max 1 reload per 5 seconds)
+      if (!lastReload || now - parseInt(lastReload) > 5000) {
         sessionStorage.setItem('last_timeout_reload', now.toString());
         console.warn('[Auto-Recovery] Supabase request timeout. Force reloading page to clear deadlock...');
         window.location.reload();

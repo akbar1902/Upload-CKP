@@ -291,7 +291,7 @@ export default function CKPDetailPage() {
 
       const fetchLogic = async () => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
 
         try {
           const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
@@ -316,7 +316,7 @@ export default function CKPDetailPage() {
 
       return Promise.race([
         fetchLogic(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
       ]);
     },
     enabled: !!id && !!user,

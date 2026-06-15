@@ -34,7 +34,7 @@ export default function PimpinanPegawaiDetailPage() {
     queryFn: async () => {
       if (!userId) throw new Error('Missing userId');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
       try {
         const queryPromise = Promise.all([
@@ -44,7 +44,7 @@ export default function PimpinanPegawaiDetailPage() {
 
         const [userRes, uploadsRes] = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
         ]);
 
         if (userRes.error) throw userRes.error;
