@@ -20,8 +20,8 @@ import Link from 'next/link';
 
 // ── Helpers ────────────────────────────────────────────────
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
-                        'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-const WEEKDAYS   = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+const WEEKDAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 const ACTIVITY_COLORS = [
   { bg: '#EFF6FF', icon: '#2563EB' },
@@ -39,18 +39,18 @@ function getActivityColor(idx: number) {
 
 function getProgressClass(pct: number): string {
   if (pct >= 100) return 'progress-green';
-  if (pct >= 71)  return 'progress-orange';
-  if (pct >= 31)  return 'progress-blue';
+  if (pct >= 71) return 'progress-orange';
+  if (pct >= 31) return 'progress-blue';
   return 'progress-gray';
 }
 
 // ── Upload status badge ────────────────────────────────────
 const STATUS_CFG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '🟢' },
-  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '🟠' },
-  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '⚪' },
+  submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
+  approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
+  rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
+  revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
+  draft: { label: 'Draft', cls: 'badge-draft', dot: '⚪' },
 } as const;
 
 function UploadBadge({ status }: { status: string }) {
@@ -82,7 +82,7 @@ function KPICard({ icon, value, label, sub, iconBg }: {
   return (
     <div className="kpi-card p-5 flex items-start gap-4">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-           style={{ background: iconBg }}>
+        style={{ background: iconBg }}>
         {icon}
       </div>
       <div className="min-w-0">
@@ -101,7 +101,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
   const [expanded, setExpanded] = useState(false);
 
   const dt = entry.tanggal_mulai ? new Date(entry.tanggal_mulai) : null;
-  const day      = dt ? dt.getDate() : '—';
+  const day = dt ? dt.getDate() : '—';
   const monthAbbr = entry.tanggal_mulai
     ? MONTH_ABBR[new Date(entry.tanggal_mulai).getMonth() + 1] ?? '—'
     : '—';
@@ -141,7 +141,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               {entry.capaian || '—'}
             </p>
           </div>
-          
+
           {/* Mobile date */}
           <p className="text-[11px] mt-2 sm:hidden text-slate-500 font-medium">
             {formatDate(entry.tanggal_mulai)}
@@ -177,7 +177,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           {entry.data_dukung && (
             <div className="text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
+                style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
               <DataDukungLink value={entry.data_dukung} />
             </div>
           )}
@@ -205,7 +205,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Tanggal</p>
+                style={{ color: 'var(--text-secondary)' }}>Tanggal</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {formatDate(entry.tanggal_mulai)}
                 {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
@@ -215,14 +215,14 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Waktu</p>
+                style={{ color: 'var(--text-secondary)' }}>Waktu</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {formatTime(entry.jam_mulai)} – {formatTime(entry.jam_selesai)}
               </p>
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
+                style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F1F5F9', maxWidth: 80 }}>
                   <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
@@ -232,7 +232,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>No. Baris</p>
+                style={{ color: 'var(--text-secondary)' }}>No. Baris</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>#{entry.row_number}</p>
             </div>
           </div>
@@ -279,12 +279,12 @@ function EntryCardSkeleton() {
 export default function CKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
 
   const [searchQuery, setSearchQuery] = useState('');
-  
-  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+
+  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['ckp-detail', id],
     queryFn: async () => {
       if (!id || !user) throw new Error("Missing ID or User");
@@ -319,21 +319,27 @@ export default function CKPDetailPage() {
         new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
       ]);
     },
-    enabled: !!id && !!user,
+    enabled: !!id && !!user && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: In React Query v5, isLoading === isPending, which is TRUE even when
+  // the query is disabled (enabled=false). This caused eternal skeleton when
+  // user was null during auth re-validation after idle.
+  // Only show loading when auth is done AND query is actually pending.
+  const loading = authLoading || (!!user && queryPending);
+
+  // Failsafe: if genuinely stuck for > 12s after auth resolved, force reload
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (loading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [authLoading, queryPending]);
 
   const upload = data?.upload || null;
   const entries = data?.entries || [];
@@ -356,12 +362,12 @@ export default function CKPDetailPage() {
     );
   }, [entries, searchQuery]);
 
-  
+
   const pagedEntries = filteredEntries;
 
-  const completedCount   = entries.filter(e => e.progres >= 100).length;
-  const dataDukungCount  = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
-  const avgPct           = Math.min(upload?.avg_progres || 0, 100);
+  const completedCount = entries.filter(e => e.progres >= 100).length;
+  const dataDukungCount = entries.filter(e => e.data_dukung && e.data_dukung.trim()).length;
+  const avgPct = Math.min(upload?.avg_progres || 0, 100);
 
   const error = queryError ? queryError.message : null;
 
@@ -421,7 +427,7 @@ export default function CKPDetailPage() {
   }
 
   const canReupload = upload.status === 'draft' || upload.status === 'revision_required';
-  const bulanNama   = getBulanName(upload.bulan);
+  const bulanNama = getBulanName(upload.bulan);
 
   return (
     <>
@@ -479,7 +485,7 @@ export default function CKPDetailPage() {
             {canReupload && (
               <Link href="/pegawai/upload">
                 <button className="btn-secondary"
-                        style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+                  style={{ color: '#D97706', borderColor: '#FDE68A' }}>
                   <RefreshCw size={14} /> Upload Ulang
                 </button>
               </Link>
@@ -518,7 +524,7 @@ export default function CKPDetailPage() {
             </div>
             <Link href="/pegawai/upload">
               <button className="btn-primary text-[12px] py-1.5 px-3"
-                      style={{ background: '#DC2626' }}>Upload Ulang</button>
+                style={{ background: '#DC2626' }}>Upload Ulang</button>
             </Link>
           </div>
         )}
@@ -549,7 +555,7 @@ export default function CKPDetailPage() {
                   type="search"
                   placeholder="Cari kegiatan..."
                   value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value);  }}
+                  onChange={(e) => { setSearchQuery(e.target.value); }}
                   aria-label="Cari kegiatan"
                 />
               </div>

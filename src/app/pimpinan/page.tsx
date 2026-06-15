@@ -49,7 +49,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
                 />
               </svg>
               <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold"
-                    style={{ color: 'var(--text-primary)' }}>
+                style={{ color: 'var(--text-primary)' }}>
                 {pct}%
               </span>
             </div>
@@ -59,8 +59,8 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
           {loading
             ? <div className="skeleton h-6 w-16 rounded" />
             : <p className="text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                {uploaded}<span className="text-base font-normal" style={{ color: 'var(--text-secondary)' }}>/{total}</span>
-              </p>
+              {uploaded}<span className="text-base font-normal" style={{ color: 'var(--text-secondary)' }}>/{total}</span>
+            </p>
           }
           <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>pegawai melapor</p>
         </div>
@@ -72,17 +72,17 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
 // ─── Main page ─────────────────────────────────────────────
 export default function PimpinanDashboard() {
   const supabase = useMemo(() => createClient(), []);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
 
   const currentMonth = new Date().getMonth() + 1;
-  const currentYear  = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
   const [bulan, setBulan] = useState(currentMonth);
   const [tahun, setTahun] = useState(currentYear);
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
-  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
       const controller = new AbortController();
@@ -111,13 +111,13 @@ export default function PimpinanDashboard() {
         ]);
 
         if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
-        if (usersRes.error)  throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
+        if (usersRes.error) throw new Error(`Gagal memuat data pegawai: ${usersRes.error.message}`);
 
         const newUploads = (uploadsRes.data || []).map((u: Record<string, unknown>) => ({
           ...u,
           user: u.user as User | undefined,
         })) as (CKPUpload & { user?: User })[];
-        
+
         const newUsers = usersRes.data as User[] || [];
 
         return { uploads: newUploads, users: newUsers };
@@ -125,20 +125,24 @@ export default function PimpinanDashboard() {
         clearTimeout(timeoutId);
       }
     },
+    enabled: !!user && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: isPending is TRUE even when query is disabled (enabled=false) in React Query v5.
+  const loading = authLoading || (!!user && queryPending);
+
+  // Failsafe after auth resolved
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (loading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [authLoading, queryPending]);
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
@@ -180,16 +184,16 @@ export default function PimpinanDashboard() {
   }, [pegawaiRows, searchQuery]);
 
   // Stats
-  const totalPegawai  = allUsers.length;
-  
+  const totalPegawai = allUsers.length;
+
   const uniqueUploads = useMemo(() => {
     return pegawaiRows.map(r => r.upload).filter((u): u is CKPUpload & { user?: User } => u !== null);
   }, [pegawaiRows]);
 
   const uploadedCount = uniqueUploads.length;
-  const pendingCount  = uniqueUploads.filter(u => u.status === 'submitted').length;
+  const pendingCount = uniqueUploads.filter(u => u.status === 'submitted').length;
   const approvedCount = uniqueUploads.filter(u => u.status === 'approved').length;
-  const avgCapaian    = uniqueUploads.length > 0
+  const avgCapaian = uniqueUploads.length > 0
     ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length)
     : 0;
 
@@ -266,10 +270,10 @@ export default function PimpinanDashboard() {
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Users size={18} style={{ color: "#2563EB" }} />} value={totalPegawai}    label="Total Pegawai"     sub="Aktif terdaftar" iconBg="#EFF6FF" loading={loading} />
-          <KPICard icon={<Clock size={18} style={{ color: "#D97706" }} />} value={pendingCount}    label="Menunggu Review"   sub="Perlu diproses"  iconBg="#FFFBEB" loading={loading} />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={approvedCount}   label="Disetujui"         sub="Bulan ini"       iconBg="#F0FDF4" loading={loading} />
-          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini"  iconBg="#F5F3FF" loading={loading} />
+          <KPICard icon={<Users size={18} style={{ color: "#2563EB" }} />} value={totalPegawai} label="Total Pegawai" sub="Aktif terdaftar" iconBg="#EFF6FF" loading={loading} />
+          <KPICard icon={<Clock size={18} style={{ color: "#D97706" }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="#FFFBEB" loading={loading} />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="#F0FDF4" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="#F5F3FF" loading={loading} />
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}

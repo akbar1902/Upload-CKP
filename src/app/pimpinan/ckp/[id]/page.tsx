@@ -22,8 +22,8 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
-                        'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
-const WEEKDAYS   = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+  'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+const WEEKDAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 function getActivityColor(idx: number) {
   return { bg: '#F8FAFC', icon: '#64748B' }; // Simple slate styling
@@ -31,18 +31,18 @@ function getActivityColor(idx: number) {
 
 function getProgressClass(pct: number): string {
   if (pct >= 100) return 'progress-green';
-  if (pct >= 71)  return 'progress-orange';
-  if (pct >= 31)  return 'progress-blue';
+  if (pct >= 71) return 'progress-orange';
+  if (pct >= 31) return 'progress-blue';
   return 'progress-gray';
 }
 
 // ── Status config ──────────────────────────────────────────
 const STATUS_CFG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '🟢' },
-  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '🟠' },
-  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '⚪' },
+  submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
+  approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
+  rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
+  revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
+  draft: { label: 'Draft', cls: 'badge-draft', dot: '⚪' },
 } as const;
 
 function UploadBadge({ status }: { status: string }) {
@@ -74,7 +74,7 @@ function KPICard({ icon, value, label, sub, iconBg }: {
   return (
     <div className="kpi-card p-5 flex items-start gap-4">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-           style={{ background: iconBg }}>
+        style={{ background: iconBg }}>
         {icon}
       </div>
       <div className="min-w-0">
@@ -93,7 +93,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
   const [expanded, setExpanded] = useState(false);
 
   const dt = entry.tanggal_mulai ? new Date(entry.tanggal_mulai) : null;
-  const day      = dt ? dt.getDate() : '—';
+  const day = dt ? dt.getDate() : '—';
   const monthAbbr = entry.tanggal_mulai
     ? MONTH_ABBR[new Date(entry.tanggal_mulai).getMonth() + 1] ?? '—'
     : '—';
@@ -133,7 +133,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               {entry.capaian || '—'}
             </p>
           </div>
-          
+
           {/* Mobile date */}
           <p className="text-[11px] mt-2 sm:hidden text-slate-500 font-medium">
             {formatDate(entry.tanggal_mulai)}
@@ -169,7 +169,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           {entry.data_dukung && (
             <div className="text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
+                style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
               <DataDukungLink value={entry.data_dukung} />
             </div>
           )}
@@ -197,7 +197,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Tanggal</p>
+                style={{ color: 'var(--text-secondary)' }}>Tanggal</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {formatDate(entry.tanggal_mulai)}
                 {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
@@ -207,14 +207,14 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Waktu</p>
+                style={{ color: 'var(--text-secondary)' }}>Waktu</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {formatTime(entry.jam_mulai)} – {formatTime(entry.jam_selesai)}
               </p>
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
+                style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F1F5F9', maxWidth: 80 }}>
                   <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
@@ -224,7 +224,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>No. Baris</p>
+                style={{ color: 'var(--text-secondary)' }}>No. Baris</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>#{entry.row_number}</p>
             </div>
           </div>
@@ -271,14 +271,14 @@ function EntryCardSkeleton() {
 export default function PimpinanCKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
   const [searchQuery, setSearchQuery] = useState('');
-  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-ckp-detail', id],
     queryFn: async () => {
       if (!id) throw new Error("ID not found");
@@ -290,7 +290,7 @@ export default function PimpinanCKPDetailPage() {
         try {
           const { data: uploadData, error: uploadError } = await supabase
             .from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal);
-          
+
           if (uploadError) throw new Error(uploadError.message);
           if (!uploadData) throw new Error("Upload not found");
 
@@ -322,21 +322,24 @@ export default function PimpinanCKPDetailPage() {
         new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
       ]);
     },
-    enabled: !!id,
+    enabled: !!id && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: isPending is TRUE even when disabled (enabled=false) in React Query v5.
+  const loading = authLoading || queryPending;
+
+  // Failsafe after auth resolved
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (loading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [authLoading, queryPending]);
 
   const upload = data?.upload || null;
   const employee = data?.employee || null;

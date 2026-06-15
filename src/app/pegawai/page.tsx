@@ -16,15 +16,15 @@ import {
 
 // ── Helpers ────────────────────────────────────────────────
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
-                        'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
+  'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 const MONTH_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-                        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 const WEEKDAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 function getProgressClass(pct: number): string {
   if (pct >= 100) return 'progress-green';
-  if (pct >= 71)  return 'progress-orange';
-  if (pct >= 31)  return 'progress-blue';
+  if (pct >= 71) return 'progress-orange';
+  if (pct >= 31) return 'progress-blue';
   return 'progress-gray';
 }
 
@@ -84,13 +84,13 @@ export default function PegawaiDashboard() {
   const supabase = useMemo(() => createClient(), []);
 
   const currentMonth = new Date().getMonth() + 1;
-  const currentYear  = new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
-  const { data: uploads = [], isLoading: queryLoading, error: queryError, refetch } = useQuery({
+  const { data: uploads = [], isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pegawai-uploads', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -115,21 +115,25 @@ export default function PegawaiDashboard() {
         clearTimeout(timeoutId);
       }
     },
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
+  // This caused eternal skeleton when user was null during auth re-validation after idle.
+  const queryLoading = !!user && queryPending;
+
+  // Failsafe: if genuinely stuck after auth resolved, force reload
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (queryLoading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [queryLoading]);
+  }, [authLoading, queryPending]);
 
   const dataLoading = authLoading || queryLoading;
 
@@ -146,10 +150,10 @@ export default function PegawaiDashboard() {
 
   // Stats
   const stats = useMemo(() => ({
-    total:      uploads.length, // keep total as historical count
-    approved:   uniqueUploads.filter(u => u.status === 'approved').length,
-    pending:    uniqueUploads.filter(u => u.status === 'submitted').length,
-    rejected:   uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
+    total: uploads.length, // keep total as historical count
+    approved: uniqueUploads.filter(u => u.status === 'approved').length,
+    pending: uniqueUploads.filter(u => u.status === 'submitted').length,
+    rejected: uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
     avgProgres: uniqueUploads.length
       ? (uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length).toFixed(0)
       : '0',
@@ -176,10 +180,10 @@ export default function PegawaiDashboard() {
 
   // KPI cards config
   const kpiCards = [
-    { icon: <FileText size={18} style={{ color: "#2563EB" }} />, value: stats.total,       label: 'Total Upload',      sub: 'semua periode',        iconBg: '#EFF6FF' },
+    { icon: <FileText size={18} style={{ color: "#2563EB" }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: '#EFF6FF' },
     { icon: <TrendingUp size={18} style={{ color: "#16A34A" }} />, value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: '#F0FDF4' },
-    { icon: <CheckCircle2 size={18} style={{ color: "#059669" }} />, value: stats.approved,    label: 'Disetujui',         sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
-    { icon: <Clock size={18} style={{ color: "#D97706" }} />, value: stats.pending,     label: 'Menunggu Review',   sub: 'belum diproses',       iconBg: '#FFFBEB' },
+    { icon: <CheckCircle2 size={18} style={{ color: "#059669" }} />, value: stats.approved, label: 'Disetujui', sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
+    { icon: <Clock size={18} style={{ color: "#D97706" }} />, value: stats.pending, label: 'Menunggu Review', sub: 'belum diproses', iconBg: '#FFFBEB' },
   ];
 
   const error = queryError ? queryError.message : null;
@@ -267,7 +271,7 @@ export default function PegawaiDashboard() {
             </div>
             <Link href="/pegawai/upload" className="flex-shrink-0">
               <button className="btn-primary text-[12px] py-1.5 px-3"
-                      style={{ background: '#DC2626' }}>Upload Ulang</button>
+                style={{ background: '#DC2626' }}>Upload Ulang</button>
             </Link>
           </div>
         )}
