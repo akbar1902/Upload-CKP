@@ -289,28 +289,35 @@ export default function CKPDetailPage() {
     queryFn: async () => {
       if (!id || !user) throw new Error("Missing ID or User");
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const fetchLogic = async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      try {
-        const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
-          supabase.from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal),
-          supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
-          supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(controller.signal),
-        ]);
+        try {
+          const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
+            supabase.from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal),
+            supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
+            supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(controller.signal),
+          ]);
 
-        if (uploadRes.error) throw new Error(uploadRes.error.message);
+          if (uploadRes.error) throw new Error(uploadRes.error.message);
 
-        return {
-          upload: uploadRes.data as CKPUpload,
-          entries: (entriesRes.data as CKPEntry[]) || [],
-          approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-            ...a, reviewer: a.reviewer as User | undefined,
-          })) as Approval[],
-        };
-      } finally {
-        clearTimeout(timeoutId);
-      }
+          return {
+            upload: uploadRes.data as CKPUpload,
+            entries: (entriesRes.data as CKPEntry[]) || [],
+            approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+              ...a, reviewer: a.reviewer as User | undefined,
+            })) as Approval[],
+          };
+        } finally {
+          clearTimeout(timeoutId);
+        }
+      };
+
+      return Promise.race([
+        fetchLogic(),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+      ]);
     },
     enabled: !!id && !!user,
     networkMode: 'always',

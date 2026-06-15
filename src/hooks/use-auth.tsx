@@ -102,7 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (isExpiringSoon) {
             console.log('[Auth] Session expiring soon, refreshing...');
-            const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+            const { data: refreshed, error: refreshError } = await Promise.race([
+              supabase.auth.refreshSession(),
+              new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
+            ]);
             if (refreshError || !refreshed?.session) {
               console.warn('[Auth] Session refresh failed:', refreshError?.message);
               // Token expired and can't refresh — force re-auth
@@ -195,7 +198,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           if (isExpired) {
             console.log('[Auth] Cached session expired, attempting refresh...');
-            const { data: refreshed } = await supabase.auth.refreshSession();
+            const { data: refreshed } = await Promise.race([
+              supabase.auth.refreshSession(),
+              new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
+            ]);
             if (!mountedRef.current) return;
 
             if (refreshed?.session?.user) {

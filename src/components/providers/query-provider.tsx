@@ -10,9 +10,26 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
  * - Does NOT retry: 401, 403, 404, validation errors
  */
 function shouldRetry(failureCount: number, error: unknown): boolean {
-  if (failureCount >= 3) return false;
+  if (failureCount >= 1) return false;
 
   const message = error instanceof Error ? error.message.toLowerCase() : '';
+
+  // ── Auto-Recovery for Supabase Deadlocks ──
+  // If the error is our injected timeout, gotrue-js is likely deadlocked.
+  // The ONLY way to recover a locked client is a hard reload.
+  if (message.includes('timeout')) {
+    if (typeof window !== 'undefined') {
+      const lastReload = sessionStorage.getItem('last_timeout_reload');
+      const now = Date.now();
+      // Prevent infinite reload loops (max 1 reload per 10 seconds)
+      if (!lastReload || now - parseInt(lastReload) > 10000) {
+        sessionStorage.setItem('last_timeout_reload', now.toString());
+        console.warn('[Auto-Recovery] Supabase request timeout. Force reloading page to clear deadlock...');
+        window.location.reload();
+      }
+    }
+    return false; // Don't retry, we are reloading
+  }
 
   // Don't retry auth or permission errors
   if (
@@ -28,7 +45,7 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
     return false;
   }
 
-  // Retry everything else (network, timeout, 5xx, abort, etc.)
+  // Retry everything else (network, 5xx, abort, etc.)
   return true;
 }
 

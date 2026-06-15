@@ -34,24 +34,31 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (signInError || !data.user) {
-      setError(
-        signInError?.message.includes('Invalid')
-          ? 'Email atau password salah. Silakan coba lagi.'
-          : (signInError?.message ?? 'Login gagal. Silakan coba lagi.')
-      );
-      setLoading(false);
-      return;
+      if (signInError || !data.user) {
+        setError(
+          signInError?.message.includes('Invalid')
+            ? 'Email atau password salah. Silakan coba lagi.'
+            : (signInError?.message ?? 'Login gagal. Silakan coba lagi.')
+        );
+        return;
+      }
+
+      // Redirect berdasarkan role dari metadata
+      const role = data.user.user_metadata?.role;
+      router.replace(role === 'pimpinan' || role === 'admin' ? '/pimpinan' : '/pegawai');
+    } catch (err) {
+      setError('Terjadi kesalahan yang tidak terduga.');
+    } finally {
+      // Tunggu sebentar sebelum mematikan loading saat redirect
+      // Untuk mencegah kedipan tombol saat navigasi sedang berlangsung
+      setTimeout(() => setLoading(false), 2000);
     }
-
-    // Redirect berdasarkan role dari metadata
-    const role = data.user.user_metadata?.role;
-    router.replace(role === 'pimpinan' || role === 'admin' ? '/pimpinan' : '/pegawai');
   };
 
   return (

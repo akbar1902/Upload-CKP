@@ -34,12 +34,17 @@ export default function PimpinanPegawaiDetailPage() {
     queryFn: async () => {
       if (!userId) throw new Error('Missing userId');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       try {
-        const [userRes, uploadsRes] = await Promise.all([
+        const queryPromise = Promise.all([
           supabase.from('users').select('*').eq('id', userId).single().abortSignal(controller.signal),
           supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).abortSignal(controller.signal),
+        ]);
+
+        const [userRes, uploadsRes] = await Promise.race([
+          queryPromise,
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
         ]);
 
         if (userRes.error) throw userRes.error;

@@ -92,10 +92,10 @@ export default function PegawaiDashboard() {
       if (!user) return [];
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       try {
-        const { data, error } = await supabase
+        const queryPromise = supabase
           .from('ckp_uploads')
           .select('*')
           .eq('user_id', user.id)
@@ -103,6 +103,11 @@ export default function PegawaiDashboard() {
           .order('bulan', { ascending: false })
           .order('uploaded_at', { ascending: false })
           .abortSignal(controller.signal);
+
+        const { data, error } = await Promise.race([
+          queryPromise,
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+        ]);
 
         if (error) throw new Error(error.message);
         return data as CKPUpload[];

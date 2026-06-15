@@ -138,15 +138,20 @@ export default function PimpinanPegawaiPage() {
     queryKey: ['pimpinan-pegawai'],
     queryFn: async () => {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       try {
-        const { data, error } = await supabase
+        const queryPromise = supabase
           .from('users')
           .select('*')
           .eq('role', 'pegawai')
           .eq('is_active', true)
           .order('full_name')
           .abortSignal(controller.signal);
+
+        const { data, error } = await Promise.race([
+          queryPromise,
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 9000))
+        ]);
 
         if (error) throw new Error(error.message);
         return data as User[] || [];
