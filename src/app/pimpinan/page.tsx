@@ -128,6 +128,18 @@ export default function PimpinanDashboard() {
     networkMode: 'always',
   });
 
+  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (loading) {
+      timeout = setTimeout(() => {
+        console.warn('Failsafe triggered: stuck in loading state');
+        window.location.reload();
+      }, 8000);
+    }
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
   const error = queryError ? queryError.message : null;

@@ -323,6 +323,18 @@ export default function CKPDetailPage() {
     networkMode: 'always',
   });
 
+  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (loading) {
+      timeout = setTimeout(() => {
+        console.warn('Failsafe triggered: stuck in loading state');
+        window.location.reload();
+      }, 8000);
+    }
+    return () => clearTimeout(timeout);
+  }, [loading]);
+
   const upload = data?.upload || null;
   const entries = data?.entries || [];
   const approvals = data?.approvals || [];
