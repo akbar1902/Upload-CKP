@@ -120,8 +120,9 @@ export default function PegawaiDashboard() {
   });
 
   // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
-  // This caused eternal skeleton when user was null during auth re-validation after idle.
-  const queryLoading = !!user && queryPending;
+  // Only show loading when auth is done AND query is actually running.
+  // Matches pimpinan/page.tsx pattern exactly.
+  const isLoading = authLoading || (!!user && queryPending);
 
   // Failsafe: if genuinely stuck after auth resolved, force reload
   React.useEffect(() => {
@@ -134,8 +135,6 @@ export default function PegawaiDashboard() {
     }
     return () => clearTimeout(timeout);
   }, [authLoading, queryPending]);
-
-  const dataLoading = authLoading || queryLoading;
 
   // Only consider the latest upload per period (bulan-tahun)
   const uniqueUploads = useMemo(() => {
@@ -175,8 +174,6 @@ export default function PegawaiDashboard() {
       String(u.tahun).includes(q)
     );
   }, [uploads, searchQuery]);
-
-  const isLoading = authLoading || dataLoading;
 
   // KPI cards config
   const kpiCards = [
