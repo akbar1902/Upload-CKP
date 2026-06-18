@@ -342,8 +342,8 @@ export default function CKPDetailPage() {
   }, [authLoading, queryPending]);
 
   const upload = data?.upload || null;
-  const entries = data?.entries || [];
-  const approvals = data?.approvals || [];
+  const entries: CKPEntry[] = data?.entries || [];
+  const approvals: Approval[] = data?.approvals || [];
 
   const handleExport = () => {
     if (!upload || !user) return;

@@ -343,8 +343,8 @@ export default function PimpinanCKPDetailPage() {
 
   const upload = data?.upload || null;
   const employee = data?.employee || null;
-  const entries = data?.entries || [];
-  const approvals = data?.approvals || [];
+  const entries: CKPEntry[] = data?.entries || [];
+  const approvals: Approval[] = data?.approvals || [];
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
