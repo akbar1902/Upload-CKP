@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
 import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck, WifiOff, RefreshCw } from 'lucide-react';
@@ -132,9 +133,10 @@ function StaffCardSkeleton() {
 // ── Main page ──────────────────────────────────────────────
 export default function PimpinanPegawaiPage() {
   const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
 
-  const { data: users = [], isLoading: loading, error: queryError, refetch } = useQuery({
+  const { data: users = [], isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai'],
     queryFn: async () => {
       const controller = new AbortController();
@@ -159,20 +161,25 @@ export default function PimpinanPegawaiPage() {
         clearTimeout(timeoutId);
       }
     },
+    enabled: !!user && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
+  // Only show loading when auth is done AND query is actually running.
+  const loading = authLoading || (!!user && queryPending);
+
+  // Failsafe: if genuinely stuck after auth resolved, force reload
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (loading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [authLoading, queryPending]);
 
   // NOTE: visibilitychange refetch removed — RecoveryManager handles this globally
   //       by invalidating all queries when the tab becomes visible.

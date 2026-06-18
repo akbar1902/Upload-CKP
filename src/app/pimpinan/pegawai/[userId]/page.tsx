@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { UploadStatusBadge } from '@/components/dashboard/upload-status-badge';
 import { Button } from '@/components/ui/button';
@@ -28,8 +29,9 @@ export default function PimpinanPegawaiDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
 
-  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai-detail', userId],
     queryFn: async () => {
       if (!userId) throw new Error('Missing userId');
@@ -57,21 +59,25 @@ export default function PimpinanPegawaiDetailPage() {
         clearTimeout(timeoutId);
       }
     },
-    enabled: !!userId,
+    enabled: !!userId && !!user && !authLoading,
     networkMode: 'always',
   });
 
-  // Bulletproof failsafe: if stuck in loading state for > 8s, force reload
+  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
+  // Only show loading when auth is done AND query is actually running.
+  const loading = authLoading || (!!user && queryPending);
+
+  // Failsafe: if genuinely stuck after auth resolved, force reload
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (loading) {
+    if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state');
+        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
         window.location.reload();
-      }, 8000);
+      }, 12000);
     }
     return () => clearTimeout(timeout);
-  }, [loading]);
+  }, [authLoading, queryPending]);
 
   const employee = data?.employee || null;
   const uploads = data?.uploads || [];
