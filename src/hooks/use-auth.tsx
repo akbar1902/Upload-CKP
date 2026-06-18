@@ -36,6 +36,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
   const mountedRef = useRef(true);
   const initCompletedRef = useRef(false);
+  // Track current user ref to avoid stale closures in ensureSession
+  const currentUserRef = useRef<User | null>(null);
 
   /**
    * Build a fallback User from Supabase Auth metadata.
@@ -69,13 +71,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error || !data) {
         console.warn('[Auth] Profile fetch issue, using fallback:', error?.message);
-        setUser(buildFallbackUser(authUser));
+        const fallback = buildFallbackUser(authUser);
+        currentUserRef.current = fallback;
+        setUser(fallback);
         return;
       }
 
+      currentUserRef.current = data as User;
       setUser(data as User);
     } catch {
-      if (mountedRef.current) setUser(buildFallbackUser(authUser));
+      if (mountedRef.current) {
+        const fallback = buildFallbackUser(authUser);
+        currentUserRef.current = fallback;
+        setUser(fallback);
+      }
     }
   }, [supabase, buildFallbackUser]);
 
@@ -126,8 +135,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Session is still valid — ensure user state is populated
           if (mountedRef.current) {
             setSupabaseUser(session.user);
-            // Always re-fetch profile to ensure fresh data after idle
-            await fetchUserProfile(session.user);
+            // Only re-fetch profile if user state is not already populated
+            // (avoids unnecessary network call during tab-visible recovery)
+            if (!currentUserRef.current) {
+              await fetchUserProfile(session.user);
+            }
             setLoading(false);
           }
           return true;
@@ -256,12 +268,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (event === 'TOKEN_REFRESHED' && session?.user) {
           setSupabaseUser(session.user);
-          await fetchUserProfile(session.user);
+          // Token refresh doesn't change profile data — skip re-fetch if user is loaded
+          if (!currentUserRef.current) {
+            await fetchUserProfile(session.user);
+          }
           setLoading(false);
           return;
         }
 
         if (event === 'SIGNED_OUT') {
+          currentUserRef.current = null;
           setSupabaseUser(null);
           setUser(null);
           setLoading(false);
@@ -272,6 +288,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           await fetchUserProfile(session.user);
         } else {
+          currentUserRef.current = null;
           setUser(null);
         }
         setLoading(false);
@@ -315,6 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Clear state
+    currentUserRef.current = null;
     setUser(null);
     setSupabaseUser(null);
 

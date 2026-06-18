@@ -62,10 +62,14 @@ export function RecoveryManager({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Step 2: Invalidate all React Query caches
-      // This triggers automatic refetch for all active (mounted) queries
-      await queryClient.invalidateQueries();
-      console.log('[Recovery] All queries invalidated, data will refetch');
+      // Step 2: Mark all React Query caches as stale.
+      // We use refetchType: 'none' to avoid immediately setting isPending=true
+      // (which would cause skeleton flashes). Data will be refetched in the
+      // background when components next render or on user interaction.
+      await queryClient.invalidateQueries({ refetchType: 'none' });
+      // Trigger a background refetch without blocking the UI
+      void queryClient.refetchQueries({ type: 'active', stale: true });
+      console.log('[Recovery] All queries invalidated, data will refetch in background');
 
     } catch (err) {
       console.error('[Recovery] Recovery failed:', err);

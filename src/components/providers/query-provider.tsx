@@ -59,8 +59,11 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
             gcTime: 1000 * 60 * 10,           // 10 minutes garbage collection
             retry: shouldRetry,
             retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000), // exponential backoff: 1s, 2s, 4s (capped at 10s)
-            refetchOnWindowFocus: true,
-            refetchOnReconnect: true,
+            // Disabled: RecoveryManager centralises tab-visible/reconnect recovery.
+            // Keeping these on caused double-refetch which triggered isPending=true
+            // and showed a skeleton flash every time the user switched back to the tab.
+            refetchOnWindowFocus: false,
+            refetchOnReconnect: false,
           },
         },
       })
