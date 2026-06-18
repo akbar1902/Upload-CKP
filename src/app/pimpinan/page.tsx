@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
@@ -127,22 +127,24 @@ export default function PimpinanDashboard() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
+    // Show previous cached data while background-refetching — prevents skeleton flash
+    placeholderData: keepPreviousData,
   });
 
   // FIX: isPending is TRUE even when query is disabled (enabled=false) in React Query v5.
   const loading = authLoading || (!!user && queryPending);
 
-  // Failsafe after auth resolved
+  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
-        window.location.reload();
-      }, 12000);
+        console.warn('Failsafe triggered: retrying stuck query');
+        void refetch();
+      }, 15000);
     }
     return () => clearTimeout(timeout);
-  }, [authLoading, queryPending]);
+  }, [authLoading, queryPending, refetch]);
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];

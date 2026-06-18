@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
@@ -324,22 +324,24 @@ export default function PimpinanCKPDetailPage() {
     },
     enabled: !!id && !authLoading,
     networkMode: 'always',
+    // Show previous cached data while background-refetching — prevents skeleton flash
+    placeholderData: keepPreviousData,
   });
 
   // FIX: isPending is TRUE even when disabled (enabled=false) in React Query v5.
   const loading = authLoading || queryPending;
 
-  // Failsafe after auth resolved
+  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
-        window.location.reload();
-      }, 12000);
+        console.warn('Failsafe triggered: retrying stuck query');
+        void refetch();
+      }, 15000);
     }
     return () => clearTimeout(timeout);
-  }, [authLoading, queryPending]);
+  }, [authLoading, queryPending, refetch]);
 
   const upload = data?.upload || null;
   const employee = data?.employee || null;

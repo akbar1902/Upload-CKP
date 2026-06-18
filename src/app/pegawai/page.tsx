@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
@@ -117,6 +117,8 @@ export default function PegawaiDashboard() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
+    // Show previous cached data while background-refetching — prevents skeleton flash
+    placeholderData: keepPreviousData,
   });
 
   // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
@@ -124,17 +126,17 @@ export default function PegawaiDashboard() {
   // Matches pimpinan/page.tsx pattern exactly.
   const isLoading = authLoading || (!!user && queryPending);
 
-  // Failsafe: if genuinely stuck after auth resolved, force reload
+  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: stuck in loading state after auth resolved');
-        window.location.reload();
-      }, 12000);
+        console.warn('Failsafe triggered: retrying stuck query');
+        void refetch();
+      }, 15000);
     }
     return () => clearTimeout(timeout);
-  }, [authLoading, queryPending]);
+  }, [authLoading, queryPending, refetch]);
 
   // Only consider the latest upload per period (bulan-tahun)
   const uniqueUploads = useMemo(() => {
