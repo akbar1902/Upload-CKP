@@ -218,21 +218,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (refreshed?.session?.user) {
               setSupabaseUser(refreshed.session.user);
-              await fetchUserProfile(refreshed.session.user);
+              // Set fallback immediately so loading can be cleared, then fetch full profile
+              const fallback = buildFallbackUser(refreshed.session.user);
+              currentUserRef.current = fallback;
+              setUser(fallback);
+              setLoading(false);
+              // Full profile fetch in background
+              void fetchUserProfile(refreshed.session.user);
             } else {
               // Can't refresh — clear state
               setSupabaseUser(null);
               setUser(null);
+              setLoading(false);
             }
           } else {
-            // Set UI immediately from cached session
+            // FAST PATH: set auth state immediately from cached session + auth metadata
+            // so queries can start right away (authLoading=false immediately).
             setSupabaseUser(session.user);
-            await fetchUserProfile(session.user);
+            const fallback = buildFallbackUser(session.user);
+            currentUserRef.current = fallback;
+            setUser(fallback);
+            setLoading(false); // ← unblock queries immediately
+
+            // Then fetch full profile in background (updates name/NIP/unit_kerja)
+            void fetchUserProfile(session.user);
           }
 
-          if (mountedRef.current) setLoading(false);
-
-          // Then validate with server in background (security check)
+          // Validate with server in background (security check)
           if (!isExpired) {
             void (async () => {
               try {
@@ -240,6 +252,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 if (!mountedRef.current) return;
                 if (!bgResult.data?.user) {
                   setSupabaseUser(null);
+                  currentUserRef.current = null;
                   setUser(null);
                 }
               } catch { /* ignore */ }
