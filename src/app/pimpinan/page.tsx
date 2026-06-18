@@ -107,7 +107,7 @@ export default function PimpinanDashboard() {
 
         const [uploadsRes, usersRes] = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
         ]);
 
         if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);

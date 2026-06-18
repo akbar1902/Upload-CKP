@@ -106,7 +106,7 @@ export default function PegawaiDashboard() {
 
         const { data, error } = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
         ]);
 
         if (error) throw new Error(error.message);

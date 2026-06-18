@@ -46,7 +46,7 @@ export default function PimpinanPegawaiDetailPage() {
 
         const [userRes, uploadsRes] = await Promise.race([
           queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
+          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
         ]);
 
         if (userRes.error) throw userRes.error;

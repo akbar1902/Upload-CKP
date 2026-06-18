@@ -316,7 +316,7 @@ export default function CKPDetailPage() {
 
       return Promise.race([
         fetchLogic(),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request timeout')), 4000))
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
       ]);
     },
     enabled: !!id && !!user && !authLoading,
