@@ -127,6 +127,7 @@ export default function PimpinanDashboard() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
+    staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
   });
@@ -207,7 +208,7 @@ export default function PimpinanDashboard() {
   };
 
   // ── Error state ─────────────────────────────────────────
-  if (error && !loading) {
+  if (error && !loading && uploads.length === 0 && allUsers.length === 0) {
     return (
       <>
         <Header />

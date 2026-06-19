@@ -163,6 +163,7 @@ export default function PimpinanPegawaiPage() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
+    staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
   });
@@ -203,7 +204,7 @@ export default function PimpinanPegawaiPage() {
 
   const error = queryError ? queryError.message : null;
 
-  if (error && !loading) {
+  if (error && !loading && users.length === 0) {
     return (
       <>
         <Header />

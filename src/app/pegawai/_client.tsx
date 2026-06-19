@@ -117,6 +117,7 @@ export default function PegawaiDashboard() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
+    staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
   });
@@ -190,7 +191,9 @@ export default function PegawaiDashboard() {
 
   const error = queryError ? queryError.message : null;
 
-  if (error && !isLoading) {
+  // Only show full-screen error if we have NO data to display at all.
+  // If we have hydrated data but a background refetch failed, keep showing the data.
+  if (error && !isLoading && uploadsArr.length === 0) {
     return (
       <>
         <Header />

@@ -324,6 +324,7 @@ export default function PimpinanCKPDetailPage() {
     },
     enabled: !!id && !authLoading,
     networkMode: 'always',
+    staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
   });
@@ -405,7 +406,7 @@ export default function PimpinanCKPDetailPage() {
   const error = queryError ? queryError.message : null;
 
   // Error state
-  if (error && !loading) {
+  if (error && !loading && !upload) {
     return (
       <>
         <Header />
