@@ -65,9 +65,9 @@ export default function PimpinanPegawaiDetailPage() {
     placeholderData: keepPreviousData,
   });
 
-  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
-  // Only show loading when auth is done AND query is actually running.
-  const loading = authLoading || (!!user && queryPending);
+  // KEY FIX: Only show skeleton when there is genuinely NO data.
+  // With keepPreviousData, cached data stays visible during background refetch.
+  const loading = authLoading || (!data && queryPending);
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {

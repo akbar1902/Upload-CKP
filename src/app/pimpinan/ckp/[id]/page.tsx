@@ -328,8 +328,12 @@ export default function PimpinanCKPDetailPage() {
     placeholderData: keepPreviousData,
   });
 
-  // FIX: isPending is TRUE even when disabled (enabled=false) in React Query v5.
-  const loading = authLoading || queryPending;
+  // KEY FIX: Only show skeleton when there is genuinely NO data.
+  // With keepPreviousData, React Query keeps old data during background refetch
+  // but isPending remains true — so `authLoading || queryPending` would wrongly
+  // show a skeleton over perfectly good cached data.
+  // Solution: only enter loading state when data is absent AND we are fetching.
+  const loading = authLoading || (!data && queryPending);
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {

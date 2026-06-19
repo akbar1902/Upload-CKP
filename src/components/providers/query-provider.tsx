@@ -14,21 +14,13 @@ function shouldRetry(failureCount: number, error: unknown): boolean {
 
   const message = error instanceof Error ? error.message.toLowerCase() : '';
 
-  // ── Auto-Recovery for Supabase Deadlocks ──
-  // If the error is our injected timeout, gotrue-js is likely deadlocked.
-  // The ONLY way to recover a locked client is a hard reload.
-  if (message.includes('timeout')) {
-    if (typeof window !== 'undefined') {
-      const lastReload = sessionStorage.getItem('last_timeout_reload');
-      const now = Date.now();
-      // Prevent infinite reload loops (max 1 reload per 5 seconds)
-      if (!lastReload || now - parseInt(lastReload) > 5000) {
-        sessionStorage.setItem('last_timeout_reload', now.toString());
-        console.warn('[Auto-Recovery] Supabase request timeout. Force reloading page to clear deadlock...');
-        window.location.reload();
-      }
-    }
-    return false; // Don't retry, we are reloading
+  // ── Timeout errors: do NOT reload the page ──
+  // A hard reload destroys the React Query cache causing full skeleton flash.
+  // Instead, let the query fail gracefully so the user sees an error state
+  // with a "Coba Lagi" button that refetches without losing other cached data.
+  if (message.includes('timeout') || message.includes('took too long') || message.includes('aborted')) {
+    console.warn('[Query] Request timeout — letting query fail gracefully (no reload)');
+    return false;
   }
 
   // Don't retry auth or permission errors

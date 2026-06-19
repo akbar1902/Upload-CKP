@@ -325,11 +325,11 @@ export default function CKPDetailPage() {
     placeholderData: keepPreviousData,
   });
 
-  // FIX: In React Query v5, isLoading === isPending, which is TRUE even when
-  // the query is disabled (enabled=false). This caused eternal skeleton when
-  // user was null during auth re-validation after idle.
-  // Only show loading when auth is done AND query is actually pending.
-  const loading = authLoading || (!!user && queryPending);
+  // KEY FIX: Only show skeleton when there is genuinely NO data.
+  // With keepPreviousData, React Query keeps old data during background refetch
+  // but isPending remains true — so `!!user && queryPending` would wrongly
+  // show a skeleton over perfectly good cached data.
+  const loading = authLoading || (!data && queryPending);
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {

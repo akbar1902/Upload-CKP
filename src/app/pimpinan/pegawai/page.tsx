@@ -136,7 +136,7 @@ export default function PimpinanPegawaiPage() {
   const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
 
-  const { data: users = [], isPending: queryPending, error: queryError, refetch } = useQuery({
+  const { data: usersData, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai'],
     queryFn: async () => {
       const controller = new AbortController();
@@ -167,9 +167,13 @@ export default function PimpinanPegawaiPage() {
     placeholderData: keepPreviousData,
   });
 
-  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
-  // Only show loading when auth is done AND query is actually running.
-  const loading = authLoading || (!!user && queryPending);
+  // KEY FIX: Only show skeleton when there is genuinely NO data.
+  // `usersData` is undefined before first successful fetch. Once fetched (even empty []),
+  // data is defined — so we only skeleton on the very first load, never on refetch.
+  const loading = authLoading || (usersData === undefined && queryPending);
+
+  // Safe array alias for all downstream usage
+  const users = usersData ?? [];
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {

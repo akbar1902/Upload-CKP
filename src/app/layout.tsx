@@ -6,6 +6,7 @@ import { Toaster } from "sonner";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { RecoveryManager } from "@/components/providers/recovery-manager";
+import { KeepAliveManager } from "@/components/providers/keepalive-manager";
 import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
@@ -55,6 +56,7 @@ export default function RootLayout({
               <RecoveryManager>
                 {children}
               </RecoveryManager>
+              <KeepAliveManager />
               <Toaster
                 position="top-right"
                 richColors

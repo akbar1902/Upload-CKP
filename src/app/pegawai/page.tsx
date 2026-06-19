@@ -86,7 +86,7 @@ export default function PegawaiDashboard() {
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
 
-  const { data: uploads = [], isPending: queryPending, error: queryError, refetch } = useQuery({
+  const { data: uploads, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pegawai-uploads', user?.id],
     queryFn: async () => {
       if (!user) return [];
@@ -121,10 +121,13 @@ export default function PegawaiDashboard() {
     placeholderData: keepPreviousData,
   });
 
-  // FIX: In React Query v5, isPending is TRUE even when query is disabled (enabled=false).
-  // Only show loading when auth is done AND query is actually running.
-  // Matches pimpinan/page.tsx pattern exactly.
-  const isLoading = authLoading || (!!user && queryPending);
+  // KEY FIX: Only show skeleton when there is genuinely NO data.
+  // With keepPreviousData, `uploads` will be the previous fetch result (not undefined)
+  // during background refetch — so this only returns true on the very first load.
+  const isLoading = authLoading || (!uploads && queryPending);
+
+  // Safe array for all downstream usage
+  const uploadsArr: CKPUpload[] = uploads ?? [];
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
@@ -141,17 +144,17 @@ export default function PegawaiDashboard() {
   // Only consider the latest upload per period (bulan-tahun)
   const uniqueUploads = useMemo(() => {
     const seen = new Set<string>();
-    return uploads.filter(u => {
+    return uploadsArr.filter(u => {
       const key = `${u.bulan}-${u.tahun}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [uploads]);
+  }, [uploadsArr]);
 
   // Stats
   const stats = useMemo(() => ({
-    total: uploads.length, // keep total as historical count
+    total: uploadsArr.length, // keep total as historical count
     approved: uniqueUploads.filter(u => u.status === 'approved').length,
     pending: uniqueUploads.filter(u => u.status === 'submitted').length,
     rejected: uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
@@ -159,23 +162,23 @@ export default function PegawaiDashboard() {
       ? (uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length).toFixed(0)
       : '0',
     totalKegiatan: uniqueUploads.reduce((s, u) => s + (u.total_entries || 0), 0),
-  }), [uploads, uniqueUploads]);
+  }), [uploadsArr, uniqueUploads]);
 
   const currentMonthUpload = useMemo(
-    () => uploads.find(u => u.bulan === currentMonth && u.tahun === currentYear),
-    [uploads, currentMonth, currentYear]
+    () => uploadsArr.find(u => u.bulan === currentMonth && u.tahun === currentYear),
+    [uploadsArr, currentMonth, currentYear]
   );
 
   // Filtered list
   const filteredUploads = useMemo(() => {
-    if (!searchQuery.trim()) return uploads;
+    if (!searchQuery.trim()) return uploadsArr;
     const q = searchQuery.toLowerCase();
-    return uploads.filter(u =>
+    return uploadsArr.filter(u =>
       getBulanName(u.bulan).toLowerCase().includes(q) ||
       u.file_name?.toLowerCase().includes(q) ||
       String(u.tahun).includes(q)
     );
-  }, [uploads, searchQuery]);
+  }, [uploadsArr, searchQuery]);
 
   // KPI cards config
   const kpiCards = [
