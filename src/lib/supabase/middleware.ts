@@ -47,17 +47,22 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const publicRoutes = ['/login', '/'];
 
-  // Not logged in → redirect to login, clear cached role
-  if (!user && !publicRoutes.includes(pathname)) {
-    const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
-    redirectResponse.cookies.delete('ckp-role');
-    return redirectResponse;
+  // Not logged in → clear cached role and redirect if not public
+  if (!user) {
+    let response = NextResponse.next({ request });
+    if (!publicRoutes.includes(pathname)) {
+      response = NextResponse.redirect(new URL('/login', request.url));
+    }
+    response.cookies.delete('ckp-role');
+    return response;
   }
 
   if (user) {
     // ── Role resolution with cookie cache ────────────────────────────
     // Check cache first (avoid DB query on every navigation)
-    const cachedRole = request.cookies.get('ckp-role')?.value;
+    // Scope the cache to the user ID to prevent inheriting old sessions
+    const cacheKey = `ckp-role-${user.id}`;
+    const cachedRole = request.cookies.get(cacheKey)?.value;
     let role: string | undefined = cachedRole;
 
     // Only hit the DB when cache is missing (first load or after logout)
@@ -98,7 +103,7 @@ export async function updateSession(request: NextRequest) {
 
       // Cache the resolved role in a cookie for 5 minutes.
       // Subsequent navigations skip the DB query entirely — much faster.
-      supabaseResponse.cookies.set('ckp-role', role, {
+      supabaseResponse.cookies.set(cacheKey, role, {
         httpOnly: true,
         sameSite: 'lax',
         maxAge: 60 * 5, // 5 minutes
