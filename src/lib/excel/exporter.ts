@@ -38,6 +38,7 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
     'Kegiatan',
     'Progres (%)',
     'Capaian',
+    'Nilai Capaian SKP',
     'Data Dukung',
   ];
 
@@ -52,6 +53,7 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
     entry.kegiatan || '',
     entry.progres,
     entry.capaian || '',
+    entry.nilai_pimpinan !== null ? entry.nilai_pimpinan : '',
     entry.data_dukung || '',
   ]);
 
@@ -63,6 +65,7 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
   const summaryRows = [
     [],
     ['', '', '', '', '', '', 'Rata-rata Progres:', `${avgProgres.toFixed(1)}%`],
+    ['', '', '', '', '', '', 'Rata-rata Nilai SKP:', upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'],
     ['', '', '', '', '', '', 'Total Kegiatan:', entries.length],
   ];
 
@@ -81,6 +84,7 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
     { wch: 40 },  // Kegiatan
     { wch: 12 },  // Progres
     { wch: 30 },  // Capaian
+    { wch: 18 },  // Nilai Capaian SKP
     { wch: 40 },  // Data Dukung
   ];
 
@@ -110,6 +114,7 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
     'Unit Kerja',
     'Total Kegiatan',
     'Rata-rata Progres (%)',
+    'Rata-rata Nilai SKP',
     'Status',
     'Tanggal Upload',
     'Versi',
@@ -122,6 +127,7 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
     upload.user?.unit_kerja || '-',
     upload.total_entries,
     upload.avg_progres?.toFixed(1) || '0',
+    upload.rata_rata_nilai?.toFixed(1) || '-',
     upload.status,
     upload.uploaded_at ? new Date(upload.uploaded_at).toLocaleDateString('id-ID') : '-',
     upload.version,
@@ -136,6 +142,7 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
     { wch: 20 },
     { wch: 25 },
     { wch: 15 },
+    { wch: 18 },
     { wch: 18 },
     { wch: 15 },
     { wch: 18 },

@@ -140,6 +140,13 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             <p className="text-[13px] text-slate-700 whitespace-pre-wrap">
               {entry.capaian || '—'}
             </p>
+
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5 mt-1">Nilai SKP</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-[14px] font-bold" style={{ color: entry.nilai_pimpinan !== null ? '#059669' : '#94A3B8' }}>
+                {entry.nilai_pimpinan !== null ? entry.nilai_pimpinan : 'Belum dinilai'}
+              </span>
+            </div>
           </div>
 
           {/* Mobile date */}
@@ -533,7 +540,7 @@ export default function CKPDetailPage() {
         )}
 
         {/* ── KPI Cards ─────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger">
           <KPICard icon={<FileText size={18} style={{ color: "#2563EB" }} />} value={upload.total_entries} label="Total Kegiatan"
             sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
           <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
@@ -542,6 +549,8 @@ export default function CKPDetailPage() {
             sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
           <KPICard icon={<Folder size={18} style={{ color: "#7C3AED" }} />} value={dataDukungCount} label="Dokumen Pendukung"
             sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#D97706" }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai"
+            sub="Nilai Capaian SKP" iconBg="#FEF3C7" />
         </div>
 
         {/* ── Daftar Kegiatan ───────────────────────── */}

@@ -40,6 +40,7 @@ export interface CKPUpload {
   storage_path: string | null;
   total_entries: number;
   avg_progres: number;
+  rata_rata_nilai: number | null;
   catatan_pimpinan: string | null;
   uploaded_at: string;
   approved_at: string | null;
@@ -60,6 +61,7 @@ export interface CKPEntry {
   kegiatan: string | null;
   progres: number;
   capaian: string | null;
+  nilai_pimpinan: number | null;
   data_dukung: string | null;
   extra_columns: Record<string, unknown>;
   created_at: string;

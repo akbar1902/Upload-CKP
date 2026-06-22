@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
@@ -89,8 +89,54 @@ function KPICard({ icon, value, label, sub, iconBg }: {
 }
 
 // ── Entry Activity Card ────────────────────────────────────
-function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
+function EntryCard({ entry, index, canReview, onSaveScore }: { entry: CKPEntry; index: number; canReview: boolean; onSaveScore: (id: string, score: number) => Promise<void> }) {
   const [expanded, setExpanded] = useState(false);
+  const [score, setScore] = useState<string>(entry.nilai_pimpinan?.toString() ?? '');
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setScore(entry.nilai_pimpinan?.toString() ?? '');
+  }, [entry.nilai_pimpinan]);
+
+  const handleBlur = async () => {
+    const currentSavedStr = entry.nilai_pimpinan?.toString() ?? '';
+    if (score === currentSavedStr) return; // No changes made
+
+    if (score === '') {
+      // Allow clearing the score if they delete the text
+      setSaving(true);
+      try {
+        await onSaveScore(entry.id, null as any); // Use null to clear
+      } catch {
+        setScore(currentSavedStr);
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    const num = parseInt(score, 10);
+    if (isNaN(num) || num < 0 || num > 100) {
+      toast.error('Nilai harus berupa angka 0-100');
+      setScore(currentSavedStr); // Revert to valid value
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      await onSaveScore(entry.id, num);
+    } catch {
+      setScore(currentSavedStr); // Revert on error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Trigger onBlur to save
+    }
+  };
 
   const dt = entry.tanggal_mulai ? new Date(entry.tanggal_mulai) : null;
   const day = dt ? dt.getDate() : '—';
@@ -132,6 +178,36 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             <p className="text-[13px] text-slate-700 whitespace-pre-wrap">
               {entry.capaian || '—'}
             </p>
+
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5 mt-1">Nilai SKP</p>
+            <div className="flex items-center gap-2 mt-1 relative w-24">
+              {canReview ? (
+                <>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={score}
+                    onChange={e => setScore(e.target.value)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    disabled={saving}
+                    className="border rounded-lg px-3 py-1.5 text-[13px] w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-400"
+                    placeholder="Nilai"
+                    title="Tekan Enter atau klik di luar untuk menyimpan"
+                  />
+                  {saving && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <RefreshCw size={12} className="animate-spin text-slate-400" />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <span className="text-[14px] font-bold" style={{ color: entry.nilai_pimpinan !== null ? '#059669' : '#94A3B8' }}>
+                  {entry.nilai_pimpinan !== null ? entry.nilai_pimpinan : 'Belum dinilai'}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Mobile date */}
@@ -278,6 +354,8 @@ export default function PimpinanCKPDetailPage() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
   const [searchQuery, setSearchQuery] = useState('');
+  const [bulkScore, setBulkScore] = useState<string>('');
+  const [isBulkSaving, setIsBulkSaving] = useState(false);
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-ckp-detail', id],
     queryFn: async () => {
@@ -382,6 +460,36 @@ export default function PimpinanCKPDetailPage() {
     toast.success(`CKP berhasil ${label}`);
   };
 
+  const handleSaveScore = async (entryId: string, score: number | null) => {
+    const { error } = await supabase.from('ckp_entries').update({ nilai_pimpinan: score }).eq('id', entryId);
+    if (error) {
+      toast.error('Gagal menyimpan nilai');
+      throw error;
+    }
+    toast.success('Nilai tersimpan otomatis');
+    // Refresh to get updated rata_rata_nilai
+    await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+  };
+
+  const handleBulkSaveScore = async () => {
+    if (!upload) return;
+    const num = parseInt(bulkScore, 10);
+    if (isNaN(num) || num < 0 || num > 100) {
+      toast.error('Nilai harus berupa angka 0-100');
+      return;
+    }
+    setIsBulkSaving(true);
+    const { error } = await supabase.from('ckp_entries').update({ nilai_pimpinan: num }).eq('upload_id', upload.id);
+    if (error) {
+      toast.error('Gagal menerapkan nilai ke semua kegiatan');
+    } else {
+      toast.success('Nilai berhasil diterapkan ke semua kegiatan');
+      setBulkScore('');
+      await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+    }
+    setIsBulkSaving(false);
+  };
+
   const handleExport = () => {
     if (!upload || !employee) return;
     exportToExcel({ upload, entries, user: employee });
@@ -467,6 +575,7 @@ export default function PimpinanCKPDetailPage() {
   const canReopen = upload.status === 'approved';
   const bulanNama = getBulanName(upload.bulan);
   const avgPct = Math.min(upload.avg_progres || 0, 100);
+  const allScored = entries.every(e => e.nilai_pimpinan !== null);
 
   return (
     <>
@@ -543,7 +652,9 @@ export default function PimpinanCKPDetailPage() {
             {canReview && (
               <button
                 onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
-                className="btn-primary"
+                className={`btn-primary ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!allScored}
+                title={!allScored ? 'Semua kegiatan harus dinilai sebelum disetujui' : ''}
               >
                 <CheckCircle2 size={14} /> Review CKP
               </button>
@@ -575,8 +686,8 @@ export default function PimpinanCKPDetailPage() {
           </div>
         )}
 
-        {/* ── KPI Cards (4 columns) ─────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
+        {/* ── KPI Cards ─────────────────── */}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger">
           <KPICard icon={<FileText size={18} style={{ color: "#2563EB" }} />} value={upload.total_entries} label="Total Kegiatan"
             sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
           <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
@@ -585,6 +696,8 @@ export default function PimpinanCKPDetailPage() {
             sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
           <KPICard icon={<Folder size={18} style={{ color: "#7C3AED" }} />} value={dataDukungCount} label="Dokumen Pendukung"
             sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#D97706" }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai"
+            sub="Nilai Capaian SKP" iconBg="#FEF3C7" />
         </div>
 
         {/* ── Daftar Kegiatan section ───────────────── */}
@@ -594,21 +707,44 @@ export default function PimpinanCKPDetailPage() {
             <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
               Daftar Kegiatan
             </h3>
-            <div className="filter-bar">
-              {/* Search */}
-              <div className="search-input">
-                <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                <input
-                  type="search"
-                  placeholder="Cari kegiatan..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="Cari kegiatan"
-                />
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              {canReview && entries.length > 0 && (
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm w-full sm:w-auto">
+                  <span className="text-[12px] font-semibold text-slate-600 hidden md:inline">Setel Semua:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={bulkScore}
+                    onChange={(e) => setBulkScore(e.target.value)}
+                    placeholder="Skor 0-100"
+                    className="border rounded-lg px-2 py-1 text-[12px] w-24 outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                  />
+                  <button
+                    onClick={handleBulkSaveScore}
+                    disabled={isBulkSaving || bulkScore === ''}
+                    className="bg-blue-600 text-white rounded-lg px-3 py-1 text-[12px] font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors whitespace-nowrap"
+                  >
+                    {isBulkSaving ? '...' : 'Terapkan'}
+                  </button>
+                </div>
+              )}
+              <div className="filter-bar w-full sm:w-auto">
+                {/* Search */}
+                <div className="search-input">
+                  <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                  <input
+                    type="search"
+                    placeholder="Cari kegiatan..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="Cari kegiatan"
+                  />
+                </div>
+                <button className="filter-btn" aria-label="Filter">
+                  <SlidersHorizontal size={13} /> Filter
+                </button>
               </div>
-              <button className="filter-btn" aria-label="Filter">
-                <SlidersHorizontal size={13} /> Filter
-              </button>
             </div>
           </div>
 
@@ -626,7 +762,7 @@ export default function PimpinanCKPDetailPage() {
           ) : (
             <div className="space-y-3 card-list">
               {pagedEntries.map((entry, i) => (
-                <EntryCard key={entry.id} entry={entry} index={i} />
+                <EntryCard key={entry.id} entry={entry} index={i} canReview={canReview} onSaveScore={handleSaveScore} />
               ))}
             </div>
           )}
@@ -647,6 +783,9 @@ export default function PimpinanCKPDetailPage() {
               <button
                 onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
                 className="btn-primary text-[12px] py-2 px-4"
+                disabled={!allScored}
+                style={!allScored ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
+                title={!allScored ? 'Semua kegiatan harus dinilai sebelum disetujui' : ''}
               >
                 <CheckCircle2 size={13} /> Setujui
               </button>
