@@ -355,7 +355,7 @@ export default function PimpinanCKPDetailPage() {
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
-    const newStatus = action === 'reopened' ? 'submitted' : action;
+    const newStatus = action === 'reopened' ? 'draft' : action;
     const updateData: Record<string, unknown> = {
       status: newStatus,
       catatan_pimpinan: catatan || null,
@@ -363,6 +363,9 @@ export default function PimpinanCKPDetailPage() {
     if (action === 'approved') {
       updateData.approved_at = new Date().toISOString();
       updateData.approved_by = currentUser.id;
+    } else if (action === 'reopened') {
+      updateData.approved_at = null;
+      updateData.approved_by = null;
     }
     const { error: updateError } = await supabase
       .from('ckp_uploads').update(updateData).eq('id', upload.id);
