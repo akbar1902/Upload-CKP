@@ -149,15 +149,13 @@ export default function UploadPage() {
       }
 
       if (oldUploadId) {
-        toast.loading('Langkah 2/4: Menghapus data lama...', { id: toastId });
+        toast.loading('Langkah 2/4: Menghapus entri lama...', { id: toastId });
         await Promise.race([
           supabase.from('ckp_entries').delete().eq('upload_id', oldUploadId),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout hapus entri lama')), 10000))
         ]);
-        await Promise.race([
-          supabase.from('ckp_uploads').delete().eq('id', oldUploadId),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout hapus upload lama')), 10000))
-        ]);
+        // Kita tidak mendelete ckp_uploads karena tidak ada RLS Delete untuk Pegawai,
+        // kita akan melakukan UPDATE pada record yang sudah ada.
       }
 
       const totalEntries = parseResult.entries.length;
@@ -166,21 +164,38 @@ export default function UploadPage() {
         : 0;
 
       toast.loading('Langkah 3/4: Menyimpan informasi CKP...', { id: toastId });
-      const uploadReqPromise = supabase
-        .from('ckp_uploads')
-        .insert({
-          user_id: user.id,
-          bulan,
-          tahun,
-          version: newVersion,
-          file_name: file.name,
-          storage_path: storagePath,
-          status: 'submitted',
-          total_entries: totalEntries,
-          avg_progres: avgProgres,
-        })
-        .select()
-        .single();
+      let uploadReqPromise;
+      if (oldUploadId) {
+        uploadReqPromise = supabase
+          .from('ckp_uploads')
+          .update({
+            file_name: file.name,
+            storage_path: storagePath,
+            status: 'submitted',
+            total_entries: totalEntries,
+            avg_progres: avgProgres,
+            catatan_pimpinan: null, // Reset catatan pimpinan saat upload ulang
+          })
+          .eq('id', oldUploadId)
+          .select()
+          .single();
+      } else {
+        uploadReqPromise = supabase
+          .from('ckp_uploads')
+          .insert({
+            user_id: user.id,
+            bulan,
+            tahun,
+            version: newVersion,
+            file_name: file.name,
+            storage_path: storagePath,
+            status: 'submitted',
+            total_entries: totalEntries,
+            avg_progres: avgProgres,
+          })
+          .select()
+          .single();
+      }
         
       const uploadRes = await Promise.race([
         uploadReqPromise,
@@ -215,7 +230,8 @@ export default function UploadPage() {
       ]) as any;
 
       if (entriesRes.error) {
-        await supabase.from('ckp_uploads').delete().eq('id', uploadData.id);
+        // Rollback: ubah status kembali menjadi draft karena kita tidak bisa mendelete
+        await supabase.from('ckp_uploads').update({ status: 'draft' }).eq('id', uploadData.id);
         throw new Error(`Gagal menyimpan entri CKP: ${entriesRes.error.message}`);
       }
 
