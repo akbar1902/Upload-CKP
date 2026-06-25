@@ -96,3 +96,56 @@ export function getApprovalActionColor(action: string): string {
     default: return 'text-gray-600';
   }
 }
+
+/**
+ * Executes a Supabase query with automatic retries for network-related failures.
+ * This is crucial for fixing the "sleeping tab" issue where the first network
+ * request after being idle for several minutes fails due to a dropped TCP connection.
+ */
+export async function executeWithRetry<T>(
+  operation: () => Promise<{ data: T | null; error: any }>,
+  maxAttempts: number = 3,
+  delayMs: number = 1000
+): Promise<{ data: T | null; error: any }> {
+  let attempt = 1;
+  while (true) {
+    try {
+      const result = await operation();
+      
+      const errStr = result.error ? JSON.stringify(result.error).toLowerCase() : '';
+      const errMsg = result.error?.message?.toLowerCase() || '';
+      const errCode = String(result.error?.code || '');
+      
+      const isTransientError = 
+        errMsg.includes('fetch') || 
+        errMsg.includes('network') ||
+        errMsg.includes('timeout') ||
+        errMsg.includes('gateway') ||
+        errMsg.includes('connection') ||
+        errMsg.includes('server error') ||
+        errMsg.includes('upstream') ||
+        ['502', '503', '504'].includes(errCode) ||
+        errCode.startsWith('08') || // Postgres Connection Exception
+        errCode.startsWith('57P');  // Postgres Operator Intervention (e.g. terminating connection)
+
+      // Retry if it's a network error or a DB cold-start/connection drop error
+      if (result.error && isTransientError) {
+        if (attempt >= maxAttempts) return result;
+        console.warn(`[Retry] Supabase operation failed with transient error, retrying attempt ${attempt + 1}/${maxAttempts}...`, result.error);
+        await new Promise(res => setTimeout(res, delayMs));
+        attempt++;
+        continue;
+      }
+      
+      // Return on success or non-network errors (like RLS violations)
+      return result;
+    } catch (err: any) {
+      // Catch native fetch throws if any
+      if (err.name === 'AbortError' || attempt >= maxAttempts) throw err;
+      
+      console.warn(`[Retry] Operation threw error, retrying attempt ${attempt + 1}/${maxAttempts}...`, err);
+      await new Promise(res => setTimeout(res, delayMs));
+      attempt++;
+    }
+  }
+}

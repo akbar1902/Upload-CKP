@@ -71,7 +71,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
           <div>
             <p className="text-[11px] text-slate-500 font-medium mb-1">Skor</p>
             <p className="text-[15px] font-bold text-slate-800">
-              {hasUpload ? avgProgres.toFixed(0) : '—'}
+              {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
             </p>
           </div>
         </div>

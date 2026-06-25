@@ -9,8 +9,10 @@ import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
+import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
-import { exportToExcel } from '@/lib/excel/exporter';
+import { exportCKPDetailToExcel } from '@/lib/excel/exporter';
+import { saveScoreAction, bulkSaveScoreAction, approveAction } from '@/app/actions/pimpinan';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
 import {
@@ -320,23 +322,23 @@ function EntryCardSkeleton() {
   return (
     <div className="activity-card p-5">
       <div className="flex items-start gap-4">
-        <div className="skeleton w-16 h-20 rounded-xl hidden sm:block flex-shrink-0" />
+        <Skeleton className="w-16 h-20 rounded-xl hidden sm:block flex-shrink-0" />
         <div className="flex items-start gap-3 flex-1">
-          <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
+          <Skeleton className="w-10 h-10 rounded-xl flex-shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="skeleton h-3 w-24 rounded" />
-            <div className="skeleton h-4 w-48 rounded" />
-            <div className="skeleton h-3 w-20 rounded" />
-            <div className="skeleton h-4 w-36 rounded" />
+            <Skeleton className="h-3 w-24 rounded" />
+            <Skeleton className="h-4 w-48 rounded" />
+            <Skeleton className="h-3 w-20 rounded" />
+            <Skeleton className="h-4 w-36 rounded" />
           </div>
         </div>
         <div className="flex flex-col gap-2 items-end hidden md:flex">
-          <div className="skeleton h-3 w-14 rounded" />
-          <div className="skeleton h-2.5 w-28 rounded-full" />
+          <Skeleton className="h-3 w-14 rounded" />
+          <Skeleton className="h-2.5 w-28 rounded-full" />
         </div>
         <div className="flex flex-col gap-2 items-end">
-          <div className="skeleton h-6 w-24 rounded-full" />
-          <div className="skeleton h-6 w-16 rounded-lg" />
+          <Skeleton className="h-6 w-24 rounded-full" />
+          <Skeleton className="h-6 w-16 rounded-lg" />
         </div>
       </div>
     </div>
@@ -347,7 +349,7 @@ function EntryCardSkeleton() {
 export default function PimpinanCKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user: currentUser, loading: authLoading } = useAuth();
+  const { user: currentUser, loading: authLoading, ensureSession } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
@@ -433,42 +435,98 @@ export default function PimpinanCKPDetailPage() {
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
-    const newStatus = action === 'reopened' ? 'draft' : action;
-    const updateData: Record<string, unknown> = {
-      status: newStatus,
-      catatan_pimpinan: catatan || null,
-    };
-    if (action === 'approved') {
-      updateData.approved_at = new Date().toISOString();
-      updateData.approved_by = currentUser.id;
-    } else if (action === 'reopened') {
-      updateData.approved_at = null;
-      updateData.approved_by = null;
-    }
-    const { error: updateError } = await supabase
-      .from('ckp_uploads').update(updateData).eq('id', upload.id);
-    if (updateError) { toast.error('Gagal memproses. Silakan coba lagi.'); throw updateError; }
-    await supabase.from('approvals').insert({ upload_id: upload.id, reviewer_id: currentUser.id, action, catatan });
-    await supabase.from('audit_logs').insert({
-      user_id: currentUser.id, action: `${action}_ckp`,
-      entity_type: 'ckp_uploads', entity_id: upload.id,
-      new_data: { status: newStatus, catatan },
+    
+    // 1. Optimistic Update Local Cache
+    queryClient.setQueryData(['pimpinan-ckp-detail', id], (old: any) => {
+      if (!old) return old;
+      const isApproved = action === 'approved';
+      const newStatus = action === 'reopened' ? 'draft' : action;
+      
+      const updatedUpload = {
+        ...old.upload,
+        status: newStatus,
+        catatan_pimpinan: catatan || null,
+        approved_at: isApproved ? new Date().toISOString() : (action === 'reopened' ? null : old.upload.approved_at),
+        approved_by: isApproved ? currentUser.id : (action === 'reopened' ? null : old.upload.approved_by),
+      };
+
+      const newApprovalEntry = {
+        id: `temp-${Date.now()}`,
+        upload_id: upload.id,
+        reviewer_id: currentUser.id,
+        action: action,
+        catatan: catatan || null,
+        created_at: new Date().toISOString(),
+        reviewer: { full_name: currentUser.full_name || 'Anda' }
+      };
+
+      return {
+        ...old,
+        upload: updatedUpload,
+        approvals: [newApprovalEntry, ...(old.approvals || [])]
+      };
     });
-    await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
-    const label = action === 'approved' ? 'disetujui' : action === 'rejected' ? 'ditolak'
-      : action === 'revision_required' ? 'diminta revisi' : 'dibuka kembali';
-    toast.success(`CKP berhasil ${label}`);
+    // 2. Background Sync via Server Actions (SSR)
+    void (async () => {
+      try {
+        const result = await approveAction(upload.id, action, catatan || '');
+        if (!result.success) throw new Error(result.error);
+
+        const label = action === 'approved' ? 'disetujui' : action === 'rejected' ? 'ditolak'
+            : action === 'revision_required' ? 'diminta revisi' : 'dibuka kembali';
+        toast.success(`Berhasil! CKP ${label}`);
+
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+        
+        // Return to main dashboard after delay
+        const timeoutId = setTimeout(() => {
+          router.push('/pimpinan');
+        }, 1000);
+        return () => clearTimeout(timeoutId);
+      } catch (error: any) {
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+        
+        const isAuthError = error.message?.toLowerCase().includes('jwt') || error.code === '401' || error.message === 'Sesi berakhir';
+        if (isAuthError) {
+          toast.error('Sesi berakhir. Gagal memproses persetujuan. Silakan muat ulang halaman.');
+        } else {
+          toast.error(`Gagal memproses persetujuan: ${error.message || 'Error server'}`);
+        }
+      }
+    })();
   };
 
   const handleSaveScore = async (entryId: string, score: number | null) => {
-    const { error } = await supabase.from('ckp_entries').update({ nilai_pimpinan: score }).eq('id', entryId);
-    if (error) {
-      toast.error('Gagal menyimpan nilai');
-      throw error;
-    }
-    toast.success('Nilai tersimpan otomatis');
-    // Refresh to get updated rata_rata_nilai
-    await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+    // 1. Optimistic Update: Instan perbarui UI & rata-rata nilai
+    queryClient.setQueryData(['pimpinan-ckp-detail', id], (old: any) => {
+      if (!old) return old;
+      const newEntries = old.entries.map((e: any) => e.id === entryId ? { ...e, nilai_pimpinan: score } : e);
+      const scored = newEntries.filter((e: any) => e.nilai_pimpinan !== null);
+      const newAvg = scored.length > 0 ? scored.reduce((acc: number, e: any) => acc + e.nilai_pimpinan, 0) / scored.length : null;
+      return { ...old, entries: newEntries, upload: { ...old.upload, rata_rata_nilai: newAvg } };
+    });
+
+    // 2. Background Sync via Server Actions (SSR)
+    void (async () => {
+      try {
+        const result = await saveScoreAction(entryId, score);
+        if (!result.success) throw new Error(result.error);
+        
+        // Memastikan cache tersinkronisasi kembali dengan database
+        // untuk mencegah race condition dari refetchOnWindowFocus
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+      } catch (error: any) {
+        // Revert cache on error
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+        
+        const isAuthError = error.message?.toLowerCase().includes('jwt') || error.code === '401' || error.message === 'Sesi berakhir';
+        if (isAuthError) {
+          toast.error('Sesi berakhir. Gagal menyimpan skor. Silakan muat ulang halaman.');
+        } else {
+          toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
+        }
+      }
+    })();
   };
 
   const handleBulkSaveScore = async () => {
@@ -478,16 +536,37 @@ export default function PimpinanCKPDetailPage() {
       toast.error('Nilai harus berupa angka 0-100');
       return;
     }
-    setIsBulkSaving(true);
-    const { error } = await supabase.from('ckp_entries').update({ nilai_pimpinan: num }).eq('upload_id', upload.id);
-    if (error) {
-      toast.error('Gagal menerapkan nilai ke semua kegiatan');
-    } else {
-      toast.success('Nilai berhasil diterapkan ke semua kegiatan');
-      setBulkScore('');
-      await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
-    }
-    setIsBulkSaving(false);
+
+    // 1. Optimistic Update: Instan terapkan ke semua kegiatan
+    queryClient.setQueryData(['pimpinan-ckp-detail', id], (old: any) => {
+      if (!old) return old;
+      const newEntries = old.entries.map((e: any) => ({ ...e, nilai_pimpinan: num }));
+      return { ...old, entries: newEntries, upload: { ...old.upload, rata_rata_nilai: num } };
+    });
+    setBulkScore('');
+
+    // 2. Background Sync via Server Actions (SSR)
+    void (async () => {
+      try {
+        const result = await bulkSaveScoreAction(upload.id, num);
+        if (!result.success) throw new Error(result.error);
+        
+        toast.success('Nilai berhasil diterapkan ke semua kegiatan');
+        
+        // Memastikan cache tersinkronisasi kembali dengan database
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+      } catch (error: any) {
+        // Revert cache on error
+        await queryClient.invalidateQueries({ queryKey: ['pimpinan-ckp-detail', id] });
+        
+        const isAuthError = error.message?.toLowerCase().includes('jwt') || error.code === '401' || error.message === 'Sesi berakhir';
+        if (isAuthError) {
+          toast.error('Sesi berakhir. Gagal menerapkan nilai masal. Silakan muat ulang halaman.');
+        } else {
+          toast.error(`Gagal menerapkan nilai masal: ${error.message || 'Error server'}`);
+        }
+      }
+    })();
   };
 
   const handleExport = () => {
