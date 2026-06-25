@@ -11,7 +11,7 @@ import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
-import { exportCKPDetailToExcel } from '@/lib/excel/exporter';
+import { exportToExcel } from '@/lib/excel/exporter';
 import { saveScoreAction, bulkSaveScoreAction, approveAction } from '@/app/actions/pimpinan';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
