@@ -56,6 +56,12 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Detail Pegawai',
     };
   }
+  if (pathname === '/rencana_kinerja') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : '/pegawai' }, { label: 'Rencana Kinerja' }],
+      title: 'Rencana Kinerja',
+    };
+  }
   return {
     crumbs: [{ label: 'CKP Digital' }],
     title: 'CKP Digital',

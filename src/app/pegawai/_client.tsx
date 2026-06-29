@@ -81,6 +81,7 @@ export default function PegawaiDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const supabase = useMemo(() => createClient(), []);
 
   const currentMonth = new Date().getMonth() + 1;
@@ -172,14 +173,24 @@ export default function PegawaiDashboard() {
 
   // Filtered list
   const filteredUploads = useMemo(() => {
-    if (!searchQuery.trim()) return uploadsArr;
-    const q = searchQuery.toLowerCase();
-    return uploadsArr.filter(u =>
-      getBulanName(u.bulan).toLowerCase().includes(q) ||
-      u.file_name?.toLowerCase().includes(q) ||
-      String(u.tahun).includes(q)
-    );
-  }, [uploadsArr, searchQuery]);
+    let result = uploadsArr;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(u =>
+        getBulanName(u.bulan).toLowerCase().includes(q) ||
+        u.file_name?.toLowerCase().includes(q) ||
+        String(u.tahun).includes(q)
+      );
+    }
+    
+    // Sort
+    return [...result].sort((a, b) => {
+      // Prioritize tahun, then bulan
+      const valA = (a.tahun * 100) + a.bulan;
+      const valB = (b.tahun * 100) + b.bulan;
+      return sortOrder === 'desc' ? valB - valA : valA - valB;
+    });
+  }, [uploadsArr, searchQuery, sortOrder]);
 
   // KPI cards config
   const kpiCards = [
@@ -317,9 +328,13 @@ export default function PegawaiDashboard() {
               </div>
 
               {/* Sort */}
-              <button className="filter-btn" aria-label="Urutkan">
+              <button 
+                className="filter-btn" 
+                aria-label="Urutkan"
+                onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+              >
                 <ArrowUpDown size={13} />
-                <span className="hidden sm:inline">Urutkan</span>
+                <span className="hidden sm:inline">Urutkan {sortOrder === 'desc' ? '(Terbaru)' : '(Terlama)'}</span>
               </button>
 
               {/* View toggle */}

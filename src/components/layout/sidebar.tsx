@@ -31,6 +31,7 @@ interface NavItem {
 const pegawaiNav: NavItem[] = [
   { href: '/pegawai',        label: 'Dashboard Anggota',  icon: LayoutDashboard },
   { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload },
+  { href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users },
 ];
 
 const pimpinanNav: NavItem[] = [

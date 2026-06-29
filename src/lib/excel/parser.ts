@@ -150,9 +150,10 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
       return result;
     }
 
-    if (result.unmappedHeaders.length > 0) {
+    const filteredUnmapped = result.unmappedHeaders.filter(h => !h.toLowerCase().includes('capaian skp') && !h.toLowerCase().includes('nilai capaian skp'));
+    if (filteredUnmapped.length > 0) {
       result.warnings.push(
-        `Kolom berikut tidak dikenali dan disimpan sebagai data tambahan: ${result.unmappedHeaders.join(', ')}`
+        `Kolom berikut tidak dikenali dan disimpan sebagai data tambahan: ${filteredUnmapped.join(', ')}`
       );
     }
 

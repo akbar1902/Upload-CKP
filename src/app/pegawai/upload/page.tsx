@@ -207,21 +207,81 @@ export default function UploadPage() {
       if (uploadError) throw new Error(`Gagal menyimpan data upload: ${uploadError.message}`);
       if (!uploadData) throw new Error('Upload berhasil tapi data tidak diterima dari server');
 
+      // --- START FUZZY MATCH & AUTO-ASSIGN RK ---
+      const { data: allRKs } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja');
+      const masterRKs = Array.from(new Set(allRKs?.map(r => r.rencana_kinerja) || []));
+      const masterDict = allRKs || [];      
+      const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      // Calculate Sørensen–Dice coefficient for typo tolerance
+      const getSimilarity = (s1: string, s2: string) => {
+        if (!s1 || !s2) return 0;
+        if (s1 === s2) return 1;
+        if (s1.length < 2 || s2.length < 2) return 0;
+        let bg1 = new Set();
+        for(let i=0; i<s1.length-1; i++) bg1.add(s1.substring(i, i+2));
+        let bg2 = new Set();
+        for(let i=0; i<s2.length-1; i++) bg2.add(s2.substring(i, i+2));
+        let intersection = 0;
+        for(let item of bg1) if (bg2.has(item)) intersection++;
+        return (2.0 * intersection) / (bg1.size + bg2.size);
+      };
+
+      const fuzzyMatchRK = (input: string) => {
+        if (!input) return input;
+        const normInput = normalize(input);
+        if (!normInput) return input;
+        
+        let bestMatch = '';
+        let bestScore = 0;
+        
+        for (const master of masterRKs) {
+          const normMaster = normalize(master);
+          if (normMaster === normInput) return master; // Exact normalized match
+          
+          const score = getSimilarity(normInput, normMaster);
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = master;
+          }
+        }
+        
+        // If the best match is highly similar (> 80%), use it
+        if (bestScore > 0.8) {
+           return bestMatch;
+        }
+
+        return String(input).trim().replace(/\s+/g, ' '); // Fallback to basic space normalization
+      };
+      
+      const distinctMatchedRKs = new Set<string>();
+      // --- END FUZZY MATCH ---
+
       toast.loading(`Langkah 4/4: Menyimpan ${parseResult.entries.length} entri kegiatan...`, { id: toastId });
-      const entries = parseResult.entries.map((entry) => ({
-        upload_id: uploadData.id,
-        row_number: entry.row_number || 0,
-        tanggal_mulai: entry.tanggal_mulai || null,
-        tanggal_selesai: entry.tanggal_selesai || null,
-        jam_mulai: entry.jam_mulai || null,
-        jam_selesai: entry.jam_selesai || null,
-        rencana_kinerja: entry.rencana_kinerja || null,
-        kegiatan: entry.kegiatan || null,
-        progres: Number(entry.progres) || 0,
-        capaian: entry.capaian || null,
-        data_dukung: entry.data_dukung || null,
-        extra_columns: entry.extra_columns || {},
-      }));
+      const entries = parseResult.entries.map((entry) => {
+        const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+        const matchedRK = fuzzyMatchRK(rawRK);
+        
+        // Simpan RK yang valid untuk di-assign otomatis ke akun pegawai
+        if (matchedRK && matchedRK.trim() !== '') {
+          distinctMatchedRKs.add(matchedRK);
+        }
+
+        return {
+          upload_id: uploadData.id,
+          row_number: entry.row_number || 0,
+          tanggal_mulai: entry.tanggal_mulai || null,
+          tanggal_selesai: entry.tanggal_selesai || null,
+          jam_mulai: entry.jam_mulai || null,
+          jam_selesai: entry.jam_selesai || null,
+          rencana_kinerja: matchedRK || null,
+          kegiatan: entry.kegiatan || null,
+          progres: Number(entry.progres) || 0,
+          capaian: entry.capaian || null,
+          data_dukung: entry.data_dukung || null,
+          extra_columns: entry.extra_columns || {},
+        }
+      });
 
       const entriesPromise = supabase.from('ckp_entries').insert(entries);
       const entriesRes = await Promise.race([
@@ -233,6 +293,48 @@ export default function UploadPage() {
         // Rollback: ubah status kembali menjadi draft karena kita tidak bisa mendelete
         await supabase.from('ckp_uploads').update({ status: 'draft' }).eq('id', uploadData.id);
         throw new Error(`Gagal menyimpan entri CKP: ${entriesRes.error.message}`);
+      }
+
+      // Auto-assign RK ke pegawai
+      if (distinctMatchedRKs.size > 0) {
+        // 1. Pisahkan RK yang sudah ada di Kamus Global vs yang benar-benar baru/unmatched
+        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterRKs.includes(rk));
+        const unmatchedRKs = Array.from(distinctMatchedRKs).filter(rk => !masterRKs.includes(rk));
+        
+        // 2. Auto-register RK yang belum ada di Kamus Global agar pegawai tidak kehilangan list RK mereka
+        if (unmatchedRKs.length > 0) {
+          const newRKsToMaster = unmatchedRKs.map(rk => ({
+            rencana_kinerja: rk,
+            created_by: user.id
+          }));
+          const { data: insertedRKs, error: insErr } = await supabase.from('rk_ketua_tim_mapping').insert(newRKsToMaster).select('id, rencana_kinerja');
+          if (insErr) {
+            console.warn("[Upload] Gagal auto-register RK baru:", insErr);
+          } else if (insertedRKs) {
+            // Tambahkan ke valid jika insert master sukses (untuk assigned ke user_rk_assignments)
+            masterDict.push(...insertedRKs);
+            validRKsToAssign.push(...unmatchedRKs);
+          }
+        }
+
+        // 3. Insert assignment ke akun pegawai
+        if (validRKsToAssign.length > 0) {
+          const assignmentsToInsert = [];
+          for (const rkStr of validRKsToAssign) {
+            // Cari rk_id yang sesuai (ambil yang pertama jika ada duplikat nama di tim berbeda)
+            const rkObj = masterDict.find(r => r.rencana_kinerja === rkStr);
+            if (rkObj) {
+              assignmentsToInsert.push({
+                rk_id: rkObj.id,
+                user_id: user.id,
+                assigned_by: user.id
+              });
+            }
+          }
+          if (assignmentsToInsert.length > 0) {
+            await supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
+          }
+        }
       }
 
       await supabase.from('audit_logs').insert({
@@ -257,7 +359,7 @@ export default function UploadPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-4xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
         {/* Back */}
         <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
@@ -416,40 +518,55 @@ export default function UploadPage() {
 
               {/* Data preview table */}
               {parseResult.success && parseResult.entries.length > 0 && (
-                <div className="overflow-x-auto rounded-lg border border-slate-200">
+                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mt-4">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">No</th>
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Rencana Kinerja</th>
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Kegiatan</th>
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Tgl Mulai</th>
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Tgl Selesai</th>
-                        <th className="text-center py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Progres</th>
-                        <th className="text-left py-2.5 px-3 text-xs font-semibold text-slate-500 whitespace-nowrap">Bukti</th>
+                        <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-16">No</th>
+                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
+                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[30%]">Kegiatan</th>
+                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Tanggal</th>
+                        <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-24">Progres</th>
+                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Bukti Dukung</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {parseResult.entries.slice(0, 10).map((entry, i) => (
-                        <tr key={i} className="border-b border-slate-100 table-row-hover">
-                          <td className="py-2 px-3 text-slate-500 whitespace-nowrap">{entry.row_number}</td>
-                          <td className="py-2 px-3 text-slate-600 text-xs leading-relaxed">{String(entry.rencana_kinerja || '—')}</td>
-                          <td className="py-2 px-3 text-slate-700 text-xs leading-relaxed">{entry.kegiatan || '—'}</td>
-                          <td className="py-2 px-3 text-slate-500 text-xs whitespace-nowrap">{String(entry.tanggal_mulai || '-')}</td>
-                          <td className="py-2 px-3 text-slate-500 text-xs whitespace-nowrap">{String(entry.tanggal_selesai || '-')}</td>
-                          <td className="py-2 px-3 text-center">
-                            <span className="text-xs font-medium">{Number(entry.progres || 0).toFixed(0)}%</span>
+                        <tr key={i} className="bg-white hover:bg-slate-50/50 transition-colors">
+                          <td className="py-3 px-4 text-center text-slate-500 font-medium">{entry.row_number}</td>
+                          <td className="py-3 px-4">
+                            <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                              {String(entry.rencana_kinerja || '—')}
+                            </p>
                           </td>
-                          <td className="py-2 px-3">
-                            <DataDukungLink value={entry.data_dukung || null} />
+                          <td className="py-3 px-4">
+                            <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                              {entry.kegiatan || '—'}
+                            </p>
+                          </td>
+                          <td className="py-3 px-4 text-[13px] text-slate-500 whitespace-nowrap">
+                            <div className="flex flex-col gap-1">
+                              <span>Mulai: {String(entry.tanggal_mulai || '-')}</span>
+                              <span>Selesai: {String(entry.tanggal_selesai || '-')}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                              {Number(entry.progres || 0).toFixed(0)}%
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 max-w-[200px]">
+                            <div className="truncate">
+                              <DataDukungLink value={entry.data_dukung || null} />
+                            </div>
                           </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {parseResult.entries.length > 10 && (
-                    <div className="py-2 px-3 text-center text-xs text-slate-400 bg-slate-50 border-t border-slate-200">
-                      Menampilkan 10 dari {parseResult.entries.length} baris
+                    <div className="py-3 px-4 text-center text-[13px] text-slate-500 bg-slate-50 border-t border-slate-200">
+                      Menampilkan 10 dari <span className="font-semibold text-slate-700">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
                     </div>
                   )}
                 </div>
