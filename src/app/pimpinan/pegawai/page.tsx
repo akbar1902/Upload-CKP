@@ -28,7 +28,7 @@ export default async function PimpinanPegawaiPage() {
       const { data, error } = await supabase
         .from('users')
         .select('*')
-        .eq('role', 'pegawai')
+        .in('role', ['anggota', 'ketua_tim'])
         .eq('is_active', true)
         .order('full_name');
 

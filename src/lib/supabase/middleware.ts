@@ -65,6 +65,10 @@ export async function updateSession(request: NextRequest) {
     const cachedRole = request.cookies.get(cacheKey)?.value;
     let role: string | undefined = cachedRole;
 
+    if (role === 'pegawai') {
+      role = 'anggota'; // Convert old cached role automatically
+    }
+
     // Only hit the DB when cache is missing (first load or after logout)
     if (!role) {
       // Step 1: Try JWT metadata first (instant, no network)
@@ -98,8 +102,8 @@ export async function updateSession(request: NextRequest) {
         }
       }
 
-      // Default fallback
-      if (!role) role = 'pegawai';
+    // Default fallback
+      if (!role || role === 'pegawai') role = 'anggota';
 
       // Cache the resolved role in a cookie for 5 minutes.
       // Subsequent navigations skip the DB query entirely — much faster.
@@ -112,11 +116,13 @@ export async function updateSession(request: NextRequest) {
     }
 
     const isPimpinan = role === 'pimpinan' || role === 'admin';
+    const isKetuaTim = role === 'ketua_tim' || isPimpinan;
+    const isAnggota = role === 'anggota' || isKetuaTim; // Everyone can access pegawai
 
     // Already logged in → redirect away from login/home
     if (pathname === '/login' || pathname === '/') {
       const url = request.nextUrl.clone();
-      url.pathname = isPimpinan ? '/pimpinan' : '/pegawai';
+      url.pathname = isPimpinan ? '/pimpinan' : (role === 'ketua_tim' ? '/ketua_tim' : '/pegawai');
       const redirectResponse = NextResponse.redirect(url);
       // Carry the role cookie to the redirect destination
       supabaseResponse.cookies.getAll().forEach(cookie => {
@@ -125,19 +131,28 @@ export async function updateSession(request: NextRequest) {
       return redirectResponse;
     }
 
-    // Protect pimpinan routes — redirect non-pimpinan to pegawai
+    // Protect pimpinan routes
     if (pathname.startsWith('/pimpinan') && !isPimpinan) {
+      const url = request.nextUrl.clone();
+      url.pathname = role === 'ketua_tim' ? '/ketua_tim' : '/pegawai';
+      return NextResponse.redirect(url);
+    }
+
+    // Protect ketua_tim routes
+    if (pathname.startsWith('/ketua_tim') && !isKetuaTim) {
       const url = request.nextUrl.clone();
       url.pathname = '/pegawai';
       return NextResponse.redirect(url);
     }
 
-    // Redirect pimpinan/admin away from /pegawai* to pimpinan
-    if (pathname.startsWith('/pegawai') && isPimpinan) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/pimpinan';
-      return NextResponse.redirect(url);
-    }
+    // Since everyone can access /pegawai (to upload their own CKP), 
+    // we don't strictly redirect pimpinan/ketua_tim away from /pegawai.
+    // However, if they just visit `/pegawai` explicitly without wanting to, it's fine,
+    // they can just use the navigation menu to go back.
+    // Wait, the previous logic redirected pimpinan away from /pegawai:
+    // `if (pathname.startsWith('/pegawai') && isPimpinan)`
+    // I will remove that so they can upload their CKP.
+
   }
 
   return supabaseResponse;

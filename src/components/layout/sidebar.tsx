@@ -29,13 +29,17 @@ interface NavItem {
 }
 
 const pegawaiNav: NavItem[] = [
-  { href: '/pegawai',        label: 'Dashboard',  icon: LayoutDashboard },
+  { href: '/pegawai',        label: 'Dashboard Anggota',  icon: LayoutDashboard },
   { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload },
 ];
 
 const pimpinanNav: NavItem[] = [
-  { href: '/pimpinan',         label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/pimpinan',         label: 'Dashboard Pimpinan',    icon: LayoutDashboard },
   { href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users },
+];
+
+const ketuaTimNav: NavItem[] = [
+  { href: '/ketua_tim', label: 'Dashboard Ketua Tim', icon: LayoutDashboard },
 ];
 
 const SIDEBAR_EXPANDED = 260;
@@ -50,12 +54,22 @@ export function Sidebar() {
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
-  const navItems = isPimpinan ? pimpinanNav : pegawaiNav;
+  const isKetuaTim = user?.role === 'ketua_tim' || isPimpinan;
+  
+  let navItems: NavItem[] = [];
+  if (isPimpinan) {
+    navItems = [...pimpinanNav, ...ketuaTimNav, ...pegawaiNav];
+  } else if (isKetuaTim) {
+    navItems = [...ketuaTimNav, ...pegawaiNav];
+  } else {
+    navItems = pegawaiNav;
+  }
+
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   const isActive = (href: string) => {
     if (href.startsWith('#')) return false;
-    if (href === '/pegawai' || href === '/pimpinan') return pathname === href;
+    if (href === '/pegawai' || href === '/pimpinan' || href === '/ketua_tim') return pathname === href;
     return pathname.startsWith(href);
   };
 
@@ -76,7 +90,7 @@ export function Sidebar() {
     ((user?.full_name?.charCodeAt(0) || 0) + (user?.full_name?.charCodeAt(1) || 0)) % AVATAR_GRADIENTS.length
   ];
 
-  const roleLabel = isPimpinan ? 'Pimpinan / Admin' : 'Pegawai';
+  const roleLabel = isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai');
 
   const navContent = (
     <div className="flex flex-col h-full select-none">

@@ -96,7 +96,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
       <div className="mt-auto pt-1">
         {hasUpload ? (
           <Link
-            href={`/pimpinan/ckp/${upload!.id}`}
+            href={`/penilaian/${upload!.id}`}
             className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg py-2 transition-colors w-full"
           >
             Lihat Detail Log <ArrowRight className="h-3.5 w-3.5" />

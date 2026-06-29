@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authUser.user_metadata?.full_name ??
         authUser.email?.split('@')[0] ??
         'User',
-      role: (authUser.user_metadata?.role as User['role']) ?? 'pegawai',
+      role: (authUser.user_metadata?.role as User['role']) ?? 'anggota',
       nip: authUser.user_metadata?.nip ?? null,
       unit_kerja: authUser.user_metadata?.unit_kerja ?? null,
       is_active: true,
@@ -345,23 +345,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
-    // Force redirect after 3s no matter what (prevents stuck logout)
-    const forceRedirect = setTimeout(() => {
-      window.location.replace('/login');
-    }, 3000);
-
-    try {
-      await supabase.auth.signOut();
-    } catch (err) {
-      console.warn('[Auth] SignOut error:', err);
-    }
-
-    // Clear state
+    // 1. Clear local state instantly
     currentUserRef.current = null;
     setUser(null);
     setSupabaseUser(null);
 
-    // Clear all Supabase storage keys
+    // 2. Clear LocalStorage and SessionStorage
     if (typeof window !== 'undefined') {
       try {
         const keys: string[] = [];
@@ -374,7 +363,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch { /* ignore */ }
     }
 
-    clearTimeout(forceRedirect);
+    // 3. Clear Cookies explicitly (crucial for @supabase/ssr)
+    if (typeof document !== 'undefined') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i];
+        const eqPos = cookie.indexOf('=');
+        const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+        if (name.startsWith('sb-') || name.startsWith('supabase')) {
+          document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        }
+      }
+    }
+
+    // 4. Fire and forget server signout (don't wait for it)
+    supabase.auth.signOut().catch(() => {});
+
+    // 5. Instant redirect
     window.location.replace('/login');
   }, [supabase]);
 

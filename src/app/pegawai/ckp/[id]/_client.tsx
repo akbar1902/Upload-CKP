@@ -131,6 +131,11 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               {entry.rencana_kinerja || '—'}
             </p>
 
+            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Nilai</p>
+            <div className="p-3 text-center text-sm font-medium text-slate-700 border-x border-slate-200">
+              {entry.nilai !== null ? entry.nilai : '-'}
+            </div>
+
             <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Kegiatan</p>
             <p className="text-[13px] text-slate-700">
               {entry.kegiatan || '—'}
@@ -143,8 +148,8 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
 
             <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5 mt-1">Nilai SKP</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[14px] font-bold" style={{ color: entry.nilai_pimpinan !== null ? '#059669' : '#94A3B8' }}>
-                {entry.nilai_pimpinan !== null ? entry.nilai_pimpinan : 'Belum dinilai'}
+              <span className="text-[14px] font-bold" style={{ color: entry.nilai !== null ? '#059669' : '#94A3B8' }}>
+                {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
               </span>
             </div>
           </div>

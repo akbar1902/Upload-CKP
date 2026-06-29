@@ -31,14 +31,20 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Dashboard Pimpinan',
     };
   }
+  if (pathname === '/ketua_tim') {
+    return {
+      crumbs: [{ label: 'Dashboard' }],
+      title: 'Dashboard Ketua Tim',
+    };
+  }
   if (pathname === '/pimpinan/pegawai') {
     return {
       crumbs: [{ label: 'Dashboard', href: '/pimpinan' }, { label: 'Data Pegawai' }],
       title: 'Data Pegawai',
     };
   }
-  if (pathname.includes('/ckp/')) {
-    const base = isPimpinan ? '/pimpinan' : '/pegawai';
+  if (pathname.includes('/ckp/') || pathname.includes('/penilaian/')) {
+    const base = isPimpinan ? '/pimpinan' : (pathname.includes('/penilaian/') ? '/ketua_tim' : '/pegawai');
     return {
       crumbs: [{ label: 'Dashboard', href: base }, { label: 'Detail CKP' }],
       title: 'Detail CKP',
@@ -107,7 +113,7 @@ export function Header({
     .toUpperCase() || 'U';
 
   const avatarGrad = getAvatarGrad(user?.full_name || 'U');
-  const roleLabel = isPimpinan ? 'Pimpinan' : 'Pegawai';
+  const roleLabel = isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai');
 
   // Current date meta
   const now = new Date();

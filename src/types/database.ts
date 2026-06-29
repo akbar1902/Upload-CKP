@@ -2,7 +2,7 @@
 // Database Types - matches Supabase schema
 // ============================================================
 
-export type UserRole = 'pegawai' | 'pimpinan' | 'admin';
+export type UserRole = 'anggota' | 'ketua_tim' | 'pimpinan' | 'admin';
 export type UploadStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_required';
 export type ApprovalAction = 'approved' | 'rejected' | 'revision_required' | 'reopened';
 
@@ -24,6 +24,15 @@ export interface EmployeeProfile {
   jabatan: string | null;
   golongan: string | null;
   photo_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RkKetuaTimMapping {
+  id: string;
+  rencana_kinerja: string;
+  ketua_tim_id: string | null;
+  tim_kerja: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +70,8 @@ export interface CKPEntry {
   kegiatan: string | null;
   progres: number;
   capaian: string | null;
-  nilai_pimpinan: number | null;
+  nilai: number | null;
+  dinilai_oleh: string | null;
   data_dukung: string | null;
   extra_columns: Record<string, unknown>;
   created_at: string;
@@ -108,6 +118,11 @@ export type Database = {
         Row: EmployeeProfile;
         Insert: Omit<EmployeeProfile, 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Omit<EmployeeProfile, 'id' | 'created_at'>>;
+      };
+      rk_ketua_tim_mapping: {
+        Row: RkKetuaTimMapping;
+        Insert: Omit<RkKetuaTimMapping, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<RkKetuaTimMapping, 'id' | 'created_at'>>;
       };
       ckp_uploads: {
         Row: CKPUpload;

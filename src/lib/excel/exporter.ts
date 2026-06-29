@@ -53,7 +53,7 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
     entry.kegiatan || '',
     entry.progres,
     entry.capaian || '',
-    entry.nilai_pimpinan !== null ? entry.nilai_pimpinan : '',
+    entry.nilai !== null ? entry.nilai : '',
     entry.data_dukung || '',
   ]);
 

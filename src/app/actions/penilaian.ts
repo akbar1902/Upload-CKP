@@ -2,7 +2,6 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-// This function grades ALL entries under a specific Rencana Kinerja for a given upload
 export async function gradeRencanaKinerjaAction(uploadId: string, rencanaKinerja: string, score: number | null) {
   try {
     const supabase = await createServerSupabaseClient();
