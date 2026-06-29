@@ -209,7 +209,7 @@ export default function UploadPage() {
 
       // --- START FUZZY MATCH & AUTO-ASSIGN RK ---
       const { data: allRKs } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja');
-      const masterRKs = Array.from(new Set(allRKs?.map(r => r.rencana_kinerja) || []));
+      const masterRKs: string[] = Array.from(new Set(allRKs?.map((r: any) => String(r.rencana_kinerja)) || []));
       const masterDict = allRKs || [];      
       const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
       
@@ -322,7 +322,7 @@ export default function UploadPage() {
           const assignmentsToInsert = [];
           for (const rkStr of validRKsToAssign) {
             // Cari rk_id yang sesuai (ambil yang pertama jika ada duplikat nama di tim berbeda)
-            const rkObj = masterDict.find(r => r.rencana_kinerja === rkStr);
+            const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
             if (rkObj) {
               assignmentsToInsert.push({
                 rk_id: rkObj.id,
