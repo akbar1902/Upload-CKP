@@ -27,6 +27,9 @@ export async function deleteCkpUploadAction(uploadId: string) {
     }
 
     if (upload.status === 'approved') {
+      throw new Error('CKP yang sudah disetujui (Approved) tidak dapat dihapus');
+    }
+
     // 2. Delete the actual record
     await supabase.from('ckp_entries').delete().eq('upload_id', uploadId);
 
