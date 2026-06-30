@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp, ArrowRight, FileCheck, FileText } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, FileCheck, FileText, Trash2 } from 'lucide-react';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import { StatusBadge } from './status-badge';
+import { deleteCkpUploadAction } from '@/app/actions/ckp';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 const MONTH_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -22,6 +25,32 @@ export interface ActivityCardProps {
 
 export function ActivityCard({ upload }: ActivityCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleDelete = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data CKP ini? Semua entri kegiatan di dalamnya akan ikut terhapus permanen.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    const toastId = toast.loading('Menghapus CKP...');
+    try {
+      const res = await deleteCkpUploadAction(upload.id);
+      if (res.success) {
+        toast.success('CKP berhasil dihapus', { id: toastId });
+        queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+      } else {
+        toast.error(res.error || 'Gagal menghapus CKP', { id: toastId });
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Terjadi kesalahan', { id: toastId });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const canDelete = upload.status !== 'approved';
 
   // Date from uploaded_at
   const dt = new Date(upload.uploaded_at);
@@ -176,14 +205,27 @@ export function ActivityCard({ upload }: ActivityCardProps) {
             </div>
           )}
 
-          {/* CTA */}
-          <Link
-            href={`/pegawai/ckp/${upload.id}`}
-            className="inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
-            style={{ color: 'var(--primary)' }}
-          >
-            Lihat Detail Lengkap <ArrowRight size={13} />
-          </Link>
+          {/* CTA & Actions */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-200/60">
+            <Link
+              href={`/pegawai/ckp/${upload.id}`}
+              className="inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
+              style={{ color: 'var(--primary)' }}
+            >
+              Lihat Detail Lengkap <ArrowRight size={13} />
+            </Link>
+            
+            {canDelete && (
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
+              >
+                <Trash2 size={13} />
+                {isDeleting ? 'Menghapus...' : 'Hapus CKP'}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>

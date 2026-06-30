@@ -14,9 +14,11 @@ import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff,
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2
 } from 'lucide-react';
 import Link from 'next/link';
+import { deleteCkpUploadAction } from '@/app/actions/ckp';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Helpers ────────────────────────────────────────────────
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
@@ -291,8 +293,10 @@ function EntryCardSkeleton() {
 export default function CKPDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -364,6 +368,30 @@ export default function CKPDetailPage() {
     if (!upload || !user) return;
     exportToExcel({ upload, entries, user });
     toast.success('File Excel berhasil diunduh');
+  };
+
+  const handleDelete = async () => {
+    if (!upload) return;
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data CKP ini? Semua entri kegiatan akan ikut terhapus permanen.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    const toastId = toast.loading('Menghapus CKP...');
+    try {
+      const res = await deleteCkpUploadAction(upload.id);
+      if (res.success) {
+        toast.success('CKP berhasil dihapus', { id: toastId });
+        queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+        router.push('/pegawai'); // redirect back to dashboard
+      } else {
+        toast.error(res.error || 'Gagal menghapus', { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   // Filter + pagination
@@ -498,12 +526,22 @@ export default function CKPDetailPage() {
               <Download size={14} /> Export Excel
             </button>
             {canReupload && (
-              <Link href="/pegawai/upload">
-                <button className="btn-secondary"
-                  style={{ color: '#D97706', borderColor: '#FDE68A' }}>
-                  <RefreshCw size={14} /> Upload Ulang
+              <>
+                <Link href="/pegawai/upload">
+                  <button className="btn-secondary"
+                    style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+                    <RefreshCw size={14} /> Upload Ulang
+                  </button>
+                </Link>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="btn-secondary flex items-center gap-2"
+                  style={{ color: '#DC2626', borderColor: '#FECACA' }}
+                >
+                  <Trash2 size={14} /> {isDeleting ? 'Menghapus...' : 'Hapus CKP'}
                 </button>
-              </Link>
+              </>
             )}
           </div>
         </div>

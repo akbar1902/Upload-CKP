@@ -4,14 +4,14 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import {
   FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
-  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw,
+  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -31,11 +31,40 @@ function getProgressClass(pct: number): string {
 import { KPICard } from '@/components/dashboard/kpi-card';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
+import { deleteCkpUploadAction } from '@/app/actions/ckp';
+import { toast } from 'sonner';
 
 // ── Grid card (alternate view) ─────────────────────────────
 function ActivityGridCard({ upload }: ActivityCardProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const queryClient = useQueryClient();
   const pct = Math.min(upload.avg_progres || 0, 100);
   const progressClass = getProgressClass(pct);
+  const canDelete = upload.status !== 'approved';
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault(); // prevent navigation if wrapped in link or similar
+    if (!window.confirm('Apakah Anda yakin ingin menghapus data CKP ini? Semua entri kegiatan akan ikut terhapus.')) {
+      return;
+    }
+    
+    setIsDeleting(true);
+    const toastId = toast.loading('Menghapus CKP...');
+    try {
+      const res = await deleteCkpUploadAction(upload.id);
+      if (res.success) {
+        toast.success('CKP berhasil dihapus', { id: toastId });
+        queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+      } else {
+        toast.error(res.error || 'Gagal menghapus', { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="kpi-card p-5 flex flex-col gap-3 animate-scale-in">
       <div className="flex items-center justify-between">
@@ -65,13 +94,25 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
           <div className={`h-full rounded-full progress-bar ${progressClass}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
-      <Link
-        href={`/pegawai/ckp/${upload.id}`}
-        className="flex items-center justify-center gap-1.5 py-2 rounded-xl text-[13px] font-medium transition-colors"
-        style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.12)' }}
-      >
-        Lihat Detail <ArrowRight size={13} />
-      </Link>
+      <div className="flex items-center gap-2 mt-2">
+        <Link
+          href={`/pegawai/ckp/${upload.id}`}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[13px] font-medium transition-colors"
+          style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.12)' }}
+        >
+          Lihat Detail <ArrowRight size={13} />
+        </Link>
+        {canDelete && (
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            title="Hapus CKP"
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors border border-transparent hover:border-red-100 disabled:opacity-50"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
