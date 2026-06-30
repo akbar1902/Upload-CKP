@@ -1,7 +1,6 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
 export async function deleteCkpUploadAction(uploadId: string) {
   try {
@@ -28,19 +27,10 @@ export async function deleteCkpUploadAction(uploadId: string) {
     }
 
     if (upload.status === 'approved') {
-      throw new Error('CKP yang sudah disetujui (Approved) tidak dapat dihapus');
-    }
-
-    // Create Admin Client to bypass RLS (since ckp_uploads lacks a DELETE policy for Pegawai)
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
     // 2. Delete the actual record
-    await supabaseAdmin.from('ckp_entries').delete().eq('upload_id', uploadId);
+    await supabase.from('ckp_entries').delete().eq('upload_id', uploadId);
 
-    const { error: deleteError } = await supabaseAdmin
+    const { error: deleteError } = await supabase
       .from('ckp_uploads')
       .delete()
       .eq('id', uploadId);
@@ -51,7 +41,7 @@ export async function deleteCkpUploadAction(uploadId: string) {
 
     // 3. Delete the file from storage if it exists
     if (upload.storage_path) {
-      supabaseAdmin.storage.from('ckp-files').remove([upload.storage_path]).catch((err: any) => {
+      supabase.storage.from('ckp-files').remove([upload.storage_path]).catch((err: any) => {
         console.error('Failed to remove file from storage:', err);
       });
     }
