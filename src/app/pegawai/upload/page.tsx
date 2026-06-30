@@ -4,6 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 import { parseExcelFile } from '@/lib/excel/parser';
 import type { ParseResult } from '@/lib/excel/parser';
 import { Header } from '@/components/layout/header';
@@ -28,6 +29,7 @@ import {
 export default function UploadPage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
 
   const currentMonth = new Date().getMonth() + 1;
@@ -346,6 +348,7 @@ export default function UploadPage() {
       });
 
       toast.success(`CKP ${getBulanName(bulan)} ${tahun} berhasil diupload!`, { id: toastId });
+      queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
       router.push(`/pegawai/ckp/${uploadData.id}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui';
