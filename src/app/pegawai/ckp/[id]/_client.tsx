@@ -133,11 +133,6 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               {entry.rencana_kinerja || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Nilai</p>
-            <div className="p-3 text-center text-sm font-medium text-slate-700 border-x border-slate-200">
-              {entry.nilai !== null ? entry.nilai : '-'}
-            </div>
-
             <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Kegiatan</p>
             <p className="text-[13px] text-slate-700">
               {entry.kegiatan || '—'}
