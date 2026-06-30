@@ -35,7 +35,7 @@ import { deleteCkpUploadAction } from '@/app/actions/ckp';
 import { toast } from 'sonner';
 
 // ── Grid card (alternate view) ─────────────────────────────
-function ActivityGridCard({ upload }: ActivityCardProps) {
+function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const pct = Math.min(upload.avg_progres || 0, 100);
@@ -54,7 +54,11 @@ function ActivityGridCard({ upload }: ActivityCardProps) {
       const res = await deleteCkpUploadAction(upload.id);
       if (res.success) {
         toast.success('CKP berhasil dihapus', { id: toastId });
-        queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+        if (onDeleteSuccess) {
+          onDeleteSuccess();
+        } else {
+          queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+        }
       } else {
         toast.error(res.error || 'Gagal menghapus', { id: toastId });
       }
@@ -438,13 +442,13 @@ export default function PegawaiDashboard() {
           ) : viewMode === 'list' ? (
             <div className="space-y-3 card-list">
               {filteredUploads.map((upload) => (
-                <ActivityCard key={upload.id} upload={upload} />
+                <ActivityCard key={upload.id} upload={upload} onDeleteSuccess={() => refetch()} />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-list">
               {filteredUploads.map((upload) => (
-                <ActivityGridCard key={upload.id} upload={upload} />
+                <ActivityGridCard key={upload.id} upload={upload} onDeleteSuccess={() => refetch()} />
               ))}
             </div>
           )}

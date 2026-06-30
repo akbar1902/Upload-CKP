@@ -21,9 +21,10 @@ function getProgressClass(pct: number): string {
 
 export interface ActivityCardProps {
   upload: CKPUpload;
+  onDeleteSuccess?: () => void;
 }
 
-export function ActivityCard({ upload }: ActivityCardProps) {
+export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
@@ -39,7 +40,11 @@ export function ActivityCard({ upload }: ActivityCardProps) {
       const res = await deleteCkpUploadAction(upload.id);
       if (res.success) {
         toast.success('CKP berhasil dihapus', { id: toastId });
-        queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+        if (onDeleteSuccess) {
+          onDeleteSuccess();
+        } else {
+          queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+        }
       } else {
         toast.error(res.error || 'Gagal menghapus CKP', { id: toastId });
       }
