@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { resetPasswordDirectAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Building2, Eye, EyeOff, LogIn, AlertCircle, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react';
@@ -17,6 +18,8 @@ export default function LoginPage() {
   // Lupa Password states
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -74,13 +77,17 @@ export default function LoginPage() {
     setResetError('');
     setResetLoading(true);
 
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+    if (newPassword.length < 6) {
+      setResetError('Password baru minimal 6 karakter.');
+      setResetLoading(false);
+      return;
+    }
 
-      if (error) {
-        setResetError(error.message);
+    try {
+      const res = await resetPasswordDirectAction(resetEmail, newPassword);
+
+      if (!res.success) {
+        setResetError(res.error || 'Terjadi kesalahan.');
       } else {
         setResetSuccess(true);
       }
@@ -170,15 +177,16 @@ export default function LoginPage() {
                 <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
                   <CheckCircle2 className="h-10 w-10 text-emerald-500" />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-3">Email Terkirim!</h3>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">Password Berhasil Diubah!</h3>
                 <p className="text-slate-500 max-w-sm mb-8">
-                  Kami telah mengirimkan instruksi reset password ke <span className="font-semibold text-slate-700">{resetEmail}</span>. Silakan periksa kotak masuk atau folder spam Anda.
+                  Password untuk akun <span className="font-semibold text-slate-700">{resetEmail}</span> telah berhasil diubah. Silakan masuk menggunakan password baru Anda.
                 </p>
                 <Button 
                   onClick={() => {
                     setIsForgotPassword(false);
                     setResetSuccess(false);
                     setResetEmail('');
+                    setNewPassword('');
                   }}
                   variant="outline" 
                   className="w-full h-12"
@@ -218,6 +226,30 @@ export default function LoginPage() {
                     />
                   </div>
 
+                  <div>
+                    <label htmlFor="new-password" className="block text-sm font-medium text-slate-700 mb-2">
+                      Password Baru
+                    </label>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Masukkan password baru"
+                        required
+                        className="h-12 pr-12"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="pt-2 space-y-3">
                     <Button
                       type="submit"
@@ -225,7 +257,7 @@ export default function LoginPage() {
                       className="w-full h-12 text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
                     >
                       <KeyRound className="h-5 w-5" />
-                      Kirim Instruksi Reset
+                      Ubah Password
                     </Button>
                     <Button
                       type="button"
