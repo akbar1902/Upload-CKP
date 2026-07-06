@@ -514,52 +514,59 @@ export default function UploadPage() {
                   <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mt-4 bg-white">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-slate-50 border-b border-slate-200">
-                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-16">No</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[30%]">Kegiatan</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Tanggal</th>
-                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-24">Progres</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Bukti Dukung</th>
+                        <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-16">No</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-[30%]">Kegiatan</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Tanggal</th>
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-24">Progres</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Bukti Dukung</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                         {parseResult.entries.slice(0, 10).map((entry, i) => (
-                          <tr key={i} className="bg-white hover:bg-slate-50/50 transition-colors">
-                            <td className="py-3 px-4 text-center text-slate-500 font-medium">{entry.row_number}</td>
+                          <tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400 font-medium">{entry.row_number}</td>
                             <td className="py-3 px-4">
-                              <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                              <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed line-clamp-3">
                                 {String(entry.rencana_kinerja || '—')}
                               </p>
                             </td>
                             <td className="py-3 px-4">
-                              <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                              <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed line-clamp-3">
                                 {String(entry.kegiatan || '—')}
                               </p>
                             </td>
-                            <td className="py-3 px-4 text-[13px] text-slate-500 whitespace-nowrap">
+                            <td className="py-3 px-4 text-[13px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
                               <div className="flex flex-col gap-1">
                                 <span>Mulai: {String(entry.tanggal_mulai || '-')}</span>
                                 <span>Selesai: {String(entry.tanggal_selesai || '-')}</span>
                               </div>
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                                 {Number(entry.progres || 0).toFixed(0)}%
                               </span>
                             </td>
                             <td className="py-3 px-4">
-                              <p className="text-[13px] text-slate-500 line-clamp-2">
-                                {String(entry.data_dukung || '—')}
-                              </p>
+                              {entry.data_dukung && String(entry.data_dukung).startsWith('http') ? (
+                                <a href={String(entry.data_dukung)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-blue-600 dark:text-blue-400 hover:underline">
+                                  <LinkIcon size={14} />
+                                  <span>Lihat Bukti</span>
+                                </a>
+                              ) : (
+                                <p className="text-[13px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                                  {String(entry.data_dukung || '—')}
+                                </p>
+                              )}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                     {parseResult.entries.length > 10 && (
-                      <div className="py-3 px-4 text-center text-[13px] text-slate-500 bg-slate-50 border-t border-slate-200">
-                        Menampilkan 10 dari <span className="font-semibold text-slate-700">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
+                      <div className="py-3 px-4 text-center text-[13px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
+                        Menampilkan 10 dari <span className="font-semibold text-slate-700 dark:text-slate-200">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
                       </div>
                     )}
                   </div>

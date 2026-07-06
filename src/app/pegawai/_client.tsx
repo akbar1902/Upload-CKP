@@ -296,24 +296,24 @@ export default function PegawaiDashboard() {
         {/* ── Alerts ────────────────────────────────── */}
         {!isLoading && !currentMonthUpload && (
           <div
-            className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden animate-fade-in group"
+            className="flex items-start gap-4 p-5 rounded-2xl border border-amber-200/80 dark:border-amber-500/30 bg-gradient-to-r from-amber-50 to-white dark:from-amber-950/40 dark:to-slate-900 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden animate-fade-in group"
             role="alert"
           >
-            {/* Left accent border */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+            {/* Elegant glass highlight line */}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-amber-400 to-amber-600 dark:from-amber-500 dark:to-amber-700" />
             
             <div className="flex-shrink-0 mt-0.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
-                <AlertTriangle size={16} />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100/80 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-200/50 dark:border-amber-500/20 shadow-inner">
+                <AlertTriangle size={18} strokeWidth={2.5} />
               </div>
             </div>
             
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <div className="flex-1 min-w-0 py-0.5">
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                 Tindakan Diperlukan: CKP {getBulanName(currentMonth)} {currentYear}
               </h3>
-              <p className="text-[13px] mt-1 text-slate-500 dark:text-slate-400 leading-relaxed">
-                Anda belum mengunggah Capaian Kinerja Pegawai untuk periode ini. Mohon lengkapi pelaporan kinerja Anda sebelum batas akhir pengisian bulan ini.
+              <p className="text-[13.5px] mt-1 text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
+                Capaian Kinerja Pegawai periode ini belum tercatat dalam sistem. Demi kelancaran evaluasi, mohon lengkapi pelaporan kinerja Anda sebelum batas waktu yang ditentukan.
               </p>
             </div>
           </div>
@@ -321,24 +321,24 @@ export default function PegawaiDashboard() {
 
         {!isLoading && stats.rejected > 0 && (
           <div
-            className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden animate-fade-in group"
+            className="flex items-start gap-4 p-5 rounded-2xl border border-rose-200/80 dark:border-rose-500/30 bg-gradient-to-r from-rose-50 to-white dark:from-rose-950/40 dark:to-slate-900 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden animate-fade-in group"
             role="alert"
           >
-            {/* Left accent border */}
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+            {/* Elegant glass highlight line */}
+            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-rose-400 to-rose-600 dark:from-rose-500 dark:to-rose-700" />
             
             <div className="flex-shrink-0 mt-0.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
-                <XCircle size={16} />
+              <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-rose-100/80 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-200/50 dark:border-rose-500/20 shadow-inner">
+                <XCircle size={18} strokeWidth={2.5} />
               </div>
             </div>
             
-            <div className="flex-1 min-w-0">
-              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <div className="flex-1 min-w-0 py-0.5">
+              <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight">
                 {stats.rejected} CKP Ditolak atau Memerlukan Revisi
               </h3>
-              <p className="text-[13px] mt-1 text-slate-500 dark:text-slate-400 leading-relaxed">
-                Terdapat pelaporan kinerja yang dikembalikan oleh penilai. Silakan periksa detailnya pada riwayat upload dan lakukan perbaikan.
+              <p className="text-[13.5px] mt-1 text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
+                Terdapat pelaporan kinerja yang dikembalikan oleh pimpinan. Silakan periksa umpan balik pada riwayat *upload* dan segera lakukan perbaikan yang diperlukan.
               </p>
             </div>
           </div>
