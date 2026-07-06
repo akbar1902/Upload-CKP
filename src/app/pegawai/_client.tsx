@@ -296,42 +296,50 @@ export default function PegawaiDashboard() {
         {/* ── Alerts ────────────────────────────────── */}
         {!isLoading && !currentMonthUpload && (
           <div
-            className="flex items-center justify-between gap-3 p-4 rounded-xl border border-amber-200/60 bg-amber-50/50 dark:bg-amber-900/20 dark:border-amber-700/30 animate-fade-in"
+            className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden animate-fade-in group"
             role="alert"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
-                <AlertTriangle size={18} />
+            {/* Left accent border */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500" />
+            
+            <div className="flex-shrink-0 mt-0.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                <AlertTriangle size={16} />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
-                  CKP {getBulanName(currentMonth)} {currentYear} belum diupload
-                </p>
-                <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400/80">
-                  Silakan lengkapi target kinerja bulan ini.
-                </p>
-              </div>
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                Tindakan Diperlukan: CKP {getBulanName(currentMonth)} {currentYear}
+              </h3>
+              <p className="text-[13px] mt-1 text-slate-500 dark:text-slate-400 leading-relaxed">
+                Anda belum mengunggah Capaian Kinerja Pegawai untuk periode ini. Mohon lengkapi pelaporan kinerja Anda sebelum batas akhir pengisian bulan ini.
+              </p>
             </div>
           </div>
         )}
 
         {!isLoading && stats.rejected > 0 && (
           <div
-            className="flex items-center justify-between gap-3 p-4 rounded-xl border border-red-200/60 bg-red-50/50 dark:bg-red-900/20 dark:border-red-700/30 animate-fade-in"
+            className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm relative overflow-hidden animate-fade-in group"
             role="alert"
           >
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-red-100/80 dark:bg-red-900/40 text-red-600 dark:text-red-400">
-                <XCircle size={18} />
+            {/* Left accent border */}
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500" />
+            
+            <div className="flex-shrink-0 mt-0.5">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400">
+                <XCircle size={16} />
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-red-900 dark:text-red-300">
-                  {stats.rejected} CKP memerlukan tindakan
-                </p>
-                <p className="text-xs mt-0.5 text-red-700 dark:text-red-400/80">
-                  Ada CKP yang ditolak atau perlu revisi. Silakan cek detailnya.
-                </p>
-              </div>
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                {stats.rejected} CKP Ditolak atau Memerlukan Revisi
+              </h3>
+              <p className="text-[13px] mt-1 text-slate-500 dark:text-slate-400 leading-relaxed">
+                Terdapat pelaporan kinerja yang dikembalikan oleh penilai. Silakan periksa detailnya pada riwayat upload dan lakukan perbaikan.
+              </p>
             </div>
           </div>
         )}

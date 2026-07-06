@@ -460,6 +460,10 @@ input, textarea, select {
   -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(226,232,240,0.8);
 }
+.dark .header-glass {
+  background: rgba(2, 6, 23, 0.92); /* slate-950 */
+  border-bottom: 1px solid var(--border);
+}
 
 /* ─── Skeleton shimmer ───────────────────────────────────── */
 .skeleton {

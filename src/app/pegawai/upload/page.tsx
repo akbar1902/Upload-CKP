@@ -510,32 +510,59 @@ export default function UploadPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {parseResult.success && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-500 font-medium">
-                        <tr>
-                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Rencana Kinerja</th>
-                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Kegiatan</th>
-                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Progres (%)</th>
+              {parseResult.success && parseResult.entries.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mt-4 bg-white">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200">
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-16">No</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[30%]">Kegiatan</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Tanggal</th>
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-24">Progres</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Bukti Dukung</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {parseResult.entries.slice(0, 5).map((entry, idx) => (
-                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                            <td className="px-4 py-3 max-w-[200px] truncate" title={String(entry.rencana_kinerja || '')}>{entry.rencana_kinerja || '-'}</td>
-                            <td className="px-4 py-3 max-w-[250px] truncate" title={String(entry.kegiatan || '')}>{entry.kegiatan || '-'}</td>
-                            <td className="px-4 py-3"><span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">{entry.progres || '0'}%</span></td>
+                        {parseResult.entries.slice(0, 10).map((entry, i) => (
+                          <tr key={i} className="bg-white hover:bg-slate-50/50 transition-colors">
+                            <td className="py-3 px-4 text-center text-slate-500 font-medium">{entry.row_number}</td>
+                            <td className="py-3 px-4">
+                              <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                                {String(entry.rencana_kinerja || '—')}
+                              </p>
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
+                                {String(entry.kegiatan || '—')}
+                              </p>
+                            </td>
+                            <td className="py-3 px-4 text-[13px] text-slate-500 whitespace-nowrap">
+                              <div className="flex flex-col gap-1">
+                                <span>Mulai: {String(entry.tanggal_mulai || '-')}</span>
+                                <span>Selesai: {String(entry.tanggal_selesai || '-')}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
+                                {Number(entry.progres || 0).toFixed(0)}%
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <p className="text-[13px] text-slate-500 line-clamp-2">
+                                {String(entry.data_dukung || '—')}
+                              </p>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    {parseResult.entries.length > 10 && (
+                      <div className="py-3 px-4 text-center text-[13px] text-slate-500 bg-slate-50 border-t border-slate-200">
+                        Menampilkan 10 dari <span className="font-semibold text-slate-700">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
+                      </div>
+                    )}
                   </div>
-                  <div className="p-3 bg-slate-50 border-t border-slate-200 text-xs text-center text-slate-500">
-                    Menampilkan {Math.min(5, parseResult.entries.length)} baris pertama dari total {parseResult.entries.length} baris data yang siap diupload.
-                  </div>
-                </div>
               )}
               {parseResult.success && (
                 <div className="flex justify-end pt-2">
