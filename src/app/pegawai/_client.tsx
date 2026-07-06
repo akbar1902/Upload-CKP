@@ -11,7 +11,7 @@ import type { CKPUpload } from '@/types/database';
 import {
   FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
-  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2
+  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2, Info
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
