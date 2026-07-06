@@ -520,3 +520,23 @@ input, textarea, select {
   background: #64748b;
   border-radius: 0 2px 2px 0;
 }
+
+/* ─── Global Tailwind Overrides for Dark Mode ────── */
+.dark .bg-white {
+  background-color: var(--card-bg) !important;
+}
+.dark .bg-slate-50, .dark .bg-slate-100 {
+  background-color: var(--bg-base) !important;
+}
+.dark .text-slate-900, .dark .text-slate-800 {
+  color: var(--text-primary) !important;
+}
+.dark .text-slate-600, .dark .text-slate-500, .dark .text-slate-400 {
+  color: var(--text-secondary) !important;
+}
+.dark .border-slate-100, .dark .border-slate-200 {
+  border-color: var(--border) !important;
+}
+.dark .shadow-sm {
+  box-shadow: var(--shadow-card) !important;
+}

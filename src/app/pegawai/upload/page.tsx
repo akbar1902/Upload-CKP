@@ -512,9 +512,9 @@ export default function UploadPage() {
             <CardContent className="space-y-4">
               {parseResult.success && (
                 <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <div className="overflow-x-auto max-h-[500px]">
+                  <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50 text-slate-500 font-medium sticky top-0 shadow-sm z-10">
+                      <thead className="bg-slate-50 text-slate-500 font-medium">
                         <tr>
                           <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Rencana Kinerja</th>
                           <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Kegiatan</th>
@@ -522,7 +522,7 @@ export default function UploadPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-100">
-                        {parseResult.entries.map((entry, idx) => (
+                        {parseResult.entries.slice(0, 5).map((entry, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                             <td className="px-4 py-3 max-w-[200px] truncate" title={String(entry.rencana_kinerja || '')}>{entry.rencana_kinerja || '-'}</td>
                             <td className="px-4 py-3 max-w-[250px] truncate" title={String(entry.kegiatan || '')}>{entry.kegiatan || '-'}</td>
@@ -531,6 +531,9 @@ export default function UploadPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                  <div className="p-3 bg-slate-50 border-t border-slate-200 text-xs text-center text-slate-500">
+                    Menampilkan {Math.min(5, parseResult.entries.length)} baris pertama dari total {parseResult.entries.length} baris data yang siap diupload.
                   </div>
                 </div>
               )}

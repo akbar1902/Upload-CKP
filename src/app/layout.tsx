@@ -38,8 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body className="font-sans antialiased bg-slate-50 text-slate-900">
+    <html lang="id" suppressHydrationWarning>
+      <body className="font-sans antialiased">
         <NextTopLoader
           color="#3B82F6"
           initialPosition={0.08}
