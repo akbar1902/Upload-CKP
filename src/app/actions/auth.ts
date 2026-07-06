@@ -22,12 +22,12 @@ export async function resetPasswordDirectAction(email: string, newPassword: stri
     const { data: users, error: dbError } = await supabaseAdmin
       .from("users")
       .select("id")
-      .eq("email", email)
+      .ilike("email", email.trim())
       .limit(1);
 
     if (dbError) {
       console.error("DB Error:", dbError);
-      return { success: false, error: "Terjadi kesalahan saat mencari email." };
+      return { success: false, error: "Terjadi kesalahan database (mungkin Service Role Key tidak valid)." };
     }
 
     if (!users || users.length === 0) {
