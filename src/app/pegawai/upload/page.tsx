@@ -25,6 +25,9 @@ import {
   Send,
   Info,
 } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function UploadPage() {
   const { user, loading: authLoading } = useAuth();
@@ -42,6 +45,13 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
+
+  // States for Team Assignment Prompt
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
+  const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
+  const [masterRKs, setMasterRKs] = useState<any[]>([]);
+  const [uniqueTeams, setUniqueTeams] = useState<{tim_kerja: string, ketua_tim_id: string}[]>([]);
 
   const bulanOptions = BULAN_NAMES.map((name, index) => ({
     value: String(index + 1),
@@ -77,22 +87,104 @@ export default function UploadPage() {
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
 
-  const handleFileSelected = async (selectedFile: File) => {
-    setFile(selectedFile);
-    setParsing(true);
-    setParseResult(null);
+  React.useEffect(() => {
+    const fetchMasterRKs = async () => {
+      const { data } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
+      if (data) {
+        setMasterRKs(data);
+        
+        // Extract unique valid teams
+        const teamsMap = new Map<string, string>();
+        data.forEach((rk: any) => {
+          if (rk.tim_kerja) {
+            teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || '');
+          }
+        });
+        const teams = Array.from(teamsMap.entries()).map(([tim_kerja, ketua_tim_id]) => ({ tim_kerja, ketua_tim_id }));
+        setUniqueTeams(teams);
+      }
+    };
+    fetchMasterRKs();
+  }, [supabase]);
 
-    try {
-      const result = await parseExcelFile(selectedFile);
-      setParseResult(result);
-    } catch {
-      toast.error('Gagal membaca file Excel');
-    } finally {
-      setParsing(false);
-    }
+  const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  
+  const getSimilarity = (s1: string, s2: string) => {
+    if (!s1 || !s2) return 0;
+    if (s1 === s2) return 1;
+    if (s1.length < 2 || s2.length < 2) return 0;
+    let bg1 = new Set();
+    for(let i=0; i<s1.length-1; i++) bg1.add(s1.substring(i, i+2));
+    let bg2 = new Set();
+    for(let i=0; i<s2.length-1; i++) bg2.add(s2.substring(i, i+2));
+    let intersection = 0;
+    for(let item of bg1) if (bg2.has(item)) intersection++;
+    return (2.0 * intersection) / (bg1.size + bg2.size);
   };
 
-  const handleSubmit = async () => {
+  const fuzzyMatchRK = (input: string, masterNames: string[]) => {
+    if (!input) return input;
+    const normInput = normalize(input);
+    if (!normInput) return input;
+    
+    let bestMatch = '';
+    let bestScore = 0;
+    
+    for (const master of masterNames) {
+      const normMaster = normalize(master);
+      if (normMaster === normInput) return master; // Exact normalized match
+      
+      const score = getSimilarity(normInput, normMaster);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = master;
+      }
+    }
+    
+    // If the best match is highly similar (> 80%), use it
+    if (bestScore > 0.8) {
+       return bestMatch;
+    }
+
+    return String(input).trim().replace(/\s+/g, ' '); // Fallback to basic space normalization
+  };
+
+  const handleFileSelected = (selectedFile: File) => {
+    setFile(selectedFile);
+  };
+
+  React.useEffect(() => {
+    if (!file) return;
+
+    let isMounted = true;
+    const parse = async () => {
+      setParsing(true);
+      setParseResult(null);
+
+      try {
+        const result = await parseExcelFile(file, bulan, tahun);
+        if (isMounted) {
+          setParseResult(result);
+        }
+      } catch {
+        if (isMounted) {
+          toast.error('Gagal membaca file Excel');
+        }
+      } finally {
+        if (isMounted) {
+          setParsing(false);
+        }
+      }
+    };
+
+    parse();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [file, bulan, tahun]);
+
+  const handlePreSubmit = async () => {
     if (authLoading) {
       toast.info('Sedang memuat data pengguna, mohon tunggu...');
       return;
@@ -116,7 +208,39 @@ export default function UploadPage() {
       return;
     }
 
+    const masterNames = Array.from(new Set(masterRKs.map(r => String(r.rencana_kinerja))));
+    const newUnmatched = new Set<string>();
+
+    parseResult.entries.forEach(entry => {
+      const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+      const matchedRK = fuzzyMatchRK(rawRK, masterNames);
+      if (matchedRK && matchedRK.trim() !== '' && !masterNames.includes(matchedRK)) {
+        newUnmatched.add(matchedRK);
+      }
+    });
+
+    if (newUnmatched.size > 0) {
+      setUnmatchedRKs(Array.from(newUnmatched));
+      
+      const initialMap: Record<string, { tim_kerja: string, ketua_tim_id: string }> = {};
+      Array.from(newUnmatched).forEach(rk => {
+        initialMap[rk] = { tim_kerja: '', ketua_tim_id: '' };
+      });
+      setRkTeamMapping(initialMap);
+      
+      setShowTeamModal(true);
+    } else {
+      processUpload();
+    }
+  };
+
+  const processUpload = async () => {
+    if (!user || !file || !parseResult || !parseResult.success) {
+      return;
+    }
+
     setUploading(true);
+    setShowTeamModal(false);
     const toastId = toast.loading('Memulai persiapan upload...');
 
     try {
@@ -209,60 +333,16 @@ export default function UploadPage() {
       if (uploadError) throw new Error(`Gagal menyimpan data upload: ${uploadError.message}`);
       if (!uploadData) throw new Error('Upload berhasil tapi data tidak diterima dari server');
 
-      // --- START FUZZY MATCH & AUTO-ASSIGN RK ---
-      const { data: allRKs } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja');
-      const masterRKs: string[] = Array.from(new Set(allRKs?.map((r: any) => String(r.rencana_kinerja)) || []));
-      const masterDict = allRKs || [];      
-      const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-      
-      // Calculate Sørensen–Dice coefficient for typo tolerance
-      const getSimilarity = (s1: string, s2: string) => {
-        if (!s1 || !s2) return 0;
-        if (s1 === s2) return 1;
-        if (s1.length < 2 || s2.length < 2) return 0;
-        let bg1 = new Set();
-        for(let i=0; i<s1.length-1; i++) bg1.add(s1.substring(i, i+2));
-        let bg2 = new Set();
-        for(let i=0; i<s2.length-1; i++) bg2.add(s2.substring(i, i+2));
-        let intersection = 0;
-        for(let item of bg1) if (bg2.has(item)) intersection++;
-        return (2.0 * intersection) / (bg1.size + bg2.size);
-      };
-
-      const fuzzyMatchRK = (input: string) => {
-        if (!input) return input;
-        const normInput = normalize(input);
-        if (!normInput) return input;
-        
-        let bestMatch = '';
-        let bestScore = 0;
-        
-        for (const master of masterRKs) {
-          const normMaster = normalize(master);
-          if (normMaster === normInput) return master; // Exact normalized match
-          
-          const score = getSimilarity(normInput, normMaster);
-          if (score > bestScore) {
-            bestScore = score;
-            bestMatch = master;
-          }
-        }
-        
-        // If the best match is highly similar (> 80%), use it
-        if (bestScore > 0.8) {
-           return bestMatch;
-        }
-
-        return String(input).trim().replace(/\s+/g, ' '); // Fallback to basic space normalization
-      };
+      // We use masterRKs from state
+      const masterDict = masterRKs;      
+      const masterNames = Array.from(new Set(masterDict.map(r => String(r.rencana_kinerja))));
       
       const distinctMatchedRKs = new Set<string>();
-      // --- END FUZZY MATCH ---
 
       toast.loading(`Langkah 4/4: Menyimpan ${parseResult.entries.length} entri kegiatan...`, { id: toastId });
       const entries = parseResult.entries.map((entry) => {
         const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
-        const matchedRK = fuzzyMatchRK(rawRK);
+        const matchedRK = fuzzyMatchRK(rawRK, masterNames);
         
         // Simpan RK yang valid untuk di-assign otomatis ke akun pegawai
         if (matchedRK && matchedRK.trim() !== '') {
@@ -300,22 +380,26 @@ export default function UploadPage() {
       // Auto-assign RK ke pegawai
       if (distinctMatchedRKs.size > 0) {
         // 1. Pisahkan RK yang sudah ada di Kamus Global vs yang benar-benar baru/unmatched
-        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterRKs.includes(rk));
-        const unmatchedRKs = Array.from(distinctMatchedRKs).filter(rk => !masterRKs.includes(rk));
+        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.includes(rk));
+        const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.includes(rk));
         
-        // 2. Auto-register RK yang belum ada di Kamus Global agar pegawai tidak kehilangan list RK mereka
-        if (unmatchedRKs.length > 0) {
-          const newRKsToMaster = unmatchedRKs.map(rk => ({
-            rencana_kinerja: rk,
-            created_by: user.id
-          }));
+        // 2. Auto-register RK yang belum ada di Kamus Global
+        if (unmatched.length > 0) {
+          const newRKsToMaster = unmatched.map(rk => {
+            const mapping = rkTeamMapping[rk];
+            return {
+              rencana_kinerja: rk,
+              created_by: user.id,
+              tim_kerja: mapping?.tim_kerja || null,
+              ketua_tim_id: mapping?.ketua_tim_id || null,
+            };
+          });
           const { data: insertedRKs, error: insErr } = await supabase.from('rk_ketua_tim_mapping').insert(newRKsToMaster).select('id, rencana_kinerja');
           if (insErr) {
             console.warn("[Upload] Gagal auto-register RK baru:", insErr);
           } else if (insertedRKs) {
-            // Tambahkan ke valid jika insert master sukses (untuk assigned ke user_rk_assignments)
             masterDict.push(...insertedRKs);
-            validRKsToAssign.push(...unmatchedRKs);
+            validRKsToAssign.push(...unmatched);
           }
         }
 
@@ -579,7 +663,7 @@ export default function UploadPage() {
               {parseResult.success && (
                 <div className="flex justify-end pt-2">
                   <Button
-                    onClick={handleSubmit}
+                    onClick={handlePreSubmit}
                     loading={uploading}
                     disabled={existingUpload?.status === 'approved'}
                     size="lg"
@@ -594,6 +678,81 @@ export default function UploadPage() {
           </Card>
         )}
       </div>
+
+      <Dialog open={showTeamModal} onClose={() => setShowTeamModal(false)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
+          <DialogHeader className="px-6 py-5 bg-white border-b border-slate-100">
+            <DialogTitle className="flex items-center gap-2.5 text-xl">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
+                <AlertTriangle className="h-5 w-5 text-amber-600" />
+              </div>
+              Terdapat Rencana Kinerja Baru
+            </DialogTitle>
+            <DialogDescription className="text-slate-500 pt-2 text-sm leading-relaxed">
+              Kami mendeteksi beberapa Rencana Kinerja dari file Anda yang belum terdaftar di Kamus Global.
+              Silakan pilih <b>Tim Kerja</b> yang sesuai agar RK ini dapat dinilai oleh Ketua Tim yang tepat.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+            {unmatchedRKs.map((rk, idx) => (
+              <div key={idx} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm transition-all hover:border-blue-200 hover:shadow-md space-y-4">
+                <div className="flex gap-3 items-start">
+                  <div className="mt-1">
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">RK Baru</Badge>
+                  </div>
+                  <p className="text-[14px] font-medium text-slate-800 leading-snug flex-1">
+                    {rk}
+                  </p>
+                </div>
+                
+                <div className="pt-2 border-t border-slate-100">
+                  <label className="block text-[13px] font-semibold text-slate-700 mb-2">Pilih Tim Kerja untuk RK ini</label>
+                  <Select
+                    className="w-full shadow-sm border-slate-200"
+                    value={rkTeamMapping[rk]?.tim_kerja || ''}
+                    onChange={(e) => {
+                      const selectedTim = e.target.value;
+                      const matchTeam = uniqueTeams.find(t => t.tim_kerja === selectedTim);
+                      setRkTeamMapping(prev => ({
+                        ...prev,
+                        [rk]: {
+                          tim_kerja: selectedTim,
+                          ketua_tim_id: matchTeam ? matchTeam.ketua_tim_id : '',
+                        }
+                      }));
+                    }}
+                    options={[
+                      { value: '', label: 'Pilih tim kerja...' },
+                      ...uniqueTeams.map(t => ({ value: t.tim_kerja, label: t.tim_kerja }))
+                    ]}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <DialogFooter className="px-6 py-4 bg-white border-t border-slate-100 mt-auto">
+            <Button type="button" variant="outline" onClick={() => setShowTeamModal(false)} className="rounded-xl px-6">
+              Batal
+            </Button>
+            <Button
+              type="button"
+              className="rounded-xl px-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20"
+              onClick={() => {
+                const hasEmpty = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja);
+                if (hasEmpty) {
+                  toast.error('Harap pilih tim kerja untuk semua Rencana Kinerja baru.');
+                  return;
+                }
+                processUpload();
+              }}
+            >
+              Lanjutkan Upload
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

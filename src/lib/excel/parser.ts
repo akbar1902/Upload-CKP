@@ -17,7 +17,7 @@ export interface ParseResult {
  * Parse an Excel file and extract CKP entry data.
  * Works client-side in the browser.
  */
-export async function parseExcelFile(file: File): Promise<ParseResult> {
+export async function parseExcelFile(file: File, bulan?: number, tahun?: number): Promise<ParseResult> {
   const result: ParseResult = {
     success: false,
     entries: [],
@@ -140,6 +140,39 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
         }
       }
 
+      // Filter based on date range if bulan and tahun are provided
+      if (bulan && tahun) {
+        const { start, end } = getPeriodRange(bulan, tahun);
+        const mStr = entry.tanggal_mulai as string | undefined;
+        const sStr = entry.tanggal_selesai as string | undefined;
+
+        if (mStr || sStr) {
+          const m = mStr ? new Date(`${mStr}T12:00:00Z`) : null;
+          const s = sStr ? new Date(`${sStr}T12:00:00Z`) : null;
+          
+          // Helper to strip time for proper start of day / end of day comparison
+          const mTime = m ? m.getTime() : null;
+          const sTime = s ? s.getTime() : null;
+          const startTime = start.getTime();
+          const endTime = end.getTime();
+
+          let keep = true;
+          if (mTime && !sTime) {
+            keep = mTime >= startTime && mTime <= endTime;
+          } else if (!mTime && sTime) {
+            keep = sTime >= startTime && sTime <= endTime;
+          } else if (mTime && sTime) {
+            // Overlaps if it starts before period ends AND ends after period starts
+            keep = mTime <= endTime && sTime >= startTime;
+          }
+
+          if (!keep) {
+            // Skip this row as it falls outside the requested period
+            continue;
+          }
+        }
+      }
+
       result.entries.push(entry);
     }
 
@@ -163,6 +196,35 @@ export async function parseExcelFile(file: File): Promise<ParseResult> {
   }
 
   return result;
+}
+
+/**
+ * Returns the period date range based on the rules:
+ * - Bulan Pertama (Jan, Apr, Jul, Okt): Tgl 1 - 25 bulan tersebut
+ * - Bulan Kedua (Feb, Mei, Agu, Nov): Tgl 26 bulan lalu - 25 bulan tersebut
+ * - Bulan Ketiga (Mar, Jun, Sep, Des): Tgl 26 bulan lalu - Akhir bulan tersebut
+ */
+function getPeriodRange(bulan: number, tahun: number): { start: Date, end: Date } {
+  let start: Date;
+  let end: Date;
+
+  if ([1, 4, 7, 10].includes(bulan)) {
+    // Bulan Pertama Triwulan: Tgl 1 s.d 25
+    start = new Date(Date.UTC(tahun, bulan - 1, 1));
+    end = new Date(Date.UTC(tahun, bulan - 1, 25, 23, 59, 59, 999));
+  } else if ([2, 5, 8, 11].includes(bulan)) {
+    // Bulan Kedua Triwulan: Tgl 26 bulan lalu s.d 25 bulan ini
+    start = new Date(Date.UTC(tahun, bulan - 2, 26));
+    end = new Date(Date.UTC(tahun, bulan - 1, 25, 23, 59, 59, 999));
+  } else {
+    // Bulan Ketiga Triwulan: Tgl 26 bulan lalu s.d akhir bulan ini
+    start = new Date(Date.UTC(tahun, bulan - 2, 26));
+    // 0 di Date constructor akan menunjuk ke hari terakhir bulan sebelumnya, 
+    // jadi karena kita ingin hari terakhir dari `bulan`, index-nya adalah `bulan`
+    end = new Date(Date.UTC(tahun, bulan, 0, 23, 59, 59, 999));
+  }
+
+  return { start, end };
 }
 
 /**

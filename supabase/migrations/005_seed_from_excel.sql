@@ -16,7 +16,6 @@ UPDATE public.users SET role = 'ketua_tim' WHERE full_name ILIKE '%Rojani SST,%'
 UPDATE public.users SET role = 'ketua_tim' WHERE full_name ILIKE '%Marta Puspitasari%';
 UPDATE public.users SET role = 'ketua_tim' WHERE full_name ILIKE '%Seraman S.A.P.%';
 UPDATE public.users SET role = 'ketua_tim' WHERE full_name ILIKE '%Irma Setiyani%';
-UPDATE public.users SET role = 'ketua_tim' WHERE full_name ILIKE '%Baiq Kurniawati%';
 
 -- 2. Clear existing mappings to avoid duplicates
 TRUNCATE TABLE public.rk_ketua_tim_mapping;
