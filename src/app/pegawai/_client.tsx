@@ -296,44 +296,43 @@ export default function PegawaiDashboard() {
         {/* ── Alerts ────────────────────────────────── */}
         {!isLoading && !currentMonthUpload && (
           <div
-            className="flex items-start gap-3 p-4 rounded-2xl animate-fade-in"
-            style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}
+            className="flex items-center justify-between gap-3 p-4 rounded-xl border border-amber-200/60 bg-amber-50/50 dark:bg-amber-900/20 dark:border-amber-700/30 animate-fade-in"
             role="alert"
           >
-            <AlertTriangle size={16} style={{ color: '#D97706', marginTop: 2, flexShrink: 0 }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold" style={{ color: '#92400E' }}>
-                CKP {getBulanName(currentMonth)} {currentYear} belum diupload
-              </p>
-              <p className="text-[12px] mt-0.5" style={{ color: '#B45309' }}>
-                Silakan upload sebelum akhir bulan.
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-amber-100/80 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-300">
+                  CKP {getBulanName(currentMonth)} {currentYear} belum diupload
+                </p>
+                <p className="text-xs mt-0.5 text-amber-700 dark:text-amber-400/80">
+                  Silakan lengkapi target kinerja bulan ini.
+                </p>
+              </div>
             </div>
-            <Link href="/pegawai/upload" className="flex-shrink-0">
-              <button className="btn-primary text-[12px] py-1.5 px-3">Upload</button>
-            </Link>
           </div>
         )}
 
         {!isLoading && stats.rejected > 0 && (
           <div
-            className="flex items-start gap-3 p-4 rounded-2xl animate-fade-in"
-            style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
+            className="flex items-center justify-between gap-3 p-4 rounded-xl border border-red-200/60 bg-red-50/50 dark:bg-red-900/20 dark:border-red-700/30 animate-fade-in"
             role="alert"
           >
-            <XCircle size={16} style={{ color: '#DC2626', marginTop: 2, flexShrink: 0 }} />
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-semibold" style={{ color: '#991B1B' }}>
-                {stats.rejected} CKP memerlukan tindakan
-              </p>
-              <p className="text-[12px] mt-0.5" style={{ color: '#B91C1C' }}>
-                Ada CKP yang ditolak atau perlu revisi. Silakan upload ulang.
-              </p>
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-red-100/80 dark:bg-red-900/40 text-red-600 dark:text-red-400">
+                <XCircle size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-red-900 dark:text-red-300">
+                  {stats.rejected} CKP memerlukan tindakan
+                </p>
+                <p className="text-xs mt-0.5 text-red-700 dark:text-red-400/80">
+                  Ada CKP yang ditolak atau perlu revisi. Silakan cek detailnya.
+                </p>
+              </div>
             </div>
-            <Link href="/pegawai/upload" className="flex-shrink-0">
-              <button className="btn-primary text-[12px] py-1.5 px-3"
-                style={{ background: '#DC2626' }}>Upload Ulang</button>
-            </Link>
           </div>
         )}
 
