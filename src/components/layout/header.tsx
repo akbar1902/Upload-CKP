@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Bell, Download, ChevronRight } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
 
 // ── Breadcrumb configuration ───────────────────────────────
 interface BreadcrumbConfig {
@@ -205,8 +206,11 @@ export function Header({
             </button>
           )}
 
+          {/* Theme Toggle */}
+          <ThemeToggle />
+
           {/* Divider */}
-          <div className="hidden sm:block w-px h-6 bg-slate-200" aria-hidden="true" />
+          <div className="hidden sm:block w-px h-6 bg-slate-200 dark:bg-slate-700" aria-hidden="true" />
 
           {/* User info */}
           <div className="hidden sm:flex items-center gap-2.5">

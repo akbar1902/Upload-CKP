@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Edit, Trash2, CheckCircle2, Search,
   UserPlus, Briefcase, ListTodo, X, Users, ClipboardList
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -45,6 +47,11 @@ export function RencanaKinerjaClient({
   timKerjaList,
 }: RencanaKinerjaClientProps) {
   const isKetuaTim = ["ketua_tim", "pimpinan", "admin"].includes(currentUser?.role || "");
+
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const [activeTab, setActiveTab] = useState(isKetuaTim ? "managed" : "my_rk");
   const [rkModalOpen, setRkModalOpen] = useState(false);
@@ -249,8 +256,19 @@ export function RencanaKinerjaClient({
           </div>
         </div>
 
-        {/* ── Tab Navigation (filter-bar style) ── */}
-        <div className="filter-bar">
+        {!mounted ? (
+          <div className="space-y-4 mt-6">
+            <Skeleton className="h-10 w-full max-w-sm rounded-xl" />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1,2,3,4,5,6].map(i => (
+                <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ── Tab Navigation (filter-bar style) ── */}
+            <div className="filter-bar">
           {isKetuaTim && (
             <button
               onClick={() => setActiveTab("managed")}
@@ -306,10 +324,19 @@ export function RencanaKinerjaClient({
                 </p>
               </div>
             ) : (
-              <div className="space-y-2 card-list">
-                {filteredManagedRKs.map((rk, i) => (
-                  <div key={i} className="activity-card flex flex-col sm:flex-row sm:items-center gap-3 p-4">
-                    {/* Left: Info */}
+              <motion.div layout className="space-y-2 card-list">
+                <AnimatePresence>
+                  {filteredManagedRKs.map((rk, i) => (
+                    <motion.div 
+                      key={rk.id || i}
+                      layout
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="activity-card flex flex-col sm:flex-row sm:items-center gap-3 p-4 hover:-translate-y-1 hover:shadow-lg transition-all"
+                    >
+                      {/* Left: Info */}
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
                         <ClipboardList size={18} style={{ color: 'var(--primary)' }} />
@@ -348,9 +375,10 @@ export function RencanaKinerjaClient({
                         <Trash2 size={13} /> Hapus
                       </button>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+                </AnimatePresence>
+              </motion.div>
             )}
           </div>
         )}
@@ -413,14 +441,23 @@ export function RencanaKinerjaClient({
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 card-list">
-                {filteredMyAssignments.map((a, i) => {
-                  const rencana_kinerja = a.rk?.rencana_kinerja || "";
-                  const timKerja = a.rk?.tim_kerja || "Tim Tidak Diketahui";
+              <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 card-list">
+                <AnimatePresence>
+                  {filteredMyAssignments.map((a, i) => {
+                    const rencana_kinerja = a.rk?.rencana_kinerja || "";
+                    const timKerja = a.rk?.tim_kerja || "Tim Tidak Diketahui";
 
-                  return (
-                    <div key={i} className="activity-card flex flex-col p-4 relative group">
-                      {/* Info Section */}
+                    return (
+                      <motion.div 
+                        key={a.id || i} 
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        className="activity-card flex flex-col p-4 relative group hover:-translate-y-1 hover:shadow-xl transition-all"
+                      >
+                        {/* Info Section */}
                       <div className="flex items-start gap-3 flex-1">
                         <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F3E8FF' }}>
                           <ClipboardList size={18} style={{ color: '#7C3AED' }} />
@@ -458,12 +495,15 @@ export function RencanaKinerjaClient({
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
-              </div>
+                </AnimatePresence>
+              </motion.div>
             )}
           </div>
+        )}
+        </>
         )}
       </div>
 

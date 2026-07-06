@@ -16,15 +16,8 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
-import {
-  Upload,
-  FileSpreadsheet,
-  CheckCircle2,
-  AlertTriangle,
-  ArrowLeft,
-  Send,
-  Info,
-} from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -43,7 +36,8 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [parsing, setParsing] = useState(false);
+  const [uploadStep, setUploadStep] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
 
   // States for Team Assignment Prompt
@@ -52,6 +46,8 @@ export default function UploadPage() {
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
   const [masterRKs, setMasterRKs] = useState<any[]>([]);
   const [uniqueTeams, setUniqueTeams] = useState<{tim_kerja: string, ketua_tim_id: string}[]>([]);
+  const [ketuaTims, setKetuaTims] = useState<any[]>([]);
+  const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
 
   const bulanOptions = BULAN_NAMES.map((name, index) => ({
     value: String(index + 1),
@@ -92,8 +88,6 @@ export default function UploadPage() {
       const { data } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
       if (data) {
         setMasterRKs(data);
-        
-        // Extract unique valid teams
         const teamsMap = new Map<string, string>();
         data.forEach((rk: any) => {
           if (rk.tim_kerja) {
@@ -102,7 +96,11 @@ export default function UploadPage() {
         });
         const teams = Array.from(teamsMap.entries()).map(([tim_kerja, ketua_tim_id]) => ({ tim_kerja, ketua_tim_id }));
         setUniqueTeams(teams);
+        setTimKerjaList(Array.from(teamsMap.keys()));
       }
+
+      const { data: ketuas } = await supabase.from('profiles').select('id, full_name, unit_kerja');
+      if (ketuas) setKetuaTims(ketuas);
     };
     fetchMasterRKs();
   }, [supabase]);
@@ -132,7 +130,7 @@ export default function UploadPage() {
     
     for (const master of masterNames) {
       const normMaster = normalize(master);
-      if (normMaster === normInput) return master; // Exact normalized match
+      if (normMaster === normInput) return master;
       
       const score = getSimilarity(normInput, normMaster);
       if (score > bestScore) {
@@ -141,12 +139,11 @@ export default function UploadPage() {
       }
     }
     
-    // If the best match is highly similar (> 80%), use it
     if (bestScore > 0.8) {
        return bestMatch;
     }
 
-    return String(input).trim().replace(/\s+/g, ' '); // Fallback to basic space normalization
+    return String(input).trim().replace(/\s+/g, ' ');
   };
 
   const handleFileSelected = (selectedFile: File) => {
@@ -184,6 +181,8 @@ export default function UploadPage() {
     };
   }, [file, bulan, tahun]);
 
+  const [parsing, setParsing] = useState(false);
+
   const handlePreSubmit = async () => {
     if (authLoading) {
       toast.info('Sedang memuat data pengguna, mohon tunggu...');
@@ -196,13 +195,11 @@ export default function UploadPage() {
     }
     if (!file || !parseResult?.success) return;
 
-    // Blokir jika sudah approved
     if (existingUpload?.status === 'approved') {
       toast.error('CKP sudah disetujui. Tidak dapat mengupload ulang.');
       return;
     }
 
-    // Blokir jika ada yang masih submitted (sedang di-review)
     if (existingUpload?.status === 'submitted') {
       toast.error('CKP sedang dalam proses review. Tunggu hasil review sebelum upload ulang.');
       return;
@@ -240,8 +237,9 @@ export default function UploadPage() {
     }
 
     setUploading(true);
+    setUploadStep(0);
+    setUploadProgress(10);
     setShowTeamModal(false);
-    const toastId = toast.loading('Memulai persiapan upload...');
 
     try {
       let newVersion = 1;
@@ -256,32 +254,20 @@ export default function UploadPage() {
         newVersion = existingUpload.version + 1;
       }
 
-      toast.loading('Langkah 1/4: Mengupload file ke Storage...', { id: toastId });
+      setUploadStep(1);
+      setUploadProgress(30);
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${file.name}`;
       
-      // Use Promise.race to prevent infinite hanging
-      const storageUploadPromise = supabase.storage
+      const { error: storageError } = await supabase.storage
         .from('ckp-files')
         .upload(storagePath, file, { upsert: true });
-        
-      const storageRes = await Promise.race([
-        storageUploadPromise,
-        new Promise<{error: {message: string}}>((_, reject) => setTimeout(() => reject(new Error('Timeout upload file (15 detik)')), 15000))
-      ]);
-      const storageError = storageRes?.error;
 
-      if (storageError) {
-        console.warn('Storage upload warning:', storageError.message);
-      }
+      if (storageError) throw new Error(storageError.message);
 
       if (oldUploadId) {
-        toast.loading('Langkah 2/4: Menghapus entri lama...', { id: toastId });
-        await Promise.race([
-          supabase.from('ckp_entries').delete().eq('upload_id', oldUploadId),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout hapus entri lama')), 10000))
-        ]);
-        // Kita tidak mendelete ckp_uploads karena tidak ada RLS Delete untuk Pegawai,
-        // kita akan melakukan UPDATE pada record yang sudah ada.
+        setUploadStep(2);
+        setUploadProgress(50);
+        await supabase.from('ckp_entries').delete().eq('upload_id', oldUploadId);
       }
 
       const totalEntries = parseResult.entries.length;
@@ -289,10 +275,12 @@ export default function UploadPage() {
         ? parseResult.entries.reduce((s, e) => s + (Number(e.progres) || 0), 0) / totalEntries
         : 0;
 
-      toast.loading('Langkah 3/4: Menyimpan informasi CKP...', { id: toastId });
-      let uploadReqPromise;
+      setUploadStep(3);
+      setUploadProgress(70);
+      
+      let uploadData: any;
       if (oldUploadId) {
-        uploadReqPromise = supabase
+        const { data, error } = await supabase
           .from('ckp_uploads')
           .update({
             file_name: file.name,
@@ -300,13 +288,15 @@ export default function UploadPage() {
             status: 'submitted',
             total_entries: totalEntries,
             avg_progres: avgProgres,
-            catatan_pimpinan: null, // Reset catatan pimpinan saat upload ulang
+            catatan_pimpinan: null,
           })
           .eq('id', oldUploadId)
           .select()
           .single();
+        if (error) throw error;
+        uploadData = data;
       } else {
-        uploadReqPromise = supabase
+        const { data, error } = await supabase
           .from('ckp_uploads')
           .insert({
             user_id: user.id,
@@ -321,30 +311,21 @@ export default function UploadPage() {
           })
           .select()
           .single();
+        if (error) throw error;
+        uploadData = data;
       }
-        
-      const uploadRes = await Promise.race([
-        uploadReqPromise,
-        new Promise<{data: any, error: any}>((_, reject) => setTimeout(() => reject(new Error('Timeout menyimpan CKP (10 detik)')), 10000))
-      ]) as any;
 
-      const { data: uploadData, error: uploadError } = uploadRes;
-
-      if (uploadError) throw new Error(`Gagal menyimpan data upload: ${uploadError.message}`);
-      if (!uploadData) throw new Error('Upload berhasil tapi data tidak diterima dari server');
-
-      // We use masterRKs from state
-      const masterDict = masterRKs;      
+      const masterDict = [...masterRKs];
       const masterNames = Array.from(new Set(masterDict.map(r => String(r.rencana_kinerja))));
-      
       const distinctMatchedRKs = new Set<string>();
 
-      toast.loading(`Langkah 4/4: Menyimpan ${parseResult.entries.length} entri kegiatan...`, { id: toastId });
-      const entries = parseResult.entries.map((entry) => {
+      setUploadStep(4);
+      setUploadProgress(90);
+
+      const entriesToInsert = parseResult.entries.map((entry) => {
         const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
         const matchedRK = fuzzyMatchRK(rawRK, masterNames);
         
-        // Simpan RK yang valid untuk di-assign otomatis ke akun pegawai
         if (matchedRK && matchedRK.trim() !== '') {
           distinctMatchedRKs.add(matchedRK);
         }
@@ -365,25 +346,13 @@ export default function UploadPage() {
         }
       });
 
-      const entriesPromise = supabase.from('ckp_entries').insert(entries);
-      const entriesRes = await Promise.race([
-        entriesPromise,
-        new Promise<{error: any}>((_, reject) => setTimeout(() => reject(new Error('Timeout menyimpan entri CKP (15 detik)')), 15000))
-      ]) as any;
+      const { error: entriesErr } = await supabase.from('ckp_entries').insert(entriesToInsert);
+      if (entriesErr) throw entriesErr;
 
-      if (entriesRes.error) {
-        // Rollback: ubah status kembali menjadi draft karena kita tidak bisa mendelete
-        await supabase.from('ckp_uploads').update({ status: 'draft' }).eq('id', uploadData.id);
-        throw new Error(`Gagal menyimpan entri CKP: ${entriesRes.error.message}`);
-      }
-
-      // Auto-assign RK ke pegawai
       if (distinctMatchedRKs.size > 0) {
-        // 1. Pisahkan RK yang sudah ada di Kamus Global vs yang benar-benar baru/unmatched
         const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.includes(rk));
         const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.includes(rk));
         
-        // 2. Auto-register RK yang belum ada di Kamus Global
         if (unmatched.length > 0) {
           const newRKsToMaster = unmatched.map(rk => {
             const mapping = rkTeamMapping[rk];
@@ -395,19 +364,15 @@ export default function UploadPage() {
             };
           });
           const { data: insertedRKs, error: insErr } = await supabase.from('rk_ketua_tim_mapping').insert(newRKsToMaster).select('id, rencana_kinerja');
-          if (insErr) {
-            console.warn("[Upload] Gagal auto-register RK baru:", insErr);
-          } else if (insertedRKs) {
+          if (!insErr && insertedRKs) {
             masterDict.push(...insertedRKs);
             validRKsToAssign.push(...unmatched);
           }
         }
 
-        // 3. Insert assignment ke akun pegawai
         if (validRKsToAssign.length > 0) {
           const assignmentsToInsert = [];
           for (const rkStr of validRKsToAssign) {
-            // Cari rk_id yang sesuai (ambil yang pertama jika ada duplikat nama di tim berbeda)
             const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
             if (rkObj) {
               assignmentsToInsert.push({
@@ -428,17 +393,20 @@ export default function UploadPage() {
         action: oldUploadId ? 'replace_ckp' : 'upload_ckp',
         entity_type: 'ckp_uploads',
         entity_id: uploadData.id,
-        new_data: { bulan, tahun, version: newVersion, total_entries: entries.length },
+        new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
       });
 
-      toast.success(`CKP ${getBulanName(bulan)} ${tahun} berhasil diupload!`, { id: toastId });
-      queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
-      router.push(`/pegawai/ckp/${uploadData.id}`);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Terjadi kesalahan tidak diketahui';
-      console.error('[Upload] handleSubmit error:', error);
-      toast.error(`Gagal mengupload CKP: ${msg}`, { id: toastId, duration: 8000 });
-    } finally {
+      setUploadProgress(100);
+      toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
+      
+      setTimeout(() => {
+        setUploading(false);
+        router.push(`/pegawai/ckp/${uploadData.id}`);
+      }, 1000);
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      toast.error(error.message || 'Terjadi kesalahan saat upload data');
       setUploading(false);
     }
   };
@@ -447,13 +415,11 @@ export default function UploadPage() {
     <>
       <Header />
       <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
-        {/* Back */}
         <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors">
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </button>
 
-        {/* Title */}
         <div>
           <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
             <Upload className="h-6 w-6 text-blue-500" />
@@ -462,7 +428,6 @@ export default function UploadPage() {
           <p className="text-slate-500 mt-1">Upload file Excel CKP bulanan Anda</p>
         </div>
 
-        {/* Step 1: Select Period */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">1. Pilih Periode</CardTitle>
@@ -498,29 +463,15 @@ export default function UploadPage() {
               }`}>
                 {existingUpload.status === 'approved' ? (
                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
-                ) : existingUpload.status === 'submitted' ? (
-                  <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 ) : (
-                  <Info className="h-4 w-4 text-amber-500 mt-0.5" />
+                  <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 )}
                 <div className="text-sm">
                   {existingUpload.status === 'approved' && (
-                    <p className="text-red-700">
-                      CKP periode ini sudah <strong>disetujui</strong>. Tidak dapat mengupload ulang.
-                    </p>
+                    <p className="text-red-700">CKP periode ini sudah <strong>disetujui</strong>. Tidak dapat mengupload ulang.</p>
                   )}
                   {existingUpload.status === 'submitted' && (
-                    <p className="text-blue-700">
-                      CKP periode ini sedang <strong>dalam review</strong> (v{existingUpload.version}). 
-                      Tunggu hasil review sebelum upload ulang.
-                    </p>
-                  )}
-                  {(existingUpload.status === 'draft' || existingUpload.status === 'revision_required') && (
-                    <p className="text-amber-700">
-                      Sudah ada upload v{existingUpload.version} dengan status{' '}
-                      <strong>{existingUpload.status === 'revision_required' ? 'perlu revisi' : 'draft'}</strong>.
-                      Upload baru akan menggantikan draft ini.
-                    </p>
+                    <p className="text-blue-700">CKP periode ini sedang <strong>dalam review</strong> (v{existingUpload.version}).</p>
                   )}
                 </div>
               </div>
@@ -528,7 +479,6 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        {/* Step 2: Upload File */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">2. Upload File Excel</CardTitle>
@@ -542,7 +492,6 @@ export default function UploadPage() {
           </CardContent>
         </Card>
 
-        {/* Step 3: Preview */}
         {parsing && (
           <Card>
             <CardContent className="py-12 text-center">
@@ -559,117 +508,36 @@ export default function UploadPage() {
                 <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
                 3. Preview Data
               </CardTitle>
-              <CardDescription>
-                {parseResult.success
-                  ? `${parseResult.entries.length} baris data berhasil dibaca`
-                  : 'Terdapat masalah dengan file'}
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Errors */}
-              {parseResult.errors.length > 0 && (
-                <div className="space-y-2">
-                  {parseResult.errors.map((err, i) => (
-                    <div key={i} className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-                      <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-sm text-red-700">{err}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Warnings */}
-              {parseResult.warnings.length > 0 && (
-                <div className="space-y-2">
-                  {parseResult.warnings.slice(0, 5).map((warn, i) => (
-                    <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-200">
-                      <Info className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
-                      <p className="text-xs text-amber-700">{warn}</p>
-                    </div>
-                  ))}
-                  {parseResult.warnings.length > 5 && (
-                    <p className="text-xs text-amber-500">
-                      +{parseResult.warnings.length - 5} peringatan lainnya
-                    </p>
-                  )}
-                </div>
-              )}
-
-              {/* Mapping info */}
-              <div className="flex flex-wrap gap-2">
-                <span className="text-xs text-slate-500">Kolom terbaca:</span>
-                {parseResult.mappedFields.map(f => (
-                  <Badge key={f} variant="secondary" className="text-xs">{f}</Badge>
-                ))}
-              </div>
-
-              {/* Data preview table */}
-              {parseResult.success && parseResult.entries.length > 0 && (
-                <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mt-4">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
-                        <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-16">No</th>
-                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
-                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-[30%]">Kegiatan</th>
-                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Tanggal</th>
-                        <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap w-24">Progres</th>
-                        <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 whitespace-nowrap">Bukti Dukung</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {parseResult.entries.slice(0, 10).map((entry, i) => (
-                        <tr key={i} className="bg-white hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3 px-4 text-center text-slate-500 font-medium">{entry.row_number}</td>
-                          <td className="py-3 px-4">
-                            <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
-                              {String(entry.rencana_kinerja || '—')}
-                            </p>
-                          </td>
-                          <td className="py-3 px-4">
-                            <p className="text-[13px] text-slate-700 leading-relaxed line-clamp-3">
-                              {entry.kegiatan || '—'}
-                            </p>
-                          </td>
-                          <td className="py-3 px-4 text-[13px] text-slate-500 whitespace-nowrap">
-                            <div className="flex flex-col gap-1">
-                              <span>Mulai: {String(entry.tanggal_mulai || '-')}</span>
-                              <span>Selesai: {String(entry.tanggal_selesai || '-')}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-center">
-                            <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700">
-                              {Number(entry.progres || 0).toFixed(0)}%
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 max-w-[200px]">
-                            <div className="truncate">
-                              <DataDukungLink value={entry.data_dukung || null} />
-                            </div>
-                          </td>
+              {parseResult.success && (
+                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                  <div className="overflow-x-auto max-h-[500px]">
+                    <table className="w-full text-sm text-left">
+                      <thead className="bg-slate-50 text-slate-500 font-medium sticky top-0 shadow-sm z-10">
+                        <tr>
+                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Rencana Kinerja</th>
+                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Kegiatan</th>
+                          <th className="px-4 py-3 whitespace-nowrap border-b border-slate-200">Progres (%)</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {parseResult.entries.length > 10 && (
-                    <div className="py-3 px-4 text-center text-[13px] text-slate-500 bg-slate-50 border-t border-slate-200">
-                      Menampilkan 10 dari <span className="font-semibold text-slate-700">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
-                    </div>
-                  )}
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {parseResult.entries.map((entry, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3 max-w-[200px] truncate" title={String(entry.rencana_kinerja || '')}>{entry.rencana_kinerja || '-'}</td>
+                            <td className="px-4 py-3 max-w-[250px] truncate" title={String(entry.kegiatan || '')}>{entry.kegiatan || '-'}</td>
+                            <td className="px-4 py-3"><span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700">{entry.progres || '0'}%</span></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
-
-              {/* Submit button */}
               {parseResult.success && (
                 <div className="flex justify-end pt-2">
-                  <Button
-                    onClick={handlePreSubmit}
-                    loading={uploading}
-                    disabled={existingUpload?.status === 'approved'}
-                    size="lg"
-                    className="shadow-lg shadow-blue-500/20"
-                  >
-                    <Send className="h-4 w-4" />
+                  <Button onClick={handlePreSubmit} loading={uploading} disabled={existingUpload?.status === 'approved'} size="lg">
+                    <Send className="h-4 w-4 mr-2" />
                     Submit CKP {getBulanName(bulan)} {tahun}
                   </Button>
                 </div>
@@ -679,80 +547,123 @@ export default function UploadPage() {
         )}
       </div>
 
-      <Dialog open={showTeamModal} onClose={() => setShowTeamModal(false)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden bg-slate-50/50">
-          <DialogHeader className="px-6 py-5 bg-white border-b border-slate-100">
-            <DialogTitle className="flex items-center gap-2.5 text-xl">
-              <div className="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+      {showTeamModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h3 className="text-xl font-bold text-slate-900">Mapping Tim Kerja</h3>
+                <p className="text-sm text-slate-500 mt-1">Beberapa Rencana Kinerja belum memiliki tim kerja.</p>
               </div>
-              Terdapat Rencana Kinerja Baru
-            </DialogTitle>
-            <DialogDescription className="text-slate-500 pt-2 text-sm leading-relaxed">
-              Kami mendeteksi beberapa Rencana Kinerja dari file Anda yang belum terdaftar di Kamus Global.
-              Silakan pilih <b>Tim Kerja</b> yang sesuai agar RK ini dapat dinilai oleh Ketua Tim yang tepat.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-            {unmatchedRKs.map((rk, idx) => (
-              <div key={idx} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm transition-all hover:border-blue-200 hover:shadow-md space-y-4">
-                <div className="flex gap-3 items-start">
-                  <div className="mt-1">
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-50">RK Baru</Badge>
+              <button onClick={() => setShowTeamModal(false)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><X size={20} /></button>
+            </div>
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
+              <div className="space-y-4">
+                {unmatchedRKs.map((rk, idx) => (
+                  <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+                    <p className="font-semibold text-slate-800 mb-4">{rk}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Pilih Tim Kerja</label>
+                        <select 
+                          className="w-full text-sm border-slate-200 rounded-lg h-10 px-3"
+                          value={rkTeamMapping[rk]?.tim_kerja || ''}
+                          onChange={(e) => {
+                            const selectedTim = e.target.value;
+                            const ketua = ketuaTims.find(k => k.unit_kerja === selectedTim);
+                            setRkTeamMapping(prev => ({
+                              ...prev,
+                              [rk]: { tim_kerja: selectedTim, ketua_tim_id: ketua ? ketua.id : '' }
+                            }));
+                          }}
+                        >
+                          <option value="">-- Pilih Tim --</option>
+                          {timKerjaList.map((tim, i) => <option key={i} value={tim}>{tim}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Ketua Tim</label>
+                        <div className="h-10 px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 flex items-center">
+                          {rkTeamMapping[rk]?.ketua_tim_id ? ketuaTims.find(k => k.id === rkTeamMapping[rk]?.ketua_tim_id)?.full_name || 'Tidak diketahui' : 'Pilih tim kerja...'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[14px] font-medium text-slate-800 leading-snug flex-1">
-                    {rk}
-                  </p>
-                </div>
-                
-                <div className="pt-2 border-t border-slate-100">
-                  <label className="block text-[13px] font-semibold text-slate-700 mb-2">Pilih Tim Kerja untuk RK ini</label>
-                  <Select
-                    className="w-full shadow-sm border-slate-200"
-                    value={rkTeamMapping[rk]?.tim_kerja || ''}
-                    onChange={(e) => {
-                      const selectedTim = e.target.value;
-                      const matchTeam = uniqueTeams.find(t => t.tim_kerja === selectedTim);
-                      setRkTeamMapping(prev => ({
-                        ...prev,
-                        [rk]: {
-                          tim_kerja: selectedTim,
-                          ketua_tim_id: matchTeam ? matchTeam.ketua_tim_id : '',
-                        }
-                      }));
-                    }}
-                    options={[
-                      { value: '', label: 'Pilih tim kerja...' },
-                      ...uniqueTeams.map(t => ({ value: t.tim_kerja, label: t.tim_kerja }))
-                    ]}
-                  />
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <DialogFooter className="px-6 py-4 bg-white border-t border-slate-100 mt-auto">
-            <Button type="button" variant="outline" onClick={() => setShowTeamModal(false)} className="rounded-xl px-6">
-              Batal
-            </Button>
-            <Button
-              type="button"
-              className="rounded-xl px-6 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20"
-              onClick={() => {
-                const hasEmpty = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja);
-                if (hasEmpty) {
-                  toast.error('Harap pilih tim kerja untuk semua Rencana Kinerja baru.');
-                  return;
-                }
+            </div>
+            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowTeamModal(false)}>Batal</Button>
+              <Button onClick={() => {
+                const invalid = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja || !rkTeamMapping[rk]?.ketua_tim_id);
+                if (invalid) { toast.error('Lengkapi semua mapping'); return; }
                 processUpload();
-              }}
-            >
-              Lanjutkan Upload
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              }}>Lanjutkan Upload</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Progress Modal */}
+      {uploading && !showTeamModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center">
+            <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
+              {uploadProgress === 100 ? (
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center animate-scale-in">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              ) : (
+                <>
+                  <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="45" fill="none" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="8" />
+                    <circle 
+                      cx="50" cy="50" r="45" fill="none" 
+                      className="stroke-blue-500 transition-all duration-500 ease-out" 
+                      strokeWidth="8" 
+                      strokeDasharray="283" 
+                      strokeDashoffset={283 - (283 * uploadProgress) / 100}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{Math.round(uploadProgress)}%</span>
+                </>
+              )}
+            </div>
+            
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+              {uploadProgress === 100 ? 'Upload Selesai!' : 'Memproses Upload...'}
+            </h3>
+            
+            <div className="w-full text-left mt-6 space-y-3">
+              <div className="flex items-center text-sm">
+                {uploadStep > 0 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" />}
+                <span className={uploadStep >= 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400"}>Persiapan data...</span>
+              </div>
+              <div className="flex items-center text-sm">
+                {uploadStep > 1 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 1 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
+                <span className={uploadStep >= 1 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Mengunggah file Excel ke Storage...</span>
+              </div>
+              {existingUpload && (
+                <div className="flex items-center text-sm">
+                  {uploadStep > 2 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 2 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
+                  <span className={uploadStep >= 2 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Membersihkan data lama...</span>
+                </div>
+              )}
+              <div className="flex items-center text-sm">
+                {uploadStep > 3 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 3 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
+                <span className={uploadStep >= 3 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Menyimpan informasi CKP...</span>
+              </div>
+              <div className="flex items-center text-sm">
+                {uploadStep >= 4 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 4 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
+                <span className={uploadStep >= 4 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Menyimpan detail kegiatan...</span>
+              </div>
+            </div>
+            
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-6 text-center">Mohon jangan menutup halaman ini.</p>
+          </div>
+        </div>
+      )}
     </>
   );
 }

@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { RecoveryManager } from "@/components/providers/recovery-manager";
 import { KeepAliveManager } from "@/components/providers/keepalive-manager";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
@@ -53,20 +54,22 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>
-              <RecoveryManager>
-                {children}
-              </RecoveryManager>
-              <KeepAliveManager />
-              <Toaster
-                position="top-right"
-                richColors
-                closeButton
-                toastOptions={{
-                  style: {
-                    fontFamily: 'Inter, sans-serif',
-                  },
-                }}
-              />
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <RecoveryManager>
+                  {children}
+                </RecoveryManager>
+                <KeepAliveManager />
+                <Toaster
+                  position="top-right"
+                  richColors
+                  closeButton
+                  toastOptions={{
+                    style: {
+                      fontFamily: 'Inter, sans-serif',
+                    },
+                  }}
+                />
+              </ThemeProvider>
             </AuthProvider>
           </QueryProvider>
         </ErrorBoundary>
