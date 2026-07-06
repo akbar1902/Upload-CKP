@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Building2, Eye, EyeOff, LogIn, AlertCircle } from 'lucide-react';
+import { Building2, Eye, EyeOff, LogIn, AlertCircle, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -13,6 +13,14 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Lupa Password states
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
+
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
 
@@ -58,6 +66,28 @@ export default function LoginPage() {
       // Tunggu sebentar sebelum mematikan loading saat redirect
       // Untuk mencegah kedipan tombol saat navigasi sedang berlangsung
       setTimeout(() => setLoading(false), 2000);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setResetError('');
+    setResetLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/update-password`,
+      });
+
+      if (error) {
+        setResetError(error.message);
+      } else {
+        setResetSuccess(true);
+      }
+    } catch (err) {
+      setResetError('Terjadi kesalahan yang tidak terduga.');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -132,71 +162,164 @@ export default function LoginPage() {
             </div>
           </div>
 
-          {/* Form Header */}
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900">Selamat Datang</h2>
-            <p className="text-slate-500 mt-2">Masuk ke akun Anda untuk melanjutkan</p>
-          </div>
-
-          {/* Error message */}
-          {error && (
-            <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-fade-in">
-              <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="nama@bps.go.id"
-                required
-                autoFocus
-                className="h-12"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Masukkan password"
-                  required
-                  className="h-12 pr-12"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+          {/* Form Content / State Switcher */}
+          <div className="relative overflow-hidden">
+            {resetSuccess ? (
+              // Success State
+              <div className="flex flex-col items-center justify-center py-10 animate-fade-in text-center">
+                <div className="w-20 h-20 rounded-full bg-emerald-50 flex items-center justify-center mb-6">
+                  <CheckCircle2 className="h-10 w-10 text-emerald-500" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 mb-3">Email Terkirim!</h3>
+                <p className="text-slate-500 max-w-sm mb-8">
+                  Kami telah mengirimkan instruksi reset password ke <span className="font-semibold text-slate-700">{resetEmail}</span>. Silakan periksa kotak masuk atau folder spam Anda.
+                </p>
+                <Button 
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setResetSuccess(false);
+                    setResetEmail('');
+                  }}
+                  variant="outline" 
+                  className="w-full h-12"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
+                  Kembali ke Halaman Login
+                </Button>
               </div>
-            </div>
+            ) : isForgotPassword ? (
+              // Forgot Password Form
+              <div className="animate-fade-in">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-slate-900">Lupa Password?</h2>
+                  <p className="text-slate-500 mt-2">Masukkan email Anda untuk mereset password.</p>
+                </div>
+                
+                {resetError && (
+                  <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-fade-in">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-red-700">{resetError}</p>
+                  </div>
+                )}
 
-            <Button
-              type="submit"
-              loading={loading}
-              className="w-full h-12 text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
-            >
-              <LogIn className="h-5 w-5" />
-              Masuk
-            </Button>
-          </form>
+                <form onSubmit={handleForgotPassword} className="space-y-5">
+                  <div>
+                    <label htmlFor="reset-email" className="block text-sm font-medium text-slate-700 mb-2">
+                      Email Terdaftar
+                    </label>
+                    <Input
+                      id="reset-email"
+                      type="email"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      placeholder="nama@bps.go.id"
+                      required
+                      autoFocus
+                      className="h-12"
+                    />
+                  </div>
+
+                  <div className="pt-2 space-y-3">
+                    <Button
+                      type="submit"
+                      loading={resetLoading}
+                      className="w-full h-12 text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all"
+                    >
+                      <KeyRound className="h-5 w-5" />
+                      Kirim Instruksi Reset
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setIsForgotPassword(false)}
+                      className="w-full h-12 text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    >
+                      <ArrowLeft className="h-4 w-4 mr-2" />
+                      Kembali ke Login
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              // Normal Login Form
+              <div className="animate-fade-in">
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-slate-900">Selamat Datang</h2>
+                  <p className="text-slate-500 mt-2">Masuk ke akun Anda untuk melanjutkan</p>
+                </div>
+
+                {error && (
+                  <div className="mb-6 flex items-start gap-3 p-4 rounded-xl bg-red-50 border border-red-200 animate-fade-in">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-red-700">{error}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                      Email
+                    </label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="nama@bps.go.id"
+                      required
+                      autoFocus
+                      className="h-12"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="password" className="block text-sm font-medium text-slate-700">
+                        Password
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsForgotPassword(true);
+                          setResetError('');
+                          setResetEmail(email); // Autofill with current email
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                      >
+                        Lupa Password?
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Masukkan password"
+                        required
+                        className="h-12 pr-12"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    loading={loading}
+                    className="w-full h-12 text-base font-semibold shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 transition-all mt-2"
+                  >
+                    <LogIn className="h-5 w-5" />
+                    Masuk
+                  </Button>
+                </form>
+              </div>
+            )}
+          </div>
 
           {/* Footer */}
           <div className="mt-10 text-center">
