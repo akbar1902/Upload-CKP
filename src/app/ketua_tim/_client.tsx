@@ -223,9 +223,8 @@ export default function KetuaTimDashboardClient() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Users size={18} className="text-blue-600" />} value={totalPegawai} label="Total Anggota" sub="Dalam tim" iconBg="#EFF6FF" loading={loading} />
           <KPICard icon={<Clock size={18} className="text-amber-600" />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="#FFFBEB" loading={loading} />
           <KPICard icon={<CheckCircle2 size={18} className="text-green-600" />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="#F0FDF4" loading={loading} />
           <KPICard icon={<TrendingUp size={18} className="text-green-600" />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="#F5F3FF" loading={loading} />

@@ -275,9 +275,8 @@ export default function PimpinanDashboard() {
         </div>
 
         {/* ── KPI Cards ─────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Users size={18} style={{ color: 'var(--primary)' }} />} value={totalPegawai} label="Total Pegawai" sub="Aktif terdaftar" iconBg="var(--primary-soft)" loading={loading} />
           <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
           <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--success)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--success-soft)" loading={loading} />

@@ -212,7 +212,7 @@ export function RencanaKinerjaClient({
       <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
 
         {/* ── KPI Summary ───────────────────── */}
-        <div className={`grid gap-4 grid-cols-2 ${isKetuaTim ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} stagger`}>
+        <div className={`grid gap-4 grid-cols-2 ${isKetuaTim ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} stagger`}>
           {isKetuaTim && (
             <div className="kpi-card p-5 flex items-center gap-4" onClick={() => setActiveTab("managed")} style={{ cursor: 'pointer' }}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
@@ -245,15 +245,6 @@ export function RencanaKinerjaClient({
             </div>
           </div>
 
-          <div className="kpi-card p-5 flex items-center gap-4">
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--warning-soft)' }}>
-              <Users size={20} style={{ color: '#D97706' }} />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{allUsers.length}</p>
-              <p className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Total Pegawai</p>
-            </div>
-          </div>
         </div>
 
         {!mounted ? (
@@ -342,7 +333,7 @@ export function RencanaKinerjaClient({
                         <ClipboardList size={18} style={{ color: 'var(--primary)' }} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-[13px] truncate" style={{ color: 'var(--text-primary)' }}>
+                        <p className="font-semibold text-[13px] pr-2 leading-relaxed" style={{ color: 'var(--text-primary)' }}>
                           {rk.rencana_kinerja}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 mt-1">
