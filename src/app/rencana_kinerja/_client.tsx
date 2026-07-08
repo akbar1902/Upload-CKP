@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Edit, Trash2, CheckCircle2, Search,
-  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList
+  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList, Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -226,8 +226,8 @@ export function RencanaKinerjaClient({
           )}
 
           <div className="kpi-card p-5 flex items-center gap-4" onClick={() => setActiveTab("my_rk")} style={{ cursor: 'pointer' }}>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F3E8FF' }}>
-              <ClipboardList size={20} style={{ color: '#7C3AED' }} />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
+              <ClipboardList size={20} style={{ color: 'var(--primary)' }} />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{myAssignments.length}</p>
@@ -421,8 +421,8 @@ export function RencanaKinerjaClient({
 
             {filteredMyAssignments.length === 0 ? (
               <div className="kpi-card text-center py-16 px-6">
-                <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: '#F3E8FF' }}>
-                  <ListTodo size={24} style={{ color: '#7C3AED' }} />
+                <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--primary-soft)' }}>
+                  <ListTodo size={24} style={{ color: 'var(--primary)' }} />
                 </div>
                 <p className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>
                   {searchMyRk || filterMyRkTeam ? "Tidak ditemukan" : "Belum ada Rencana Kinerja"}
@@ -450,8 +450,8 @@ export function RencanaKinerjaClient({
                       >
                         {/* Info Section */}
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#F3E8FF' }}>
-                          <ClipboardList size={18} style={{ color: '#7C3AED' }} />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
+                          <ClipboardList size={18} style={{ color: 'var(--primary)' }} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-[13px] leading-relaxed line-clamp-3 pr-6" style={{ color: 'var(--text-primary)' }}>
@@ -477,13 +477,27 @@ export function RencanaKinerjaClient({
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 mt-1">
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-white flex-shrink-0"
-                            style={{ background: '#94A3B8' }}>
-                            {(a.assigned_by_user?.full_name?.[0] || "S").toUpperCase()}
-                          </div>
-                          <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
-                            Ditugaskan oleh: {a.assigned_by_user?.full_name || "Diri sendiri"}
-                          </span>
+                          {a.assigned_by_user ? (
+                            <>
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold flex-shrink-0"
+                                style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
+                                {a.assigned_by_user.full_name[0].toUpperCase()}
+                              </div>
+                              <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                                Ditugaskan: {a.assigned_by_user.full_name}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
+                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                                <Globe size={10} style={{ color: 'var(--text-secondary)' }} />
+                              </div>
+                              <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                                Sumber: Kamus Global
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
                     </motion.div>
