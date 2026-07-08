@@ -92,14 +92,15 @@ export default function PimpinanPegawaiDetailPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
           >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
@@ -125,7 +126,7 @@ export default function PimpinanPegawaiDetailPage() {
       <>
         <Header />
         <div className="p-4 lg:p-8 text-center py-20">
-          <p className="text-slate-500">Pegawai tidak ditemukan.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Pegawai tidak ditemukan.</p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" /> Kembali
           </Button>
@@ -138,7 +139,10 @@ export default function PimpinanPegawaiDetailPage() {
     <>
       <Header />
       <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
+        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
           <ArrowLeft className="h-4 w-4" /> Kembali
         </button>
 
@@ -166,54 +170,48 @@ export default function PimpinanPegawaiDetailPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Calendar className="h-5 w-5 text-slate-400" />
+              <Calendar className="h-5 w-5 opacity-70" />
               Riwayat CKP
             </CardTitle>
           </CardHeader>
           <CardContent>
             {uploads.length === 0 ? (
               <div className="text-center py-12">
-                <FileText className="h-12 w-12 mx-auto text-slate-200 mb-3" />
-                <p className="text-slate-500">Belum ada CKP yang diupload</p>
+                <FileText className="h-12 w-12 mx-auto mb-3" style={{ color: 'var(--border)' }} />
+                <p style={{ color: 'var(--text-secondary)' }}>Belum ada CKP yang diupload</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/50">
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500">Periode</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">Versi</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">Kegiatan</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">Progres</th>
-                      <th className="text-center py-3 px-4 text-xs font-semibold text-slate-500">Status</th>
-                      <th className="text-left py-3 px-4 text-xs font-semibold text-slate-500">Diupload</th>
-                      <th className="text-right py-3 px-4 text-xs font-semibold text-slate-500">Aksi</th>
+                    <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                      <th className="text-left py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Periode</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Versi</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Kegiatan</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Progres</th>
+                      <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Status</th>
+                      <th className="text-left py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Diupload</th>
+                      <th className="text-right py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {uploads.map((upload) => (
-                      <tr key={upload.id} className="border-b border-slate-100 table-row-hover group">
-                        <td className="py-3 px-4 font-semibold text-slate-900">
-                          {getBulanName(upload.bulan)} {upload.tahun}
-                        </td>
-                        <td className="py-3 px-4 text-center text-slate-500">v{upload.version}</td>
-                        <td className="py-3 px-4 text-center font-medium text-slate-700">{upload.total_entries}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                              <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full progress-bar" style={{ width: `${upload.avg_progres || 0}%` }} />
+                    {uploads.map((upload) => {
+                      const avgPct = upload.avg_progres || 0;
+                      const progressClass = avgPct >= 100 ? 'bg-emerald-500' : 'bg-blue-500';
+                      return (
+                        <tr key={upload.id} className="table-row-hover group" style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td className="py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>
+                            CKP {getBulanName(upload.bulan)} {upload.tahun}
+                          </td>
+                          <td className="py-3 px-4 text-center" style={{ color: 'var(--text-secondary)' }}>v{upload.version}</td>
+                          <td className="py-3 px-4 text-center font-medium" style={{ color: 'var(--text-primary)' }}>{upload.total_entries}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center justify-center gap-2">
+                              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+                                <div className={`h-full ${progressClass}`} style={{ width: `${avgPct}%` }} />
+                              </div>
+                              <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{avgPct.toFixed(0)}%</span>
                             </div>
-                            <span className="text-xs font-medium text-slate-600">{(upload.avg_progres || 0).toFixed(0)}%</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-center"><UploadStatusBadge status={upload.status} /></td>
-                        <td className="py-3 px-4 text-xs text-slate-400">{formatDateTime(upload.uploaded_at)}</td>
-                        <td className="py-3 px-4 text-right">
-                          <Link href={`/penilaian/${upload.id}`}>
-                            <Button variant="ghost" size="sm" className="opacity-70 group-hover:opacity-100">
-                              Review <ArrowRight className="h-3.5 w-3.5" />
-                            </Button>
-                          </Link>
                         </td>
                       </tr>
                     ))}

@@ -209,14 +209,15 @@ export default function PimpinanPegawaiPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
           >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>

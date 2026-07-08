@@ -37,13 +37,17 @@ function Dialog({ open, onClose, children }: DialogProps) {
   return (
     <DialogContext.Provider value={{ open, onClose }}>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        {/* Backdrop */}
+        {/* Backdrop — Apple glassmorphism */}
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/40 backdrop-blur-xl"
+          style={{ animation: 'fadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
           onClick={onClose}
         />
         {/* Content */}
-        <div className="relative z-50 w-full max-w-lg mx-4 animate-in zoom-in-95 fade-in duration-200">
+        <div
+          className="relative z-50 w-full max-w-lg mx-4"
+          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
+        >
           {children}
         </div>
       </div>
@@ -57,14 +61,14 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
   return (
     <div
       className={cn(
-        "bg-white rounded-xl shadow-2xl border border-slate-200 max-h-[85vh] overflow-y-auto",
+        "bg-[var(--card-bg)] rounded-3xl shadow-[var(--shadow-elevated)] border border-[var(--border)] max-h-[85vh] overflow-y-auto",
         className
       )}
       {...props}
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 p-1 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors z-10"
+        className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-200 z-10"
       >
         <X className="h-4 w-4" />
       </button>
@@ -75,14 +79,14 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
 
 function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("px-6 pt-6 pb-2", className)} {...props} />
+    <div className={cn("px-7 pt-7 pb-2", className)} {...props} />
   );
 }
 
 function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      className={cn("text-lg font-semibold text-slate-900", className)}
+      className={cn("text-xl font-semibold text-[var(--text-primary)] tracking-tight", className)}
       {...props}
     />
   );
@@ -90,20 +94,20 @@ function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingEl
 
 function DialogDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
   return (
-    <p className={cn("text-sm text-slate-500 mt-1", className)} {...props} />
+    <p className={cn("text-[15px] text-[var(--text-secondary)] mt-1.5", className)} {...props} />
   );
 }
 
 function DialogBody({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("px-6 py-4", className)} {...props} />
+    <div className={cn("px-7 py-5", className)} {...props} />
   );
 }
 
 function DialogFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-100", className)}
+      className={cn("flex items-center justify-end gap-3 px-7 py-5 border-t border-[var(--border)]", className)}
       {...props}
     />
   );

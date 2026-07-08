@@ -10,10 +10,6 @@ export interface PegawaiRow {
   upload: (CKPUpload & { user?: User }) | null;
 }
 
-function getAvatarGradient(name: string): string {
-  return 'linear-gradient(135deg, #475569 0%, #1e293b 100%)';
-}
-
 export function PegawaiCard({ row }: { row: PegawaiRow }) {
   const { user, upload } = row;
   const initials = user.full_name
@@ -22,9 +18,9 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
   const totalEntries = upload?.total_entries ?? 0;
   const hasUpload = upload !== null;
 
-  const barColor = avgProgres >= 80 ? '#22c55e'
-    : avgProgres >= 50 ? '#f59e0b'
-    : '#94a3b8';
+  const barColor = avgProgres >= 80 ? 'var(--success)'
+    : avgProgres >= 50 ? 'var(--warning)'
+    : 'var(--text-tertiary)';
 
   const progressLabel = avgProgres >= 80 ? 'Sangat Baik'
     : avgProgres >= 60 ? 'Baik'
@@ -32,12 +28,12 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
     : null;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col gap-4 shadow-sm hover:shadow-md transition-all">
+    <div className="kpi-card p-6 flex flex-col gap-4">
       {/* Header kartu */}
       <div className="flex items-start gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0"
-          style={{ background: getAvatarGradient(user.full_name) }}
+          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
+          style={{ background: 'var(--primary)' }}
           aria-hidden="true"
         >
           {initials}
@@ -45,8 +41,11 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
         <div className="flex-1 min-w-0 flex flex-col justify-center">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="font-semibold text-slate-800 text-[14px] leading-snug truncate" title={user.full_name}>{user.full_name}</p>
-              <p className="text-[12px] text-slate-500 mt-0.5 truncate">{user.nip || '—'}</p>
+              <p className="font-semibold text-[14px] leading-snug truncate"
+                 style={{ color: 'var(--text-primary)' }}
+                 title={user.full_name}>{user.full_name}</p>
+              <p className="text-[12px] mt-0.5 truncate"
+                 style={{ color: 'var(--text-tertiary)' }}>{user.nip || '—'}</p>
             </div>
             <div className="flex-shrink-0 mt-0.5">
               <StatusLabel status={upload?.status ?? null} />
@@ -56,37 +55,37 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
       </div>
 
       {/* Statistik in a unified block */}
-      <div className="bg-slate-50 border border-slate-100 rounded-lg p-3">
-        <div className="grid grid-cols-3 gap-2 text-center divide-x divide-slate-200">
+      <div className="rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+        <div className="grid grid-cols-3 gap-2 text-center">
           <div>
-            <p className="text-[11px] text-slate-500 font-medium mb-1">Kegiatan</p>
-            <p className="text-[15px] font-bold text-slate-800">{totalEntries}</p>
+            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</p>
+            <p className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
           </div>
-          <div>
-            <p className="text-[11px] text-slate-500 font-medium mb-1">Capaian</p>
-            <p className={`text-[15px] font-bold ${hasUpload ? (avgProgres >= 80 ? 'text-emerald-600' : avgProgres >= 50 ? 'text-amber-600' : 'text-slate-800') : 'text-slate-400'}`}>
+          <div style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
+            <p className="text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success)' : avgProgres >= 50 ? 'var(--warning)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>
           <div>
-            <p className="text-[11px] text-slate-500 font-medium mb-1">Skor</p>
-            <p className="text-[15px] font-bold text-slate-800">
+            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Skor</p>
+            <p className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
               {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
             </p>
           </div>
         </div>
 
-        {/* Progress bar placed closely with stats */}
+        {/* Progress bar */}
         {hasUpload && (
-          <div className="mt-3 flex items-center gap-2">
-            <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+          <div className="mt-3.5 flex items-center gap-2">
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
               <div
-                className="h-full rounded-full transition-all"
+                className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(avgProgres, 100)}%`, backgroundColor: barColor }}
               />
             </div>
             {progressLabel && (
-              <span className="text-[10px] font-semibold text-slate-500">{progressLabel}</span>
+              <span className="text-[10px] font-medium" style={{ color: 'var(--text-tertiary)' }}>{progressLabel}</span>
             )}
           </div>
         )}
@@ -97,14 +96,34 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
         {hasUpload ? (
           <Link
             href={`/penilaian/${upload!.id}`}
-            className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 hover:text-slate-900 rounded-lg py-2 transition-colors w-full"
+            className="flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-full py-2.5 transition-all duration-200 w-full"
+            style={{
+              color: 'var(--text-secondary)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--primary-soft)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,113,227,0.15)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+            }}
           >
             Lihat Detail Log <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         ) : (
           <button
             disabled
-            className="flex items-center justify-center gap-1.5 text-[13px] font-medium text-slate-400 bg-slate-50 border border-slate-100 rounded-lg py-2 cursor-not-allowed w-full"
+            className="flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-full py-2.5 cursor-not-allowed w-full"
+            style={{
+              color: 'var(--text-tertiary)',
+              background: 'var(--bg-secondary)',
+              border: '1px solid var(--border)',
+            }}
             aria-disabled="true"
           >
             Belum ada data
@@ -117,7 +136,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
 
 export function PegawaiCardSkeleton() {
   return (
-    <div className="pegawai-card p-5 flex flex-col gap-4">
+    <div className="kpi-card p-6 flex flex-col gap-4">
       <div className="flex items-center gap-3">
         <Skeleton className="w-10 h-10 rounded-full" />
         <div className="flex-1 space-y-2">
@@ -126,10 +145,10 @@ export function PegawaiCardSkeleton() {
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}
+        {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
       </div>
-      <Skeleton className="h-1.5 rounded-full" />
-      <Skeleton className="h-9 rounded-lg" />
+      <Skeleton className="h-1 rounded-full" />
+      <Skeleton className="h-10 rounded-full" />
     </div>
   );
 }

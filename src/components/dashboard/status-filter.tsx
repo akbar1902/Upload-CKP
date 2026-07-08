@@ -11,19 +11,19 @@ interface StatusFilterProps {
   counts?: Record<string, number>;
 }
 
-const statuses: { value: UploadStatus | 'all'; color: string }[] = [
-  { value: 'all', color: 'bg-slate-100 text-slate-700 border-slate-200' },
-  { value: 'submitted', color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { value: 'approved', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  { value: 'rejected', color: 'bg-red-50 text-red-700 border-red-200' },
-  { value: 'revision_required', color: 'bg-amber-50 text-amber-700 border-amber-200' },
-  { value: 'draft', color: 'bg-slate-50 text-slate-600 border-slate-200' },
+const statuses: { value: UploadStatus | 'all' }[] = [
+  { value: 'all' },
+  { value: 'submitted' },
+  { value: 'approved' },
+  { value: 'rejected' },
+  { value: 'revision_required' },
+  { value: 'draft' },
 ];
 
 export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {statuses.map(({ value, color }) => {
+      {statuses.map(({ value }) => {
         const isActive = selected === value;
         const count = value === 'all' ? undefined : counts?.[value];
 
@@ -32,18 +32,23 @@ export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) 
             key={value}
             onClick={() => onChange(value)}
             className={cn(
-              "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200",
+              "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-200",
               isActive
-                ? cn(color, "ring-2 ring-offset-1 ring-blue-500/30 shadow-sm")
-                : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"
+                ? "shadow-sm"
+                : "hover:bg-[var(--bg-secondary)]"
             )}
+            style={isActive
+              ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.15)' }
+              : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
+            }
           >
             {value === 'all' ? 'Semua' : getStatusLabel(value)}
             {count !== undefined && (
               <span className={cn(
                 "inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold",
-                isActive ? "bg-white/50" : "bg-slate-100"
-              )}>
+                isActive ? "bg-white/60" : ""
+              )}
+              style={!isActive ? { background: 'var(--bg-secondary)' } : undefined}>
                 {count}
               </span>
             )}

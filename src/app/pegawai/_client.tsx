@@ -70,7 +70,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   };
 
   return (
-    <div className="kpi-card p-5 flex flex-col gap-3 animate-scale-in">
+    <div className="kpi-card p-6 flex flex-col gap-3 animate-scale-in">
       <div className="flex items-center justify-between">
         <div className="date-block" style={{ minWidth: 'unset', padding: '8px 10px' }}>
           <span className="month" style={{ fontSize: '11px' }}>
@@ -83,26 +83,26 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         <p className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>
           {upload.file_name || 'Tidak ada file'}
         </p>
-        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+        <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>
           {upload.total_entries} kegiatan
         </p>
       </div>
       <div>
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres</span>
+          <span className="text-[12px] font-medium" style={{ color: 'var(--text-tertiary)' }}>Progres</span>
           <span className="text-[13px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
             {pct.toFixed(0)}%
           </span>
         </div>
-        <div className="h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
           <div className={`h-full rounded-full progress-bar ${progressClass}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
       <div className="flex items-center gap-2 mt-2">
         <Link
           href={`/pegawai/ckp/${upload.id}`}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[13px] font-medium transition-colors"
-          style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.12)' }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200"
+          style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.08)' }}
         >
           Lihat Detail <ArrowRight size={13} />
         </Link>
@@ -111,7 +111,10 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             onClick={handleDelete}
             disabled={isDeleting}
             title="Hapus CKP"
-            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors border border-transparent hover:border-red-100 disabled:opacity-50"
+            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 disabled:opacity-50"
+            style={{ color: 'var(--danger)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
             <Trash2 size={15} />
           </button>
@@ -239,10 +242,10 @@ export default function PegawaiDashboard() {
 
   // KPI cards config
   const kpiCards = [
-    { icon: <FileText size={18} style={{ color: "#2563EB" }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: '#EFF6FF' },
-    { icon: <TrendingUp size={18} style={{ color: "#16A34A" }} />, value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: '#F0FDF4' },
-    { icon: <CheckCircle2 size={18} style={{ color: "#059669" }} />, value: stats.approved, label: 'Disetujui', sub: `dari ${stats.total} upload`, iconBg: '#F0FDF4' },
-    { icon: <Clock size={18} style={{ color: "#D97706" }} />, value: stats.pending, label: 'Menunggu Review', sub: 'belum diproses', iconBg: '#FFFBEB' },
+    { icon: <FileText size={18} style={{ color: 'var(--primary)' }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: 'var(--primary-soft)' },
+    { icon: <TrendingUp size={18} style={{ color: 'var(--success)' }} />, value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: 'var(--success-soft)' },
+    { icon: <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />, value: stats.approved, label: 'Disetujui', sub: `dari ${stats.total} upload`, iconBg: 'var(--success-soft)' },
+    { icon: <Clock size={18} style={{ color: 'var(--warning)' }} />, value: stats.pending, label: 'Menunggu Review', sub: 'belum diproses', iconBg: 'var(--warning-soft)' },
   ];
 
   const error = queryError ? queryError.message : null;
@@ -254,15 +257,13 @@ export default function PegawaiDashboard() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
+               style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
-          >
+          <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-[14px] mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
+          <button onClick={() => refetch()} className="btn-primary">
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
         </div>
@@ -278,8 +279,9 @@ export default function PegawaiDashboard() {
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Halo, {user?.full_name?.split(' ')[0] || 'Pegawai'} 👋
+            <h2 className="text-[28px] font-semibold tracking-tight"
+                style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Halo, {user?.full_name?.split(' ')[0] || 'Pegawai'}
             </h2>
             <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
               {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
@@ -296,16 +298,18 @@ export default function PegawaiDashboard() {
         {/* ── Alerts ────────────────────────────────── */}
         {!isLoading && !currentMonthUpload && (
           <div
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/30 border border-blue-100/50 dark:border-blue-900/50 animate-fade-in"
+            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
+            style={{ background: 'var(--primary-soft)', border: '1px solid rgba(0,113,227,0.06)' }}
             role="alert"
           >
-            <div className="flex-shrink-0 p-1.5 bg-blue-100 dark:bg-blue-900/50 rounded-lg text-blue-600 dark:text-blue-400">
-              <Info size={16} strokeWidth={2.5} />
+            <div className="flex-shrink-0 p-2 rounded-xl"
+                 style={{ background: 'var(--card-bg)' }}>
+              <Info size={16} style={{ color: 'var(--primary)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13.5px] text-blue-800 dark:text-blue-300">
-                <span className="font-semibold text-blue-900 dark:text-blue-200">CKP {getBulanName(currentMonth)} {currentYear} Belum Diupload</span>
-                <span className="hidden sm:inline"> &mdash; Silakan lengkapi laporan Anda bulan ini.</span>
+              <p className="text-[13px]" style={{ color: 'var(--primary)' }}>
+                <span className="font-semibold">CKP {getBulanName(currentMonth)} {currentYear} Belum Diupload</span>
+                <span className="hidden sm:inline"> — Silakan lengkapi laporan Anda bulan ini.</span>
               </p>
             </div>
           </div>
@@ -313,16 +317,18 @@ export default function PegawaiDashboard() {
 
         {!isLoading && stats.rejected > 0 && (
           <div
-            className="flex items-center gap-3 p-3.5 rounded-xl bg-red-50/80 dark:bg-red-950/30 border border-red-100/50 dark:border-red-900/50 animate-fade-in"
+            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
+            style={{ background: 'var(--danger-soft)', border: '1px solid rgba(255,59,48,0.06)' }}
             role="alert"
           >
-            <div className="flex-shrink-0 p-1.5 bg-red-100 dark:bg-red-900/50 rounded-lg text-red-600 dark:text-red-400">
-              <AlertTriangle size={16} strokeWidth={2.5} />
+            <div className="flex-shrink-0 p-2 rounded-xl"
+                 style={{ background: 'var(--card-bg)' }}>
+              <AlertTriangle size={16} style={{ color: 'var(--danger)' }} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13.5px] text-red-800 dark:text-red-300">
-                <span className="font-semibold text-red-900 dark:text-red-200">{stats.rejected} CKP Perlu Revisi</span>
-                <span className="hidden sm:inline"> &mdash; Terdapat CKP yang ditolak atau perlu perbaikan.</span>
+              <p className="text-[13px]" style={{ color: 'var(--danger)' }}>
+                <span className="font-semibold">{stats.rejected} CKP Perlu Revisi</span>
+                <span className="hidden sm:inline"> — Terdapat CKP yang ditolak atau perlu perbaikan.</span>
               </p>
             </div>
           </div>
@@ -340,7 +346,7 @@ export default function PegawaiDashboard() {
           {/* Section header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
             <div>
-              <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 Riwayat Upload CKP
               </h3>
               <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
@@ -409,10 +415,10 @@ export default function PegawaiDashboard() {
               style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
             >
               <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-3xl"
-                style={{ background: '#F1F5F9' }}
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
+                style={{ background: 'var(--bg-secondary)' }}
               >
-                📂
+                <Folder size={28} style={{ color: 'var(--text-tertiary)' }} />
               </div>
               <p className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {searchQuery ? 'Tidak ada hasil' : 'Belum ada upload'}

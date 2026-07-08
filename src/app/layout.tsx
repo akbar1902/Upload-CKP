@@ -41,15 +41,15 @@ export default function RootLayout({
     <html lang="id" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <NextTopLoader
-          color="#3B82F6"
+          color="#0071E3"
           initialPosition={0.08}
           crawlSpeed={200}
-          height={3}
+          height={2}
           crawl={true}
-          showSpinner={true}
+          showSpinner={false}
           easing="ease"
           speed={200}
-          shadow="0 0 10px #3B82F6,0 0 5px #3B82F6"
+          shadow="0 0 8px rgba(0,113,227,0.3)"
         />
         <ErrorBoundary>
           <QueryProvider>
@@ -65,7 +65,9 @@ export default function RootLayout({
                   closeButton
                   toastOptions={{
                     style: {
-                      fontFamily: 'Inter, sans-serif',
+                      fontFamily: "-apple-system, 'SF Pro Display', 'Inter', sans-serif",
+                      borderRadius: '16px',
+                      fontSize: '14px',
                     },
                   }}
                 />

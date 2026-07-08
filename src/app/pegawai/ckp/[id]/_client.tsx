@@ -120,30 +120,31 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
       <div className="flex items-start gap-4 p-5">
 
         {/* Date block */}
-        <div className="hidden sm:flex flex-col items-center justify-center bg-slate-50 border border-slate-200 rounded-xl w-16 h-16 flex-shrink-0 text-center shadow-sm">
-          <span className="text-xl font-bold text-slate-700 leading-none">{day}</span>
-          <span className="text-[10px] font-semibold text-slate-500 uppercase mt-1 tracking-widest">{monthAbbr}</span>
+        <div className="hidden sm:flex flex-col items-center justify-center rounded-xl w-16 h-16 flex-shrink-0 text-center shadow-sm"
+             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+          <span className="text-xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>{day}</span>
+          <span className="text-[10px] font-semibold uppercase mt-1 tracking-widest" style={{ color: 'var(--text-secondary)' }}>{monthAbbr}</span>
         </div>
 
         {/* Content */}
         <div className="flex flex-col flex-1 min-w-0 justify-center">
           <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-x-4 gap-y-2 mb-2">
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Rencana Kinerja</p>
-            <p className="text-[14px] font-semibold text-slate-800 leading-snug">
+            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
+            <p className="text-[14px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
               {entry.rencana_kinerja || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Kegiatan</p>
-            <p className="text-[13px] text-slate-700">
+            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
+            <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
               {entry.kegiatan || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5">Capaian</p>
-            <p className="text-[13px] text-slate-700 whitespace-pre-wrap">
+            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Capaian</p>
+            <p className="text-[13px] whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
               {entry.capaian || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold text-slate-500 uppercase tracking-wider md:pt-0.5 mt-1">Nilai SKP</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5 mt-1" style={{ color: 'var(--text-secondary)' }}>Nilai SKP</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[14px] font-bold" style={{ color: entry.nilai !== null ? '#059669' : '#94A3B8' }}>
                 {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
@@ -152,7 +153,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           </div>
 
           {/* Mobile date */}
-          <p className="text-[11px] mt-2 sm:hidden text-slate-500 font-medium">
+          <p className="text-[11px] mt-2 sm:hidden font-medium" style={{ color: 'var(--text-secondary)' }}>
             {formatDate(entry.tanggal_mulai)}
             {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
           </p>
@@ -415,14 +416,15 @@ export default function CKPDetailPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
           >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
@@ -455,7 +457,7 @@ export default function CKPDetailPage() {
       <>
         <Header />
         <div className="p-5 lg:p-8 max-w-6xl mx-auto text-center py-20">
-          <p className="text-slate-500">CKP tidak ditemukan.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>CKP tidak ditemukan.</p>
           <button onClick={() => router.back()} className="btn-secondary mt-4">
             <ArrowLeft size={14} /> Kembali
           </button>

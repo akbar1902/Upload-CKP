@@ -5,7 +5,7 @@ import { Sidebar } from '@/components/layout/sidebar';
 
 export default function PegawaiLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
       <Sidebar />
       <div className="flex-1 min-w-0">
         {children}

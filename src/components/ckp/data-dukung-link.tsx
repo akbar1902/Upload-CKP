@@ -10,13 +10,13 @@ interface DataDukungLinkProps {
 
 export function DataDukungLink({ value }: DataDukungLinkProps) {
   if (!value || value.trim().length === 0) {
-    return <span className="text-slate-400 text-sm">-</span>;
+    return <span className="text-[14px]" style={{ color: 'var(--text-tertiary)' }}>-</span>;
   }
 
   const trimmed = value.trim();
 
   if (!isValidUrl(trimmed)) {
-    return <span className="text-sm text-slate-600">{trimmed}</span>;
+    return <span className="text-[14px]" style={{ color: 'var(--text-primary)' }}>{trimmed}</span>;
   }
 
   const isGDrive = isGoogleDriveLink(trimmed);
@@ -26,7 +26,8 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
       href={trimmed}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 hover:underline transition-colors group"
+      className="inline-flex items-center gap-1.5 text-[14px] font-medium transition-all duration-200 group"
+      style={{ color: 'var(--primary)' }}
       title={trimmed}
     >
       {isGDrive ? (
@@ -46,7 +47,7 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
           <span className="truncate max-w-[120px]">Lihat Bukti</span>
         </>
       )}
-      <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
     </a>
   );
 }

@@ -19,7 +19,9 @@ const actionIcons: Record<string, React.ElementType> = {
 export function ApprovalHistory({ approvals }: ApprovalHistoryProps) {
   if (approvals.length === 0) {
     return (
-      <p className="text-sm text-slate-400 italic py-4">Belum ada riwayat review.</p>
+      <p className="text-[14px] italic py-4" style={{ color: 'var(--text-tertiary)' }}>
+        Belum ada riwayat review.
+      </p>
     );
   }
 
@@ -33,29 +35,35 @@ export function ApprovalHistory({ approvals }: ApprovalHistoryProps) {
           <div key={approval.id} className="flex gap-3">
             {/* Timeline line */}
             <div className="flex flex-col items-center">
-              <div className={`p-1.5 rounded-full border-2 border-white bg-slate-50 shadow-sm ${getApprovalActionColor(approval.action)}`}>
+              <div className={`p-1.5 rounded-full shadow-sm ${getApprovalActionColor(approval.action)}`}
+                   style={{ border: '2px solid var(--card-bg)', background: 'var(--bg-secondary)' }}>
                 <Icon className="h-4 w-4" />
               </div>
-              {!isLast && <div className="w-px h-full bg-slate-200 min-h-[24px]" />}
+              {!isLast && <div className="w-px h-full min-h-[24px]" style={{ background: 'var(--border)' }} />}
             </div>
 
             {/* Content */}
-            <div className={`pb-4 ${isLast ? '' : ''}`}>
+            <div className="pb-4">
               <div className="flex items-baseline gap-2">
-                <span className={`text-sm font-semibold ${getApprovalActionColor(approval.action)}`}>
+                <span className={`text-[14px] font-semibold ${getApprovalActionColor(approval.action)}`}>
                   {getApprovalActionLabel(approval.action)}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
                   {formatDateTime(approval.created_at)}
                 </span>
               </div>
               {approval.reviewer && (
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
                   oleh {approval.reviewer.full_name}
                 </p>
               )}
               {approval.catatan && (
-                <p className="text-sm text-slate-600 mt-1 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                <p className="text-[14px] mt-1.5 p-3.5 rounded-2xl"
+                   style={{
+                     color: 'var(--text-primary)',
+                     background: 'var(--bg-secondary)',
+                     border: '1px solid var(--border)',
+                   }}>
                   {approval.catatan}
                 </p>
               )}

@@ -2,20 +2,24 @@ import React from 'react';
 import type { UploadStatus } from '@/types/database';
 
 export const STATUS_CONFIG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '🟢' },
-  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '🟠' },
-  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '⚪' },
+  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#FF9500' },
+  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '#34C759' },
+  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '#FF3B30' },
+  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '#FF9500' },
+  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '#AEAEB2' },
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
-    ?? { label: status, cls: 'badge-draft', dot: '⚪' };
+    ?? { label: status, cls: 'badge-draft', dot: '#AEAEB2' };
   
   return (
     <span className={`badge-pill ${cfg.cls}`} role="status" aria-label={`Status: ${cfg.label}`}>
-      <span aria-hidden="true">{cfg.dot}</span>
+      <span
+        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+        style={{ background: cfg.dot }}
+        aria-hidden="true"
+      />
       {cfg.label}
     </span>
   );
@@ -24,24 +28,26 @@ export function StatusBadge({ status }: { status: string }) {
 export function StatusLabel({ status }: { status: UploadStatus | null }) {
   if (!status) {
     return (
-      <span className="text-[11px] font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+      <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+            style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
         Belum Lapor
       </span>
     );
   }
   
-  const map: Record<UploadStatus, { label: string; cls: string }> = {
-    draft:             { label: 'Draft',          cls: 'text-slate-500 bg-slate-100' },
-    submitted:         { label: 'Menunggu Review', cls: 'text-amber-700 bg-amber-50' },
-    approved:          { label: 'Disetujui',       cls: 'text-emerald-700 bg-emerald-50' },
-    rejected:          { label: 'Ditolak',         cls: 'text-red-600 bg-red-50' },
-    revision_required: { label: 'Perlu Revisi',    cls: 'text-orange-700 bg-orange-50' },
+  const map: Record<UploadStatus, { label: string; bg: string; color: string }> = {
+    draft:             { label: 'Draft',          bg: 'var(--bg-secondary)',    color: 'var(--text-secondary)' },
+    submitted:         { label: 'Menunggu Review', bg: 'var(--primary-soft)',    color: 'var(--primary)' },
+    approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success)' },
+    rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger)' },
+    revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning)' },
   };
   
-  const s = map[status] ?? { label: status, cls: 'text-slate-500 bg-slate-100' };
+  const s = map[status] ?? { label: status, bg: 'var(--bg-secondary)', color: 'var(--text-secondary)' };
   return (
     <span
-      className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${s.cls}`}
+      className="text-[11px] font-medium px-2.5 py-0.5 rounded-full"
+      style={{ background: s.bg, color: s.color }}
       role="status"
       aria-label={`Status: ${s.label}`}
     >

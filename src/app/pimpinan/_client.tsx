@@ -26,11 +26,11 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
   const r = 20;
   const circumference = 2 * Math.PI * r;
   const dash = (pct / 100) * circumference;
-  const strokeColor = pct >= 80 ? '#22C55E' : pct >= 50 ? '#F59E0B' : '#2563EB';
+  const strokeColor = pct >= 80 ? '#34C759' : pct >= 50 ? '#FF9500' : '#0071E3';
 
   return (
-    <div className="kpi-card p-5 flex flex-col gap-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+    <div className="kpi-card p-7 flex flex-col gap-4">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
         Tingkat Pelaporan
       </p>
       <div className="flex items-center gap-4">
@@ -39,7 +39,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
           : (
             <div className="relative flex-shrink-0">
               <svg width="52" height="52" className="-rotate-90">
-                <circle cx="26" cy="26" r={r} fill="none" stroke="#F1F5F9" strokeWidth="5" />
+                <circle cx="26" cy="26" r={r} fill="none" stroke="var(--bg-secondary)" strokeWidth="5" />
                 <circle
                   cx="26" cy="26" r={r} fill="none"
                   stroke={strokeColor} strokeWidth="5"
@@ -58,7 +58,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
         <div>
           {loading
             ? <div className="skeleton h-6 w-16 rounded" />
-            : <p className="text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+            : <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
               {uploaded}<span className="text-base font-normal" style={{ color: 'var(--text-secondary)' }}>/{total}</span>
             </p>
           }
@@ -213,15 +213,13 @@ export default function PimpinanDashboard() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
+               style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
-          <button
-            onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 text-white text-sm font-medium hover:bg-slate-700 transition-colors"
-          >
+          <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-[14px] mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
+          <button onClick={() => refetch()} className="btn-primary">
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
         </div>
@@ -238,11 +236,15 @@ export default function PimpinanDashboard() {
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-800">Dashboard Pimpinan</h2>
-            <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-2">
+            <h2 className="text-[22px] font-semibold tracking-tight"
+                style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Dashboard Pimpinan
+            </h2>
+            <p className="text-[13px] mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
               {getBulanName(bulan)} {tahun}
               {!isCurrentPeriod && (
-                <span className="inline-flex items-center gap-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                      style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
                   Filter aktif
                 </span>
               )}
@@ -255,7 +257,7 @@ export default function PimpinanDashboard() {
             />
             <button
               onClick={() => refetch()}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+              className="filter-btn"
               title="Refresh data"
               aria-label="Refresh data"
             >
@@ -263,7 +265,7 @@ export default function PimpinanDashboard() {
             </button>
             <button
               onClick={handleExportRekap}
-              className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors"
+              className="filter-btn"
               title="Export rekap ke Excel"
               aria-label="Export rekap ke Excel"
             >
@@ -275,22 +277,23 @@ export default function PimpinanDashboard() {
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Users size={18} style={{ color: "#2563EB" }} />} value={totalPegawai} label="Total Pegawai" sub="Aktif terdaftar" iconBg="#EFF6FF" loading={loading} />
-          <KPICard icon={<Clock size={18} style={{ color: "#D97706" }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="#FFFBEB" loading={loading} />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="#F0FDF4" loading={loading} />
-          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="#F5F3FF" loading={loading} />
+          <KPICard icon={<Users size={18} style={{ color: 'var(--primary)' }} />} value={totalPegawai} label="Total Pegawai" sub="Aktif terdaftar" iconBg="var(--primary-soft)" loading={loading} />
+          <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--success)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--success-soft)" loading={loading} />
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}
         <div>
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h3 className="text-base font-semibold text-slate-800">Rekap per Pegawai</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{filteredRows.length} pegawai ditampilkan</p>
+              <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{filteredRows.length} pegawai ditampilkan</p>
             </div>
             <Link
               href="/pimpinan/pegawai"
-              className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1 transition-colors"
+              className="text-[13px] font-medium flex items-center gap-1 transition-colors"
+              style={{ color: 'var(--primary)' }}
             >
               Lihat tabel lengkap <ArrowRight className="h-3 w-3" />
             </Link>
@@ -298,14 +301,19 @@ export default function PimpinanDashboard() {
 
           {/* Mobile search */}
           <div className="relative mb-4 max-w-xs md:hidden">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
             <input
               type="search"
               placeholder="Cari pegawai..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Cari pegawai"
-              className="w-full pl-9 h-9 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+              className="w-full pl-9 h-10 text-[14px] rounded-xl transition-all duration-200"
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                color: 'var(--text-primary)',
+              }}
             />
           </div>
 
@@ -315,13 +323,14 @@ export default function PimpinanDashboard() {
               {[...Array(6)].map((_, i) => <PegawaiCardSkeleton key={i} />)}
             </div>
           ) : filteredRows.length === 0 ? (
-            <div className="text-center py-16 text-slate-400">
-              <Search className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-medium text-slate-600">Tidak ada pegawai ditemukan</p>
+            <div className="text-center py-16">
+              <Search className="h-8 w-8 mx-auto mb-3 opacity-40" style={{ color: 'var(--text-tertiary)' }} />
+              <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>Tidak ada pegawai ditemukan</p>
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="mt-2 text-xs text-blue-500 hover:text-blue-700"
+                  className="mt-2 text-[13px] font-medium transition-colors"
+                  style={{ color: 'var(--primary)' }}
                 >
                   Hapus pencarian
                 </button>

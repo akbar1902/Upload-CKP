@@ -69,7 +69,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   return (
     <div className="activity-card" aria-expanded={expanded}>
       {/* ── Main card row ──────────────────────────── */}
-      <div className="flex items-center gap-4 p-5">
+      <div className="flex items-center gap-4 p-6">
 
         {/* Date block */}
         <div className="date-block hidden sm:flex">
@@ -82,8 +82,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         <div className="flex items-center gap-3 flex-1 min-w-0">
           {/* Colored status icon */}
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.15)' }}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'var(--primary-soft)' }}
             aria-hidden="true"
           >
             <FileCheck size={18} style={{ color: 'var(--primary)' }} />
@@ -91,21 +91,22 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
           <div className="min-w-0 flex-1">
             {/* Period title */}
-            <p className="text-[15px] font-bold leading-snug truncate" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-[15px] font-semibold leading-snug truncate"
+               style={{ color: 'var(--text-primary)' }}>
               CKP {MONTH_FULL[upload.bulan]} {upload.tahun}
               {upload.version > 1 && (
                 <span className="ml-2 text-[11px] font-normal px-1.5 py-0.5 rounded-md"
-                      style={{ background: '#F1F5F9', color: 'var(--text-secondary)' }}>
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
                   v{upload.version}
                 </span>
               )}
             </p>
             {/* File name */}
             <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-              📄 {upload.file_name || 'Tidak ada nama file'}
+              {upload.file_name || 'Tidak ada nama file'}
             </p>
             {/* Mobile date */}
-            <p className="text-[11px] mt-0.5 sm:hidden" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[11px] mt-0.5 sm:hidden" style={{ color: 'var(--text-tertiary)' }}>
               Upload: {formatDateTime(upload.uploaded_at)}
             </p>
           </div>
@@ -114,11 +115,11 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         {/* Progress */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0 min-w-[100px] hidden md:flex">
           <div className="flex items-center gap-2 w-full justify-end">
-            <span className="text-[13px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
+            <span className="text-[14px] font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>
               {pct.toFixed(0)}%
             </span>
           </div>
-          <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
+          <div className="w-24 h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
             <div
               className={`h-full rounded-full progress-bar ${progressClass}`}
               style={{ width: `${pct}%` }}
@@ -128,7 +129,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               aria-valuemax={100}
             />
           </div>
-          <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+          <span className="text-[11px]" style={{ color: 'var(--text-tertiary)' }}>
             {upload.total_entries} kegiatan
           </span>
         </div>
@@ -138,10 +139,16 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           <StatusBadge status={upload.status} />
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
-            style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#F1F5F9'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            className="flex items-center gap-1 text-[12px] font-medium transition-all duration-200 px-2.5 py-1 rounded-full"
+            style={{ color: 'var(--text-tertiary)' }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.background = 'transparent';
+              (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
+            }}
             aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -153,34 +160,34 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       {/* ── Expanded detail panel ───────────────────── */}
       {expanded && (
         <div
-          className="card-expanded-content border-t px-5 py-4"
-          style={{ borderColor: 'var(--border)', background: '#FAFBFC' }}
+          className="card-expanded-content border-t px-6 py-5"
+          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
         >
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-5">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Periode</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+                 style={{ color: 'var(--text-tertiary)' }}>Periode</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {MONTH_FULL[upload.bulan]} {upload.tahun}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Total Kegiatan</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+                 style={{ color: 'var(--text-tertiary)' }}>Total Kegiatan</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {upload.total_entries} kegiatan
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Rata-rata Progres</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+                 style={{ color: 'var(--text-tertiary)' }}>Rata-rata Progres</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {pct.toFixed(0)}%
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: 'var(--text-secondary)' }}>Diupload</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+                 style={{ color: 'var(--text-tertiary)' }}>Diupload</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {formatDateTime(upload.uploaded_at)}
               </p>
@@ -189,8 +196,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
           {/* File attachment */}
           {upload.file_name && (
-            <div className="flex items-center gap-2 mb-4 p-3 rounded-xl"
-                 style={{ background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.12)' }}>
+            <div className="flex items-center gap-2 mb-5 p-3.5 rounded-2xl"
+                 style={{ background: 'var(--primary-soft)', border: '1px solid rgba(0,113,227,0.06)' }}>
               <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
               <span className="text-[12px] font-medium truncate" style={{ color: 'var(--primary)' }}>
                 {upload.file_name}
@@ -200,21 +207,22 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
           {/* Notes from pimpinan */}
           {upload.catatan_pimpinan && (
-            <div className="mb-4 p-3 rounded-xl"
-                 style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
-                 style={{ color: '#92400E' }}>Catatan Pimpinan</p>
-              <p className="text-[13px]" style={{ color: '#78350F' }}>
+            <div className="mb-5 p-3.5 rounded-2xl"
+                 style={{ background: 'var(--warning-soft)', border: '1px solid rgba(255,149,0,0.08)' }}>
+              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+                 style={{ color: 'var(--warning)' }}>Catatan Pimpinan</p>
+              <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {upload.catatan_pimpinan}
               </p>
             </div>
           )}
 
           {/* CTA & Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-4 pt-4 border-t border-slate-200/60">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5 pt-5 border-t"
+               style={{ borderColor: 'var(--border)' }}>
             <Link
               href={`/pegawai/ckp/${upload.id}`}
-              className="inline-flex items-center gap-2 text-[13px] font-semibold transition-colors"
+              className="inline-flex items-center gap-2 text-[13px] font-medium transition-colors"
               style={{ color: 'var(--primary)' }}
             >
               Lihat Detail Lengkap <ArrowRight size={13} />
@@ -224,7 +232,10 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               <button
                 onClick={handleDelete}
                 disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200 disabled:opacity-50"
+                style={{ color: 'var(--danger)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
               >
                 <Trash2 size={13} />
                 {isDeleting ? 'Menghapus...' : 'Hapus CKP'}
@@ -239,23 +250,23 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
 export function ActivityCardSkeleton() {
   return (
-    <div className="activity-card p-5">
+    <div className="activity-card p-6">
       <div className="flex items-center gap-4">
-        <div className="skeleton w-16 h-20 rounded-xl hidden sm:block" />
+        <div className="skeleton w-16 h-20 rounded-2xl hidden sm:block" />
         <div className="flex items-center gap-3 flex-1">
-          <div className="skeleton w-10 h-10 rounded-xl flex-shrink-0" />
-          <div className="flex-1 space-y-2">
-            <div className="skeleton h-4 w-48 rounded" />
-            <div className="skeleton h-3 w-32 rounded" />
+          <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />
+          <div className="flex-1 space-y-2.5">
+            <div className="skeleton h-4 w-48 rounded-lg" />
+            <div className="skeleton h-3 w-32 rounded-lg" />
           </div>
         </div>
         <div className="flex flex-col items-end gap-2 hidden md:flex">
-          <div className="skeleton h-4 w-8 rounded" />
-          <div className="skeleton h-2 w-24 rounded-full" />
+          <div className="skeleton h-4 w-8 rounded-lg" />
+          <div className="skeleton h-1 w-24 rounded-full" />
         </div>
         <div className="flex flex-col items-end gap-2">
-          <div className="skeleton h-6 w-20 rounded-full" />
-          <div className="skeleton h-4 w-12 rounded" />
+          <div className="skeleton h-6 w-24 rounded-full" />
+          <div className="skeleton h-5 w-14 rounded-full" />
         </div>
       </div>
     </div>

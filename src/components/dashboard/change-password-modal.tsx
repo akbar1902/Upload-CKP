@@ -97,15 +97,20 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     <Dialog open={open} onClose={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         {isSuccess ? (
-          <div className="px-6 py-12 flex flex-col items-center justify-center text-center animate-in fade-in zoom-in-95 duration-300">
-            <div className="relative mb-6">
-              <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20 duration-1000"></div>
-              <div className="relative w-20 h-20 bg-emerald-100/80 text-emerald-600 rounded-full flex items-center justify-center border-4 border-emerald-50">
-                <CheckCircle2 size={40} className="animate-in zoom-in duration-500 delay-150 fill-mode-both" />
+          <div className="px-7 py-14 flex flex-col items-center justify-center text-center"
+               style={{ animation: 'scaleIn 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}>
+            <div className="relative mb-7">
+              <div className="w-20 h-20 rounded-full flex items-center justify-center"
+                   style={{ background: 'var(--success-soft)' }}>
+                <CheckCircle2 size={40} style={{ color: 'var(--success)' }} />
               </div>
             </div>
-            <DialogTitle className="text-xl font-bold text-slate-900 mb-2">Password Berhasil Diubah!</DialogTitle>
-            <p className="text-sm text-slate-500 mb-8 max-w-[280px]">
+            <h3 className="text-xl font-semibold mb-2 tracking-tight"
+                style={{ color: 'var(--text-primary)' }}>
+              Password Berhasil Diubah!
+            </h3>
+            <p className="text-[15px] mb-8 max-w-[280px]"
+               style={{ color: 'var(--text-secondary)' }}>
               Password akun Anda telah berhasil diperbarui dan sudah bisa digunakan untuk keperluan login selanjutnya.
             </p>
             <Button onClick={handleClose} className="w-full">
@@ -116,8 +121,9 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
           <>
             <DialogHeader>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
-                  <Lock size={20} />
+                <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0"
+                     style={{ background: 'var(--primary-soft)' }}>
+                  <Lock size={20} style={{ color: 'var(--primary)' }} />
                 </div>
                 <div>
                   <DialogTitle>Ganti Password</DialogTitle>
@@ -129,9 +135,10 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
             </DialogHeader>
 
             <form onSubmit={handleSubmit}>
-              <DialogBody className="space-y-4">
+              <DialogBody className="space-y-5">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label className="text-[13px] font-medium"
+                         style={{ color: 'var(--text-primary)' }}>
                     Password Baru
                   </label>
                   <div className="relative">
@@ -140,13 +147,29 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan password baru"
-                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-all duration-200"
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-primary)',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--primary)';
+                        e.currentTarget.style.background = 'var(--card-bg)';
+                        e.currentTarget.style.boxShadow = '0 0 0 4px var(--primary-ring)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                       required
                       minLength={6}
                     />
                     <button
                       type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors"
+                      style={{ color: 'var(--text-tertiary)' }}
                       onClick={() => setShowPassword(!showPassword)}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -155,7 +178,8 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-700">
+                  <label className="text-[13px] font-medium"
+                         style={{ color: 'var(--text-primary)' }}>
                     Konfirmasi Password Baru
                   </label>
                   <div className="relative">
@@ -164,7 +188,22 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Ulangi password baru"
-                      className="w-full pl-4 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-all duration-200"
+                      style={{
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--text-primary)',
+                      }}
+                      onFocus={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--primary)';
+                        e.currentTarget.style.background = 'var(--card-bg)';
+                        e.currentTarget.style.boxShadow = '0 0 0 4px var(--primary-ring)';
+                      }}
+                      onBlur={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
                       required
                       minLength={6}
                     />

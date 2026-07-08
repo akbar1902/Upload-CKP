@@ -415,17 +415,23 @@ export default function UploadPage() {
     <>
       <Header />
       <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.back()} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700 transition-colors">
+        <button onClick={() => router.back()}
+          className="flex items-center gap-1 text-[13px] font-medium transition-colors"
+          style={{ color: 'var(--text-tertiary)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; }}
+        >
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </button>
 
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Upload className="h-6 w-6 text-blue-500" />
+          <h2 className="text-[24px] font-semibold tracking-tight flex items-center gap-2"
+              style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            <Upload className="h-6 w-6" style={{ color: 'var(--primary)' }} />
             Upload CKP
           </h2>
-          <p className="text-slate-500 mt-1">Upload file Excel CKP bulanan Anda</p>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>Upload file Excel CKP bulanan Anda</p>
         </div>
 
         <Card>
@@ -436,7 +442,7 @@ export default function UploadPage() {
           <CardContent>
             <div className="flex items-center gap-4">
               <div className="w-48">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Bulan</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Bulan</label>
                 <Select
                   options={bulanOptions}
                   value={String(bulan)}
@@ -444,7 +450,7 @@ export default function UploadPage() {
                 />
               </div>
               <div className="w-32">
-                <label className="block text-xs font-medium text-slate-500 mb-1.5">Tahun</label>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Tahun</label>
                 <Select
                   options={tahunOptions}
                   value={String(tahun)}
@@ -495,8 +501,9 @@ export default function UploadPage() {
         {parsing && (
           <Card>
             <CardContent className="py-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-3" />
-              <p className="text-sm text-slate-500">Membaca file Excel...</p>
+              <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto mb-3"
+                   style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }} />
+              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>Membaca file Excel...</p>
             </CardContent>
           </Card>
         )}
@@ -511,40 +518,41 @@ export default function UploadPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {parseResult.success && parseResult.entries.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl border border-slate-200 shadow-sm mt-4 bg-white">
+                  <div className="overflow-x-auto rounded-xl shadow-sm mt-4" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-16">No</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-[25%]">Rencana Kinerja</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-[30%]">Kegiatan</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Tanggal</th>
-                          <th className="text-center py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap w-24">Progres</th>
-                          <th className="text-left py-3 px-4 text-[13px] font-semibold text-slate-600 dark:text-slate-300 whitespace-nowrap">Bukti Dukung</th>
+                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-16" style={{ color: 'var(--text-secondary)' }}>No</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-[25%]" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-[30%]" style={{ color: 'var(--text-secondary)' }}>Kegiatan</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Tanggal</th>
+                          <th className="text-center py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-24" style={{ color: 'var(--text-secondary)' }}>Progres</th>
+                          <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                      <tbody style={{ borderTop: '1px solid var(--border)' }} className="divide-y divide-slate-100 dark:divide-slate-800/60">
                         {parseResult.entries.slice(0, 10).map((entry, i) => (
-                          <tr key={i} className="bg-white dark:bg-slate-900 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
-                            <td className="py-3 px-4 text-center text-slate-500 dark:text-slate-400 font-medium">{entry.row_number}</td>
+                          <tr key={i} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50" style={{ background: 'var(--card-bg)' }}>
+                            <td className="py-3 px-4 text-center font-medium" style={{ color: 'var(--text-tertiary)' }}>{entry.row_number}</td>
                             <td className="py-3 px-4">
-                              <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed line-clamp-3">
+                              <p className="text-[13px] leading-relaxed line-clamp-3" style={{ color: 'var(--text-primary)' }}>
                                 {String(entry.rencana_kinerja || '—')}
                               </p>
                             </td>
                             <td className="py-3 px-4">
-                              <p className="text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed line-clamp-3">
+                              <p className="text-[13px] leading-relaxed line-clamp-3" style={{ color: 'var(--text-primary)' }}>
                                 {String(entry.kegiatan || '—')}
                               </p>
                             </td>
-                            <td className="py-3 px-4 text-[13px] text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            <td className="py-3 px-4 text-[13px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
                               <div className="flex flex-col gap-1">
                                 <span>Mulai: {String(entry.tanggal_mulai || '-')}</span>
                                 <span>Selesai: {String(entry.tanggal_selesai || '-')}</span>
                               </div>
                             </td>
                             <td className="py-3 px-4 text-center">
-                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
+                              <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[12px] font-semibold"
+                                    style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
                                 {Number(entry.progres || 0).toFixed(0)}%
                               </span>
                             </td>
@@ -555,7 +563,7 @@ export default function UploadPage() {
                                   <span>Lihat Bukti</span>
                                 </a>
                               ) : (
-                                <p className="text-[13px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                                <p className="text-[13px] line-clamp-1" style={{ color: 'var(--text-secondary)' }}>
                                   {String(entry.data_dukung || '—')}
                                 </p>
                               )}
@@ -565,8 +573,9 @@ export default function UploadPage() {
                       </tbody>
                     </table>
                     {parseResult.entries.length > 10 && (
-                      <div className="py-3 px-4 text-center text-[13px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-200 dark:border-slate-800">
-                        Menampilkan 10 dari <span className="font-semibold text-slate-700 dark:text-slate-200">{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
+                      <div className="py-3 px-4 text-center text-[13px]"
+                           style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', color: 'var(--text-tertiary)' }}>
+                        Menampilkan 10 dari <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
                       </div>
                     )}
                   </div>
@@ -585,25 +594,31 @@ export default function UploadPage() {
       </div>
 
       {showTeamModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--card-bg)' }}>
+            <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Mapping Tim Kerja</h3>
-                <p className="text-sm text-slate-500 mt-1">Beberapa Rencana Kinerja belum memiliki tim kerja.</p>
+                <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Mapping Tim Kerja</h3>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Beberapa Rencana Kinerja belum memiliki tim kerja.</p>
               </div>
-              <button onClick={() => setShowTeamModal(false)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><X size={20} /></button>
+              <button onClick={() => setShowTeamModal(false)} className="p-2 rounded-lg transition-colors"
+                      style={{ color: 'var(--text-tertiary)' }}
+                      onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; }}
+                      onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
+                <X size={20} />
+              </button>
             </div>
-            <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
+            <div className="p-6 overflow-y-auto flex-1" style={{ background: 'var(--bg-base)' }}>
               <div className="space-y-4">
                 {unmatchedRKs.map((rk, idx) => (
-                  <div key={idx} className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                    <p className="font-semibold text-slate-800 mb-4">{rk}</p>
+                  <div key={idx} className="p-5 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                    <p className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>{rk}</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Pilih Tim Kerja</label>
+                        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih Tim Kerja</label>
                         <select 
-                          className="w-full text-sm border-slate-200 rounded-lg h-10 px-3"
+                          className="w-full text-sm rounded-lg h-10 px-3 outline-none"
+                          style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
                           value={rkTeamMapping[rk]?.tim_kerja || ''}
                           onChange={(e) => {
                             const selectedTim = e.target.value;
@@ -619,8 +634,9 @@ export default function UploadPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-slate-500 mb-1.5">Ketua Tim</label>
-                        <div className="h-10 px-3 py-2 bg-slate-100 border border-slate-200 rounded-lg text-sm text-slate-600 flex items-center">
+                        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Ketua Tim</label>
+                        <div className="h-10 px-3 py-2 rounded-lg text-sm flex items-center"
+                             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                           {rkTeamMapping[rk]?.ketua_tim_id ? ketuaTims.find(k => k.id === rkTeamMapping[rk]?.ketua_tim_id)?.full_name || 'Tidak diketahui' : 'Pilih tim kerja...'}
                         </div>
                       </div>
@@ -629,7 +645,7 @@ export default function UploadPage() {
                 ))}
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+            <div className="p-6 flex justify-end gap-3" style={{ background: 'var(--card-bg)', borderTop: '1px solid var(--border)' }}>
               <Button variant="outline" onClick={() => setShowTeamModal(false)}>Batal</Button>
               <Button onClick={() => {
                 const invalid = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja || !rkTeamMapping[rk]?.ketua_tim_id);
@@ -643,8 +659,8 @@ export default function UploadPage() {
 
       {/* Progress Modal */}
       {uploading && !showTeamModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center" style={{ background: 'var(--card-bg)' }}>
             <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
               {uploadProgress === 100 ? (
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center animate-scale-in">
@@ -653,47 +669,48 @@ export default function UploadPage() {
               ) : (
                 <>
                   <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" fill="none" className="stroke-slate-100 dark:stroke-slate-800" strokeWidth="8" />
+                    <circle cx="50" cy="50" r="45" fill="none" style={{ stroke: 'var(--bg-secondary)' }} strokeWidth="8" />
                     <circle 
                       cx="50" cy="50" r="45" fill="none" 
-                      className="stroke-blue-500 transition-all duration-500 ease-out" 
+                      className="transition-all duration-500 ease-out" 
+                      style={{ stroke: 'var(--primary)' }}
                       strokeWidth="8" 
                       strokeDasharray="283" 
                       strokeDashoffset={283 - (283 * uploadProgress) / 100}
                       strokeLinecap="round"
                     />
                   </svg>
-                  <span className="text-xl font-bold text-slate-800 dark:text-slate-100">{Math.round(uploadProgress)}%</span>
+                  <span className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{Math.round(uploadProgress)}%</span>
                 </>
               )}
             </div>
             
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+            <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
               {uploadProgress === 100 ? 'Upload Selesai!' : 'Memproses Upload...'}
             </h3>
             
             <div className="w-full text-left mt-6 space-y-3">
               <div className="flex items-center text-sm">
-                {uploadStep > 0 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" />}
-                <span className={uploadStep >= 0 ? "text-slate-700 dark:text-slate-200" : "text-slate-400"}>Persiapan data...</span>
+                {uploadStep > 0 ? <CheckCircle2 className="w-4 h-4 mr-3" style={{ color: 'var(--success)' }} /> : <Loader2 className="w-4 h-4 mr-3 animate-spin" style={{ color: 'var(--primary)' }} />}
+                <span style={{ color: uploadStep >= 0 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>Persiapan data...</span>
               </div>
               <div className="flex items-center text-sm">
-                {uploadStep > 1 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 1 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
-                <span className={uploadStep >= 1 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Mengunggah file Excel ke Storage...</span>
+                {uploadStep > 1 ? <CheckCircle2 className="w-4 h-4 mr-3" style={{ color: 'var(--success)' }} /> : uploadStep === 1 ? <Loader2 className="w-4 h-4 mr-3 animate-spin" style={{ color: 'var(--primary)' }} /> : <div className="w-4 h-4 mr-3 rounded-full border-2" style={{ borderColor: 'var(--border)' }} />}
+                <span style={{ color: uploadStep >= 1 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>Mengunggah file Excel ke Storage...</span>
               </div>
               {existingUpload && (
                 <div className="flex items-center text-sm">
-                  {uploadStep > 2 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 2 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
-                  <span className={uploadStep >= 2 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Membersihkan data lama...</span>
+                  {uploadStep > 2 ? <CheckCircle2 className="w-4 h-4 mr-3" style={{ color: 'var(--success)' }} /> : uploadStep === 2 ? <Loader2 className="w-4 h-4 mr-3 animate-spin" style={{ color: 'var(--primary)' }} /> : <div className="w-4 h-4 mr-3 rounded-full border-2" style={{ borderColor: 'var(--border)' }} />}
+                  <span style={{ color: uploadStep >= 2 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>Membersihkan data lama...</span>
                 </div>
               )}
               <div className="flex items-center text-sm">
-                {uploadStep > 3 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 3 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
-                <span className={uploadStep >= 3 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Menyimpan informasi CKP...</span>
+                {uploadStep > 3 ? <CheckCircle2 className="w-4 h-4 mr-3" style={{ color: 'var(--success)' }} /> : uploadStep === 3 ? <Loader2 className="w-4 h-4 mr-3 animate-spin" style={{ color: 'var(--primary)' }} /> : <div className="w-4 h-4 mr-3 rounded-full border-2" style={{ borderColor: 'var(--border)' }} />}
+                <span style={{ color: uploadStep >= 3 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>Menyimpan informasi CKP...</span>
               </div>
               <div className="flex items-center text-sm">
-                {uploadStep >= 4 ? <CheckCircle2 className="w-4 h-4 mr-3 text-emerald-500" /> : uploadStep === 4 ? <Loader2 className="w-4 h-4 mr-3 text-blue-500 animate-spin" /> : <div className="w-4 h-4 mr-3 rounded-full border-2 border-slate-200 dark:border-slate-700" />}
-                <span className={uploadStep >= 4 ? "text-slate-700 dark:text-slate-200" : "text-slate-400 dark:text-slate-600"}>Menyimpan detail kegiatan...</span>
+                {uploadStep >= 4 ? <CheckCircle2 className="w-4 h-4 mr-3" style={{ color: 'var(--success)' }} /> : uploadStep === 4 ? <Loader2 className="w-4 h-4 mr-3 animate-spin" style={{ color: 'var(--primary)' }} /> : <div className="w-4 h-4 mr-3 rounded-full border-2" style={{ borderColor: 'var(--border)' }} />}
+                <span style={{ color: uploadStep >= 4 ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>Menyimpan detail kegiatan...</span>
               </div>
             </div>
             

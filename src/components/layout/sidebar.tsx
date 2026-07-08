@@ -12,8 +12,6 @@ import {
   LogOut,
   Menu,
   X,
-  BarChart3,
-  Settings,
   ChevronLeft,
   ChevronRight,
   Zap,
@@ -44,7 +42,7 @@ const ketuaTimNav: NavItem[] = [
 ];
 
 const SIDEBAR_EXPANDED = 260;
-const SIDEBAR_COLLAPSED = 60;
+const SIDEBAR_COLLAPSED = 72;
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
@@ -86,11 +84,6 @@ export function Sidebar() {
     .join('')
     .toUpperCase() || 'U';
 
-  const AVATAR_GRADIENTS = ['#1E293B'];
-  const avatarGrad = AVATAR_GRADIENTS[
-    ((user?.full_name?.charCodeAt(0) || 0) + (user?.full_name?.charCodeAt(1) || 0)) % AVATAR_GRADIENTS.length
-  ];
-
   const roleLabel = isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai');
 
   const navContent = (
@@ -104,17 +97,18 @@ export function Sidebar() {
         {/* Logo mark */}
         <div
           className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%)' }}
+          style={{ background: 'var(--primary)' }}
         >
           <Zap className="h-4.5 w-4.5 text-white" size={18} />
         </div>
         {!collapsed && (
           <div className="min-w-0">
-            <p className="text-[15px] font-bold text-white leading-tight tracking-tight">
+            <p className="text-[15px] font-semibold leading-tight tracking-tight"
+               style={{ color: 'var(--text-primary)' }}>
               CKP Digital
             </p>
             <p className="text-[11px] font-medium leading-tight mt-0.5"
-               style={{ color: 'rgba(148,163,184,0.9)' }}>
+               style={{ color: 'var(--text-tertiary)' }}>
               BPS Kab. Belitung
             </p>
           </div>
@@ -122,37 +116,39 @@ export function Sidebar() {
       </div>
 
       {/* ── Divider ───────────────────────────────────── */}
-      <div className="mx-4 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+      <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
 
       {/* ── User Profile Card ─────────────────────────── */}
       {!collapsed && user && (
-        <div className="mx-3 mt-4 mb-1 p-3 rounded-xl flex items-center gap-3"
-             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+        <div className="mx-3 mt-4 mb-1 p-3 rounded-2xl flex items-center gap-3"
+             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-bold flex-shrink-0"
-            style={{ background: avatarGrad }}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0"
+            style={{ background: 'var(--primary)' }}
             aria-hidden="true"
           >
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-semibold truncate" style={{ color: 'rgba(255,255,255,0.92)' }}>
+            <p className="text-[13px] font-medium truncate"
+               style={{ color: 'var(--text-primary)' }}>
               {user.full_name || 'User'}
             </p>
-            <p className="text-[11px] truncate mt-0.5" style={{ color: 'rgba(148,163,184,0.8)' }}>
+            <p className="text-[11px] truncate mt-0.5"
+               style={{ color: 'var(--text-secondary)' }}>
               {roleLabel}
             </p>
           </div>
           {/* Online indicator */}
-          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-emerald-400" title="Online" />
+          <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: 'var(--success)' }} title="Online" />
         </div>
       )}
 
       {collapsed && user && (
         <div className="flex justify-center mt-3 mb-1">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-bold"
-            style={{ background: avatarGrad }}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold"
+            style={{ background: 'var(--primary)' }}
             title={user.full_name}
             aria-hidden="true"
           >
@@ -163,14 +159,14 @@ export function Sidebar() {
 
       {/* ── Nav Label ─────────────────────────────────── */}
       {!collapsed && (
-        <p className="px-5 pt-4 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em]"
-           style={{ color: 'rgba(100,116,139,0.8)' }}>
-          Navigation
+        <p className="px-5 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em]"
+           style={{ color: 'var(--text-tertiary)' }}>
+          Menu
         </p>
       )}
 
       {/* ── Navigation Items ──────────────────────────── */}
-      <nav className="flex-1 px-3 py-1 space-y-0.5 overflow-y-auto" aria-label="Navigasi utama">
+      <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto" aria-label="Navigasi utama">
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
@@ -185,59 +181,53 @@ export function Sidebar() {
               aria-current={active ? 'page' : undefined}
               prefetch={!isPlaceholder}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-all duration-150",
-                active
-                  ? "text-blue-300 font-semibold"
-                  : "hover:text-white",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
                 collapsed && "justify-center px-3"
               )}
               style={
                 active
-                  ? { background: 'rgba(37,99,235,0.2)', border: '1px solid rgba(37,99,235,0.25)', color: '#93C5FD' }
-                  : { color: 'rgba(148,163,184,0.8)', border: '1px solid transparent' }
+                  ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                  : { color: 'var(--sidebar-text-muted)' }
               }
               onMouseEnter={(e) => {
                 if (!active) {
-                  (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-                  (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.9)';
+                  (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
                 }
               }}
               onMouseLeave={(e) => {
                 if (!active) {
                   (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.color = 'rgba(148,163,184,0.8)';
+                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
                 }
               }}
             >
               <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
-              {!collapsed && active && (
-                <span className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-400" aria-hidden="true" />
-              )}
             </Link>
           );
         })}
       </nav>
 
       {/* ── Bottom Actions ────────────────────────────── */}
-      <div className="px-3 pb-5 pt-3 space-y-0.5"
-           style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="px-3 pb-5 pt-3 space-y-1"
+           style={{ borderTop: '1px solid var(--border)' }}>
 
         {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setCollapsed(c => !c)}
           className={cn(
-            "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+            "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
             collapsed && "justify-center"
           )}
-          style={{ color: 'rgba(100,116,139,0.8)', border: '1px solid transparent' }}
+          style={{ color: 'var(--text-tertiary)' }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(100,116,139,0.8)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
           }}
           aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
         >
@@ -253,17 +243,17 @@ export function Sidebar() {
           title="Ganti Password"
           aria-label="Ganti password akun"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
             collapsed && "justify-center"
           )}
-          style={{ color: 'rgba(100,116,139,0.8)', border: '1px solid transparent' }}
+          style={{ color: 'var(--text-tertiary)' }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(255,255,255,0.8)';
+            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(100,116,139,0.8)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
           }}
         >
           <Lock size={15} className="flex-shrink-0" />
@@ -279,20 +269,20 @@ export function Sidebar() {
           title="Keluar"
           aria-label="Keluar dari aplikasi"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-150",
+            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
             signingOut ? "cursor-not-allowed opacity-50" : "",
             collapsed && "justify-center"
           )}
-          style={{ color: 'rgba(100,116,139,0.8)', border: '1px solid transparent' }}
+          style={{ color: 'var(--text-tertiary)' }}
           onMouseEnter={(e) => {
             if (!signingOut) {
-              (e.currentTarget as HTMLElement).style.background = 'rgba(239,68,68,0.12)';
-              (e.currentTarget as HTMLElement).style.color = '#FCA5A5';
+              (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--danger)';
             }
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'rgba(100,116,139,0.8)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
           }}
         >
           <LogOut size={15} className="flex-shrink-0" />
@@ -309,8 +299,8 @@ export function Sidebar() {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2 rounded-xl shadow-lg"
-        style={{ background: '#0F172A', color: 'rgba(148,163,184,0.9)' }}
+        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-2xl shadow-lg"
+        style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         aria-label="Buka menu navigasi"
       >
         <Menu size={16} />
@@ -319,7 +309,7 @@ export function Sidebar() {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden backdrop-blur-sm"
+          className="fixed inset-0 z-40 bg-black/30 lg:hidden backdrop-blur-sm"
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
         />
@@ -328,20 +318,20 @@ export function Sidebar() {
       {/* Mobile sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden",
-          mobileOpen ? "block" : "hidden"
+          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform duration-300",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{
           width: SIDEBAR_EXPANDED,
-          background: '#0F172A',
-          borderRight: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--sidebar-bg)',
+          borderRight: '1px solid var(--sidebar-border)',
         }}
       >
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 p-1.5 rounded-lg"
-          style={{ color: 'rgba(148,163,184,0.7)' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)'; }}
+          className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+          style={{ color: 'var(--text-tertiary)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           aria-label="Tutup menu"
         >
@@ -355,9 +345,9 @@ export function Sidebar() {
         className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 z-30"
         style={{
           width: sidebarW,
-          background: '#0F172A',
-          borderRight: '1px solid rgba(255,255,255,0.05)',
-          transition: 'width 0.2s ease',
+          background: 'var(--sidebar-bg)',
+          borderRight: '1px solid var(--sidebar-border)',
+          transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
         }}
       >
         {navContent}
@@ -366,7 +356,7 @@ export function Sidebar() {
       {/* Desktop spacer */}
       <div
         className="hidden lg:block lg:flex-shrink-0"
-        style={{ width: sidebarW, transition: 'width 0.2s ease' }}
+        style={{ width: sidebarW, transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)' }}
         aria-hidden="true"
       />
 

@@ -52,22 +52,25 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
       value: 'approved' as ApprovalAction,
       label: 'Setujui',
       icon: CheckCircle2,
-      color: 'bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100',
-      activeColor: 'bg-emerald-100 border-emerald-400 ring-2 ring-emerald-500/20',
+      bg: 'var(--success-soft)',
+      color: 'var(--success)',
+      activeBorder: 'var(--success)',
     },
     {
       value: 'rejected' as ApprovalAction,
       label: 'Tolak',
       icon: XCircle,
-      color: 'bg-red-50 border-red-200 text-red-700 hover:bg-red-100',
-      activeColor: 'bg-red-100 border-red-400 ring-2 ring-red-500/20',
+      bg: 'var(--danger-soft)',
+      color: 'var(--danger)',
+      activeBorder: 'var(--danger)',
     },
     {
       value: 'revision_required' as ApprovalAction,
       label: 'Minta Revisi',
       icon: RefreshCw,
-      color: 'bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100',
-      activeColor: 'bg-amber-100 border-amber-400 ring-2 ring-amber-500/20',
+      bg: 'var(--warning-soft)',
+      color: 'var(--warning)',
+      activeBorder: 'var(--warning)',
     },
   ];
 
@@ -84,7 +87,8 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
         <DialogBody className="space-y-5">
           {/* Action selection */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-3">
+            <label className="block text-[13px] font-medium mb-3"
+                   style={{ color: 'var(--text-primary)' }}>
               Pilih Tindakan
             </label>
             <div className="grid grid-cols-3 gap-3">
@@ -95,12 +99,16 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
                   <button
                     key={a.value}
                     onClick={() => setAction(a.value)}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
-                      isActive ? a.activeColor : a.color
-                    }`}
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-200"
+                    style={{
+                      background: a.bg,
+                      color: a.color,
+                      border: isActive ? `2px solid ${a.activeBorder}` : '2px solid transparent',
+                      boxShadow: isActive ? `0 0 0 4px ${a.bg}` : 'none',
+                    }}
                   >
                     <Icon className="h-6 w-6" />
-                    <span className="text-xs font-semibold">{a.label}</span>
+                    <span className="text-[12px] font-semibold">{a.label}</span>
                   </button>
                 );
               })}
@@ -109,8 +117,9 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              Catatan {action !== 'approved' && <span className="text-red-500">*</span>}
+            <label className="block text-[13px] font-medium mb-2"
+                   style={{ color: 'var(--text-primary)' }}>
+              Catatan {action !== 'approved' && <span style={{ color: 'var(--danger)' }}>*</span>}
             </label>
             <Textarea
               value={catatan}

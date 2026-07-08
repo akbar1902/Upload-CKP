@@ -48,9 +48,9 @@ function KPICard({ icon, value, label, sub, iconBg }: {
         {icon}
       </div>
       <div className="min-w-0">
-        <p className="text-3xl font-extrabold tracking-tight leading-none text-slate-900">{value}</p>
-        <p className="text-[13px] font-medium mt-1 text-slate-900">{label}</p>
-        {sub && <p className="text-[11px] mt-0.5 text-slate-500">{sub}</p>}
+        <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>{value}</p>
+        <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
+        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -125,10 +125,10 @@ function RencanaKinerjaGroup({
       {/* Header */}
       <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Rencana Kinerja</p>
-          <h4 className="text-[15px] font-bold text-slate-800 leading-snug">{rkName || 'Tidak ada nama Rencana Kinerja'}</h4>
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-[12px] text-slate-500">{entries.length} Kegiatan</span>
+          <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
+          <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{rkName || 'Tidak ada nama Rencana Kinerja'}</h4>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} Kegiatan</span>
             {dinilaiOleh && <span className="badge-pill bg-green-50 text-green-700 text-[10px]">Telah dinilai</span>}
           </div>
         </div>
@@ -147,13 +147,13 @@ function RencanaKinerjaGroup({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={saving}
-                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-slate-100 disabled:text-slate-400"
+                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                     placeholder="-"
                     title="Tekan Enter atau klik di luar untuk menyimpan"
                   />
                   {saving && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <RefreshCw size={12} className="animate-spin text-slate-400" />
+                      <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
                     </div>
                   )}
                 </div>
@@ -166,39 +166,40 @@ function RencanaKinerjaGroup({
           
           <button
             onClick={() => setExpanded(!expanded)}
-            className="p-2 rounded-lg hover:bg-slate-100 transition-colors ml-2 self-end"
+            className="p-2 rounded-lg transition-colors ml-2 self-end"
+            style={{ color: 'var(--text-secondary)' }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
           >
-            {expanded ? <ChevronUp size={20} className="text-slate-500" /> : <ChevronDown size={20} className="text-slate-500" />}
+            {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
         </div>
       </div>
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t border-slate-200 bg-slate-50 p-4 sm:p-5 space-y-4">
-          <h5 className="text-[13px] font-bold text-slate-700">Daftar Kegiatan</h5>
-          <div className="space-y-3">
-            {entries.map((entry, idx) => (
-              <div key={entry.id} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4">
-                  <div>
-                    <p className="text-[13px] font-medium text-slate-800">{entry.kegiatan || '—'}</p>
-                    <p className="text-[12px] text-slate-500 mt-1 whitespace-pre-wrap">{entry.capaian || '—'}</p>
-                    <div className="flex items-center gap-3 mt-3">
-                      <span className="text-[11px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Baris #{entry.row_number}</span>
-                      <span className="text-[11px] text-slate-500">{formatDate(entry.tanggal_mulai)}</span>
-                    </div>
+        <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+          <h5 className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Daftar Kegiatan</h5>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {entries.map((entry) => (
+              <div key={entry.id} className="p-4 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                <div className="flex flex-col h-full">
+                  <div className="flex-1 mb-3">
+                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entry.kegiatan || '—'}</p>
+                    <p className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{entry.capaian || '—'}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-2 min-w-[120px]">
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-2">
-                      <span className="text-[12px] font-medium text-slate-600">Progres:</span>
-                      <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-green-600' : 'text-blue-600'}`}>{entry.progres}%</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
+                      <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.tanggal_mulai)}</span>
                     </div>
-                    {entry.data_dukung && (
-                      <div className="mt-auto">
-                        <DataDukungLink value={entry.data_dukung} />
+                    <div className="flex items-center gap-2 text-right">
+                      {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
+                      <div className="flex items-center gap-1.5 ml-2">
+                        <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
+                        <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-green-600' : 'text-blue-600'}`}>{entry.progres}%</span>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -343,12 +344,16 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+            <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
-          <button onClick={() => refetch()} className="btn-primary">
+          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
+          <button
+            onClick={() => refetch()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: 'var(--text-primary)', color: 'var(--bg-base)' }}
+          >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
         </div>
@@ -379,7 +384,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       <>
         <Header />
         <div className="p-5 lg:p-8 max-w-4xl mx-auto text-center py-20">
-          <p className="text-slate-500">CKP tidak ditemukan.</p>
+          <p style={{ color: 'var(--text-secondary)' }}>CKP tidak ditemukan.</p>
           <button onClick={() => router.back()} className="btn-secondary mt-4">
             <ArrowLeft size={14} /> Kembali
           </button>
@@ -408,33 +413,39 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     <>
       <Header />
       <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
+                style={{ color: 'var(--text-secondary)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
           <ArrowLeft size={14} /> Kembali
         </button>
 
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
-            <p className="text-[12px] mb-2 text-slate-500">
-              Penilaian &rsaquo; CKP &rsaquo; {bulanNama} {upload.tahun}
+            <p className="text-[12px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+              Dashboard &rsaquo; Review CKP &rsaquo; {bulanNama} {upload.tahun}
             </p>
+
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-3xl font-extrabold tracking-tight text-slate-900">
+              <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 Review CKP {bulanNama} {upload.tahun}
               </h2>
               <UploadBadge status={upload.status} />
             </div>
 
-            <div className="flex items-center gap-4 mt-3 flex-wrap bg-white border border-slate-200 py-2 px-4 rounded-xl shadow-sm w-fit">
-              <div className="flex items-center gap-2 text-[14px]">
-                <UserIcon size={14} className="text-slate-400" />
-                <span className="font-bold text-slate-800">{employee.full_name}</span>
+            <div className="flex items-center gap-4 mt-3 flex-wrap py-2 px-4 rounded-xl shadow-sm w-fit"
+                 style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <UserIcon size={14} style={{ color: 'var(--text-tertiary)' }} />
+                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{employee.full_name}</span>
               </div>
-              <div className="w-px h-4 bg-slate-200"></div>
-              {employee.nip && <span className="text-[13px] text-slate-500">NIP: {employee.nip}</span>}
+              <div className="w-px h-4" style={{ background: 'var(--border)' }}></div>
+              {employee.nip && <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>NIP: {employee.nip}</span>}
+              
               {employee.unit_kerja && (
                 <>
-                  <div className="w-px h-4 bg-slate-200"></div>
-                  <span className="text-[13px] text-slate-500">{employee.unit_kerja}</span>
+                  <div className="w-px h-4" style={{ background: 'var(--border)' }}></div>
+                  <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{employee.unit_kerja}</span>
                 </>
               )}
             </div>
@@ -481,8 +492,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
         <div>
           <div className="mb-4">
-            <h3 className="text-[20px] font-bold text-slate-900">Penilaian Berdasarkan Rencana Kinerja</h3>
-            <p className="text-[13px] text-slate-500">Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.</p>
+            <h3 className="text-[20px] font-bold" style={{ color: 'var(--text-primary)' }}>Penilaian Berdasarkan Rencana Kinerja</h3>
+            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.</p>
           </div>
 
           <div className="space-y-4">
@@ -498,8 +509,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             ))}
             
             {rkGroups.length === 0 && (
-              <div className="text-center py-12 bg-slate-50 border border-slate-200 rounded-2xl">
-                <p className="text-slate-500">Tidak ada Rencana Kinerja yang ditemukan.</p>
+              <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
               </div>
             )}
           </div>
@@ -507,7 +518,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
         {approvals.length > 0 && (
           <div className="mt-8">
-            <h3 className="text-[20px] font-bold text-slate-900 mb-4">Riwayat Persetujuan</h3>
+            <h3 className="text-[20px] font-bold mb-4" style={{ color: 'var(--text-primary)' }}>Riwayat Persetujuan</h3>
             <ApprovalHistory approvals={approvals} />
           </div>
         )}

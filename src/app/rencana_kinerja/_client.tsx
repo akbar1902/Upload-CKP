@@ -301,7 +301,8 @@ export function RencanaKinerjaClient({
                   placeholder="Cari RK atau tim kerja..."
                   value={searchManaged}
                   onChange={(e) => setSearchManaged(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl bg-white"
+                  className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl"
+                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                   style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                 />
               </div>
@@ -399,7 +400,8 @@ export function RencanaKinerjaClient({
                     placeholder="Cari RK Saya..."
                     value={searchMyRk}
                     onChange={(e) => setSearchMyRk(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl bg-white focus:outline-none"
+                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                   />
                 </div>
@@ -408,7 +410,8 @@ export function RencanaKinerjaClient({
                   <select
                     value={filterMyRkTeam}
                     onChange={(e) => setFilterMyRkTeam(e.target.value)}
-                    className="w-full px-3 py-2 text-[13px] rounded-xl bg-white focus:outline-none"
+                    className="w-full px-3 py-2 text-[13px] rounded-xl focus:outline-none"
+                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                     style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                   >
                     <option value="">Semua Tim</option>
@@ -472,7 +475,7 @@ export function RencanaKinerjaClient({
                       {/* Remove Button (Hover/Absolute) */}
                       <button
                         onClick={() => handleRemoveSelfAssignment(a.id)}
-                        className="absolute top-4 right-4 w-7 h-7 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 hover:bg-red-50 text-slate-400 hover:text-red-500"
+                        className="absolute top-4 right-4 w-7 h-7 rounded-md flex items-center justify-center transition-opacity opacity-0 group-hover:opacity-100 hover:bg-red-50 text-[var(--text-tertiary)] hover:text-red-500"
                         title="Lepas dari daftar RK Saya"
                       >
                         <X size={15} />

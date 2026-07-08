@@ -19,48 +19,49 @@ interface StatCardProps {
 }
 
 const colorMap = {
-  blue:    { icon: 'bg-blue-50 text-blue-600' },
-  emerald: { icon: 'bg-emerald-50 text-emerald-600' },
-  amber:   { icon: 'bg-amber-50 text-amber-600' },
-  red:     { icon: 'bg-red-50 text-red-600' },
-  purple:  { icon: 'bg-purple-50 text-purple-600' },
-  slate:   { icon: 'bg-slate-100 text-slate-600' },
+  blue:    { bg: 'var(--primary-soft)',  text: 'var(--primary)' },
+  emerald: { bg: 'var(--success-soft)',  text: 'var(--success)' },
+  amber:   { bg: 'var(--warning-soft)',  text: 'var(--warning)' },
+  red:     { bg: 'var(--danger-soft)',   text: 'var(--danger)' },
+  purple:  { bg: 'rgba(175,82,222,0.08)', text: '#AF52DE' },
+  slate:   { bg: 'var(--bg-secondary)',  text: 'var(--text-secondary)' },
 };
 
 export function StatCard({ title, value, subtitle, icon: Icon, color, trend, loading }: StatCardProps) {
   const colors = colorMap[color];
 
   return (
-    <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-sm card-hover">
+    <div className="kpi-card p-6">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5 flex-1 min-w-0">
-          <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">{title}</p>
+        <div className="space-y-2 flex-1 min-w-0">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.06em]"
+             style={{ color: 'var(--text-tertiary)' }}>{title}</p>
           {loading ? (
-            <div className="h-8 w-20 bg-slate-100 rounded animate-pulse" />
+            <div className="skeleton h-8 w-20 rounded-xl" />
           ) : (
-            <p className="text-2xl font-semibold text-slate-800 tabular-nums">{value}</p>
+            <p className="text-2xl font-bold tabular-nums tracking-tight"
+               style={{ color: 'var(--text-primary)' }}>{value}</p>
           )}
           {subtitle && (
-            <p className="text-xs text-slate-400">{subtitle}</p>
+            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</p>
           )}
           {trend && !loading && (
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {trend.value >= 0
-                ? <TrendingUp className="h-3 w-3 text-emerald-500" />
-                : <TrendingDown className="h-3 w-3 text-red-400" />
+                ? <TrendingUp className="h-3 w-3" style={{ color: 'var(--success)' }} />
+                : <TrendingDown className="h-3 w-3" style={{ color: 'var(--danger)' }} />
               }
-              <span className={cn(
-                "text-xs font-medium",
-                trend.value >= 0 ? 'text-emerald-600' : 'text-red-500'
-              )}>
+              <span className="text-[12px] font-medium"
+                    style={{ color: trend.value >= 0 ? 'var(--success)' : 'var(--danger)' }}>
                 {trend.value >= 0 ? '+' : ''}{trend.value}%
               </span>
-              <span className="text-xs text-slate-400">{trend.label}</span>
+              <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{trend.label}</span>
             </div>
           )}
         </div>
-        <div className={cn("flex-shrink-0 p-2.5 rounded-lg", colors.icon)}>
-          <Icon className="h-5 w-5" />
+        <div className="flex-shrink-0 p-2.5 rounded-2xl"
+             style={{ background: colors.bg }}>
+          <Icon className="h-5 w-5" style={{ color: colors.text }} />
         </div>
       </div>
     </div>

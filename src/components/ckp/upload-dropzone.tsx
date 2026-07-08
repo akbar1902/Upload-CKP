@@ -71,13 +71,14 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          "relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer",
-          dragOver && "border-blue-500 bg-blue-50/50 scale-[1.02]",
-          displayError && "border-red-300 bg-red-50/30",
-          !dragOver && !displayError && "border-slate-300 hover:border-blue-400 hover:bg-blue-50/30",
+          "relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 cursor-pointer",
           disabled && "opacity-50 cursor-not-allowed",
-          selectedFile && !displayError && "border-emerald-300 bg-emerald-50/30"
         )}
+        style={{
+          borderColor: dragOver ? 'var(--primary)' : displayError ? 'var(--danger)' : selectedFile && !displayError ? 'var(--success)' : 'var(--border)',
+          background: dragOver ? 'var(--primary-soft)' : displayError ? 'var(--danger-soft)' : selectedFile && !displayError ? 'var(--success-soft)' : 'var(--bg-secondary)',
+          transform: dragOver ? 'scale(1.01)' : 'scale(1)',
+        }}
       >
         <input
           type="file"
@@ -89,12 +90,13 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
 
         {selectedFile && !displayError ? (
           <div className="flex flex-col items-center gap-3">
-            <div className="w-14 h-14 rounded-xl bg-emerald-100 flex items-center justify-center">
-              <FileSpreadsheet className="h-7 w-7 text-emerald-600" />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                 style={{ background: 'var(--success-soft)' }}>
+              <FileSpreadsheet className="h-7 w-7" style={{ color: 'var(--success)' }} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-900">{selectedFile.name}</p>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>{selectedFile.name}</p>
+              <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
                 {(selectedFile.size / 1024).toFixed(1)} KB
               </p>
             </div>
@@ -103,7 +105,6 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
               variant="ghost"
               size="sm"
               onClick={(e) => { e.stopPropagation(); clearFile(); }}
-              className="text-slate-400 hover:text-red-500"
             >
               <X className="h-4 w-4 mr-1" />
               Ganti File
@@ -111,20 +112,16 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
           </div>
         ) : (
           <div className="flex flex-col items-center gap-3">
-            <div className={cn(
-              "w-14 h-14 rounded-xl flex items-center justify-center transition-colors",
-              dragOver ? "bg-blue-100" : "bg-slate-100"
-            )}>
-              <Upload className={cn(
-                "h-7 w-7 transition-colors",
-                dragOver ? "text-blue-600" : "text-slate-400"
-              )} />
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center transition-colors"
+                 style={{ background: dragOver ? 'var(--primary-soft)' : 'var(--bg-secondary)' }}>
+              <Upload className="h-7 w-7 transition-colors"
+                      style={{ color: dragOver ? 'var(--primary)' : 'var(--text-tertiary)' }} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-700">
+              <p className="text-[14px] font-medium" style={{ color: 'var(--text-primary)' }}>
                 {dragOver ? 'Lepaskan file di sini' : 'Seret file Excel ke sini'}
               </p>
-              <p className="text-xs text-slate-400 mt-1">
+              <p className="text-[12px] mt-1" style={{ color: 'var(--text-tertiary)' }}>
                 atau klik untuk memilih file • .xlsx, .xls • Maks 5MB
               </p>
             </div>
@@ -133,9 +130,10 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
       </div>
 
       {displayError && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 border border-red-200">
-          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-          <p className="text-sm text-red-700">{displayError}</p>
+        <div className="flex items-start gap-2.5 p-3.5 rounded-2xl"
+             style={{ background: 'var(--danger-soft)', border: '1px solid rgba(255,59,48,0.08)' }}>
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
+          <p className="text-[14px]" style={{ color: 'var(--danger)' }}>{displayError}</p>
         </div>
       )}
     </div>

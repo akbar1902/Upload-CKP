@@ -3,25 +3,25 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-[0_0_0_4px_var(--primary-ring)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.98]",
   {
     variants: {
       variant: {
-        default: "bg-blue-600 text-white shadow-sm hover:bg-blue-700 active:bg-blue-800",
-        destructive: "bg-red-600 text-white shadow-sm hover:bg-red-700 active:bg-red-800",
-        outline: "border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100",
-        secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300",
-        ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
-        link: "text-blue-600 underline-offset-4 hover:underline",
-        success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800",
-        warning: "bg-amber-500 text-white shadow-sm hover:bg-amber-600 active:bg-amber-700",
+        default: "bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)]",
+        destructive: "bg-[var(--danger)] text-white rounded-full hover:opacity-90",
+        outline: "border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-secondary)]",
+        secondary: "bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-full hover:text-[var(--text-primary)]",
+        ghost: "text-[var(--text-secondary)] rounded-xl hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]",
+        link: "text-[var(--primary)] underline-offset-4 hover:underline rounded-xl",
+        success: "bg-[var(--success)] text-white rounded-full hover:opacity-90",
+        warning: "bg-[var(--warning)] text-white rounded-full hover:opacity-90",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 px-3 text-xs rounded-md",
-        lg: "h-12 px-6 text-base rounded-xl",
-        icon: "h-10 w-10",
-        "icon-sm": "h-8 w-8",
+        default: "h-11 px-6 py-2.5",
+        sm: "h-9 px-4 text-[13px]",
+        lg: "h-[52px] px-8 text-base",
+        icon: "h-11 w-11 rounded-full",
+        "icon-sm": "h-9 w-9 rounded-full",
       },
     },
     defaultVariants: {
@@ -47,8 +47,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {...props}
       >
         {loading && (
-          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+          <svg className="animate-spin h-4 w-4 opacity-70" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
         )}
