@@ -69,60 +69,82 @@ export default function KetuaTimDashboardClient() {
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['ketua-tim-uploads', bulan, tahun],
-    queryFn: async () => {
-      if (!user) return { uploads: [], users: [] };
-
-      // 1. Get RKs for this ketua tim
-      const { data: mappingData, error: mapError } = await supabase
-        .from('rk_ketua_tim_mapping')
-        .select('rencana_kinerja')
-        .eq('ketua_tim_id', user.id);
+    queryFn: async ({ queryKey }) => {
+      const [_key, qBulan, qTahun] = queryKey as [string, number, number];
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
-      if (mapError) throw mapError;
-      const rkList = mappingData?.map((m: any) => m.rencana_kinerja) || [];
+      try {
+        if (!user) return { uploads: [], users: [] };
 
-      if (rkList.length === 0) return { uploads: [], users: [] };
+        // 1. Get RKs for this ketua tim
+        const { data: mappingData, error: mapError } = await supabase
+          .from('rk_ketua_tim_mapping')
+          .select('rencana_kinerja')
+          .eq('ketua_tim_id', user.id)
+          .abortSignal(controller.signal);
+        
+        if (mapError) throw mapError;
+        const rkList = mappingData?.map((m: any) => m.rencana_kinerja) || [];
 
-      // 2. Find upload_ids that contain these RKs
-      const { data: entries, error: entriesError } = await supabase
-        .from('ckp_entries')
-        .select('upload_id')
-        .in('rencana_kinerja', rkList);
+        if (rkList.length === 0) return { uploads: [], users: [] };
 
-      if (entriesError) throw entriesError;
-      const uploadIds = Array.from(new Set((entries || []).map((e: any) => e.upload_id)));
+        // 2. Find ALL upload_ids that have EVER contained these RKs to identify Team Members
+        const { data: entries, error: entriesError } = await supabase
+          .from('ckp_entries')
+          .select('upload_id')
+          .in('rencana_kinerja', rkList)
+          .abortSignal(controller.signal);
 
-      if (uploadIds.length === 0) return { uploads: [], users: [] };
+        if (entriesError) throw entriesError;
+        const allUploadIds = Array.from(new Set((entries || []).map((e: any) => e.upload_id)));
 
-      // 3. Get the actual uploads
-      const { data: uploadsData, error: uploadsError } = await supabase
-        .from('ckp_uploads')
-        .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-        .in('id', uploadIds)
-        .eq('bulan', bulan)
-        .eq('tahun', tahun)
-        .order('uploaded_at', { ascending: false });
+        let teamUserIds: string[] = [];
+        if (allUploadIds.length > 0) {
+          // Get the user_ids of these uploads
+          const { data: allUploadsData, error: allUploadsError } = await supabase
+            .from('ckp_uploads')
+            .select('user_id')
+            .in('id', allUploadIds)
+            .abortSignal(controller.signal);
+          
+          if (allUploadsError) throw allUploadsError;
+          teamUserIds = Array.from(new Set((allUploadsData || []).map((u: any) => u.user_id)));
+        }
 
-      if (uploadsError) throw uploadsError;
+        if (teamUserIds.length === 0) return { uploads: [], users: [] };
 
-      const userIds = Array.from(new Set((uploadsData || []).map((u: any) => u.user_id)));
-      let usersData: any[] = [];
-      if (userIds.length > 0) {
-        const { data: uData, error: uError } = await supabase
+        // 3. Get the user details of these team members
+        const { data: usersData, error: usersError } = await supabase
           .from('users')
           .select('*')
-          .in('id', userIds)
-          .order('full_name');
-        if (uError) throw uError;
-        usersData = uData || [];
+          .in('id', teamUserIds)
+          .order('full_name')
+          .abortSignal(controller.signal);
+          
+        if (usersError) throw usersError;
+
+        // 4. Get the uploads for these team members for the SELECTED month and year
+        const { data: monthUploads, error: monthUploadsError } = await supabase
+          .from('ckp_uploads')
+          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+          .in('user_id', teamUserIds)
+          .eq('bulan', qBulan)
+          .eq('tahun', qTahun)
+          .order('uploaded_at', { ascending: false })
+          .abortSignal(controller.signal);
+
+        if (monthUploadsError) throw monthUploadsError;
+
+        const newUploads = (monthUploads || []).map((u: any) => ({
+          ...u,
+          user: u.user as User | undefined,
+        })) as (CKPUpload & { user?: User })[];
+
+        return { uploads: newUploads, users: usersData as User[] };
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const newUploads = (uploadsData || []).map((u: any) => ({
-        ...u,
-        user: u.user as User | undefined,
-      })) as (CKPUpload & { user?: User })[];
-
-      return { uploads: newUploads, users: usersData as User[] };
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
@@ -131,6 +153,18 @@ export default function KetuaTimDashboardClient() {
   });
 
   const loading = authLoading || (!data && queryPending);
+
+  // Failsafe: if genuinely stuck for > 10s after auth resolved, retry query
+  React.useEffect(() => {
+    let timeout: NodeJS.Timeout;
+    if (!authLoading && queryPending) {
+      timeout = setTimeout(() => {
+        console.warn('Failsafe triggered: retrying stuck query');
+        void refetch();
+      }, 10000);
+    }
+    return () => clearTimeout(timeout);
+  }, [authLoading, queryPending, refetch]);
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
