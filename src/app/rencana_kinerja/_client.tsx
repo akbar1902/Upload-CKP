@@ -212,9 +212,9 @@ export function RencanaKinerjaClient({
       <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
 
         {/* ── KPI Summary ───────────────────── */}
-        <div className={`grid gap-4 grid-cols-2 ${isKetuaTim ? 'lg:grid-cols-3' : 'lg:grid-cols-2'} stagger`}>
+        <div className="flex flex-wrap gap-4 stagger">
           {isKetuaTim && (
-            <div className="kpi-card p-5 flex items-center gap-4" onClick={() => setActiveTab("managed")} style={{ cursor: 'pointer' }}>
+            <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8" onClick={() => setActiveTab("managed")} style={{ cursor: 'pointer' }}>
               <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
                 <Briefcase size={20} style={{ color: 'var(--primary)' }} />
               </div>
@@ -225,7 +225,7 @@ export function RencanaKinerjaClient({
             </div>
           )}
 
-          <div className="kpi-card p-5 flex items-center gap-4" onClick={() => setActiveTab("my_rk")} style={{ cursor: 'pointer' }}>
+          <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8" onClick={() => setActiveTab("my_rk")} style={{ cursor: 'pointer' }}>
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
               <ClipboardList size={20} style={{ color: 'var(--primary)' }} />
             </div>
@@ -235,7 +235,7 @@ export function RencanaKinerjaClient({
             </div>
           </div>
 
-          <div className="kpi-card p-5 flex items-center gap-4">
+          <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8">
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--success-soft)' }}>
               <ListTodo size={20} style={{ color: '#16A34A' }} />
             </div>
@@ -272,7 +272,7 @@ export function RencanaKinerjaClient({
           <button
             onClick={() => setActiveTab("my_rk")}
             className={`filter-btn ${activeTab === "my_rk" ? "filter-btn-active" : ""}`}
-            style={activeTab === "my_rk" ? { background: '#F3E8FF', color: '#7C3AED', borderColor: '#7C3AED' } : undefined}
+            style={activeTab === "my_rk" ? { background: 'var(--primary-soft)', color: 'var(--primary)', borderColor: 'var(--primary)' } : undefined}
           >
             <ListTodo size={14} /> RK Saya
           </button>
