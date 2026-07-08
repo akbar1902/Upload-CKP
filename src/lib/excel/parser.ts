@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import { buildHeaderMapping } from './column-mapping';
 import type { CKPEntry } from '@/types/database';
+import { getBulanName } from '@/lib/utils';
 
 export interface ParseResult {
   success: boolean;
@@ -88,6 +89,7 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
     // Parse data rows
     const dataRows = rawData.slice(headerRowIndex + 1);
     let rowNumber = 0;
+    const foundMonthsInFile = new Set<number>();
 
     for (const row of dataRows) {
       const cells = row as unknown[];
@@ -150,6 +152,13 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
           const m = mStr ? new Date(`${mStr}T12:00:00Z`) : null;
           const s = sStr ? new Date(`${sStr}T12:00:00Z`) : null;
           
+          if (m && !isNaN(m.getTime())) {
+            foundMonthsInFile.add(m.getUTCMonth() + 1);
+          }
+          if (s && !isNaN(s.getTime())) {
+            foundMonthsInFile.add(s.getUTCMonth() + 1);
+          }
+          
           // Helper to strip time for proper start of day / end of day comparison
           const mTime = m ? m.getTime() : null;
           const sTime = s ? s.getTime() : null;
@@ -179,7 +188,12 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
     result.totalRows = result.entries.length;
 
     if (result.entries.length === 0) {
-      result.errors.push('Tidak ada data yang dapat dibaca dari file Excel.');
+      if (bulan && foundMonthsInFile.size > 0) {
+        const monthsNames = Array.from(foundMonthsInFile).sort((a,b) => a-b).map(m => getBulanName(m)).join(', ');
+        result.errors.push(`Tidak ada kegiatan untuk bulan ${getBulanName(bulan)}. File Excel yang diupload hanya berisi kegiatan untuk bulan: ${monthsNames}.`);
+      } else {
+        result.errors.push('Tidak ada data yang dapat dibaca dari file Excel atau tidak ada kegiatan pada periode ini.');
+      }
       return result;
     }
 

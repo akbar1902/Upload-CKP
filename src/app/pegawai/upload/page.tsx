@@ -517,6 +517,21 @@ export default function UploadPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {!parseResult.success && parseResult.errors.length > 0 && (
+                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-[14px] font-semibold text-red-800 dark:text-red-300">Gagal Membaca File Excel</h4>
+                      <ul className="mt-1 space-y-1">
+                        {parseResult.errors.map((err, i) => (
+                          <li key={i} className="text-[13px] text-red-700 dark:text-red-400 leading-relaxed">{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              )}
               {parseResult.success && parseResult.entries.length > 0 && (
                   <div className="overflow-x-auto rounded-xl shadow-sm mt-4" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <table className="w-full text-sm">
