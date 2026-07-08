@@ -302,8 +302,7 @@ export function RencanaKinerjaClient({
                   value={searchManaged}
                   onChange={(e) => setSearchManaged(e.target.value)}
                   className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl"
-                  style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                  style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                 />
               </div>
               <Button onClick={handleOpenAddRk}>
@@ -401,8 +400,7 @@ export function RencanaKinerjaClient({
                     value={searchMyRk}
                     onChange={(e) => setSearchMyRk(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 {/* Filter Tim */}
@@ -411,8 +409,7 @@ export function RencanaKinerjaClient({
                     value={filterMyRkTeam}
                     onChange={(e) => setFilterMyRkTeam(e.target.value)}
                     className="w-full px-3 py-2 text-[13px] rounded-xl focus:outline-none"
-                    style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                    style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                   >
                     <option value="">Semua Tim</option>
                     {timKerjaList.map((t, idx) => (
