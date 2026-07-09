@@ -61,6 +61,8 @@ export function RencanaKinerjaClient({
   const [selectedRkToAssign, setSelectedRkToAssign] = useState("");
   const [searchManaged, setSearchManaged] = useState("");
   const [searchAssignee, setSearchAssignee] = useState("");
+  const [searchGlobal, setSearchGlobal] = useState("");
+  const [filterGlobalTeam, setFilterGlobalTeam] = useState("");
 
   const [formData, setFormData] = useState({
     old_rencana_kinerja: "",
@@ -106,6 +108,14 @@ export function RencanaKinerjaClient({
       return matchSearch && matchTeam;
     });
   }, [myAssignments, allRKs, searchMyRk, filterMyRkTeam]);
+
+  const filteredGlobalRKs = useMemo(() => {
+    return allRKs.filter((rk) => {
+      const matchSearch = rk.rencana_kinerja.toLowerCase().includes(searchGlobal.toLowerCase());
+      const matchTeam = filterGlobalTeam ? rk.tim_kerja === filterGlobalTeam : true;
+      return matchSearch && matchTeam;
+    });
+  }, [allRKs, searchGlobal, filterGlobalTeam]);
 
   /* ── Handlers ──────────────────────────── */
   const handleOpenAddRk = () => {
@@ -235,9 +245,9 @@ export function RencanaKinerjaClient({
             </div>
           </div>
 
-          <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8">
+          <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8" onClick={() => setActiveTab("global")} style={{ cursor: 'pointer' }}>
             <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--success-soft)' }}>
-              <ListTodo size={20} style={{ color: '#16A34A' }} />
+              <Globe size={20} style={{ color: '#16A34A' }} />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{allRKs.length}</p>
@@ -275,6 +285,13 @@ export function RencanaKinerjaClient({
             style={activeTab === "my_rk" ? { background: 'var(--primary-soft)', color: 'var(--primary)', borderColor: 'var(--primary)' } : undefined}
           >
             <ListTodo size={14} /> RK Saya
+          </button>
+          <button
+            onClick={() => setActiveTab("global")}
+            className={`filter-btn ${activeTab === "global" ? "filter-btn-active" : ""}`}
+            style={activeTab === "global" ? { background: 'var(--success-soft)', color: '#16A34A', borderColor: '#16A34A' } : undefined}
+          >
+            <Globe size={14} /> Kamus Global
           </button>
         </div>
 
@@ -503,6 +520,94 @@ export function RencanaKinerjaClient({
                     </motion.div>
                   );
                 })}
+                </AnimatePresence>
+              </motion.div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════ */}
+        {/*  TAB: Kamus Global                      */}
+        {/* ════════════════════════════════════════ */}
+        {activeTab === "global" && (
+          <div className="space-y-4 animate-fade-in">
+            {/* Toolbar */}
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:max-w-xl">
+                {/* Search */}
+                <div className="relative flex-1">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari di Kamus Global..."
+                    value={searchGlobal}
+                    onChange={(e) => setSearchGlobal(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                {/* Filter Tim */}
+                <div className="flex-shrink-0">
+                  <select
+                    value={filterGlobalTeam}
+                    onChange={(e) => setFilterGlobalTeam(e.target.value)}
+                    className="w-full px-3 py-2 text-[13px] rounded-xl focus:outline-none"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  >
+                    <option value="">Semua Tim</option>
+                    {timKerjaList.map((t, idx) => (
+                      <option key={idx} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {filteredGlobalRKs.length === 0 ? (
+              <div className="kpi-card text-center py-16 px-6">
+                <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--success-soft)' }}>
+                  <Globe size={24} style={{ color: '#16A34A' }} />
+                </div>
+                <p className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>
+                  Tidak ditemukan
+                </p>
+                <p className="text-[13px] mt-1 max-w-sm mx-auto" style={{ color: 'var(--text-secondary)' }}>
+                  Coba ubah kata kunci atau filter tim Anda.
+                </p>
+              </div>
+            ) : (
+              <motion.div layout className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 card-list">
+                <AnimatePresence>
+                  {filteredGlobalRKs.map((rk, i) => (
+                    <motion.div 
+                      key={rk.id || i} 
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="activity-card flex flex-col p-4 relative hover:-translate-y-1 hover:shadow-xl transition-all"
+                    >
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--success-soft)' }}>
+                          <Globe size={18} style={{ color: '#16A34A' }} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-[13px] leading-relaxed line-clamp-3" style={{ color: 'var(--text-primary)' }}>
+                            {rk.rencana_kinerja}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-3 flex flex-col gap-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
+                        <div>
+                          <span className="badge-pill badge-draft text-[11px] truncate max-w-full">
+                            {rk.tim_kerja || "Tim Tidak Diketahui"}
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
                 </AnimatePresence>
               </motion.div>
             )}

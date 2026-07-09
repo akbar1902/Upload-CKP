@@ -128,6 +128,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 export default function PegawaiDashboard() {
   const { user, loading: authLoading } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const supabase = useMemo(() => createClient(), []);
@@ -231,6 +232,14 @@ export default function PegawaiDashboard() {
       );
     }
     
+    if (statusFilter !== 'all') {
+      if (statusFilter === 'rejected') {
+        result = result.filter(u => u.status === 'rejected' || u.status === 'revision_required');
+      } else {
+        result = result.filter(u => u.status === statusFilter);
+      }
+    }
+    
     // Sort
     return [...result].sort((a, b) => {
       // Prioritize tahun, then bulan
@@ -238,7 +247,7 @@ export default function PegawaiDashboard() {
       const valB = (b.tahun * 100) + b.bulan;
       return sortOrder === 'desc' ? valB - valA : valA - valB;
     });
-  }, [uploadsArr, searchQuery, sortOrder]);
+  }, [uploadsArr, searchQuery, sortOrder, statusFilter]);
 
   // KPI cards config
   const kpiCards = [
@@ -367,6 +376,22 @@ export default function PegawaiDashboard() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label="Cari upload"
                 />
+              </div>
+
+              {/* Status Filter */}
+              <div className="relative">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="filter-btn appearance-none pr-8 bg-transparent"
+                  style={{ outline: 'none', cursor: 'pointer' }}
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="submitted">Menunggu Review</option>
+                  <option value="approved">Disetujui</option>
+                  <option value="rejected">Ditolak / Revisi</option>
+                </select>
+                <ChevronDown size={13} className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-tertiary)' }} />
               </div>
 
               {/* Sort */}

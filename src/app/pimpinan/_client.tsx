@@ -75,6 +75,7 @@ export default function PimpinanDashboard() {
   const { user, loading: authLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -128,14 +129,9 @@ export default function PimpinanDashboard() {
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
-    // Show previous cached data while background-refetching — prevents skeleton flash
-    placeholderData: keepPreviousData,
   });
 
-  // KEY FIX: Only show skeleton when there is genuinely NO data.
-  // With keepPreviousData, cached data stays visible during background refetch.
-  // Using just queryPending would show skeleton over perfectly good cached data.
-  const loading = authLoading || (!data && queryPending);
+  const loading = authLoading || queryPending;
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
@@ -177,16 +173,50 @@ export default function PimpinanDashboard() {
     [allUsers, uploads]
   );
 
-  // Filter by search
+  // Filter and sort by search and status
   const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return pegawaiRows;
-    const q = searchQuery.toLowerCase();
-    return pegawaiRows.filter(r =>
-      r.user.full_name.toLowerCase().includes(q) ||
-      r.user.nip?.toLowerCase().includes(q) ||
-      r.user.unit_kerja?.toLowerCase().includes(q)
-    );
-  }, [pegawaiRows, searchQuery]);
+    let result = pegawaiRows;
+
+    // 1. Search Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(r =>
+        r.user.full_name.toLowerCase().includes(q) ||
+        r.user.nip?.toLowerCase().includes(q) ||
+        r.user.unit_kerja?.toLowerCase().includes(q)
+      );
+    }
+
+    // 2. Status Filter
+    if (statusFilter !== 'all') {
+      result = result.filter(r => {
+        if (statusFilter === 'belum_lapor') {
+          return !r.upload || !r.upload.status;
+        }
+        return r.upload?.status === statusFilter;
+      });
+    }
+
+    // 3. Sorting (Default: Menunggu Review -> Disetujui -> Belum Lapor)
+    return result.sort((a, b) => {
+      const getStatusScore = (upload: CKPUpload | null) => {
+        if (!upload || !upload.status) return 3; // Belum Lapor
+        if (upload.status === 'approved') return 2; // Disetujui
+        if (upload.status === 'submitted') return 1; // Menunggu Review
+        return 4; // Lainnya
+      };
+
+      const scoreA = getStatusScore(a.upload as CKPUpload | null);
+      const scoreB = getStatusScore(b.upload as CKPUpload | null);
+
+      if (scoreA !== scoreB) {
+        return scoreA - scoreB;
+      }
+      
+      // If same status, sort alphabetically by name
+      return a.user.full_name.localeCompare(b.user.full_name);
+    });
+  }, [pegawaiRows, searchQuery, statusFilter]);
 
   // Stats
   const totalPegawai = allUsers.length;
@@ -297,23 +327,44 @@ export default function PimpinanDashboard() {
               Lihat tabel lengkap <ArrowRight className="h-3 w-3" />
             </Link>
           </div>
-
-          {/* Mobile search */}
-          <div className="relative mb-4 max-w-xs md:hidden">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5" style={{ color: 'var(--text-tertiary)' }} />
-            <input
-              type="search"
-              placeholder="Cari pegawai..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              aria-label="Cari pegawai"
-              className="w-full pl-9 h-10 text-[14px] rounded-xl transition-all duration-200"
-              style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-              }}
-            />
+          {/* Controls: Search and Filter */}
+          <div className="flex flex-col md:flex-row gap-3 mb-5">
+            <div className="relative w-full md:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
+              <input
+                type="search"
+                placeholder="Cari pegawai..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Cari pegawai"
+                className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
+                style={{
+                  background: 'var(--bg-secondary)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text-primary)',
+                }}
+              />
+            </div>
+            
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'all', label: 'Semua' },
+                { id: 'submitted', label: 'Menunggu Review' },
+                { id: 'approved', label: 'Disetujui' },
+                { id: 'belum_lapor', label: 'Belum Lapor' }
+              ].map(st => (
+                <button
+                  key={st.id}
+                  onClick={() => setStatusFilter(st.id)}
+                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--bg-secondary)]'}`}
+                  style={statusFilter === st.id 
+                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.15)' } 
+                    : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Grid kartu pegawai */}

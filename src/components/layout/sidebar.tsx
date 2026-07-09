@@ -14,6 +14,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Zap,
   Lock,
 } from 'lucide-react';
@@ -52,25 +53,48 @@ export function Sidebar() {
   const [signingOut, setSigningOut] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
+  const [isDashboardOpen, setIsDashboardOpen] = useState(true);
+
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
   const isKetuaTim = user?.role === 'ketua_tim' || isPimpinan;
   
-  let navItems: NavItem[] = [];
+  // Dashboard Sub-items based on role
+  let dashboardSubItems: NavItem[] = [];
   if (isPimpinan) {
-    navItems = [...pimpinanNav, ...ketuaTimNav, ...pegawaiNav];
+    dashboardSubItems = [
+      { href: '/pimpinan', label: 'Dashboard Pimpinan', icon: LayoutDashboard },
+      { href: '/ketua_tim', label: 'Dashboard Ketua Tim', icon: LayoutDashboard },
+      { href: '/pegawai', label: 'Dashboard Anggota', icon: LayoutDashboard },
+    ];
   } else if (isKetuaTim) {
-    navItems = [...ketuaTimNav, ...pegawaiNav];
+    dashboardSubItems = [
+      { href: '/ketua_tim', label: 'Dashboard Ketua Tim', icon: LayoutDashboard },
+      { href: '/pegawai', label: 'Dashboard Anggota', icon: LayoutDashboard },
+    ];
   } else {
-    navItems = pegawaiNav;
+    dashboardSubItems = [
+      { href: '/pegawai', label: 'Dashboard Anggota', icon: LayoutDashboard },
+    ];
   }
+
+  // Build main nav items
+  const navItems: NavItem[] = [];
+  if (isPimpinan) {
+    navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
+  }
+  navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
+  navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
 
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   const isActive = (href: string) => {
     if (href.startsWith('#')) return false;
     if (href === '/pegawai' || href === '/pimpinan' || href === '/ketua_tim') return pathname === href;
+    if (href === '/pimpinan/pegawai') return pathname.startsWith('/pimpinan/pegawai');
     return pathname.startsWith(href);
   };
+  
+  const isDashboardActive = ['/pimpinan', '/ketua_tim', '/pegawai'].some(href => pathname === href);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -167,6 +191,86 @@ export function Sidebar() {
 
       {/* ── Navigation Items ──────────────────────────── */}
       <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto" aria-label="Navigasi utama">
+        
+        {/* Nested Dashboard Menu */}
+        <div>
+          <button
+            onClick={() => {
+              if (collapsed) setCollapsed(false);
+              setIsDashboardOpen(!isDashboardOpen);
+            }}
+            className={cn(
+              "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+              collapsed && "justify-center px-3"
+            )}
+            style={
+              isDashboardActive
+                ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                : { color: 'var(--sidebar-text-muted)' }
+            }
+            onMouseEnter={(e) => {
+              if (!isDashboardActive) {
+                (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isDashboardActive) {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+                (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+              }
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <LayoutDashboard size={18} className="flex-shrink-0" />
+              {!collapsed && <span>Dashboard</span>}
+            </div>
+            {!collapsed && (
+              <ChevronDown 
+                size={16} 
+                className={cn("transition-transform duration-200", isDashboardOpen ? "rotate-180" : "")} 
+              />
+            )}
+          </button>
+          
+          {/* Sub-items */}
+          {(!collapsed && isDashboardOpen) && (
+            <div className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]">
+              {dashboardSubItems.map((item) => {
+                const active = isActive(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
+                    style={
+                      active
+                        ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                        : { color: 'var(--sidebar-text-muted)' }
+                    }
+                    onMouseEnter={(e) => {
+                      if (!active) {
+                        (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                        (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!active) {
+                        (e.currentTarget as HTMLElement).style.background = 'transparent';
+                        (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                      }
+                    }}
+                  >
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Other Items */}
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);

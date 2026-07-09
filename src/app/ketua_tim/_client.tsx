@@ -149,10 +149,9 @@ export default function KetuaTimDashboardClient() {
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5,
-    placeholderData: keepPreviousData,
   });
 
-  const loading = authLoading || (!data && queryPending);
+  const loading = authLoading || queryPending;
 
   // Failsafe: if genuinely stuck for > 10s after auth resolved, retry query
   React.useEffect(() => {
