@@ -39,15 +39,15 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
           {initials}
         </div>
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-2">
+          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
             <div className="min-w-0">
               <p className="font-semibold text-[13px] sm:text-[14px] leading-snug truncate"
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
-              <p className="text-[12px] mt-0.5 truncate"
+              <p className="text-[11px] sm:text-[12px] mt-0.5 truncate"
                  style={{ color: 'var(--text-tertiary)' }}>{user.nip || '—'}</p>
             </div>
-            <div className="flex-shrink-0 mt-0.5">
+            <div className="flex-shrink-0">
               <StatusLabel status={upload?.status ?? null} />
             </div>
           </div>
