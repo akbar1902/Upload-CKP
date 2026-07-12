@@ -342,7 +342,7 @@ export default function LoginPage() {
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="seraman@bps.go.id"
+                        placeholder="email@bps.go.id"
                         required
                         autoFocus
                         className="pl-10 bg-slate-50 border-slate-200"
