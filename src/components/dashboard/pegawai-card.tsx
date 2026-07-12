@@ -28,20 +28,20 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
     : null;
 
   return (
-    <div className="kpi-card p-6 flex flex-col gap-4">
+    <div className="kpi-card p-3 sm:p-5 flex flex-col gap-3 sm:gap-4">
       {/* Header kartu */}
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5 sm:gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0"
+          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0"
           style={{ background: 'var(--primary)' }}
           aria-hidden="true"
         >
           {initials}
         </div>
         <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-1 sm:gap-2">
             <div className="min-w-0">
-              <p className="font-semibold text-[14px] leading-snug truncate"
+              <p className="font-semibold text-[13px] sm:text-[14px] leading-snug truncate"
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
               <p className="text-[12px] mt-0.5 truncate"
@@ -55,21 +55,21 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
       </div>
 
       {/* Statistik in a unified block */}
-      <div className="rounded-2xl p-3.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-        <div className="grid grid-cols-3 gap-2 text-center">
+      <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
           <div>
-            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</p>
-            <p className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</p>
+            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
           </div>
           <div style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
-            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
-            <p className="text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success)' : avgProgres >= 50 ? 'var(--warning)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
+            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success)' : avgProgres >= 50 ? 'var(--warning)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>
           <div>
-            <p className="text-[11px] font-medium mb-1" style={{ color: 'var(--text-tertiary)' }}>Skor</p>
-            <p className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Skor</p>
+            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
               {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
             </p>
           </div>
@@ -96,7 +96,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
         {hasUpload ? (
           <Link
             href={`/penilaian/${upload!.id}`}
-            className="flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-full py-2.5 transition-all duration-200 w-full"
+            className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
             style={{
               color: 'var(--text-secondary)',
               background: 'var(--bg-secondary)',
@@ -118,7 +118,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
         ) : (
           <button
             disabled
-            className="flex items-center justify-center gap-1.5 text-[13px] font-medium rounded-full py-2.5 cursor-not-allowed w-full"
+            className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 cursor-not-allowed w-full"
             style={{
               color: 'var(--text-tertiary)',
               background: 'var(--bg-secondary)',

@@ -354,7 +354,7 @@ export default function PimpinanDashboard() {
 
           {/* Grid kartu pegawai */}
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
               {[...Array(6)].map((_, i) => <PegawaiCardSkeleton key={i} />)}
             </div>
           ) : filteredRows.length === 0 ? (
@@ -372,7 +372,7 @@ export default function PimpinanDashboard() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
               {filteredRows.map(row => (
                 <PegawaiCard key={row.user.id} row={row} />
               ))}
