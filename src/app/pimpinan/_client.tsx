@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -22,50 +23,19 @@ import { StatusLabel } from '@/components/dashboard/status-badge';
 import { PegawaiCard, PegawaiCardSkeleton, type PegawaiRow } from '@/components/dashboard/pegawai-card';
 // ─── Completion Rate Widget ────────────────────────────────
 function CompletionWidget({ uploaded, total, loading }: { uploaded: number; total: number; loading: boolean }) {
-  const pct = total > 0 ? Math.round((uploaded / total) * 100) : 0;
-  const r = 20;
-  const circumference = 2 * Math.PI * r;
-  const dash = (pct / 100) * circumference;
-  const strokeColor = pct >= 80 ? '#34C759' : pct >= 50 ? '#FF9500' : '#0071E3';
-
   return (
-    <div className="kpi-card p-7 flex flex-col gap-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--text-tertiary)' }}>
-        Tingkat Pelaporan
-      </p>
-      <div className="flex items-center gap-4">
-        {loading
-          ? <div className="skeleton h-12 w-12 rounded-full" />
-          : (
-            <div className="relative flex-shrink-0">
-              <svg width="52" height="52" className="-rotate-90">
-                <circle cx="26" cy="26" r={r} fill="none" stroke="var(--bg-secondary)" strokeWidth="5" />
-                <circle
-                  cx="26" cy="26" r={r} fill="none"
-                  stroke={strokeColor} strokeWidth="5"
-                  strokeDasharray={`${dash} ${circumference}`}
-                  strokeLinecap="round"
-                  className="transition-all duration-700"
-                />
-              </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[11px] font-bold"
-                style={{ color: 'var(--text-primary)' }}>
-                {pct}%
-              </span>
-            </div>
-          )
-        }
-        <div>
-          {loading
-            ? <div className="skeleton h-6 w-16 rounded" />
-            : <p className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>
-              {uploaded}<span className="text-base font-normal" style={{ color: 'var(--text-secondary)' }}>/{total}</span>
-            </p>
-          }
-          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>pegawai melapor</p>
+    <KPICard
+      icon={<Users size={18} />}
+      value={
+        <div className="flex items-baseline gap-1">
+          <span>{uploaded}</span>
+          <span className="text-base font-normal text-slate-400">/{total}</span>
         </div>
-      </div>
-    </div>
+      }
+      label="Tingkat Pelaporan"
+      sub="pegawai melapor"
+      loading={loading}
+    />
   );
 }
 
@@ -77,11 +47,26 @@ export default function PimpinanDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
-  const [bulan, setBulan] = useState(currentMonth);
-  const [tahun, setTahun] = useState(currentYear);
+
+  const paramBulan = searchParams.get('bulan');
+  const paramTahun = searchParams.get('tahun');
+  const bulan = paramBulan ? parseInt(paramBulan) : currentMonth;
+  const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
+
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
+
+  const setBulan = (b: number) => {
+    router.push(`?bulan=${b}&tahun=${tahun}`);
+  };
+
+  const setTahun = (t: number) => {
+    router.push(`?bulan=${bulan}&tahun=${t}`);
+  };
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-uploads', bulan, tahun],

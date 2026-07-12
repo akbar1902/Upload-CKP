@@ -225,7 +225,7 @@ export function RencanaKinerjaClient({
         <div className="flex flex-wrap gap-4 stagger">
           {isKetuaTim && (
             <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8" onClick={() => setActiveTab("managed")} style={{ cursor: 'pointer' }}>
-              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: '#EFF6FF' }}>
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
                 <Briefcase size={20} style={{ color: 'var(--primary)' }} />
               </div>
               <div>
@@ -246,8 +246,8 @@ export function RencanaKinerjaClient({
           </div>
 
           <div className="kpi-card p-4 flex items-center gap-4 w-full sm:w-auto sm:min-w-[240px] pr-8" onClick={() => setActiveTab("global")} style={{ cursor: 'pointer' }}>
-            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--success-soft)' }}>
-              <Globe size={20} style={{ color: '#16A34A' }} />
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
+              <Globe size={20} style={{ color: 'var(--primary)' }} />
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{allRKs.length}</p>

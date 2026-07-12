@@ -4,16 +4,23 @@ import { redirect } from 'next/navigation';
 import type { CKPUpload, User } from '@/types/database';
 import PimpinanDashboardClient from './_client';
 
-export default async function PimpinanPage() {
+export default async function PimpinanPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
 
-  // Prefetch current month data — the most common view
+  const resolvedParams = await searchParams;
+  const qBulan = resolvedParams.bulan ? parseInt(resolvedParams.bulan as string) : undefined;
+  const qTahun = resolvedParams.tahun ? parseInt(resolvedParams.tahun as string) : undefined;
+
   const now = new Date();
-  const bulan = now.getMonth() + 1;
-  const tahun = now.getFullYear();
+  const bulan = qBulan || now.getMonth() + 1;
+  const tahun = qTahun || now.getFullYear();
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
