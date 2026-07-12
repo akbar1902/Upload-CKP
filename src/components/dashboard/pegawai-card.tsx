@@ -30,24 +30,31 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
   return (
     <div className="kpi-card p-3 sm:p-5 flex flex-col gap-3 sm:gap-4">
       {/* Header kartu */}
-      <div className="flex items-start gap-2.5 sm:gap-3">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-2 sm:gap-3">
         <div
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0"
+          className="w-10 h-10 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white text-xs sm:text-sm font-medium flex-shrink-0"
           style={{ background: 'var(--primary)' }}
           aria-hidden="true"
         >
           {initials}
         </div>
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="flex items-start justify-between gap-1.5 sm:gap-2">
-            <div className="min-w-0">
+        <div className="flex-1 min-w-0 flex flex-col items-center sm:items-start justify-center w-full">
+          <div className="w-full flex items-start justify-between gap-1.5 sm:gap-2">
+            <div className="min-w-0 w-full sm:w-auto">
               <p className="font-semibold text-[13px] sm:text-[14px] leading-snug truncate"
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
               <p className="text-[11px] sm:text-[12px] mt-0.5 truncate"
                  style={{ color: 'var(--text-tertiary)' }}>{user.nip || '—'}</p>
+              
+              {/* Badge on Mobile (Centered under name) */}
+              <div className="mt-1.5 sm:hidden inline-block">
+                <StatusLabel status={upload?.status ?? null} />
+              </div>
             </div>
-            <div className="flex-shrink-0">
+            
+            {/* Badge on Desktop (Right aligned) */}
+            <div className="hidden sm:block flex-shrink-0">
               <StatusLabel status={upload?.status ?? null} />
             </div>
           </div>
