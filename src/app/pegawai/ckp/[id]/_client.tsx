@@ -155,6 +155,15 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             {formatDate(entry.tanggal_mulai)}
             {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
           </p>
+
+          {/* Mobile Bukti Dukung */}
+          {entry.data_dukung && (
+            <div className="md:hidden mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1"
+                style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
+              <DataDukungLink value={entry.data_dukung} />
+            </div>
+          )}
         </div>
 
         {/* Progress */}
@@ -181,9 +190,9 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
 
         {/* Bukti Dukung + expand */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          {/* Bukti dukung */}
+          {/* Bukti dukung (Desktop only) */}
           {entry.data_dukung && (
-            <div className="text-right">
+            <div className="text-right hidden md:block">
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
                 style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
               <DataDukungLink value={entry.data_dukung} />
@@ -578,13 +587,11 @@ export default function CKPDetailPage() {
         )}
 
         {/* ── KPI Cards ─────────────────────────────── */}
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
           <KPICard icon={<FileText size={18} style={{ color: "var(--primary)" }} />} value={upload.total_entries} label="Total Kegiatan"
             sub="Rencana kegiatan pada periode ini" iconBg="var(--primary-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: "var(--primary)" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
             sub="Rata-rata dari seluruh kegiatan" iconBg="var(--primary-soft)" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: "var(--primary)" }} />} value={completedCount} label="Completed"
-            sub="Kegiatan telah selesai" iconBg="var(--primary-soft)" />
           <KPICard icon={<Folder size={18} style={{ color: "var(--primary)" }} />} value={dataDukungCount} label="Dokumen Pendukung"
             sub="Total bukti dukung diunggah" iconBg="var(--primary-soft)" />
           <KPICard icon={<CheckCircle2 size={18} style={{ color: "var(--primary)" }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai"
