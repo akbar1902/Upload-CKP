@@ -11,14 +11,11 @@ import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck, WifiOff, Refre
 
 // ── Helpers ────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #2563EB 0%, #0EA5E9 100%)',
-  'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
-  'linear-gradient(135deg, #059669 0%, #0EA5E9 100%)',
-  'linear-gradient(135deg, #DB2777 0%, #9333EA 100%)',
-  'linear-gradient(135deg, #EA580C 0%, #EAB308 100%)',
-  'linear-gradient(135deg, #0F766E 0%, #2563EB 100%)',
-  'linear-gradient(135deg, #BE185D 0%, #9D174D 100%)',
-  'linear-gradient(135deg, #1D4ED8 0%, #0E7490 100%)',
+  'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
+  'linear-gradient(135deg, #047857 0%, #10B981 100%)',
+  'linear-gradient(135deg, #065F46 0%, #34D399 100%)',
+  'linear-gradient(135deg, #115E59 0%, #0D9488 100%)',
+  'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
 ];
 function getAvatarGradient(name: string): string {
   const idx = ((name.charCodeAt(0) || 0) + (name.charCodeAt(1) || 0)) % AVATAR_GRADIENTS.length;

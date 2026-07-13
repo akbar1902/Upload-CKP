@@ -147,16 +147,16 @@ export default function PimpinanPegawaiDetailPage() {
         </button>
 
         {/* Employee Info */}
-        <Card className="bg-gradient-to-r from-slate-900 to-blue-950 text-white border-0 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+        <Card className="bg-gradient-to-r from-[var(--primary)] to-teal-950 text-white border-0 overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <CardContent className="p-6 relative">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center text-2xl font-bold shadow-lg shadow-blue-500/30">
+              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-400 flex items-center justify-center text-2xl font-bold shadow-lg shadow-teal-500/30">
                 {employee.full_name.charAt(0)}
               </div>
               <div className="space-y-2">
                 <h3 className="text-xl font-bold">{employee.full_name}</h3>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-blue-200">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-teal-100">
                   <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> NIP: {employee.nip || '-'}</span>
                   <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {employee.unit_kerja || '-'}</span>
                   <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {employee.email}</span>
@@ -197,7 +197,6 @@ export default function PimpinanPegawaiDetailPage() {
                   <tbody>
                     {uploads.map((upload) => {
                       const avgPct = upload.avg_progres || 0;
-                      const progressClass = avgPct >= 100 ? 'bg-emerald-500' : 'bg-blue-500';
                       return (
                         <tr key={upload.id} className="table-row-hover group" style={{ borderBottom: '1px solid var(--border)' }}>
                           <td className="py-3 px-4 font-semibold" style={{ color: 'var(--text-primary)' }}>
@@ -208,7 +207,7 @@ export default function PimpinanPegawaiDetailPage() {
                           <td className="py-3 px-4">
                             <div className="flex items-center justify-center gap-2">
                               <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-                                <div className={`h-full ${progressClass}`} style={{ width: `${avgPct}%` }} />
+                                <div className="h-full" style={{ width: `${avgPct}%`, background: 'var(--primary)' }} />
                               </div>
                               <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{avgPct.toFixed(0)}%</span>
                             </div>

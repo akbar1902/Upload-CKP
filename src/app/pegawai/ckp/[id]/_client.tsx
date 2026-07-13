@@ -40,10 +40,8 @@ function getActivityColor(idx: number) {
 }
 
 function getProgressClass(pct: number): string {
-  if (pct >= 100) return 'progress-green';
-  if (pct >= 71) return 'progress-orange';
-  if (pct >= 31) return 'progress-blue';
-  return 'progress-gray';
+  // Always use the primary theme color for consistency as requested
+  return 'progress-blue'; // progress-blue maps to var(--primary) in globals.css
 }
 
 // ── Upload status badge ────────────────────────────────────
@@ -581,16 +579,16 @@ export default function CKPDetailPage() {
 
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 stagger">
-          <KPICard icon={<FileText size={18} style={{ color: "#2563EB" }} />} value={upload.total_entries} label="Total Kegiatan"
-            sub="Rencana kegiatan pada periode ini" iconBg="#EFF6FF" />
-          <KPICard icon={<TrendingUp size={18} style={{ color: "#16A34A" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
-            sub="Rata-rata dari seluruh kegiatan" iconBg="#F0FDF4" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#059669" }} />} value={completedCount} label="Completed"
-            sub="Kegiatan telah selesai" iconBg="#ECFDF5" />
-          <KPICard icon={<Folder size={18} style={{ color: "#7C3AED" }} />} value={dataDukungCount} label="Dokumen Pendukung"
-            sub="Total bukti dukung diunggah" iconBg="#F5F3FF" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: "#D97706" }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai"
-            sub="Nilai Capaian SKP" iconBg="#FEF3C7" />
+          <KPICard icon={<FileText size={18} style={{ color: "var(--primary)" }} />} value={upload.total_entries} label="Total Kegiatan"
+            sub="Rencana kegiatan pada periode ini" iconBg="var(--primary-soft)" />
+          <KPICard icon={<TrendingUp size={18} style={{ color: "var(--primary)" }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres"
+            sub="Rata-rata dari seluruh kegiatan" iconBg="var(--primary-soft)" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "var(--primary)" }} />} value={completedCount} label="Completed"
+            sub="Kegiatan telah selesai" iconBg="var(--primary-soft)" />
+          <KPICard icon={<Folder size={18} style={{ color: "var(--primary)" }} />} value={dataDukungCount} label="Dokumen Pendukung"
+            sub="Total bukti dukung diunggah" iconBg="var(--primary-soft)" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: "var(--primary)" }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai"
+            sub="Nilai Capaian SKP" iconBg="var(--primary-soft)" />
         </div>
 
         {/* ── Daftar Kegiatan ───────────────────────── */}

@@ -565,8 +565,8 @@ export function RencanaKinerjaClient({
 
             {filteredGlobalRKs.length === 0 ? (
               <div className="kpi-card text-center py-16 px-6">
-                <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--success-soft)' }}>
-                  <Globe size={24} style={{ color: '#16A34A' }} />
+                <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--primary-soft)' }}>
+                  <Globe size={24} style={{ color: 'var(--primary)' }} />
                 </div>
                 <p className="font-semibold text-[15px]" style={{ color: 'var(--text-primary)' }}>
                   Tidak ditemukan
@@ -589,8 +589,8 @@ export function RencanaKinerjaClient({
                       className="activity-card flex flex-col p-4 relative hover:-translate-y-1 hover:shadow-xl transition-all"
                     >
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--success-soft)' }}>
-                          <Globe size={18} style={{ color: '#16A34A' }} />
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--primary-soft)' }}>
+                          <Globe size={18} style={{ color: 'var(--primary)' }} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-semibold text-[13px] leading-relaxed line-clamp-3" style={{ color: 'var(--text-primary)' }}>

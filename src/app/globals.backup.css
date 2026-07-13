@@ -6,43 +6,43 @@
   --font-sans: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Inter', ui-sans-serif, system-ui, sans-serif;
 }
 
-/* ─── Deep Ocean & Teal Tokens ───────────────────────────────── */
+/* ─── Apple Design Tokens ───────────────────────────────── */
 :root {
   /* Surface */
-  --bg-base:        #F8FAFC; /* Slate 50 */
-  --bg-secondary:   #F1F5F9; /* Slate 100 */
+  --bg-base:        #FBFBFD;
+  --bg-secondary:   #F5F5F7;
   --card-bg:        #FFFFFF;
 
-  /* Accent - Teal */
-  --primary:        #0F766E; /* Teal 700 */
-  --primary-hover:  #115E59; /* Teal 800 */
-  --primary-soft:   rgba(15, 118, 110, 0.08);
-  --primary-ring:   rgba(15, 118, 110, 0.15);
+  /* Accent */
+  --primary:        #2563EB;
+  --primary-hover:  #1D4ED8;
+  --primary-soft:   rgba(37, 99, 235, 0.08);
+  --primary-ring:   rgba(37, 99, 235, 0.15);
 
   /* Semantic */
-  --success:        #10B981; /* Emerald 500 */
-  --success-soft:   rgba(16, 185, 129, 0.08);
-  --warning:        #F59E0B; /* Amber 500 */
-  --warning-soft:   rgba(245, 158, 11, 0.08);
-  --danger:         #EF4444; /* Red 500 */
-  --danger-soft:    rgba(239, 68, 68, 0.08);
+  --success:        #059669;
+  --success-soft:   rgba(5, 150, 105, 0.08);
+  --warning:        #D4A017;
+  --warning-soft:   rgba(212, 160, 23, 0.08);
+  --danger:         #E11D48;
+  --danger-soft:    rgba(225, 29, 72, 0.08);
 
   /* Text */
-  --text-primary:   #0F172A; /* Slate 900 */
-  --text-secondary: #475569; /* Slate 600 */
-  --text-tertiary:  #94A3B8; /* Slate 400 */
+  --text-primary:   #1D1D1F;
+  --text-secondary: #86868B;
+  --text-tertiary:  #AEAEB2;
 
   /* Border */
-  --border:         rgba(15, 23, 42, 0.06); /* Slate 900 */
-  --border-soft:    rgba(15, 23, 42, 0.03);
+  --border:         rgba(0,0,0,0.06);
+  --border-soft:    rgba(0,0,0,0.03);
 
-  /* Sidebar */
-  --sidebar-bg:     #F1F5F9; /* Slate 100 */
-  --sidebar-hover:  rgba(15, 23, 42, 0.03);
-  --sidebar-active: rgba(15, 118, 110, 0.08);
-  --sidebar-text:   #0F172A;
-  --sidebar-text-muted: #475569;
-  --sidebar-border: rgba(15, 23, 42, 0.06);
+  /* Sidebar — Apple Light */
+  --sidebar-bg:     #F5F5F7;
+  --sidebar-hover:  rgba(0,0,0,0.03);
+  --sidebar-active: rgba(0,113,227,0.08);
+  --sidebar-text:   #1D1D1F;
+  --sidebar-text-muted: #86868B;
+  --sidebar-border: rgba(0,0,0,0.06);
 
   /* Shadow */
   --shadow-card:    0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03);
@@ -64,36 +64,35 @@
 }
 
 .dark {
-  --bg-base:        #020617; /* Slate 950 */
-  --bg-secondary:   #0F172A; /* Slate 900 */
-  --card-bg:        #0F172A;
+  --bg-base:        #000000;
+  --bg-secondary:   #1C1C1E;
+  --card-bg:        #1C1C1E;
 
-  /* Accent - Teal on Dark */
-  --primary:        #14B8A6; /* Teal 500 */
-  --primary-hover:  #2DD4BF; /* Teal 400 */
-  --primary-soft:   rgba(20, 184, 166, 0.1);
-  --primary-ring:   rgba(20, 184, 166, 0.2);
+  --primary:        #0A84FF;
+  --primary-hover:  #409CFF;
+  --primary-soft:   rgba(10,132,255,0.1);
+  --primary-ring:   rgba(10,132,255,0.2);
 
-  --success:        #10B981;
-  --success-soft:   rgba(16, 185, 129, 0.12);
-  --warning:        #F59E0B;
-  --warning-soft:   rgba(245, 158, 11, 0.12);
-  --danger:         #EF4444;
-  --danger-soft:    rgba(239, 68, 68, 0.12);
+  --success:        #30D158;
+  --success-soft:   rgba(48,209,88,0.12);
+  --warning:        #FF9F0A;
+  --warning-soft:   rgba(255,159,10,0.12);
+  --danger:         #FF453A;
+  --danger-soft:    rgba(255,69,58,0.12);
 
-  --text-primary:   #F8FAFC; /* Slate 50 */
-  --text-secondary: #94A3B8; /* Slate 400 */
-  --text-tertiary:  #475569; /* Slate 600 */
+  --text-primary:   #F5F5F7;
+  --text-secondary: #98989D;
+  --text-tertiary:  #636366;
 
-  --border:         rgba(248, 250, 252, 0.08); /* Slate 50 */
-  --border-soft:    rgba(248, 250, 252, 0.04);
+  --border:         rgba(255,255,255,0.08);
+  --border-soft:    rgba(255,255,255,0.04);
 
-  --sidebar-bg:     #020617;
-  --sidebar-hover:  rgba(248, 250, 252, 0.05);
-  --sidebar-active: rgba(20, 184, 166, 0.12);
-  --sidebar-text:   #F8FAFC;
-  --sidebar-text-muted: #94A3B8;
-  --sidebar-border: rgba(248, 250, 252, 0.06);
+  --sidebar-bg:     #1C1C1E;
+  --sidebar-hover:  rgba(255,255,255,0.05);
+  --sidebar-active: rgba(10,132,255,0.12);
+  --sidebar-text:   #F5F5F7;
+  --sidebar-text-muted: #98989D;
+  --sidebar-border: rgba(255,255,255,0.06);
 
   --shadow-card:    0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
   --shadow-hover:   0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);

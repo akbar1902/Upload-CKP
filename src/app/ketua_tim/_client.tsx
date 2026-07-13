@@ -256,9 +256,9 @@ export default function KetuaTimDashboardClient() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Clock size={18} className="text-amber-600" />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="#FFFBEB" loading={loading} />
-          <KPICard icon={<CheckCircle2 size={18} className="text-green-600" />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="#F0FDF4" loading={loading} />
-          <KPICard icon={<TrendingUp size={18} className="text-green-600" />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="#F5F3FF" loading={loading} />
+          <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
         <div>

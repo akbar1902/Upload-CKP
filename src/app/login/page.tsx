@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { Logo } from '@/components/ui/logo';
 import { createClient } from '@/lib/supabase/client';
 import { resetPasswordDirectAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, AlertCircle, KeyRound, CheckCircle2, ArrowLeft, Zap, Mail, Lock, CloudUpload, BarChart, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, KeyRound, CheckCircle2, ArrowLeft, Mail, Lock, CloudUpload, BarChart, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -99,17 +100,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F8FAFC]">
+    <div className="min-h-screen flex bg-[#F8FAFC] dark:bg-[#000000]">
 
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white/40">
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white/40 dark:bg-black/40">
 
         {/* Soft abstract blobs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] rounded-full bg-blue-50/80 blur-3xl opacity-70" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-50/60 blur-3xl opacity-70" />
+          <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] rounded-full bg-blue-50/80 dark:bg-blue-900/20 blur-3xl opacity-70" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-50/60 dark:bg-indigo-900/20 blur-3xl opacity-70" />
         </div>
 
         {/* Content */}
@@ -117,26 +118,23 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm"
-              style={{ background: 'var(--primary)' }}>
-              <Zap className="h-5 w-5" />
-            </div>
+            <Logo size={48} className="drop-shadow-sm" />
             <div>
-              <h1 className="text-lg font-bold text-slate-900 leading-tight">Rekap CKP</h1>
-              <p className="text-[11px] font-medium text-slate-500">
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Rekap CKP</h1>
+              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                 BPS Kabupaten Belitung
               </p>
             </div>
           </div>
 
           {/* Hero tagline */}
-          <h2 className="text-[42px] font-bold text-slate-900 leading-[1.2] tracking-tight mb-4"
+          <h2 className="text-[42px] font-bold text-slate-900 dark:text-white leading-[1.2] tracking-tight mb-4"
             style={{ letterSpacing: '-0.03em' }}>
             Rekap, Review,<br />
             dan Approval<br />
             <span style={{ color: 'var(--primary)' }}>Capaian Kinerja</span>
           </h2>
-          <p className="text-[16px] text-slate-500 mb-12 font-medium">
+          <p className="text-[16px] text-slate-500 dark:text-slate-400 mb-12 font-medium">
             Semua dalam satu platform terintegrasi.
           </p>
 
@@ -154,8 +152,8 @@ export default function LoginPage() {
                   <feat.icon size={18} />
                 </div>
                 <div>
-                  <h4 className="text-[15px] font-semibold text-slate-900">{feat.title}</h4>
-                  <p className="text-[13px] text-slate-500 mt-1">{feat.desc}</p>
+                  <h4 className="text-[15px] font-semibold text-slate-900 dark:text-white">{feat.title}</h4>
+                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">{feat.desc}</p>
                 </div>
               </div>
             ))}
@@ -167,17 +165,14 @@ export default function LoginPage() {
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
       <div className="flex-1 flex items-center justify-center lg:justify-start p-6 lg:p-0 lg:pl-16 xl:pl-24 relative z-10">
-        <div className="w-full max-w-[480px] bg-white rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] p-8 sm:p-12 border border-slate-100">
+        <div className="w-full max-w-[480px] bg-white dark:bg-[#1C1C1E] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none p-8 sm:p-12 border border-slate-100 dark:border-slate-800">
 
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center justify-center gap-3 mb-8">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white"
-              style={{ background: 'var(--primary)' }}>
-              <Zap className="h-6 w-6" />
-            </div>
+            <Logo size={56} className="drop-shadow-sm" />
             <div className="text-center">
-              <h1 className="text-lg font-bold text-slate-900">CKP Digital</h1>
-              <p className="text-[12px] text-slate-500">BPS Kabupaten Belitung</p>
+              <h1 className="text-lg font-bold text-slate-900 dark:text-white">CKP Digital</h1>
+              <p className="text-[12px] text-slate-500 dark:text-slate-400">BPS Kabupaten Belitung</p>
             </div>
           </div>
 

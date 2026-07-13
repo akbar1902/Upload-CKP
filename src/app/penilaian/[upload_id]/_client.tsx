@@ -197,7 +197,7 @@ function RencanaKinerjaGroup({
                       {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
-                        <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-green-600' : 'text-blue-600'}`}>{entry.progres}%</span>
+                        <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-[var(--success)]' : 'text-[var(--primary)]'}`}>{entry.progres}%</span>
                       </div>
                     </div>
                   </div>
@@ -474,20 +474,20 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         </div>
 
         {upload.catatan_pimpinan && (
-          <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-200">
-            <MessageSquare size={16} className="text-blue-600 mt-0.5" />
+          <div className="flex items-start gap-3 p-4 rounded-2xl" style={{ background: 'var(--warning-soft)', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
+            <MessageSquare size={16} style={{ color: 'var(--warning)', marginTop: 2 }} />
             <div>
-              <p className="text-[13px] font-bold text-blue-900">Catatan Pimpinan</p>
-              <p className="text-[13px] mt-1 text-blue-800">{upload.catatan_pimpinan}</p>
+              <p className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Catatan Pimpinan</p>
+              <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>{upload.catatan_pimpinan}</p>
             </div>
           </div>
         )}
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard icon={<FileText size={18} className="text-blue-600" />} value={rkGroups.length} label="Total Rencana Kinerja" iconBg="#EFF6FF" />
-          <KPICard icon={<LayoutList size={18} className="text-purple-600" />} value={entries.length} label="Total Kegiatan" iconBg="#F5F3FF" />
-          <KPICard icon={<TrendingUp size={18} className="text-green-600" />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres" iconBg="#F0FDF4" />
-          <KPICard icon={<CheckCircle2 size={18} className="text-amber-600" />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai SKP" iconBg="#FEF3C7" />
+          <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={rkGroups.length} label="Total Rencana Kinerja" iconBg="var(--primary-soft)" />
+          <KPICard icon={<LayoutList size={18} style={{ color: 'var(--primary)' }} />} value={entries.length} label="Total Kegiatan" iconBg="var(--primary-soft)" />
+          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres" iconBg="var(--primary-soft)" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
         </div>
 
         <div>

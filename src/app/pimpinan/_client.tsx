@@ -294,7 +294,7 @@ export default function PimpinanDashboard() {
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
           <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
           <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
-          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--success)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--success-soft)" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}

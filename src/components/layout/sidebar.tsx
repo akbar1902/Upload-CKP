@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -119,12 +120,7 @@ export function Sidebar() {
         collapsed && "justify-center px-3 py-5"
       )}>
         {/* Logo mark */}
-        <div
-          className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-          style={{ background: 'var(--primary)' }}
-        >
-          <Zap className="h-4.5 w-4.5 text-white" size={18} />
-        </div>
+        <Logo size={36} className="flex-shrink-0 drop-shadow-sm" />
         {!collapsed && (
           <div className="min-w-0">
             <p className="text-[15px] font-semibold leading-tight tracking-tight"
