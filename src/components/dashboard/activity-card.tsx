@@ -69,7 +69,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   return (
     <div className="activity-card" aria-expanded={expanded}>
       {/* ── Main card row ──────────────────────────── */}
-      <div className="flex items-center gap-4 p-6">
+      <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
 
         {/* Date block */}
         <div className="date-block hidden sm:flex">
@@ -250,8 +250,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
 export function ActivityCardSkeleton() {
   return (
-    <div className="activity-card p-6">
-      <div className="flex items-center gap-4">
+    <div className="activity-card p-4 sm:p-6">
+      <div className="flex items-center gap-3 sm:gap-4">
         <div className="skeleton w-16 h-20 rounded-2xl hidden sm:block" />
         <div className="flex items-center gap-3 flex-1">
           <div className="skeleton w-10 h-10 rounded-2xl flex-shrink-0" />

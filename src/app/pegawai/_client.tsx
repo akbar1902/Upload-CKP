@@ -70,9 +70,9 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   };
 
   return (
-    <div className="kpi-card p-6 flex flex-col gap-3 animate-scale-in">
+    <div className="kpi-card p-4 sm:p-6 flex flex-col gap-3 animate-scale-in">
       <div className="flex items-center justify-between">
-        <div className="date-block" style={{ minWidth: 'unset', padding: '8px 10px' }}>
+        <div className="date-block flex" style={{ minWidth: 'unset', padding: '8px 10px' }}>
           <span className="month" style={{ fontSize: '11px' }}>
             {MONTH_FULL[upload.bulan]} {upload.tahun}
           </span>
