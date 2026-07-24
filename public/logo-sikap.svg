@@ -56,8 +56,8 @@
 
   <!-- Main SIKAP text: green outline (thick stroke) then white fill -->
   <g class="brand-text" transform="skewX(-8)">
-    <text x="150" y="560" font-size="220" fill="#146753" stroke="#146753" stroke-width="26" stroke-linejoin="round">SIKAP</text>
-    <text x="150" y="560" font-size="220" fill="#ffffff">SIKAP</text>
+    <text x="190" y="560" font-size="220" fill="#146753" stroke="#146753" stroke-width="26" stroke-linejoin="round">SIKAP</text>
+    <text x="190" y="560" font-size="220" fill="#ffffff">SIKAP</text>
   </g>
 
   <!-- Bottom pill badge -->
