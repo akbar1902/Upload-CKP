@@ -186,6 +186,7 @@ export async function updateRencanaKinerjaAction(
         const { error: insertError } = await supabase.from('audit_logs').insert(auditLogsToInsert);
         if (insertError) {
           console.error("Failed to insert audit logs:", insertError);
+          return { success: false, error: "Gagal menyimpan log audit: " + insertError.message };
         }
       }
     }
@@ -291,7 +292,7 @@ export async function removeAssignmentAction(
     // Note: TypeScript doesn't natively know about the join without explicit cast if we use loosely typed supabase
     const { data: assignmentData } = await supabase
       .from('user_rk_assignments')
-      .select('*, rk:rk_ketua_tim_mapping(id, rencana_kinerja, tim_kerja)')
+      .select('*, rk:rk_ketua_tim_mapping(id, rencana_kinerja, tim_kerja), user:users(full_name)')
       .eq('id', id)
       .single() as any;
 
@@ -303,13 +304,39 @@ export async function removeAssignmentAction(
     if (error) return { success: false, error: error.message };
 
     if (assignmentData && assignmentData.rk) {
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        action: 'rk_unassigned',
-        entity_type: 'rencana_kinerja',
-        entity_id: assignmentData.rk.id,
-        old_data: { rencana_kinerja: assignmentData.rk.rencana_kinerja, tim_kerja: assignmentData.rk.tim_kerja }
-      });
+      const assigneeId = assignmentData.user_id;
+      const assigneeName = assignmentData.user?.full_name || 'Pegawai';
+      
+      const auditLogsToInsert = [
+        {
+          user_id: user.id, // Log for Team Leader
+          action: 'rk_unassigned',
+          entity_type: 'rencana_kinerja',
+          entity_id: assignmentData.rk.id,
+          old_data: { 
+            rencana_kinerja: assignmentData.rk.rencana_kinerja, 
+            tim_kerja: assignmentData.rk.tim_kerja,
+            assignee_name: assigneeName
+          }
+        }
+      ];
+
+      // Log for Employee
+      if (assigneeId !== user.id) {
+        auditLogsToInsert.push({
+          user_id: assigneeId,
+          action: 'rk_unassigned_from_me',
+          entity_type: 'rencana_kinerja',
+          entity_id: assignmentData.rk.id,
+          old_data: { 
+            rencana_kinerja: assignmentData.rk.rencana_kinerja, 
+            tim_kerja: assignmentData.rk.tim_kerja,
+            actor_name: user.user_metadata?.full_name || 'Ketua Tim'
+          }
+        });
+      }
+
+      await supabase.from('audit_logs').insert(auditLogsToInsert);
     }
     
     revalidatePath('/rencana_kinerja');
