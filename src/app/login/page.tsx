@@ -100,7 +100,7 @@ export default function LoginPage() {
   const primaryColor = '#3A6D5B'; // The green from SIKAP logo
 
   return (
-    <div 
+    <div
       className="h-screen overflow-hidden flex font-sans relative"
       style={{
         background: `
@@ -111,14 +111,14 @@ export default function LoginPage() {
       }}
     >
       {/* Subtle Pattern (fading out towards the right) */}
-      <div 
-        className="absolute inset-0 opacity-40 pointer-events-none" 
-        style={{ 
-          backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', 
+      <div
+        className="absolute inset-0 opacity-40 pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
           backgroundSize: '24px 24px',
           maskImage: 'linear-gradient(to right, black 30%, transparent 80%)',
           WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 80%)'
-        }} 
+        }}
       />
 
       {/* ═══════════════════════════════════════════════ */}
@@ -168,7 +168,7 @@ export default function LoginPage() {
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
-        
+
         {/* Login Card */}
         <div className="w-full max-w-[440px] bg-white shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] rounded-[32px] p-8 flex flex-col relative z-10">
 
@@ -204,7 +204,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={170} className="drop-shadow-sm" />
+                    <Logo size={120} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
@@ -297,7 +297,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-6">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={170} className="drop-shadow-sm" />
+                    <Logo size={120} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
