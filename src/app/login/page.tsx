@@ -100,7 +100,7 @@ export default function LoginPage() {
   const primaryColor = '#3A6D5B'; // The green from SIKAP logo
 
   return (
-    <div className="min-h-screen flex bg-[#F6F9F7] font-sans">
+    <div className="h-screen overflow-hidden flex bg-[#F6F9F7] font-sans">
       
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
@@ -154,8 +154,8 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10 bg-[#F6F9F7] lg:bg-transparent overflow-y-auto">
-        <div className="w-full max-w-[460px] bg-white rounded-[32px] p-8 sm:p-12 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col my-auto">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#F6F9F7] lg:bg-transparent">
+        <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white rounded-[32px] p-8 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
@@ -188,8 +188,8 @@ export default function LoginPage() {
               /* ── Forgot Password Form ──────────── */
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
-                  <div className="mx-auto flex justify-center mb-6">
-                    <Logo size={140} className="drop-shadow-sm" />
+                  <div className="mx-auto flex justify-center mb-4">
+                    <Logo size={100} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
@@ -280,9 +280,9 @@ export default function LoginPage() {
             ) : (
               /* ── Normal Login Form ─────────────── */
               <div className="animate-fade-in">
-                <div className="text-center mb-10">
-                  <div className="mx-auto flex justify-center mb-6">
-                    <Logo size={140} className="drop-shadow-sm" />
+                <div className="text-center mb-6">
+                  <div className="mx-auto flex justify-center mb-4">
+                    <Logo size={100} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
@@ -316,7 +316,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-13 py-3.5 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
+                        className="pl-12 h-11 py-2 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
                       />
                     </div>
                   </div>
@@ -350,7 +350,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-13 py-3.5 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
+                        className="pl-12 pr-12 h-11 py-2 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
                       />
                       <button
                         type="button"
@@ -365,7 +365,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full h-13 py-4 mt-4 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
+                    className="w-full h-11 py-2 mt-4 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
                     style={{ backgroundColor: primaryColor }}
                   >
                     <LogIn className="h-5 w-5" />
@@ -377,7 +377,7 @@ export default function LoginPage() {
           </div>
 
           {/* Footer inside the card */}
-          <div className="mt-12 text-center border-t border-gray-100 pt-6">
+          <div className="mt-6 text-center border-t border-gray-100 pt-6">
             <p className="text-[11px] text-gray-400 font-medium">
               © {new Date().getFullYear()} BPS Kabupaten Belitung
             </p>

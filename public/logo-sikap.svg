@@ -1,0 +1,59 @@
+<svg viewBox="0 0 1000 800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .brand-text {
+        font-family: Arial, Helvetica, sans-serif;
+        font-weight: 900;
+        font-style: italic;
+      }
+    </style>
+  </defs>
+
+  <!-- Soft green swoosh motion ellipses behind everything -->
+  <g opacity="0.45">
+    <ellipse cx="500" cy="460" rx="430" ry="105" fill="none" stroke="#cfe3d8" stroke-width="22"/>
+  </g>
+  <g opacity="0.55">
+    <ellipse cx="520" cy="470" rx="360" ry="78" fill="none" stroke="#dcebe2" stroke-width="16"/>
+  </g>
+
+  <!-- Yellow motion sparkles - left -->
+  <g fill="#f2a93b">
+    <rect x="0" y="0" width="14" height="70" rx="7" transform="translate(148,270) rotate(-18)"/>
+    <rect x="0" y="0" width="12" height="55" rx="6" transform="translate(112,300) rotate(-8)"/>
+    <rect x="0" y="0" width="12" height="55" rx="6" transform="translate(96,345) rotate(12)"/>
+  </g>
+
+  <!-- Yellow motion sparkles - right -->
+  <g fill="#f2a93b">
+    <rect x="0" y="0" width="14" height="70" rx="7" transform="translate(838,268) rotate(18)"/>
+    <rect x="0" y="0" width="12" height="55" rx="6" transform="translate(872,300) rotate(8)"/>
+    <rect x="0" y="0" width="12" height="55" rx="6" transform="translate(886,347) rotate(-12)"/>
+  </g>
+
+  <!-- Folder shape behind text -->
+  <path d="M 195 330
+           Q 195 300 225 300
+           L 330 300
+           Q 350 300 362 316
+           L 380 340
+           Q 392 356 412 356
+           L 490 356
+           Q 520 356 520 386
+           L 520 520
+           Q 520 550 490 550
+           L 225 550
+           Q 195 550 195 520
+           Z"
+        fill="#146753"/>
+
+  <!-- Main SIKAP text: green outline (thick stroke) then white fill -->
+  <g class="brand-text" transform="skewX(-8)">
+    <text x="150" y="560" font-size="220" fill="#146753" stroke="#146753" stroke-width="26" stroke-linejoin="round">SIKAP</text>
+    <text x="150" y="560" font-size="220" fill="#ffffff">SIKAP</text>
+  </g>
+
+  <!-- Bottom pill badge -->
+  <rect x="265" y="618" width="510" height="70" rx="35" fill="#146753"/>
+  <text x="520" y="665" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#ffffff">Sistem Informasi Rekap CKP</text>
+</svg>
