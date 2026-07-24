@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { resetPasswordDirectAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, AlertCircle, KeyRound, CheckCircle2, ArrowLeft, Mail, Lock, CloudUpload, BarChart, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock, CloudUpload, BarChart, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -116,13 +116,8 @@ export default function LoginPage() {
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center py-12 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
+        <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
           
-          {/* Logo */}
-          <div className="mb-8 ml-[-15px]">
-            <Logo size={280} className="drop-shadow-sm" />
-          </div>
-
           {/* Hero tagline */}
           <h2 className="text-[44px] font-extrabold text-[#1C2520] leading-[1.15] tracking-tight mb-4">
             Rekap, Review,<br />
@@ -159,18 +154,13 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10 bg-[#F6F9F7] lg:bg-transparent">
-        <div className="w-full max-w-[460px] bg-white rounded-[32px] p-10 sm:p-12 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col min-h-[580px]">
-
-          {/* Mobile logo */}
-          <div className="lg:hidden flex justify-center mb-10">
-            <Logo size={200} className="drop-shadow-sm" />
-          </div>
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10 bg-[#F6F9F7] lg:bg-transparent overflow-y-auto">
+        <div className="w-full max-w-[460px] bg-white rounded-[32px] p-8 sm:p-12 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col my-auto">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
               /* ── Success State ──────────────────── */
-              <div className="flex flex-col items-center justify-center py-6 animate-fade-in text-center">
+              <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#E6F0EA]">
                   <CheckCircle2 className="h-8 w-8" style={{ color: primaryColor }} />
                 </div>
@@ -198,8 +188,8 @@ export default function LoginPage() {
               /* ── Forgot Password Form ──────────── */
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
-                  <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#F3F4F6]">
-                    <KeyRound className="h-6 w-6 text-gray-400" />
+                  <div className="mx-auto flex justify-center mb-6">
+                    <Logo size={140} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
@@ -291,8 +281,8 @@ export default function LoginPage() {
               /* ── Normal Login Form ─────────────── */
               <div className="animate-fade-in">
                 <div className="text-center mb-10">
-                  <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#F3F4F6]">
-                    <Lock className="h-6 w-6 text-gray-400" />
+                  <div className="mx-auto flex justify-center mb-6">
+                    <Logo size={140} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
