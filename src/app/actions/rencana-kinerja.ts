@@ -144,7 +144,7 @@ export async function updateRencanaKinerjaAction(
       const { data: usersData } = await supabase.from('users').select('id, full_name').in('id', [...addedIds, ...removedIds, user.id]);
       const userMap = new Map((usersData || []).map(u => [u.id, u.full_name]));
 
-      const auditLogsToInsert = [];
+      const auditLogsToInsert: any[] = [];
       for (const id of addedIds) {
         auditLogsToInsert.push({
           user_id: user.id,
@@ -153,15 +153,6 @@ export async function updateRencanaKinerjaAction(
           entity_id: rkId,
           new_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, assignee_name: userMap.get(id) || 'Pegawai' }
         });
-        if (id !== user.id) {
-          auditLogsToInsert.push({
-            user_id: id,
-            action: 'rk_assigned_to_me',
-            entity_type: 'rencana_kinerja',
-            entity_id: rkId,
-            new_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, actor_name: userMap.get(user.id) || 'Ketua Tim' }
-          });
-        }
       }
       for (const id of removedIds) {
         auditLogsToInsert.push({
@@ -171,15 +162,6 @@ export async function updateRencanaKinerjaAction(
           entity_id: rkId,
           old_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, assignee_name: userMap.get(id) || 'Pegawai' }
         });
-        if (id !== user.id) {
-          auditLogsToInsert.push({
-            user_id: id,
-            action: 'rk_unassigned_from_me',
-            entity_type: 'rencana_kinerja',
-            entity_id: rkId,
-            old_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, actor_name: userMap.get(user.id) || 'Ketua Tim' }
-          });
-        }
       }
       
       if (auditLogsToInsert.length > 0) {
@@ -320,21 +302,6 @@ export async function removeAssignmentAction(
           }
         }
       ];
-
-      // Log for Employee
-      if (assigneeId !== user.id) {
-        auditLogsToInsert.push({
-          user_id: assigneeId,
-          action: 'rk_unassigned_from_me',
-          entity_type: 'rencana_kinerja',
-          entity_id: assignmentData.rk.id,
-          old_data: { 
-            rencana_kinerja: assignmentData.rk.rencana_kinerja, 
-            tim_kerja: assignmentData.rk.tim_kerja,
-            actor_name: user.user_metadata?.full_name || 'Ketua Tim'
-          }
-        });
-      }
 
       await supabase.from('audit_logs').insert(auditLogsToInsert);
     }
