@@ -54,7 +54,7 @@ export function Sidebar() {
   const [signingOut, setSigningOut] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
 
-  const [isDashboardOpen, setIsDashboardOpen] = useState(true);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
   const isKetuaTim = user?.role === 'ketua_tim' || isPimpinan;
