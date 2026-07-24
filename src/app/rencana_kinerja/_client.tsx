@@ -638,6 +638,7 @@ export function RencanaKinerjaClient({
             )}
           </div>
         )}
+
         {/* ════════════════════════════════════════ */}
         {/*  TAB: History                           */}
         {/* ════════════════════════════════════════ */}
@@ -654,19 +655,19 @@ export function RencanaKinerjaClient({
               ) : (
                 <div className="relative border-l border-slate-200 ml-3 space-y-6">
                   {auditLogs.map((log: any) => {
-                    const actorName = log.user?.full_name || "Sistem";
-                    const roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
+                    let actorName = log.user?.full_name || "Sistem";
+                    let roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
                     
                     let actionText = "";
-                    let iconColor = "#64748b";
-                    let bgColor = "#f1f5f9";
-                    let detailText = "";
+                    let iconColor = "#94a3b8";
+                    let bgColor = "#f8fafc";
+                    let detailText = log.entity_type;
 
-                    const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || "RK Tidak Diketahui";
+                    const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || log.entity_id;
                     const timName = log.new_data?.tim_kerja || log.old_data?.tim_kerja || "";
 
                     if (log.action === 'rk_created') {
-                      actionText = `menambahkan RK baru`;
+                      actionText = `membuat RK baru`;
                       iconColor = "#16a34a";
                       bgColor = "#dcfce7";
                       detailText = `${rkName} (${timName})`;
@@ -698,6 +699,22 @@ export function RencanaKinerjaClient({
                       } else {
                         actionText = `menghapus RK dari daftarnya`;
                       }
+                      iconColor = "#64748b";
+                      bgColor = "#f1f5f9";
+                      detailText = `${rkName}`;
+                    } else if (log.action === 'rk_assigned_to_me') {
+                      const actor = log.new_data?.actor_name || "Ketua Tim";
+                      actionText = `menugaskan RK ini kepada Anda`;
+                      actorName = actor;
+                      roleLabel = "Ketua Tim";
+                      iconColor = "#d97706";
+                      bgColor = "#fef3c7";
+                      detailText = `${rkName}`;
+                    } else if (log.action === 'rk_unassigned_from_me') {
+                      const actor = log.old_data?.actor_name || "Ketua Tim";
+                      actionText = `menghapus Anda dari penugasan RK ini`;
+                      actorName = actor;
+                      roleLabel = "Ketua Tim";
                       iconColor = "#64748b";
                       bgColor = "#f1f5f9";
                       detailText = `${rkName}`;
