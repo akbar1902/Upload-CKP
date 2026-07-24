@@ -788,9 +788,9 @@ export function RencanaKinerjaClient({
                     </p>
                   ) : (
                     filteredRKsForAssign.map((rk, idx) => {
-                      const isSelected = selectedRkToAssign === rk.rencana_kinerja;
+                      const isSelected = selectedRkToAssign === rk.id;
                       return (
-                        <div key={idx} onClick={() => setSelectedRkToAssign(rk.rencana_kinerja)}
+                        <div key={idx} onClick={() => setSelectedRkToAssign(rk.id)}
                           className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
                           style={isSelected
                             ? { background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.2)' }
