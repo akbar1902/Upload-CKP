@@ -753,14 +753,14 @@ export function RencanaKinerjaClient({
                     <div
                       key={idx}
                       onClick={() => { setSelectedTeamToAssign(team); setSelectedRkToAssign(""); }}
-                      className="px-3 py-2 rounded-lg cursor-pointer text-[12px] transition-all flex items-center justify-between"
+                      className="p-3 rounded-lg cursor-pointer text-[12px] transition-all flex items-start justify-between gap-2 h-full"
                       style={isSelected
                         ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.3)', fontWeight: 600 }
                         : { border: '1px solid var(--border)', background: 'var(--bg-base)' }
                       }
                     >
-                      <span className="truncate pr-2">{team}</span>
-                      {isSelected && <CheckCircle2 size={14} />}
+                      <span className="leading-snug text-left">{team}</span>
+                      {isSelected && <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />}
                     </div>
                   );
                 })}
