@@ -67,8 +67,6 @@ export default function LoginPage() {
     } catch (err) {
       setError('Terjadi kesalahan yang tidak terduga.');
     } finally {
-      // Tunggu sebentar sebelum mematikan loading saat redirect
-      // Untuk mencegah kedipan tombol saat navigasi sedang berlangsung
       setTimeout(() => setLoading(false), 2000);
     }
   };
@@ -99,47 +97,44 @@ export default function LoginPage() {
     }
   };
 
-  return (
-    <div className="min-h-screen flex bg-[#F8FAFC] dark:bg-[#000000]">
+  const primaryColor = '#3A6D5B'; // The green from SIKAP logo
 
+  return (
+    <div className="min-h-screen flex bg-[#F6F9F7] font-sans">
+      
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-white/40 dark:bg-black/40">
-
-        {/* Soft abstract blobs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[800px] h-[800px] rounded-full bg-blue-50/80 dark:bg-blue-900/20 blur-3xl opacity-70" />
-          <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-50/60 dark:bg-indigo-900/20 blur-3xl opacity-70" />
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#F6F9F7]">
+        
+        {/* Abstract Background Shapes */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
+          <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+             <path d="M0,0 C30,40 70,60 100,20 L100,100 L0,100 Z" fill="#EBF2ED" opacity="0.5" />
+             <path d="M0,100 C40,80 60,30 100,60 L100,100 L0,100 Z" fill="#E2EBE5" opacity="0.3" />
+          </svg>
         </div>
 
         {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center py-12 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-24">
-
+        <div className="relative z-10 flex flex-col justify-center py-12 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
+          
           {/* Logo */}
-          <div className="flex items-center gap-3 mb-16">
-            <Logo size={120} className="drop-shadow-sm" />
-            <div>
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Rekap CKP</h1>
-              <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                BPS Kabupaten Belitung
-              </p>
-            </div>
+          <div className="mb-8 ml-[-15px]">
+            <Logo size={280} className="drop-shadow-sm" />
           </div>
 
           {/* Hero tagline */}
-          <h2 className="text-[42px] font-bold text-slate-900 dark:text-white leading-[1.2] tracking-tight mb-4"
-            style={{ letterSpacing: '-0.03em' }}>
+          <h2 className="text-[44px] font-extrabold text-[#1C2520] leading-[1.15] tracking-tight mb-4">
             Rekap, Review,<br />
             dan Approval<br />
-            <span style={{ color: 'var(--primary)' }}>Capaian Kinerja</span>
+            <span style={{ color: primaryColor }}>Capaian Kinerja</span>
           </h2>
-          <p className="text-[16px] text-slate-500 dark:text-slate-400 mb-12 font-medium">
+          <p className="text-[16px] text-slate-500 mb-12 font-medium">
             Semua dalam satu platform terintegrasi.
           </p>
 
           {/* Features */}
-          <div className="space-y-7">
+          <div className="space-y-6">
             {[
               { icon: CloudUpload, title: 'Upload CKP Bulanan', desc: 'Unggah file Excel CKP dengan mudah dan aman.' },
               { icon: BarChart, title: 'Dashboard Real-time', desc: 'Pantau progress capaian kinerja secara real-time.' },
@@ -147,13 +142,13 @@ export default function LoginPage() {
               { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.' },
             ].map((feat, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-sm border border-blue-50 mt-0.5"
-                  style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
-                  <feat.icon size={18} />
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1"
+                  style={{ background: '#E6F0EA', color: primaryColor }}>
+                  <feat.icon size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h4 className="text-[15px] font-semibold text-slate-900 dark:text-white">{feat.title}</h4>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400 mt-1">{feat.desc}</p>
+                  <h4 className="text-[15px] font-bold text-[#1C2520] mb-0.5">{feat.title}</h4>
+                  <p className="text-[13px] text-slate-500">{feat.desc}</p>
                 </div>
               </div>
             ))}
@@ -164,29 +159,22 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center lg:justify-start p-6 lg:p-0 lg:pl-16 xl:pl-24 relative z-10">
-        <div className="w-full max-w-[480px] bg-white dark:bg-[#1C1C1E] rounded-[24px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-none p-8 sm:p-12 border border-slate-100 dark:border-slate-800">
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10 bg-[#F6F9F7] lg:bg-transparent">
+        <div className="w-full max-w-[460px] bg-white rounded-[32px] p-10 sm:p-12 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col min-h-[580px]">
 
           {/* Mobile logo */}
-          <div className="lg:hidden flex flex-col items-center justify-center gap-3 mb-8">
-            <Logo size={100} className="drop-shadow-sm" />
-            <div className="text-center">
-              <h1 className="text-lg font-bold text-slate-900 dark:text-white">CKP Digital</h1>
-              <p className="text-[12px] text-slate-500 dark:text-slate-400">BPS Kabupaten Belitung</p>
-            </div>
+          <div className="lg:hidden flex justify-center mb-10">
+            <Logo size={200} className="drop-shadow-sm" />
           </div>
 
-          {/* ── Form Content / State Switcher ───────── */}
-          <div className="relative overflow-hidden">
-
+          <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
               /* ── Success State ──────────────────── */
               <div className="flex flex-col items-center justify-center py-6 animate-fade-in text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6"
-                  style={{ background: 'var(--success-soft)' }}>
-                  <CheckCircle2 className="h-8 w-8" style={{ color: 'var(--success)' }} />
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#E6F0EA]">
+                  <CheckCircle2 className="h-8 w-8" style={{ color: primaryColor }} />
                 </div>
-                <h3 className="text-xl font-bold tracking-tight mb-2 text-slate-900">
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-[#1C2520]">
                   Password Berhasil Diubah!
                 </h3>
                 <p className="text-[14px] max-w-sm mb-8 text-slate-500">
@@ -199,7 +187,8 @@ export default function LoginPage() {
                     setResetEmail('');
                     setNewPassword('');
                   }}
-                  className="w-full"
+                  className="w-full h-12 rounded-xl font-semibold"
+                  style={{ backgroundColor: primaryColor }}
                 >
                   Kembali ke Halaman Login
                 </Button>
@@ -209,34 +198,32 @@ export default function LoginPage() {
               /* ── Forgot Password Form ──────────── */
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
-                  <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                    style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
-                    <KeyRound className="h-5 w-5" />
+                  <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#F3F4F6]">
+                    <KeyRound className="h-6 w-6 text-gray-400" />
                   </div>
-                  <h2 className="text-[24px] font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
                   </h2>
-                  <p className="text-[14px] mt-1.5 text-slate-500">
+                  <p className="text-[14px] text-slate-500">
                     Masukkan email Anda untuk mereset password.
                   </p>
                 </div>
 
                 {resetError && (
-                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in"
-                    style={{ background: 'var(--danger-soft)', border: '1px solid rgba(225,29,72,0.1)' }}>
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--danger)' }}>{resetError}</p>
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-red-50 border border-red-100">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
+                    <p className="text-[13px] font-medium text-red-600">{resetError}</p>
                   </div>
                 )}
 
                 <form onSubmit={handleForgotPassword} className="space-y-5">
                   <div>
-                    <label htmlFor="reset-email" className="block text-[13px] font-semibold mb-2 text-slate-700">
-                      Email Terdaftar
+                    <label htmlFor="reset-email" className="block text-[13px] font-bold mb-2 text-slate-700">
+                      Email
                     </label>
                     <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Mail className="h-4 w-4" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Mail className="h-5 w-5" />
                       </div>
                       <Input
                         id="reset-email"
@@ -246,18 +233,18 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-10 bg-slate-50 border-slate-200"
+                        className="pl-12 h-12 bg-[#F3F6F4] border-transparent focus:border-slate-300 focus:bg-white rounded-xl text-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="new-password" className="block text-[13px] font-semibold mb-2 text-slate-700">
+                    <label htmlFor="new-password" className="block text-[13px] font-bold mb-2 text-slate-700">
                       Password Baru
                     </label>
                     <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock className="h-4 w-4" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                        <Lock className="h-5 w-5" />
                       </div>
                       <Input
                         id="new-password"
@@ -266,23 +253,24 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-10 pr-10 bg-slate-50 border-slate-200"
+                        className="pl-12 pr-12 h-12 bg-[#F3F6F4] border-transparent focus:border-slate-300 focus:bg-white rounded-xl text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
                       >
-                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
                   </div>
 
-                  <div className="pt-2 space-y-3">
+                  <div className="pt-4 space-y-3">
                     <Button
                       type="submit"
                       loading={resetLoading}
-                      className="w-full"
+                      className="w-full h-12 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: primaryColor }}
                     >
                       Ubah Password
                     </Button>
@@ -290,7 +278,7 @@ export default function LoginPage() {
                       type="button"
                       variant="ghost"
                       onClick={() => setIsForgotPassword(false)}
-                      className="w-full text-slate-500 hover:text-slate-700"
+                      className="w-full h-12 text-slate-500 hover:text-slate-700 rounded-xl font-medium"
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Kembali ke Login
@@ -302,52 +290,50 @@ export default function LoginPage() {
             ) : (
               /* ── Normal Login Form ─────────────── */
               <div className="animate-fade-in">
-                <div className="text-center mb-8">
-                  <div className="mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-4"
-                    style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}>
-                    <Lock className="h-5 w-5" />
+                <div className="text-center mb-10">
+                  <div className="mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-5 bg-[#F3F4F6]">
+                    <Lock className="h-6 w-6 text-gray-400" />
                   </div>
-                  <h2 className="text-[24px] font-bold text-slate-900 tracking-tight">
+                  <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
                   </h2>
-                  <p className="text-[14px] mt-1.5 text-slate-500">
+                  <p className="text-[14px] text-slate-500">
                     Masuk ke akun Anda untuk melanjutkan
                   </p>
                 </div>
 
                 {error && (
-                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in"
-                    style={{ background: 'var(--danger-soft)', border: '1px solid rgba(225,29,72,0.1)' }}>
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--danger)' }} />
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--danger)' }}>{error}</p>
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-red-50 border border-red-100">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
+                    <p className="text-[13px] font-medium text-red-600">{error}</p>
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <label htmlFor="email" className="block text-[13px] font-semibold mb-2 text-slate-700">
+                    <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[#1C2520]">
                       Email
                     </label>
                     <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Mail className="h-4 w-4" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Mail className="h-5 w-5" />
                       </div>
                       <Input
                         id="email"
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        placeholder="email@bps.go.id"
+                        placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-10 bg-slate-50 border-slate-200"
+                        className="pl-12 h-13 py-3.5 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
                       />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="password" className="block text-[13px] font-semibold text-slate-700">
+                      <label htmlFor="password" className="block text-[13px] font-bold text-[#1C2520]">
                         Password
                       </label>
                       <button
@@ -357,15 +343,15 @@ export default function LoginPage() {
                           setResetError('');
                           setResetEmail(email);
                         }}
-                        className="text-[12px] font-semibold transition-colors hover:opacity-80"
-                        style={{ color: 'var(--primary)' }}
+                        className="text-[12px] font-bold transition-colors hover:opacity-80"
+                        style={{ color: primaryColor }}
                       >
                         Lupa Password?
                       </button>
                     </div>
                     <div className="relative">
-                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400">
-                        <Lock className="h-4 w-4" />
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                        <Lock className="h-5 w-5" />
                       </div>
                       <Input
                         id="password"
@@ -374,14 +360,14 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-10 pr-10 bg-slate-50 border-slate-200"
+                        className="pl-12 pr-12 h-13 py-3.5 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
                     </div>
                   </div>
@@ -389,9 +375,10 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full mt-2"
+                    className="w-full h-13 py-4 mt-4 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
+                    style={{ backgroundColor: primaryColor }}
                   >
-                    <LogIn className="h-4 w-4 mr-2" />
+                    <LogIn className="h-5 w-5" />
                     Masuk
                   </Button>
                 </form>
@@ -399,15 +386,16 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Footer */}
-          <div className="mt-10 text-center">
-            <p className="text-[11px] text-slate-400">
+          {/* Footer inside the card */}
+          <div className="mt-12 text-center border-t border-gray-100 pt-6">
+            <p className="text-[11px] text-gray-400 font-medium">
               © {new Date().getFullYear()} BPS Kabupaten Belitung
             </p>
-            <p className="text-[11px] mt-0.5 text-slate-400">
+            <p className="text-[11px] mt-1 text-gray-400 font-medium">
               Sistem Informasi Capaian Kinerja Pegawai
             </p>
           </div>
+          
         </div>
       </div>
     </div>
