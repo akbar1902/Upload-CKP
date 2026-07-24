@@ -170,7 +170,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
         
         {/* Login Card */}
-        <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] rounded-[32px] p-8 flex flex-col relative z-10">
+        <div className="w-full max-w-[440px] bg-white shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] rounded-[32px] p-8 flex flex-col relative z-10">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
