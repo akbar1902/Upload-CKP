@@ -685,8 +685,19 @@ export function RencanaKinerjaClient({
                       iconColor = "#d97706";
                       bgColor = "#fef3c7";
                       detailText = `${rkName}`;
+                    } else if (log.action === 'rk_assigned') {
+                      const targetName = log.new_data?.assignee_name || "Pegawai";
+                      actionText = `menugaskan RK kepada ${targetName}`;
+                      iconColor = "#d97706";
+                      bgColor = "#fef3c7";
+                      detailText = `${rkName}`;
                     } else if (log.action === 'rk_unassigned') {
-                      actionText = `menghapus RK dari daftarnya`;
+                      const targetName = log.old_data?.assignee_name;
+                      if (targetName) {
+                        actionText = `menghapus penugasan RK dari ${targetName}`;
+                      } else {
+                        actionText = `menghapus RK dari daftarnya`;
+                      }
                       iconColor = "#64748b";
                       bgColor = "#f1f5f9";
                       detailText = `${rkName}`;

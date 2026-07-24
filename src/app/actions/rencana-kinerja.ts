@@ -121,6 +121,10 @@ export async function updateRencanaKinerjaAction(
       });
     }
 
+    // Fetch old assignments for audit
+    const { data: oldAssignments } = await supabase.from('user_rk_assignments').select('user_id').eq('rk_id', rkId);
+    const oldAssigneeIds = (oldAssignments || []).map(a => a.user_id);
+
     // Sync assignments
     await supabase.from('user_rk_assignments').delete().eq('rk_id', rkId);
     if (assigneeIds.length > 0) {
@@ -130,6 +134,39 @@ export async function updateRencanaKinerjaAction(
         assigned_by: user.id
       }));
       await supabase.from('user_rk_assignments').insert(newAssignments);
+    }
+
+    // Log assignment changes
+    const addedIds = assigneeIds.filter(id => !oldAssigneeIds.includes(id));
+    const removedIds = oldAssigneeIds.filter(id => !assigneeIds.includes(id));
+
+    if (addedIds.length > 0 || removedIds.length > 0) {
+      const { data: usersData } = await supabase.from('users').select('id, full_name').in('id', [...addedIds, ...removedIds]);
+      const userMap = new Map((usersData || []).map(u => [u.id, u.full_name]));
+
+      const auditLogsToInsert = [];
+      for (const id of addedIds) {
+        auditLogsToInsert.push({
+          user_id: user.id,
+          action: 'rk_assigned',
+          entity_type: 'rencana_kinerja',
+          entity_id: rkId,
+          new_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, assignee_name: userMap.get(id) || 'Pegawai' }
+        });
+      }
+      for (const id of removedIds) {
+        auditLogsToInsert.push({
+          user_id: user.id,
+          action: 'rk_unassigned',
+          entity_type: 'rencana_kinerja',
+          entity_id: rkId,
+          old_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja, assignee_name: userMap.get(id) || 'Pegawai' }
+        });
+      }
+      
+      if (auditLogsToInsert.length > 0) {
+        await supabase.from('audit_logs').insert(auditLogsToInsert);
+      }
     }
 
     revalidatePath('/rencana_kinerja');
