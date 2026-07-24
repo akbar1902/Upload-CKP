@@ -638,6 +638,88 @@ export function RencanaKinerjaClient({
             )}
           </div>
         )}
+        {/* ════════════════════════════════════════ */}
+        {/*  TAB: History                           */}
+        {/* ════════════════════════════════════════ */}
+        {activeTab === "history" && (
+          <div className="space-y-4 animate-fade-in">
+            <h2 className="text-[15px] font-semibold flex items-center gap-2 mb-6" style={{ color: 'var(--text-primary)' }}>
+              <History size={18} /> Histori Aktivitas Rencana Kinerja
+            </h2>
+            <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ border: '1px solid var(--border)' }}>
+              {auditLogs.length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-slate-500 text-[13px]">Belum ada histori aktivitas.</p>
+                </div>
+              ) : (
+                <div className="relative border-l border-slate-200 ml-3 space-y-6">
+                  {auditLogs.map((log: any) => {
+                    const actorName = log.user?.full_name || "Sistem";
+                    const roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
+                    
+                    let actionText = "";
+                    let iconColor = "#64748b";
+                    let bgColor = "#f1f5f9";
+                    let detailText = "";
+
+                    const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || "RK Tidak Diketahui";
+                    const timName = log.new_data?.tim_kerja || log.old_data?.tim_kerja || "";
+
+                    if (log.action === 'rk_created') {
+                      actionText = `menambahkan RK baru`;
+                      iconColor = "#16a34a";
+                      bgColor = "#dcfce7";
+                      detailText = `${rkName} (${timName})`;
+                    } else if (log.action === 'rk_updated') {
+                      actionText = `mengubah RK`;
+                      iconColor = "#0284c7";
+                      bgColor = "#e0f2fe";
+                      detailText = `Menjadi: ${rkName}`;
+                    } else if (log.action === 'rk_deleted') {
+                      actionText = `menghapus RK`;
+                      iconColor = "#dc2626";
+                      bgColor = "#fee2e2";
+                      detailText = `${rkName}`;
+                    } else if (log.action === 'rk_self_assigned') {
+                      actionText = `mengambil RK ke daftarnya`;
+                      iconColor = "#d97706";
+                      bgColor = "#fef3c7";
+                      detailText = `${rkName}`;
+                    } else if (log.action === 'rk_unassigned') {
+                      actionText = `menghapus RK dari daftarnya`;
+                      iconColor = "#64748b";
+                      bgColor = "#f1f5f9";
+                      detailText = `${rkName}`;
+                    } else {
+                      actionText = `melakukan aksi ${log.action}`;
+                    }
+
+                    return (
+                      <div key={log.id} className="relative pl-6">
+                        <span className="absolute -left-2 top-1.5 flex h-4 w-4 rounded-full" style={{ backgroundColor: iconColor, border: '3px solid white', boxShadow: '0 0 0 1px #e2e8f0' }} />
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                          <div>
+                            <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
+                              <span className="font-semibold">{actorName}</span>
+                              {roleLabel && <span className="text-slate-500 font-normal ml-1">({roleLabel})</span>}{" "}
+                              {actionText}
+                            </p>
+                            <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+                              &ldquo;{detailText}&rdquo;
+                            </p>
+                          </div>
+                          <span className="text-[11px] text-slate-400 whitespace-nowrap mt-1 sm:mt-0">
+                            {new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
         </>
         )}
       </div>
