@@ -100,30 +100,31 @@ export default function LoginPage() {
   const primaryColor = '#3A6D5B'; // The green from SIKAP logo
 
   return (
-    <div className="h-screen overflow-hidden flex bg-[#F6F9F7] font-sans">
+    <div 
+      className="h-screen overflow-hidden flex font-sans relative"
+      style={{
+        background: `
+          radial-gradient(circle at 10% 80%, rgba(16,185,129,.12), transparent 35%),
+          radial-gradient(circle at 25% 20%, rgba(59,130,246,.08), transparent 30%),
+          linear-gradient(135deg, #ffffff 0%, #f8fafc 40%, #F6F9F7 100%)
+        `
+      }}
+    >
+      {/* Subtle Pattern (fading out towards the right) */}
+      <div 
+        className="absolute inset-0 opacity-40 pointer-events-none" 
+        style={{ 
+          backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', 
+          backgroundSize: '24px 24px',
+          maskImage: 'linear-gradient(to right, black 30%, transparent 80%)',
+          WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 80%)'
+        }} 
+      />
 
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
       {/* ═══════════════════════════════════════════════ */}
-      <div 
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 80%, rgba(16,185,129,.15), transparent 45%),
-            radial-gradient(circle at 90% 20%, rgba(59,130,246,.10), transparent 35%),
-            linear-gradient(135deg, #ffffff, #f8fafc)
-          `
-        }}
-      >
-        
-        {/* Subtle Pattern */}
-        <div 
-          className="absolute inset-0 opacity-40 pointer-events-none" 
-          style={{ 
-            backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', 
-            backgroundSize: '24px 24px' 
-          }} 
-        />
+      <div className="hidden lg:flex lg:w-1/2 relative">
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
@@ -166,7 +167,7 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#F6F9F7]">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
         
         {/* Login Card */}
         <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] rounded-[32px] p-8 flex flex-col relative z-10">
