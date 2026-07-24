@@ -307,7 +307,7 @@ export async function removeAssignmentAction(
       const assigneeId = assignmentData.user_id;
       const assigneeName = assignmentData.user?.full_name || 'Pegawai';
       
-      const auditLogsToInsert = [
+      const auditLogsToInsert: any[] = [
         {
           user_id: user.id, // Log for Team Leader
           action: 'rk_unassigned',
