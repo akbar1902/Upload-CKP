@@ -118,7 +118,7 @@ export default function LoginPage() {
 
           {/* Logo */}
           <div className="flex items-center gap-3 mb-16">
-            <Logo size={48} className="drop-shadow-sm" />
+            <Logo size={120} className="drop-shadow-sm" />
             <div>
               <h1 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">Rekap CKP</h1>
               <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
@@ -169,7 +169,7 @@ export default function LoginPage() {
 
           {/* Mobile logo */}
           <div className="lg:hidden flex flex-col items-center justify-center gap-3 mb-8">
-            <Logo size={56} className="drop-shadow-sm" />
+            <Logo size={100} className="drop-shadow-sm" />
             <div className="text-center">
               <h1 className="text-lg font-bold text-slate-900 dark:text-white">CKP Digital</h1>
               <p className="text-[12px] text-slate-500 dark:text-slate-400">BPS Kabupaten Belitung</p>
