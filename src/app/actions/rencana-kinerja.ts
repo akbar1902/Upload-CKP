@@ -221,36 +221,41 @@ export async function deleteRencanaKinerjaAction(
  * Assign the logged-in user to an existing Rencana Kinerja (Self-assign)
  */
 export async function assignSelfToRencanaKinerjaAction(
-  rkId: string
+  rkIds: string[]
 ): Promise<ActionResponse> {
   try {
     const supabase = await createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Sesi berakhir' };
 
-    const { data: rk } = await supabase.from('rk_ketua_tim_mapping').select('*').eq('id', rkId).single();
+    if (!rkIds || rkIds.length === 0) return { success: true };
+
+    const { data: rks } = await supabase.from('rk_ketua_tim_mapping').select('*').in('id', rkIds);
+
+    const assignmentsToInsert = rkIds.map(rkId => ({
+      rk_id: rkId,
+      user_id: user.id,
+      assigned_by: user.id
+    }));
 
     const { error } = await supabase
       .from('user_rk_assignments')
-      .insert({
-        rk_id: rkId,
-        user_id: user.id,
-        assigned_by: user.id
-      });
+      .insert(assignmentsToInsert);
 
     if (error) {
-      if (error.code === '23505') return { success: false, error: 'Anda sudah tertugaskan pada RK ini.' };
+      if (error.code === '23505') return { success: false, error: 'Anda sudah tertugaskan pada salah satu RK ini.' };
       return { success: false, error: error.message };
     }
 
-    if (rk) {
-      await supabase.from('audit_logs').insert({
+    if (rks && rks.length > 0) {
+      const auditLogsToInsert = rks.map(rk => ({
         user_id: user.id,
         action: 'rk_self_assigned',
         entity_type: 'rencana_kinerja',
-        entity_id: rkId,
+        entity_id: rk.id,
         new_data: { rencana_kinerja: rk.rencana_kinerja, tim_kerja: rk.tim_kerja }
-      });
+      }));
+      await supabase.from('audit_logs').insert(auditLogsToInsert);
     }
 
     revalidatePath('/rencana_kinerja');

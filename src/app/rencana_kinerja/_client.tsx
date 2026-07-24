@@ -60,7 +60,7 @@ export function RencanaKinerjaClient({
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
-  const [selectedRkToAssign, setSelectedRkToAssign] = useState("");
+  const [selectedRkToAssign, setSelectedRkToAssign] = useState<string[]>([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{id: string, name?: string, type: 'assignment' | 'rk'} | null>(null);
   const [searchManaged, setSearchManaged] = useState("");
@@ -189,14 +189,14 @@ export function RencanaKinerjaClient({
 
   const handleSelfAssign = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedRkToAssign) return toast.error("Pilih Rencana Kinerja terlebih dahulu.");
+    if (!selectedRkToAssign || selectedRkToAssign.length === 0) return toast.error("Pilih Rencana Kinerja terlebih dahulu.");
     setLoading(true);
     try {
       const res = await assignSelfToRencanaKinerjaAction(selectedRkToAssign);
       if (res.success) {
-        toast.success("Berhasil ditambahkan ke daftar RK Saya.");
+        toast.success(`Berhasil menambahkan ${selectedRkToAssign.length} RK ke daftar Anda.`);
         setAssignModalOpen(false); 
-        setSelectedRkToAssign("");
+        setSelectedRkToAssign([]);
         setSelectedTeamToAssign("");
         setSearchAssignRk("");
       } else throw new Error(res.error);
@@ -454,7 +454,7 @@ export function RencanaKinerjaClient({
               <Button onClick={() => {
                 setSelectedTeamToAssign("");
                 setSearchAssignRk("");
-                setSelectedRkToAssign("");
+                setSelectedRkToAssign([]);
                 setAssignModalOpen(true);
               }}>
                 <Plus size={16} /> Ambil dari Kamus
@@ -871,7 +871,7 @@ export function RencanaKinerjaClient({
                   return (
                     <div
                       key={idx}
-                      onClick={() => { setSelectedTeamToAssign(team); setSelectedRkToAssign(""); }}
+                      onClick={() => { setSelectedTeamToAssign(team); setSelectedRkToAssign([]); }}
                       className="p-3 rounded-lg cursor-pointer text-[12px] transition-all flex items-start justify-between gap-2 h-full"
                       style={isSelected
                         ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.3)', fontWeight: 600 }
@@ -907,9 +907,15 @@ export function RencanaKinerjaClient({
                     </p>
                   ) : (
                     filteredRKsForAssign.map((rk, idx) => {
-                      const isSelected = selectedRkToAssign === rk.id;
+                      const isSelected = selectedRkToAssign.includes(rk.id);
                       return (
-                        <div key={idx} onClick={() => setSelectedRkToAssign(rk.id)}
+                        <div key={idx} onClick={() => {
+                          if (isSelected) {
+                            setSelectedRkToAssign(prev => prev.filter(id => id !== rk.id));
+                          } else {
+                            setSelectedRkToAssign(prev => [...prev, rk.id]);
+                          }
+                        }}
                           className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
                           style={isSelected
                             ? { background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.2)' }
@@ -938,8 +944,8 @@ export function RencanaKinerjaClient({
           
           <DialogFooter className="px-6 pb-6 pt-2 mt-auto">
             <Button type="button" variant="outline" onClick={() => setAssignModalOpen(false)}>Batal</Button>
-            <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={!selectedRkToAssign}>
-              {loading ? "Menambahkan..." : "Tambahkan ke RK Saya"}
+            <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={selectedRkToAssign.length === 0}>
+              {loading ? "Menambahkan..." : selectedRkToAssign.length > 0 ? `Tambahkan ${selectedRkToAssign.length} RK` : "Tambahkan ke RK Saya"}
             </Button>
           </DialogFooter>
         </DialogContent>
