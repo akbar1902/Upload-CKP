@@ -165,7 +165,10 @@ export async function updateRencanaKinerjaAction(
       }
       
       if (auditLogsToInsert.length > 0) {
-        await supabase.from('audit_logs').insert(auditLogsToInsert);
+        const { error: insertError } = await supabase.from('audit_logs').insert(auditLogsToInsert);
+        if (insertError) {
+          console.error("Failed to insert audit logs:", insertError);
+        }
       }
     }
 
