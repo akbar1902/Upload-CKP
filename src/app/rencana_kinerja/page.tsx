@@ -52,6 +52,14 @@ export default async function RencanaKinerjaPage() {
     myManagedRKs = data || [];
   }
 
+  // 4. Fetch audit logs (History)
+  const { data: auditLogsRes } = await supabase
+    .from('audit_logs')
+    .select('*, user:users(full_name, role)')
+    .eq('entity_type', 'rencana_kinerja')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
   // Ambil daftar unik tim_kerja untuk autocomplete
   const timKerjaList = Array.from(new Set((allRKs || []).map(rk => rk.tim_kerja).filter(Boolean)));
 
@@ -63,6 +71,7 @@ export default async function RencanaKinerjaPage() {
       myManagedRKs={myManagedRKs}
       allUsers={allUsers || []}
       timKerjaList={timKerjaList}
+      auditLogs={auditLogsRes || []}
     />
   );
 }

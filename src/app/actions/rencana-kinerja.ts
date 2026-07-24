@@ -45,6 +45,15 @@ export async function addRencanaKinerjaAction(
       return { success: false, error: rkError.message };
     }
 
+    // Insert Audit Log for creation
+    await supabase.from('audit_logs').insert({
+      user_id: user.id,
+      action: 'rk_created',
+      entity_type: 'rencana_kinerja',
+      entity_id: rkData.id,
+      new_data: { rencana_kinerja: rencanaKinerja, tim_kerja: timKerja }
+    });
+
     // 2. Insert assignments to user_rk_assignments
     if (assigneeIds.length > 0 && rkData) {
       const assignments = assigneeIds.map(userId => ({
@@ -59,8 +68,8 @@ export async function addRencanaKinerjaAction(
 
       if (assignError) {
         console.error('Error assigning users:', assignError);
-        // We don't fail the whole action if just assignments fail, 
-        // because the RK is already created. But we could return a warning.
+      } else {
+        // Log mass assignment? Optional, we can skip for now or log individual
       }
     }
 
@@ -85,12 +94,9 @@ export async function updateRencanaKinerjaAction(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Sesi berakhir' };
 
-    // 1. Update the rk_ketua_tim_mapping
-    // Note: updating primary/unique key can be risky if referenced elsewhere without CASCADE.
-    // In our schema, user_rk_assignments has ON UPDATE CASCADE.
-    // ckp_entries only has it as a plain TEXT column, so it won't break foreign keys, 
-    // but it WILL detach from old CKP entries unless we also update ckp_entries manually.
-    // For now, let's just update the mapping table.
+    // Get old RK for audit log
+    const { data: oldRk } = await supabase.from('rk_ketua_tim_mapping').select('*').eq('id', rkId).single();
+
     const { error: updateError } = await supabase
       .from('rk_ketua_tim_mapping')
       .update({
@@ -104,13 +110,19 @@ export async function updateRencanaKinerjaAction(
       return { success: false, error: updateError.message };
     }
 
-    // Since user_rk_assignments cascades, the rencana_kinerja column there is updated.
-    // Now we need to sync the assignees.
-    // Easiest way: delete all current assignments for this RK, then re-insert.
-    // But we only delete assignments made by this user, OR just delete all assignments for this RK if the user owns it.
-    
+    if (oldRk && (oldRk.rencana_kinerja !== newRencanaKinerja || oldRk.tim_kerja !== timKerja)) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'rk_updated',
+        entity_type: 'rencana_kinerja',
+        entity_id: rkId,
+        old_data: { rencana_kinerja: oldRk.rencana_kinerja, tim_kerja: oldRk.tim_kerja },
+        new_data: { rencana_kinerja: newRencanaKinerja, tim_kerja: timKerja }
+      });
+    }
+
+    // Sync assignments
     await supabase.from('user_rk_assignments').delete().eq('rk_id', rkId);
-    
     if (assigneeIds.length > 0) {
       const newAssignments = assigneeIds.map(userId => ({
         rk_id: rkId,
@@ -135,12 +147,27 @@ export async function deleteRencanaKinerjaAction(
 ): Promise<ActionResponse> {
   try {
     const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Sesi berakhir' };
+
+    const { data: oldRk } = await supabase.from('rk_ketua_tim_mapping').select('*').eq('id', rkId).single();
+
     const { error } = await supabase
       .from('rk_ketua_tim_mapping')
       .delete()
       .eq('id', rkId);
 
     if (error) return { success: false, error: error.message };
+
+    if (oldRk) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'rk_deleted',
+        entity_type: 'rencana_kinerja',
+        entity_id: rkId, // Even if deleted, keep reference
+        old_data: { rencana_kinerja: oldRk.rencana_kinerja, tim_kerja: oldRk.tim_kerja }
+      });
+    }
     
     revalidatePath('/rencana_kinerja');
     return { success: true };
@@ -160,6 +187,8 @@ export async function assignSelfToRencanaKinerjaAction(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, error: 'Sesi berakhir' };
 
+    const { data: rk } = await supabase.from('rk_ketua_tim_mapping').select('*').eq('id', rkId).single();
+
     const { error } = await supabase
       .from('user_rk_assignments')
       .insert({
@@ -171,6 +200,16 @@ export async function assignSelfToRencanaKinerjaAction(
     if (error) {
       if (error.code === '23505') return { success: false, error: 'Anda sudah tertugaskan pada RK ini.' };
       return { success: false, error: error.message };
+    }
+
+    if (rk) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'rk_self_assigned',
+        entity_type: 'rencana_kinerja',
+        entity_id: rkId,
+        new_data: { rencana_kinerja: rk.rencana_kinerja, tim_kerja: rk.tim_kerja }
+      });
     }
 
     revalidatePath('/rencana_kinerja');
@@ -188,12 +227,32 @@ export async function removeAssignmentAction(
 ): Promise<ActionResponse> {
   try {
     const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Sesi berakhir' };
+
+    // Note: TypeScript doesn't natively know about the join without explicit cast if we use loosely typed supabase
+    const { data: assignmentData } = await supabase
+      .from('user_rk_assignments')
+      .select('*, rk:rk_ketua_tim_mapping(id, rencana_kinerja, tim_kerja)')
+      .eq('id', id)
+      .single() as any;
+
     const { error } = await supabase
       .from('user_rk_assignments')
       .delete()
       .eq('id', id);
 
     if (error) return { success: false, error: error.message };
+
+    if (assignmentData && assignmentData.rk) {
+      await supabase.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'rk_unassigned',
+        entity_type: 'rencana_kinerja',
+        entity_id: assignmentData.rk.id,
+        old_data: { rencana_kinerja: assignmentData.rk.rencana_kinerja, tim_kerja: assignmentData.rk.tim_kerja }
+      });
+    }
     
     revalidatePath('/rencana_kinerja');
     return { success: true };

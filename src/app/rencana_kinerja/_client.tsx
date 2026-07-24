@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Edit, Trash2, CheckCircle2, Search,
-  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList, Globe
+  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList, Globe, History
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +33,7 @@ interface RencanaKinerjaClientProps {
   myManagedRKs: any[];
   allUsers: any[];
   timKerjaList: string[];
+  auditLogs: any[];
 }
 
 /* ───────────────────────────────────────────── */
@@ -45,6 +46,7 @@ export function RencanaKinerjaClient({
   myManagedRKs,
   allUsers,
   timKerjaList,
+  auditLogs = [],
 }: RencanaKinerjaClientProps) {
   const isKetuaTim = ["ketua_tim", "pimpinan", "admin"].includes(currentUser?.role || "");
 
@@ -308,6 +310,13 @@ export function RencanaKinerjaClient({
             style={activeTab === "global" ? { background: 'var(--success-soft)', color: '#16A34A', borderColor: '#16A34A' } : undefined}
           >
             <Globe size={14} /> Kamus Global
+          </button>
+          <button
+            onClick={() => setActiveTab("history")}
+            className={`filter-btn ${activeTab === "history" ? "filter-btn-active" : ""}`}
+            style={activeTab === "history" ? { background: '#fef3c7', color: '#d97706', borderColor: '#d97706' } : undefined}
+          >
+            <History size={14} /> Histori
           </button>
         </div>
 
