@@ -1,10 +1,17 @@
 <svg viewBox="0 220 1000 500" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;1,900&amp;display=swap');
       .brand-text {
-        font-family: Arial, Helvetica, sans-serif;
+        font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
         font-weight: 900;
         font-style: italic;
+        letter-spacing: -2px;
+      }
+      .sub-text {
+        font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        letter-spacing: 0.5px;
       }
     </style>
   </defs>
@@ -55,5 +62,5 @@
 
   <!-- Bottom pill badge -->
   <rect x="265" y="618" width="510" height="70" rx="35" fill="#146753"/>
-  <text x="520" y="665" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="700" font-size="34" fill="#ffffff">Sistem Informasi Rekap CKP</text>
+  <text x="520" y="665" text-anchor="middle" class="sub-text" font-size="34" fill="#ffffff">Sistem Informasi Rekap CKP</text>
 </svg>
