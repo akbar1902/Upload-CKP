@@ -101,23 +101,23 @@ export default function LoginPage() {
 
   return (
     <div className="h-screen overflow-hidden flex bg-[#F6F9F7] font-sans">
-      
+
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
       {/* ═══════════════════════════════════════════════ */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#F6F9F7]">
-        
+
         {/* Abstract Background Shapes */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-40">
           <svg className="absolute top-0 left-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
-             <path d="M0,0 C30,40 70,60 100,20 L100,100 L0,100 Z" fill="#EBF2ED" opacity="0.5" />
-             <path d="M0,100 C40,80 60,30 100,60 L100,100 L0,100 Z" fill="#E2EBE5" opacity="0.3" />
+            <path d="M0,0 C30,40 70,60 100,20 L100,100 L0,100 Z" fill="#EBF2ED" opacity="0.5" />
+            <path d="M0,100 C40,80 60,30 100,60 L100,100 L0,100 Z" fill="#E2EBE5" opacity="0.3" />
           </svg>
         </div>
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
-          
+
           {/* Hero tagline */}
           <h2 className="text-[44px] font-extrabold text-[#1C2520] leading-[1.15] tracking-tight mb-4">
             Rekap, Review,<br />
@@ -154,8 +154,24 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#F6F9F7] lg:bg-transparent">
-        <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white rounded-[32px] p-8 shadow-[0_20px_60px_-15px_rgba(58,109,91,0.1)] border border-gray-100 flex flex-col">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#F6F9F7] lg:bg-[#f8fafc] overflow-hidden">
+        
+        {/* Abstract Shape Left/Bottom */}
+        <div className="absolute -left-64 bottom-[-250px] h-[800px] w-[800px] rounded-full bg-gradient-to-tr from-teal-100/80 via-cyan-50/40 to-transparent blur-2xl pointer-events-none" />
+        
+        {/* Glow Top Right */}
+        <div className="absolute right-40 top-40 h-80 w-80 rounded-full bg-teal-200/30 blur-[120px] pointer-events-none" />
+
+        {/* Subtle Pattern */}
+        <div 
+          className="absolute inset-0 opacity-[0.35] pointer-events-none" 
+          style={{ 
+            backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', 
+            backgroundSize: '24px 24px' 
+          }} 
+        />
+
+        <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_25px_60px_rgba(0,0,0,.08)] rounded-[32px] p-8 flex flex-col relative z-10">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
@@ -189,7 +205,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={100} className="drop-shadow-sm" />
+                    <Logo size={170} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
@@ -282,7 +298,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-6">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={100} className="drop-shadow-sm" />
+                    <Logo size={170} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
@@ -385,7 +401,7 @@ export default function LoginPage() {
               Sistem Informasi Capaian Kinerja Pegawai
             </p>
           </div>
-          
+
         </div>
       </div>
     </div>
