@@ -59,6 +59,8 @@ export function RencanaKinerjaClient({
   const [loading, setLoading] = useState(false);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedRkToAssign, setSelectedRkToAssign] = useState("");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{id: string, name?: string, type: 'assignment' | 'rk'} | null>(null);
   const [searchManaged, setSearchManaged] = useState("");
   const [searchAssignee, setSearchAssignee] = useState("");
   const [searchGlobal, setSearchGlobal] = useState("");
@@ -178,13 +180,9 @@ export function RencanaKinerjaClient({
     } finally { setLoading(false); }
   };
 
-  const handleDeleteRk = async (id: string, rkName: string) => {
-    if (!confirm(`Hapus Rencana Kinerja "${rkName}"?\nSemua penugasan terkait juga akan dihapus.`)) return;
-    try {
-      const res = await deleteRencanaKinerjaAction(id);
-      if (res.success) toast.success("Rencana Kinerja dihapus.");
-      else throw new Error(res.error);
-    } catch (err: any) { toast.error(err.message || "Gagal menghapus RK"); }
+  const handleDeleteRk = (id: string, rkName: string) => {
+    setDeleteTarget({ id, name: rkName, type: 'rk' });
+    setDeleteConfirmOpen(true);
   };
 
   const handleSelfAssign = async (e: React.FormEvent) => {
@@ -204,13 +202,31 @@ export function RencanaKinerjaClient({
     finally { setLoading(false); }
   };
 
-  const handleRemoveSelfAssignment = async (id: string) => {
-    if (!confirm("Hapus RK ini dari daftar Anda?")) return;
+  const handleRemoveSelfAssignment = (id: string) => {
+    setDeleteTarget({ id, type: 'assignment' });
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!deleteTarget) return;
+    setLoading(true);
     try {
-      const res = await removeAssignmentAction(id);
-      if (res.success) toast.success("Berhasil dihapus dari daftar.");
-      else throw new Error(res.error);
-    } catch (err: any) { toast.error(err.message || "Gagal menghapus"); }
+      if (deleteTarget.type === 'rk') {
+        const res = await deleteRencanaKinerjaAction(deleteTarget.id);
+        if (res.success) toast.success("Rencana Kinerja dihapus.");
+        else throw new Error(res.error);
+      } else {
+        const res = await removeAssignmentAction(deleteTarget.id);
+        if (res.success) toast.success("Berhasil dihapus dari daftar.");
+        else throw new Error(res.error);
+      }
+      setDeleteConfirmOpen(false);
+      setDeleteTarget(null);
+    } catch (err: any) { 
+      toast.error(err.message || "Gagal menghapus"); 
+    } finally {
+      setLoading(false);
+    }
   };
 
   /* ─────────────────────────────────────────── */
@@ -805,6 +821,33 @@ export function RencanaKinerjaClient({
             <Button type="button" variant="outline" onClick={() => setAssignModalOpen(false)}>Batal</Button>
             <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={!selectedRkToAssign}>
               {loading ? "Menambahkan..." : "Tambahkan ke RK Saya"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ════════════════════════════════════════ */}
+      {/*  MODAL: Delete Confirmation              */}
+      {/* ════════════════════════════════════════ */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {deleteTarget?.type === 'rk' ? 'Hapus Rencana Kinerja?' : 'Hapus dari Daftar?'}
+            </DialogTitle>
+            <DialogDescription>
+              {deleteTarget?.type === 'rk' 
+                ? `Apakah Anda yakin ingin menghapus Rencana Kinerja "${deleteTarget?.name}"? Semua penugasan terkait juga akan dihapus permanen.`
+                : 'Apakah Anda yakin ingin menghapus RK ini dari daftar RK Saya?'
+              }
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={() => setDeleteConfirmOpen(false)} disabled={loading}>
+              Batal
+            </Button>
+            <Button type="button" onClick={executeDelete} disabled={loading} style={{ background: 'var(--danger)', color: 'white' }}>
+              {loading ? "Menghapus..." : "Hapus"}
             </Button>
           </DialogFooter>
         </DialogContent>
