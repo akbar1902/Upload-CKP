@@ -105,28 +105,30 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left Panel — Modern Light Design             */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-[#F6F9F7]">
+      <div 
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        style={{
+          background: `
+            radial-gradient(circle at 20% 80%, rgba(16,185,129,.15), transparent 45%),
+            radial-gradient(circle at 90% 20%, rgba(59,130,246,.10), transparent 35%),
+            linear-gradient(135deg, #ffffff, #f8fafc)
+          `
+        }}
+      >
         
-        {/* Abstract Background Shapes (Moved to Left) */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
-          <div className="absolute -left-64 bottom-[-250px] h-[800px] w-[800px] rounded-full bg-gradient-to-tr from-[#3A6D5B]/20 via-[#3A6D5B]/5 to-transparent blur-3xl" />
-          <div className="absolute right-[-100px] top-[-100px] h-[500px] w-[500px] rounded-full bg-teal-200/20 blur-[100px]" />
-          {/* Subtle Pattern */}
-          <div 
-            className="absolute inset-0 opacity-[0.35]" 
-            style={{ 
-              backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', 
-              backgroundSize: '24px 24px' 
-            }} 
-          />
-        </div>
+        {/* Subtle Pattern */}
+        <div 
+          className="absolute inset-0 opacity-40 pointer-events-none" 
+          style={{ 
+            backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', 
+            backgroundSize: '24px 24px' 
+          }} 
+        />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
 
-          <div className="mb-8">
-            <Logo size={140} className="drop-shadow-md" />
-          </div>
+
 
           {/* Hero tagline */}
           <h2 className="text-[44px] font-extrabold text-[#1C2520] leading-[1.15] tracking-tight mb-4">
@@ -164,7 +166,7 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       {/*  Right Panel — Login Form                      */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-[#F6F9F7]">
         
         {/* Login Card */}
         <div className="w-full max-w-[440px] max-h-full overflow-y-auto no-scrollbar bg-white shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] rounded-[32px] p-8 flex flex-col relative z-10">
@@ -200,8 +202,8 @@ export default function LoginPage() {
               /* ── Forgot Password Form ──────────── */
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
-                  <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-[#F0F4F2] mb-5">
-                    <Lock className="h-7 w-7 text-[#3A6D5B]" strokeWidth={2.5} />
+                  <div className="mx-auto flex justify-center mb-4">
+                    <Logo size={170} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[#1C2520] tracking-tight mb-2">
                     Lupa Password?
@@ -235,7 +237,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 bg-[#F3F6F4] border-transparent focus:border-slate-300 focus:bg-white rounded-xl text-sm"
+                        className="pl-12 h-12 py-2 bg-white border border-gray-200 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 transition-all"
                       />
                     </div>
                   </div>
@@ -255,7 +257,7 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 bg-[#F3F6F4] border-transparent focus:border-slate-300 focus:bg-white rounded-xl text-sm"
+                        className="pl-12 pr-12 h-12 py-2 bg-white border border-gray-200 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 transition-all"
                       />
                       <button
                         type="button"
@@ -292,9 +294,9 @@ export default function LoginPage() {
             ) : (
               /* ── Normal Login Form ─────────────── */
               <div className="animate-fade-in">
-                <div className="text-center mb-8">
-                  <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-[#F0F4F2] mb-5">
-                    <Lock className="h-7 w-7 text-[#3A6D5B]" strokeWidth={2.5} />
+                <div className="text-center mb-6">
+                  <div className="mx-auto flex justify-center mb-4">
+                    <Logo size={170} className="drop-shadow-sm" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[#1C2520] tracking-tight mb-2">
                     Selamat Datang
@@ -328,7 +330,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-11 py-2 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
+                        className="pl-12 h-12 py-2 bg-white border border-gray-200 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 transition-all"
                       />
                     </div>
                   </div>
@@ -362,7 +364,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-11 py-2 bg-[#F6F8F7] border-[#E2EBE5] focus:border-[#3A6D5B] focus:bg-white rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400"
+                        className="pl-12 pr-12 h-12 py-2 bg-white border border-gray-200 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 transition-all"
                       />
                       <button
                         type="button"
@@ -377,7 +379,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full h-11 py-2 mt-4 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
+                    className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
                     style={{ backgroundColor: primaryColor }}
                   >
                     <LogIn className="h-5 w-5" />
