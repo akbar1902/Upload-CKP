@@ -28,11 +28,16 @@ export default function UploadPage() {
   const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const currentDate = new Date();
+  let defaultMonth = currentDate.getMonth(); // 0-11, so it's already previous month (1-12)
+  let defaultYear = currentDate.getFullYear();
+  if (defaultMonth === 0) {
+    defaultMonth = 12;
+    defaultYear -= 1;
+  }
 
-  const [bulan, setBulan] = useState(currentMonth);
-  const [tahun, setTahun] = useState(currentYear);
+  const [bulan, setBulan] = useState(defaultMonth);
+  const [tahun, setTahun] = useState(defaultYear);
   const [file, setFile] = useState<File | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [uploading, setUploading] = useState(false);
