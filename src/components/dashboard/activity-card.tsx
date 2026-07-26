@@ -27,13 +27,10 @@ export interface ActivityCardProps {
 export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const queryClient = useQueryClient();
 
   const handleDelete = async () => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data CKP ini? Semua entri kegiatan di dalamnya akan ikut terhapus permanen.')) {
-      return;
-    }
-    
     setIsDeleting(true);
     const toastId = toast.loading('Menghapus CKP...');
     try {
@@ -218,7 +215,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           )}
 
           {/* CTA & Actions */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mt-5 pt-5 border-t"
+          <div className="flex flex-row w-full items-center justify-between gap-3 mt-5 pt-5 border-t"
                style={{ borderColor: 'var(--border)' }}>
             <Link
               href={`/pegawai/ckp/${upload.id}`}
@@ -229,17 +226,36 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             </Link>
             
             {canDelete && (
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200 disabled:opacity-50"
-                style={{ color: 'var(--danger)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-              >
-                <Trash2 size={13} />
-                {isDeleting ? 'Menghapus...' : 'Hapus CKP'}
-              </button>
+              showConfirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-[12px] text-slate-500 hidden sm:inline">Yakin hapus?</span>
+                  <button
+                    onClick={() => setShowConfirmDelete(false)}
+                    disabled={isDeleting}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {isDeleting ? '...' : 'Ya, Hapus'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowConfirmDelete(true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200"
+                  style={{ color: 'var(--danger)' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <Trash2 size={13} />
+                  Hapus CKP
+                </button>
+              )
             )}
           </div>
         </div>
