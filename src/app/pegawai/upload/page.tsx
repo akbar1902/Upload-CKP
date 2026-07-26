@@ -29,6 +29,7 @@ export default function UploadPage() {
   const supabase = useMemo(() => createClient(), []);
 
   const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
   let defaultMonth = currentDate.getMonth(); // 0-11, so it's already previous month (1-12)
   let defaultYear = currentDate.getFullYear();
   if (defaultMonth === 0) {
