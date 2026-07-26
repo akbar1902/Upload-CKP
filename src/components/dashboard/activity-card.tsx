@@ -68,46 +68,52 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       {/* ── Main card row ──────────────────────────── */}
       <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
 
-        {/* Date block */}
-        <div className="date-block hidden sm:flex">
-          <span className="day">{day}</span>
-          <span className="month">{monthAbbr}</span>
-          <span className="weekday">{weekday}</span>
-        </div>
-
-        {/* Period icon + info */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          {/* Colored status icon */}
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'var(--primary-soft)' }}
-            aria-hidden="true"
-          >
-            <FileCheck size={18} style={{ color: 'var(--primary)' }} />
+        {/* Clickable Area for Date and Title */}
+        <Link 
+          href={`/pegawai/ckp/${upload.id}`} 
+          className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 group cursor-pointer"
+        >
+          {/* Date block */}
+          <div className="date-block hidden sm:flex transition-colors">
+            <span className="day group-hover:text-emerald-600 transition-colors">{day}</span>
+            <span className="month group-hover:text-emerald-600 transition-colors">{monthAbbr}</span>
+            <span className="weekday group-hover:text-emerald-600 transition-colors">{weekday}</span>
           </div>
 
-          <div className="min-w-0 flex-1">
-            {/* Period title */}
-            <p className="text-[15px] font-semibold leading-snug truncate"
-               style={{ color: 'var(--text-primary)' }}>
-              CKP {MONTH_FULL[upload.bulan]} {upload.tahun}
-              {upload.version > 1 && (
-                <span className="ml-2 text-[11px] font-normal px-1.5 py-0.5 rounded-md"
-                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
-                  v{upload.version}
-                </span>
-              )}
-            </p>
-            {/* File name */}
-            <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
-              {upload.file_name || 'Tidak ada nama file'}
-            </p>
-            {/* Mobile date */}
-            <p className="text-[11px] mt-0.5 sm:hidden" style={{ color: 'var(--text-tertiary)' }}>
-              Upload: {formatDateTime(upload.uploaded_at)}
-            </p>
+          {/* Period icon + info */}
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {/* Colored status icon */}
+            <div
+              className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0 transition-colors"
+              style={{ background: 'var(--primary-soft)' }}
+              aria-hidden="true"
+            >
+              <FileCheck size={18} style={{ color: 'var(--primary)' }} className="group-hover:scale-110 transition-transform" />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              {/* Period title */}
+              <p className="text-[15px] font-semibold leading-snug truncate group-hover:text-emerald-600 transition-colors"
+                 style={{ color: 'var(--text-primary)' }}>
+                CKP {MONTH_FULL[upload.bulan]} {upload.tahun}
+                {upload.version > 1 && (
+                  <span className="ml-2 text-[11px] font-normal px-1.5 py-0.5 rounded-md"
+                        style={{ background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }}>
+                    v{upload.version}
+                  </span>
+                )}
+              </p>
+              {/* File name */}
+              <p className="text-[12px] mt-0.5 truncate" style={{ color: 'var(--text-secondary)' }}>
+                {upload.file_name || 'Tidak ada nama file'}
+              </p>
+              {/* Mobile date */}
+              <p className="text-[11px] mt-0.5 sm:hidden" style={{ color: 'var(--text-tertiary)' }}>
+                Upload: {formatDateTime(upload.uploaded_at)}
+              </p>
+            </div>
           </div>
-        </div>
+        </Link>
 
         {/* Progress */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0 min-w-[100px] hidden md:flex">
