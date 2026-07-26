@@ -16,7 +16,7 @@ export function Logo({ size = 40, className = '', ...props }: LogoProps) {
       {...props}
     >
       <img 
-        src="/logo-sikap.svg" 
+        src="/logo-sikap.svg?v=2" 
         alt="SIKAP Logo"
         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
       />
