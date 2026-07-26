@@ -765,7 +765,7 @@ export function RencanaKinerjaClient({
 
                 if (filteredLogs.length === 0) {
                   return (
-                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-center py-12 bg-[var(--bg-secondary)] rounded-xl border border-dashed border-[var(--border)]">
                       <History className="mx-auto h-8 w-8 text-slate-300 mb-3" />
                       <p className="text-slate-500 text-[13px]">Belum ada histori aktivitas yang sesuai.</p>
                     </div>
@@ -834,14 +834,14 @@ export function RencanaKinerjaClient({
                           >
                             <div className="h-2 w-2 rounded-full" style={{ backgroundColor: iconColor }} />
                           </span>
-                          <div className="flex flex-col gap-1.5 bg-slate-50/50 p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors">
+                          <div className="flex flex-col gap-1.5 bg-[var(--bg-secondary)] p-3.5 rounded-xl border border-[var(--border)] hover:border-[var(--border-hover)] hover:bg-[var(--bg-hover)] transition-colors">
                             <div className="flex justify-between items-start gap-4">
                               <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
-                                <span className="font-bold text-slate-800">{actorName}</span>
+                                <span className="font-bold">{actorName}</span>
                                 {roleLabel && <span className="text-slate-500 font-medium mx-1">({roleLabel})</span>}
-                                <span className="text-slate-600">{actionText}</span>
+                                <span>{actionText}</span>
                               </p>
-                              <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
+                              <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap bg-[var(--bg-base)] px-2 py-1 rounded-md border border-[var(--border)] shadow-sm">
                                 {new Date(log.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                               </span>
                             </div>
@@ -967,7 +967,7 @@ export function RencanaKinerjaClient({
       {/* ════════════════════════════════════════ */}
       <Dialog open={assignModalOpen} onClose={() => setAssignModalOpen(false)}>
         <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
-          <div className="px-6 pt-6 pb-4 border-b border-slate-100">
+          <div className="px-6 pt-6 pb-4 border-b border-[var(--border)]">
             <DialogTitle className="text-xl">Ambil Rencana Kinerja</DialogTitle>
             <DialogDescription className="mt-1">
               {!selectedTeamToAssign 
@@ -1004,7 +1004,7 @@ export function RencanaKinerjaClient({
                   <input type="text" placeholder={`Cari RK di ${selectedTeamToAssign}...`}
                     value={searchAssignRk} onChange={(e) => setSearchAssignRk(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl focus:outline-none"
-                    style={{ border: '1px solid var(--border)', background: '#fff' }}
+                    style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                   />
                 </div>
 
@@ -1027,7 +1027,7 @@ export function RencanaKinerjaClient({
                           className="flex items-start gap-3 p-3.5 rounded-xl cursor-pointer transition-all hover:shadow-sm"
                           style={isSelected
                             ? { background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.2)' }
-                            : { border: '1px solid var(--border)', background: '#fff' }
+                            : { border: '1px solid var(--border)', background: 'var(--bg-secondary)' }
                           }
                         >
                           <div className="mt-0.5">
@@ -1050,7 +1050,7 @@ export function RencanaKinerjaClient({
             )}
           </div>
           
-          <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 mt-auto">
+          <DialogFooter className="px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-secondary)] mt-auto">
             <Button type="button" variant="outline" onClick={() => setAssignModalOpen(false)}>Batal</Button>
             <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={selectedRkToAssign.length === 0}>
               {loading ? "Menambahkan..." : selectedRkToAssign.length > 0 ? `Tambahkan ${selectedRkToAssign.length} RK` : "Tambahkan ke RK Saya"}
