@@ -5,8 +5,8 @@ interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export function Logo({ size = 40, className = '', ...props }: LogoProps) {
-  // SVG new viewBox is 1000x440 which is roughly 2.27:1 ratio.
-  const w = size * 2.25;
+  // SVG new viewBox is exactly 2.5:1 ratio.
+  const w = size * 2.5;
   const h = size;
 
   return (

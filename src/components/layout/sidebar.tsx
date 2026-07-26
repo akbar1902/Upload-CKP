@@ -116,23 +116,14 @@ export function Sidebar() {
 
       {/* ── Brand / Logo ─────────────────────────────── */}
       <div className={cn(
-        "flex items-center gap-3 px-5 py-5",
-        collapsed && "justify-center px-3 py-5"
+        "flex items-center justify-center px-5 py-5 w-full",
+        collapsed && "px-3 py-5"
       )}>
-        {/* Logo mark */}
-        <Logo size={36} className="flex-shrink-0 drop-shadow-sm" />
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="text-[15px] font-semibold leading-tight tracking-tight"
-               style={{ color: 'var(--text-primary)' }}>
-              CKP Digital
-            </p>
-            <p className="text-[11px] font-medium leading-tight mt-0.5"
-               style={{ color: 'var(--text-tertiary)' }}>
-              BPS Kab. Belitung
-            </p>
-          </div>
-        )}
+        <img 
+          src="/SIKAP-text-and-tagline.svg" 
+          alt="SIKAP Logo" 
+          className="w-full h-auto object-contain drop-shadow-sm dark:brightness-0 dark:invert"
+        />
       </div>
 
       {/* ── Divider ───────────────────────────────────── */}

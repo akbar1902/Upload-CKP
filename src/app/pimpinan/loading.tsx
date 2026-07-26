@@ -11,8 +11,12 @@ export default function Loading() {
         />
         
         {/* The pulsating logo */}
-        <div className="animate-pulse drop-shadow-sm">
-          <Logo size={56} />
+        <div className="animate-pulse drop-shadow-sm w-64 max-w-[80vw]">
+          <img 
+            src="/SIKAP-text-and-tagline.svg" 
+            alt="Loading..." 
+            className="w-full h-auto object-contain dark:brightness-0 dark:invert"
+          />
         </div>
       </div>
       
