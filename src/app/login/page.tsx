@@ -109,6 +109,7 @@ export default function LoginPage() {
           background: `
             radial-gradient(circle at 10% 80%, rgba(16,185,129,.12), transparent 35%),
             radial-gradient(circle at 25% 20%, rgba(59,130,246,.08), transparent 30%),
+            radial-gradient(circle at 80% 50%, rgba(16,185,129,.10), transparent 45%),
             linear-gradient(135deg, #ffffff 0%, #f8fafc 40%, #F6F9F7 100%)
           `
         }}
@@ -173,7 +174,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
 
         {/* Login Card */}
-        <div className="w-full max-w-[440px] bg-white dark:bg-[#1E293B] shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border dark:border-slate-700/50">
+        <div className="w-full max-w-[440px] bg-white dark:bg-[#1E293B] shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent dark:border-slate-700/50">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
