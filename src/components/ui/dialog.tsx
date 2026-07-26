@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
 import { X } from "lucide-react";
 
@@ -21,6 +22,12 @@ interface DialogProps {
 }
 
 function Dialog({ open, onClose, children }: DialogProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   React.useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -32,11 +39,11 @@ function Dialog({ open, onClose, children }: DialogProps) {
     };
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  return createPortal(
     <DialogContext.Provider value={{ open, onClose }}>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
         {/* Backdrop — Apple glassmorphism */}
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-xl"
@@ -45,13 +52,14 @@ function Dialog({ open, onClose, children }: DialogProps) {
         />
         {/* Content */}
         <div
-          className="relative z-50 w-full max-w-lg mx-4"
+          className="relative z-50 flex flex-col w-full items-center justify-center p-4"
           style={{ animation: 'scaleIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
         >
           {children}
         </div>
       </div>
-    </DialogContext.Provider>
+    </DialogContext.Provider>,
+    document.body
   );
 }
 
@@ -61,7 +69,7 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
   return (
     <div
       className={cn(
-        "bg-[var(--card-bg)] rounded-3xl shadow-[var(--shadow-elevated)] border border-[var(--border)] max-h-[85vh] overflow-y-auto",
+        "w-full max-w-lg bg-[var(--card-bg)] rounded-3xl shadow-[var(--shadow-elevated)] border border-[var(--border)] max-h-[85vh] overflow-y-auto relative",
         className
       )}
       {...props}
