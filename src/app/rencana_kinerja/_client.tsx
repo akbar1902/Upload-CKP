@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import {
   Plus, Edit, Trash2, CheckCircle2, Search,
-  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList, Globe, History
+  UserPlus, Briefcase, ListTodo, X, Users, ClipboardList, Globe, History, ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ interface RencanaKinerjaClientProps {
   allUsers: any[];
   timKerjaList: string[];
   auditLogs: any[];
+  teamAuditLogs?: any[];
 }
 
 /* ───────────────────────────────────────────── */
@@ -47,6 +48,7 @@ export function RencanaKinerjaClient({
   allUsers,
   timKerjaList,
   auditLogs = [],
+  teamAuditLogs = [],
 }: RencanaKinerjaClientProps) {
   const isKetuaTim = ["ketua_tim", "pimpinan", "admin"].includes(currentUser?.role || "");
 
@@ -80,14 +82,35 @@ export function RencanaKinerjaClient({
   const [searchAssignRk, setSearchAssignRk] = useState("");
   const [searchMyRk, setSearchMyRk] = useState("");
   const [filterMyRkTeam, setFilterMyRkTeam] = useState("");
+  
+  const [sortManaged, setSortManaged] = useState<"newest" | "oldest" | "az" | "za">("newest");
+  const [sortMyRk, setSortMyRk] = useState<"newest" | "oldest" | "az" | "za">("newest");
+
+  const [historyTab, setHistoryTab] = useState<"saya" | "tim">("saya");
+  const [searchHistory, setSearchHistory] = useState("");
 
   /* ── Filtered data ─────────────────────── */
-  const filteredManagedRKs = useMemo(() =>
-    myManagedRKs.filter(
+  const filteredManagedRKs = useMemo(() => {
+    let result = myManagedRKs.filter(
       (rk) =>
         rk.rencana_kinerja?.toLowerCase().includes(searchManaged.toLowerCase()) ||
         rk.tim_kerja?.toLowerCase().includes(searchManaged.toLowerCase())
-    ), [myManagedRKs, searchManaged]);
+    );
+
+    result.sort((a, b) => {
+      if (sortManaged === "az") {
+        return (a.rencana_kinerja || "").localeCompare(b.rencana_kinerja || "");
+      } else if (sortManaged === "za") {
+        return (b.rencana_kinerja || "").localeCompare(a.rencana_kinerja || "");
+      } else if (sortManaged === "oldest") {
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      } else {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+    });
+
+    return result;
+  }, [myManagedRKs, searchManaged, sortManaged]);
 
   const filteredAssignees = useMemo(() =>
     allUsers.filter((u) =>
@@ -102,7 +125,7 @@ export function RencanaKinerjaClient({
   }, [allRKs, selectedTeamToAssign, searchAssignRk]);
 
   const filteredMyAssignments = useMemo(() => {
-    return myAssignments.filter((a) => {
+    let result = myAssignments.filter((a) => {
       const rencana_kinerja = a.rk?.rencana_kinerja || "";
       const timKerja = a.rk?.tim_kerja || "Tim Tidak Diketahui";
       
@@ -111,7 +134,21 @@ export function RencanaKinerjaClient({
       
       return matchSearch && matchTeam;
     });
-  }, [myAssignments, allRKs, searchMyRk, filterMyRkTeam]);
+
+    result.sort((a, b) => {
+      if (sortMyRk === "az") {
+        return (a.rk?.rencana_kinerja || "").localeCompare(b.rk?.rencana_kinerja || "");
+      } else if (sortMyRk === "za") {
+        return (b.rk?.rencana_kinerja || "").localeCompare(a.rk?.rencana_kinerja || "");
+      } else if (sortMyRk === "oldest") {
+        return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+      } else {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+    });
+
+    return result;
+  }, [myAssignments, allRKs, searchMyRk, filterMyRkTeam, sortMyRk]);
 
   const filteredGlobalRKs = useMemo(() => {
     return allRKs.filter((rk) => {
@@ -327,18 +364,33 @@ export function RencanaKinerjaClient({
           <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              <div className="relative flex-1 w-full sm:max-w-sm">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-                <input
-                  type="text"
-                  placeholder="Cari RK atau tim kerja..."
-                  value={searchManaged}
-                  onChange={(e) => setSearchManaged(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl"
-                  style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                />
+              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                <div className="relative flex-1 w-full sm:w-64">
+                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
+                  <input
+                    type="text"
+                    placeholder="Cari RK atau tim kerja..."
+                    value={searchManaged}
+                    onChange={(e) => setSearchManaged(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl h-[42px]"
+                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                  />
+                </div>
+                <div className="w-full sm:w-36">
+                  <Select
+                    value={sortManaged}
+                    onChange={(e) => setSortManaged(e.target.value as any)}
+                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    options={[
+                      { label: 'Terbaru', value: 'newest' },
+                      { label: 'Terlama', value: 'oldest' },
+                      { label: 'A - Z', value: 'az' },
+                      { label: 'Z - A', value: 'za' }
+                    ]}
+                  />
+                </div>
               </div>
-              <Button onClick={handleOpenAddRk}>
+              <Button onClick={handleOpenAddRk} className="w-full sm:w-auto h-[42px] text-[13px]">
                 <Plus size={16} /> Tambah RK Baru
               </Button>
             </div>
@@ -423,7 +475,7 @@ export function RencanaKinerjaClient({
           <div className="space-y-4">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-              <div className="flex flex-col sm:flex-row gap-3 w-full sm:max-w-xl">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:max-w-2xl">
                 {/* Search */}
                 <div className="relative flex-1">
                   <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
@@ -432,23 +484,35 @@ export function RencanaKinerjaClient({
                     placeholder="Cari RK Saya..."
                     value={searchMyRk}
                     onChange={(e) => setSearchMyRk(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none"
+                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none h-[42px]"
                     style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 {/* Filter Tim */}
-                <div className="flex-shrink-0">
-                  <select
+                <div className="flex-shrink-0 w-full sm:w-40">
+                  <Select
                     value={filterMyRkTeam}
-                    onChange={(e) => setFilterMyRkTeam(e.target.value)}
-                    className="w-full px-3 py-2 text-[13px] rounded-xl focus:outline-none"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
-                  >
-                    <option value="">Semua Tim</option>
-                    {timKerjaList.map((t, idx) => (
-                      <option key={idx} value={t}>{t}</option>
-                    ))}
-                  </select>
+                    onChange={(e) => setFilterMyRkTeam(e.target.value as any)}
+                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    options={[
+                      { label: 'Semua Tim', value: '' },
+                      ...timKerjaList.map((t) => ({ label: t, value: t }))
+                    ]}
+                  />
+                </div>
+                {/* Sort */}
+                <div className="w-full sm:w-36">
+                  <Select
+                    value={sortMyRk}
+                    onChange={(e) => setSortMyRk(e.target.value as any)}
+                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    options={[
+                      { label: 'Terbaru', value: 'newest' },
+                      { label: 'Terlama', value: 'oldest' },
+                      { label: 'A - Z', value: 'az' },
+                      { label: 'Z - A', value: 'za' }
+                    ]}
+                  />
                 </div>
               </div>
               <Button onClick={() => {
@@ -643,108 +707,154 @@ export function RencanaKinerjaClient({
         {/*  TAB: History                           */}
         {/* ════════════════════════════════════════ */}
         {activeTab === "history" && (
-          <div className="space-y-4 animate-fade-in">
-            <h2 className="text-[15px] font-semibold flex items-center gap-2 mb-6" style={{ color: 'var(--text-primary)' }}>
-              <History size={18} /> Histori Aktivitas Rencana Kinerja
-            </h2>
-            <div className="bg-white rounded-2xl p-6 shadow-sm" style={{ border: '1px solid var(--border)' }}>
-              {auditLogs.length === 0 ? (
-                <div className="text-center py-10">
-                  <p className="text-slate-500 text-[13px]">Belum ada histori aktivitas.</p>
-                </div>
-              ) : (
-                <div className="relative border-l border-slate-200 ml-3 space-y-6">
-                  {auditLogs.map((log: any) => {
-                    let actorName = log.user?.full_name || "Sistem";
-                    let roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
-                    
-                    let actionText = "";
-                    let iconColor = "#94a3b8";
-                    let bgColor = "#f8fafc";
-                    let detailText = log.entity_type;
+          <div className="space-y-6 animate-fade-in">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-2">
+              <h2 className="text-[16px] font-bold flex items-center gap-2 text-slate-800">
+                <History size={20} className="text-orange-500" /> Histori Aktivitas
+              </h2>
+              <div className="relative w-full sm:w-64">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Cari nama pegawai atau aktivitas..."
+                  className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all bg-white"
+                  value={searchHistory}
+                  onChange={(e) => setSearchHistory(e.target.value)}
+                />
+              </div>
+            </div>
 
-                    const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || log.entity_id;
-                    const timName = log.new_data?.tim_kerja || log.old_data?.tim_kerja || "";
+            {isKetuaTim && (
+              <div className="flex p-1 bg-slate-100/80 rounded-xl w-full sm:w-fit">
+                <button
+                  onClick={() => setHistoryTab("saya")}
+                  className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    historyTab === "saya" 
+                      ? "bg-white text-blue-600 shadow-sm" 
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                  }`}
+                >
+                  <UserPlus size={16} /> Aktivitas Saya
+                </button>
+                <button
+                  onClick={() => setHistoryTab("tim")}
+                  className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
+                    historyTab === "tim" 
+                      ? "bg-white text-orange-600 shadow-sm" 
+                      : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
+                  }`}
+                >
+                  <Users size={16} /> Aktivitas Tim
+                </button>
+              </div>
+            )}
+            
+            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+              {(() => {
+                const sourceLogs = (isKetuaTim && historyTab === "tim") ? teamAuditLogs : auditLogs;
+                
+                // Filter logs based on search
+                const filteredLogs = (sourceLogs || []).filter((log: any) => {
+                  if (!searchHistory) return true;
+                  const search = searchHistory.toLowerCase();
+                  const actorName = (log.user?.full_name || "Sistem").toLowerCase();
+                  const rkName = (log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || log.entity_id || "").toLowerCase();
+                  const actionText = (log.action || "").toLowerCase();
+                  return actorName.includes(search) || rkName.includes(search) || actionText.includes(search);
+                });
 
-                    if (log.action === 'rk_created') {
-                      actionText = `membuat RK baru`;
-                      iconColor = "#16a34a";
-                      bgColor = "#dcfce7";
-                      detailText = `${rkName} (${timName})`;
-                    } else if (log.action === 'rk_updated') {
-                      actionText = `mengubah RK`;
-                      iconColor = "#0284c7";
-                      bgColor = "#e0f2fe";
-                      detailText = `Menjadi: ${rkName}`;
-                    } else if (log.action === 'rk_deleted') {
-                      actionText = `menghapus RK`;
-                      iconColor = "#dc2626";
-                      bgColor = "#fee2e2";
-                      detailText = `${rkName}`;
-                    } else if (log.action === 'rk_self_assigned') {
-                      actionText = `mengambil RK ke daftarnya`;
-                      iconColor = "#d97706";
-                      bgColor = "#fef3c7";
-                      detailText = `${rkName}`;
-                    } else if (log.action === 'rk_assigned') {
-                      const targetName = log.new_data?.assignee_name || "Pegawai";
-                      actionText = `menugaskan RK kepada ${targetName}`;
-                      iconColor = "#d97706";
-                      bgColor = "#fef3c7";
-                      detailText = `${rkName}`;
-                    } else if (log.action === 'rk_unassigned') {
-                      const targetName = log.old_data?.assignee_name;
-                      if (targetName) {
-                        actionText = `menghapus penugasan RK dari ${targetName}`;
+                if (filteredLogs.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                      <History className="mx-auto h-8 w-8 text-slate-300 mb-3" />
+                      <p className="text-slate-500 text-[13px]">Belum ada histori aktivitas yang sesuai.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="relative border-l-2 border-slate-100 ml-3.5 space-y-8">
+                    {filteredLogs.map((log: any) => {
+                      let actorName = log.user?.full_name || "Sistem";
+                      let roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
+                      
+                      let actionText = "";
+                      let iconColor = "#94a3b8"; // slate-400
+                      let iconBg = "#f1f5f9"; // slate-100
+                      let detailText = log.entity_type;
+
+                      const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || log.entity_id;
+                      const timName = log.new_data?.tim_kerja || log.old_data?.tim_kerja || "";
+
+                      if (log.action === 'rk_created') {
+                        actionText = `membuat RK baru`;
+                        iconColor = "#16a34a"; // green-600
+                        iconBg = "#dcfce7"; // green-100
+                        detailText = `${rkName} (${timName})`;
+                      } else if (log.action === 'rk_updated') {
+                        actionText = `mengubah RK`;
+                        iconColor = "#0284c7"; // sky-600
+                        iconBg = "#e0f2fe"; // sky-100
+                        detailText = `Menjadi: ${rkName}`;
+                      } else if (log.action === 'rk_deleted') {
+                        actionText = `menghapus RK`;
+                        iconColor = "#dc2626"; // red-600
+                        iconBg = "#fee2e2"; // red-100
+                        detailText = `${rkName}`;
+                      } else if (log.action === 'rk_self_assigned') {
+                        actionText = `mengambil RK ke daftarnya`;
+                        iconColor = "#d97706"; // amber-600
+                        iconBg = "#fef3c7"; // amber-100
+                        detailText = `${rkName}`;
+                      } else if (log.action === 'rk_assigned') {
+                        const targetName = log.new_data?.assignee_name || "Pegawai";
+                        actionText = `menugaskan RK kepada ${targetName}`;
+                        iconColor = "#8b5cf6"; // violet-500
+                        iconBg = "#ede9fe"; // violet-100
+                        detailText = `${rkName}`;
+                      } else if (log.action === 'rk_unassigned') {
+                        const targetName = log.old_data?.assignee_name;
+                        if (targetName) {
+                          actionText = `menghapus penugasan RK dari ${targetName}`;
+                        } else {
+                          actionText = `menghapus RK dari daftarnya`;
+                        }
+                        iconColor = "#64748b"; // slate-500
+                        iconBg = "#f1f5f9"; // slate-100
+                        detailText = `${rkName}`;
                       } else {
-                        actionText = `menghapus RK dari daftarnya`;
+                        actionText = `melakukan aksi ${log.action}`;
                       }
-                      iconColor = "#64748b";
-                      bgColor = "#f1f5f9";
-                      detailText = `${rkName}`;
-                    } else if (log.action === 'rk_assigned_to_me') {
-                      const actor = log.new_data?.actor_name || "Ketua Tim";
-                      actionText = `menugaskan RK ini kepada Anda`;
-                      actorName = actor;
-                      roleLabel = "Ketua Tim";
-                      iconColor = "#d97706";
-                      bgColor = "#fef3c7";
-                      detailText = `${rkName}`;
-                    } else if (log.action === 'rk_unassigned_from_me') {
-                      const actor = log.old_data?.actor_name || "Ketua Tim";
-                      actionText = `menghapus Anda dari penugasan RK ini`;
-                      actorName = actor;
-                      roleLabel = "Ketua Tim";
-                      iconColor = "#64748b";
-                      bgColor = "#f1f5f9";
-                      detailText = `${rkName}`;
-                    } else {
-                      actionText = `melakukan aksi ${log.action}`;
-                    }
 
-                    return (
-                      <div key={log.id} className="relative pl-6">
-                        <span className="absolute -left-2 top-1.5 flex h-4 w-4 rounded-full" style={{ backgroundColor: iconColor, border: '3px solid white', boxShadow: '0 0 0 1px #e2e8f0' }} />
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
-                          <div>
-                            <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
-                              <span className="font-semibold">{actorName}</span>
-                              {roleLabel && <span className="text-slate-500 font-normal ml-1">({roleLabel})</span>}{" "}
-                              {actionText}
-                            </p>
-                            <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
-                              &ldquo;{detailText}&rdquo;
+                      return (
+                        <div key={log.id} className="relative pl-6 group">
+                          <span 
+                            className="absolute -left-[11px] top-1 flex h-[22px] w-[22px] items-center justify-center rounded-full ring-4 ring-white transition-transform group-hover:scale-110" 
+                            style={{ backgroundColor: iconBg }}
+                          >
+                            <div className="h-2 w-2 rounded-full" style={{ backgroundColor: iconColor }} />
+                          </span>
+                          <div className="flex flex-col gap-1.5 bg-slate-50/50 p-3.5 rounded-xl border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-colors">
+                            <div className="flex justify-between items-start gap-4">
+                              <p className="text-[13px] leading-relaxed" style={{ color: 'var(--text-primary)' }}>
+                                <span className="font-bold text-slate-800">{actorName}</span>
+                                {roleLabel && <span className="text-slate-500 font-medium mx-1">({roleLabel})</span>}
+                                <span className="text-slate-600">{actionText}</span>
+                              </p>
+                              <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap bg-white px-2 py-1 rounded-md border border-slate-100 shadow-sm">
+                                {new Date(log.created_at).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-[12px] font-medium text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100 mt-1 shadow-sm leading-relaxed">
+                              {detailText}
                             </p>
                           </div>
-                          <span className="text-[11px] text-slate-400 whitespace-nowrap mt-1 sm:mt-0">
-                            {new Date(log.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}
-                          </span>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
@@ -856,53 +966,51 @@ export function RencanaKinerjaClient({
       {/*  MODAL: Self-assign RK                   */}
       {/* ════════════════════════════════════════ */}
       <Dialog open={assignModalOpen} onClose={() => setAssignModalOpen(false)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Ambil Rencana Kinerja</DialogTitle>
-            <DialogDescription>Pilih tim kerja terlebih dahulu, kemudian cari dan pilih RK yang ingin ditambahkan ke daftar Anda.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-5 px-6 pb-2 overflow-y-auto min-h-[300px]">
-            {/* Step 1: Pilih Tim */}
-            <div className="space-y-2">
-              <label className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>1. Pilih Tim Kerja</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {timKerjaList.map((team, idx) => {
-                  const isSelected = selectedTeamToAssign === team;
-                  return (
-                    <div
-                      key={idx}
-                      onClick={() => { setSelectedTeamToAssign(team); setSelectedRkToAssign([]); }}
-                      className="p-3 rounded-lg cursor-pointer text-[12px] transition-all flex items-start justify-between gap-2 h-full"
-                      style={isSelected
-                        ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.3)', fontWeight: 600 }
-                        : { border: '1px solid var(--border)', background: 'var(--bg-base)' }
-                      }
-                    >
-                      <span className="leading-snug text-left">{team}</span>
-                      {isSelected && <CheckCircle2 size={14} className="flex-shrink-0 mt-0.5" />}
-                    </div>
-                  );
-                })}
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <div className="px-6 pt-6 pb-4 border-b border-slate-100">
+            <DialogTitle className="text-xl">Ambil Rencana Kinerja</DialogTitle>
+            <DialogDescription className="mt-1">
+              {!selectedTeamToAssign 
+                ? "Pilih tim kerja terlebih dahulu." 
+                : `Pilih RK untuk tim: ${selectedTeamToAssign}`}
+            </DialogDescription>
+          </div>
+          <div className="flex flex-col px-6 py-4 overflow-y-auto min-h-[400px]">
+            {!selectedTeamToAssign ? (
+              /* Step 1: Pilih Tim */
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {timKerjaList.map((team, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => { setSelectedTeamToAssign(team); setSelectedRkToAssign([]); }}
+                    className="p-4 rounded-xl cursor-pointer text-[13px] transition-all flex items-center justify-center text-center h-full hover:-translate-y-1 hover:shadow-md"
+                    style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', fontWeight: 500, color: 'var(--text-primary)' }}
+                  >
+                    <span>{team}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-
-            {/* Step 2: Pilih RK */}
-            {selectedTeamToAssign && (
-              <div className="space-y-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-                <label className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>2. Pilih Rencana Kinerja</label>
+            ) : (
+              /* Step 2: Pilih RK */
+              <div className="space-y-4 flex-1 flex flex-col">
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={() => { setSelectedTeamToAssign(""); setSelectedRkToAssign([]); }} className="h-8 px-3 rounded-lg" style={{ color: 'var(--text-secondary)' }}>
+                    <ChevronLeft size={16} className="mr-1" /> Kembali ke Tim
+                  </Button>
+                </div>
                 
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-secondary)' }} />
-                  <input type="text" placeholder="Ketik untuk mencari RK di tim ini..."
+                  <input type="text" placeholder={`Cari RK di ${selectedTeamToAssign}...`}
                     value={searchAssignRk} onChange={(e) => setSearchAssignRk(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-[13px] rounded-lg focus:outline-none"
+                    className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl focus:outline-none"
                     style={{ border: '1px solid var(--border)', background: '#fff' }}
                   />
                 </div>
 
-                <div className="flex flex-col gap-2 max-h-[200px] overflow-y-auto pr-1">
+                <div className="flex flex-col gap-2 flex-1 overflow-y-auto pr-1 pb-4">
                   {filteredRKsForAssign.length === 0 ? (
-                    <p className="text-[12px] italic text-center py-4" style={{ color: 'var(--text-secondary)' }}>
+                    <p className="text-[12px] italic text-center py-8" style={{ color: 'var(--text-secondary)' }}>
                       {searchAssignRk ? "RK tidak ditemukan." : "Tidak ada RK di tim ini."}
                     </p>
                   ) : (
@@ -916,7 +1024,7 @@ export function RencanaKinerjaClient({
                             setSelectedRkToAssign(prev => [...prev, rk.id]);
                           }
                         }}
-                          className="flex items-start gap-3 p-3 rounded-xl cursor-pointer transition-all"
+                          className="flex items-start gap-3 p-3.5 rounded-xl cursor-pointer transition-all hover:shadow-sm"
                           style={isSelected
                             ? { background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.2)' }
                             : { border: '1px solid var(--border)', background: '#fff' }
@@ -924,8 +1032,8 @@ export function RencanaKinerjaClient({
                         >
                           <div className="mt-0.5">
                             {isSelected
-                              ? <CheckCircle2 size={16} style={{ color: 'var(--primary)' }} />
-                              : <div className="w-4 h-4 rounded-full" style={{ border: '1.5px solid var(--border)' }} />
+                              ? <CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />
+                              : <div className="w-[18px] h-[18px] rounded-full" style={{ border: '2px solid var(--border)' }} />
                             }
                           </div>
                           <div className="flex-1 min-w-0">
@@ -942,7 +1050,7 @@ export function RencanaKinerjaClient({
             )}
           </div>
           
-          <DialogFooter className="px-6 pb-6 pt-2 mt-auto">
+          <DialogFooter className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 mt-auto">
             <Button type="button" variant="outline" onClick={() => setAssignModalOpen(false)}>Batal</Button>
             <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={selectedRkToAssign.length === 0}>
               {loading ? "Menambahkan..." : selectedRkToAssign.length > 0 ? `Tambahkan ${selectedRkToAssign.length} RK` : "Tambahkan ke RK Saya"}
