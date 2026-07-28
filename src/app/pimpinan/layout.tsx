@@ -2,8 +2,19 @@
 
 import React from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
-export default function PegawaiLayout({ children }: { children: React.ReactNode }) {
+export default function PimpinanLayout({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  React.useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
+    }
+  }, [user, loading, router]);
+
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
       <Sidebar />

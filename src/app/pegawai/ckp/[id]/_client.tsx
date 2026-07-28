@@ -303,6 +303,12 @@ export default function CKPDetailPage() {
 
   const [searchQuery, setSearchQuery] = useState('');
 
+  React.useEffect(() => {
+    if (!authLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, authLoading, router]);
+
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['ckp-detail', id],
     queryFn: async () => {

@@ -220,6 +220,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
   
+  useEffect(() => {
+    if (!authLoading && !currentUser) {
+      router.replace('/login');
+    }
+  }, [currentUser, authLoading, router]);
+
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['penilaian-ckp-detail', uploadId],
     queryFn: async () => {
