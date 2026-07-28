@@ -106,7 +106,7 @@ export default function AdminLogsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredLogs.map(l => (
+                {filteredLogs.map((l: any) => (
                   <tr key={l.id} className="border-b last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <div className="flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>

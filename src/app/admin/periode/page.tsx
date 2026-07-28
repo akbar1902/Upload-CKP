@@ -33,7 +33,7 @@ export default function AdminPeriodePage() {
   const periodes = useMemo(() => {
     const list = [];
     for (let i = 1; i <= 12; i++) {
-      const p = periodeData?.find(d => d.bulan === i && d.tahun === selectedYear);
+      const p = periodeData?.find((d: any) => d.bulan === i && d.tahun === selectedYear);
       list.push({
         bulan: i,
         tahun: selectedYear,
