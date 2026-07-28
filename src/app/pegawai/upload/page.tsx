@@ -50,6 +50,7 @@ export default function UploadPage() {
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
+  const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
   const [masterRKs, setMasterRKs] = useState<any[]>([]);
   const [uniqueTeams, setUniqueTeams] = useState<{tim_kerja: string, ketua_tim_id: string}[]>([]);
   const [ketuaTims, setKetuaTims] = useState<any[]>([]);
@@ -122,6 +123,7 @@ export default function UploadPage() {
         
         const allTeams = Array.from(new Set([...activeTeams, ...Array.from(teamsMap.keys())]));
         setTimKerjaList(allTeams);
+        setTeamToKetuaMap(teamsMap);
       }
     };
     fetchMasterRKs();
@@ -663,9 +665,10 @@ export default function UploadPage() {
                           onChange={(e) => {
                             const selectedTim = e.target.value;
                             const ketua = ketuaTims.find(k => k.unit_kerja === selectedTim);
+                            const ketuaId = ketua ? ketua.id : (teamToKetuaMap.get(selectedTim) || '');
                             setRkTeamMapping(prev => ({
                               ...prev,
-                              [rk]: { tim_kerja: selectedTim, ketua_tim_id: ketua ? ketua.id : '' }
+                              [rk]: { tim_kerja: selectedTim, ketua_tim_id: ketuaId }
                             }));
                           }}
                         >
