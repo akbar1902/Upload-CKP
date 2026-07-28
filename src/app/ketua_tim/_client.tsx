@@ -4,39 +4,18 @@ import React, { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery, keepPreviousData } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName } from '@/lib/utils';
-import { exportRekapToExcel } from '@/lib/excel/exporter';
-import type { CKPUpload, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   Users, Clock, CheckCircle2, Search,
-  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp,
+  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
 } from 'lucide-react';
-
 import { KPICard } from '@/components/dashboard/kpi-card';
-import { PegawaiCard, PegawaiCardSkeleton, type PegawaiRow } from '@/components/dashboard/pegawai-card';
-
-function CompletionWidget({ uploaded, total, loading }: { uploaded: number; total: number; loading: boolean }) {
-  return (
-    <KPICard
-      icon={<Users size={18} />}
-      value={
-        <div className="flex items-baseline gap-1">
-          <span>{uploaded}</span>
-          <span className="text-base font-normal text-slate-400">/{total}</span>
-        </div>
-      }
-      label="Tingkat Pelaporan"
-      sub="pegawai melapor"
-      loading={loading}
-    />
-  );
-}
 
 export default function KetuaTimDashboardClient() {
   const supabase = useMemo(() => createClient(), []);
@@ -73,73 +52,70 @@ export default function KetuaTimDashboardClient() {
       const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       try {
-        if (!user) return { uploads: [], users: [] };
+        if (!user) return { rks: [], uploads: [], entries: [], users: [] };
 
         // 1. Get RKs for this ketua tim
         const { data: mappingData, error: mapError } = await supabase
           .from('rk_ketua_tim_mapping')
-          .select('rencana_kinerja')
+          .select('*')
           .eq('ketua_tim_id', user.id)
           .abortSignal(controller.signal);
         
         if (mapError) throw mapError;
-        const rkList = mappingData?.map((m: any) => m.rencana_kinerja) || [];
-
-        if (rkList.length === 0) return { uploads: [], users: [] };
-
-        // 2. Find ALL upload_ids that have EVER contained these RKs to identify Team Members
-        const { data: entries, error: entriesError } = await supabase
-          .from('ckp_entries')
-          .select('upload_id')
-          .in('rencana_kinerja', rkList)
-          .abortSignal(controller.signal);
-
-        if (entriesError) throw entriesError;
-        const allUploadIds = Array.from(new Set((entries || []).map((e: any) => e.upload_id)));
-
-        let teamUserIds: string[] = [];
-        if (allUploadIds.length > 0) {
-          // Get the user_ids of these uploads
-          const { data: allUploadsData, error: allUploadsError } = await supabase
-            .from('ckp_uploads')
-            .select('user_id')
-            .in('id', allUploadIds)
-            .abortSignal(controller.signal);
-          
-          if (allUploadsError) throw allUploadsError;
-          teamUserIds = Array.from(new Set((allUploadsData || []).map((u: any) => u.user_id)));
+        
+        if (!mappingData || mappingData.length === 0) {
+          return { rks: [], uploads: [], entries: [], users: [] };
         }
-
-        if (teamUserIds.length === 0) return { uploads: [], users: [] };
-
-        // 3. Get the user details of these team members
-        const { data: usersData, error: usersError } = await supabase
-          .from('users')
-          .select('*')
-          .in('id', teamUserIds)
-          .order('full_name')
-          .abortSignal(controller.signal);
-          
-        if (usersError) throw usersError;
-
-        // 4. Get the uploads for these team members for the SELECTED month and year
-        const { data: monthUploads, error: monthUploadsError } = await supabase
+        
+        const rkNames = mappingData.map((m: any) => m.rencana_kinerja);
+        
+        // 2. Get uploads for the selected month that are submitted or approved
+        const { data: uploadsData, error: uploadsError } = await supabase
           .from('ckp_uploads')
-          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-          .in('user_id', teamUserIds)
+          .select('id, user_id, status, uploaded_at')
           .eq('bulan', qBulan)
           .eq('tahun', qTahun)
-          .order('uploaded_at', { ascending: false })
+          .in('status', ['submitted', 'approved', 'revision_required'])
           .abortSignal(controller.signal);
+          
+        if (uploadsError) throw uploadsError;
+        const uploadIds = uploadsData?.map((u: any) => u.id) || [];
+        
+        if (uploadIds.length === 0) {
+          return { rks: mappingData, uploads: [], entries: [], users: [] };
+        }
+        
+        // 3. Get entries for these uploads that match the RKs
+        const { data: entriesData, error: entriesError } = await supabase
+          .from('ckp_entries')
+          .select('*')
+          .in('upload_id', uploadIds)
+          .in('rencana_kinerja', rkNames)
+          .abortSignal(controller.signal);
+          
+        if (entriesError) throw entriesError;
+        
+        const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
+        const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+        const relevantUserIds = Array.from(new Set(relevantUploads.map((u: any) => u.user_id)));
+        
+        let usersData: any[] = [];
+        if (relevantUserIds.length > 0) {
+          const { data: uData, error: uError } = await supabase
+            .from('users')
+            .select('*')
+            .in('id', relevantUserIds)
+            .abortSignal(controller.signal);
+          if (uError) throw uError;
+          usersData = uData || [];
+        }
 
-        if (monthUploadsError) throw monthUploadsError;
-
-        const newUploads = (monthUploads || []).map((u: any) => ({
-          ...u,
-          user: u.user as User | undefined,
-        })) as (CKPUpload & { user?: User })[];
-
-        return { uploads: newUploads, users: usersData as User[] };
+        return {
+          rks: mappingData,
+          uploads: relevantUploads,
+          entries: entriesData || [],
+          users: usersData,
+        };
       } finally {
         clearTimeout(timeoutId);
       }
@@ -151,67 +127,71 @@ export default function KetuaTimDashboardClient() {
 
   const loading = authLoading || queryPending;
 
-  // Failsafe: if genuinely stuck for > 10s after auth resolved, retry query
-  React.useEffect(() => {
+  useEffect(() => {
     let timeout: NodeJS.Timeout;
     if (!authLoading && queryPending) {
       timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
         void refetch();
       }, 10000);
     }
     return () => clearTimeout(timeout);
   }, [authLoading, queryPending, refetch]);
 
+  const rks = data?.rks || [];
+  const entries = data?.entries || [];
   const uploads = data?.uploads || [];
-  const allUsers = data?.users || [];
   const error = queryError ? queryError.message : null;
 
-  useEffect(() => {
-    const channelName = `ketua-tim-${bulan}-${tahun}-${user?.id}`;
-    const channel = supabase
-      .channel(channelName)
-      .on('postgres_changes', {
-        event: '*', schema: 'public', table: 'ckp_uploads',
-        filter: `bulan=eq.${bulan}`,
-      }, () => refetch())
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [supabase, bulan, tahun, refetch, user?.id]);
+  // Process data for RK Cards
+  const rkStats = useMemo(() => {
+    return rks.map((rk: any) => {
+      const rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja);
+      const uniquePegawaiIds = new Set(
+        rkEntries.map((e: any) => {
+          const upload = uploads.find((u: any) => u.id === e.upload_id);
+          return upload?.user_id;
+        }).filter(Boolean)
+      );
+      
+      const evaluatedEntries = rkEntries.filter((e: any) => e.nilai !== null);
+      const allEvaluated = rkEntries.length > 0 && evaluatedEntries.length === rkEntries.length;
+      
+      const avgProgress = rkEntries.length > 0 
+        ? rkEntries.reduce((acc: number, curr: any) => acc + (curr.progres || 0), 0) / rkEntries.length 
+        : 0;
 
-  const pegawaiRows = useMemo((): PegawaiRow[] =>
-    allUsers.map(u => ({
-      user: u,
-      upload: uploads.find(up => up.user_id === u.id) ?? null,
-    })),
-    [allUsers, uploads]
-  );
+      const avgScore = evaluatedEntries.length > 0
+        ? evaluatedEntries.reduce((acc: number, curr: any) => acc + (curr.nilai || 0), 0) / evaluatedEntries.length
+        : null;
 
-  const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return pegawaiRows;
+      return {
+        ...rk,
+        totalEntries: rkEntries.length,
+        totalPegawai: uniquePegawaiIds.size,
+        evaluatedEntries: evaluatedEntries.length,
+        allEvaluated,
+        avgProgress: Math.min(100, avgProgress),
+        avgScore
+      };
+    });
+  }, [rks, entries, uploads]);
+
+  const filteredRKs = useMemo(() => {
+    if (!searchQuery.trim()) return rkStats;
     const q = searchQuery.toLowerCase();
-    return pegawaiRows.filter(r =>
-      r.user.full_name.toLowerCase().includes(q) ||
-      (r.user.nip?.toLowerCase().includes(q)) ||
-      (r.user.unit_kerja?.toLowerCase().includes(q))
+    return rkStats.filter((rk: any) =>
+      rk.rencana_kinerja?.toLowerCase().includes(q) ||
+      rk.tim_kerja?.toLowerCase().includes(q)
     );
-  }, [pegawaiRows, searchQuery]);
+  }, [rkStats, searchQuery]);
 
-  const totalPegawai = allUsers.length;
-  const uniqueUploads = useMemo(() => pegawaiRows.map(r => r.upload).filter((u): u is CKPUpload & { user?: User } => u !== null), [pegawaiRows]);
-  const uploadedCount = uniqueUploads.length;
-  const pendingCount = uniqueUploads.filter(u => u.status === 'submitted').length;
-  const approvedCount = uniqueUploads.filter(u => u.status === 'approved').length;
-  const avgCapaian = uniqueUploads.length > 0 ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length) : 0;
+  // Overall KPIs
+  const totalRKs = rkStats.length;
+  const activeRKs = rkStats.filter((rk: any) => rk.totalEntries > 0).length;
+  const pendingRKs = rkStats.filter((rk: any) => rk.totalEntries > 0 && !rk.allEvaluated).length;
+  const avgOverallProgress = activeRKs > 0 ? rkStats.reduce((s: number, rk: any) => s + rk.avgProgress, 0) / activeRKs : 0;
 
-  const handleExportRekap = () => {
-    exportRekapToExcel(uploads, bulan, tahun);
-    toast.success('Rekap Excel berhasil diunduh');
-  };
-
-  if (error && !loading && uploads.length === 0 && allUsers.length === 0) {
+  if (error && !loading && rks.length === 0) {
     return (
       <>
         <Header />
@@ -231,7 +211,7 @@ export default function KetuaTimDashboardClient() {
 
   return (
     <>
-      <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
+      <Header pendingCount={0} />
       <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -248,45 +228,82 @@ export default function KetuaTimDashboardClient() {
             <button onClick={() => refetch()} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </button>
-            <button onClick={handleExportRekap} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-              <Download className="h-4 w-4" />
-            </button>
           </div>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
-          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
+          <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={totalRKs} label="Total Rencana Kinerja" sub="Tanggung jawab Anda" iconBg="var(--primary-soft)" loading={loading} />
+          <KPICard icon={<Users size={18} style={{ color: 'var(--success)' }} />} value={activeRKs} label="RK Aktif" sub="Ada laporan bulan ini" iconBg="var(--success-soft)" loading={loading} />
+          <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingRKs} label="Menunggu Nilai" sub="RK belum dinilai penuh" iconBg="var(--warning-soft)" loading={loading} />
+          <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgOverallProgress.toFixed(0)}%`} label="Rata-rata Capaian" sub="Seluruh RK aktif" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-semibold text-slate-800">Rekap Kegiatan Tim</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{filteredRows.length} anggota ditampilkan</p>
+              <h3 className="text-base font-semibold text-slate-800">Daftar Rencana Kinerja</h3>
+              <p className="text-xs text-slate-400 mt-0.5">{filteredRKs.length} RK ditampilkan</p>
             </div>
           </div>
 
           <div className="relative mb-4 max-w-xs md:hidden">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input type="search" placeholder="Cari anggota..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 h-9 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+            <input type="search" placeholder="Cari RK..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 h-9 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[...Array(6)].map((_, i) => <PegawaiCardSkeleton key={i} />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
             </div>
-          ) : filteredRows.length === 0 ? (
+          ) : filteredRKs.length === 0 ? (
             <div className="text-center py-16 text-slate-400">
-              <Search className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-medium text-slate-600">Tidak ada anggota tim ditemukan</p>
+              <FileText className="h-8 w-8 mx-auto mb-3 opacity-40" />
+              <p className="text-sm font-medium text-slate-600">Tidak ada Rencana Kinerja ditemukan</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredRows.map(row => (
-                <PegawaiCard key={row.user.id} row={row} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredRKs.map((rk: any) => (
+                <div key={rk.id} className="bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: rk.totalEntries === 0 ? '#E2E8F0' : rk.allEvaluated ? '#10B981' : '#F59E0B' }} />
+                  
+                  <div className="flex justify-between items-start mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      {rk.tim_kerja || 'Tim Kerja'}
+                    </p>
+                    {rk.totalEntries > 0 && (
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${rk.allEvaluated ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                        {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <h4 className="text-sm font-bold text-slate-800 mb-4 line-clamp-2" title={rk.rencana_kinerja}>
+                    {rk.rencana_kinerja}
+                  </h4>
+                  
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex gap-4">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400">Pegawai</span>
+                        <span className="text-sm font-semibold text-slate-700">{rk.totalPegawai}</span>
+                      </div>
+                      <div className="w-px bg-slate-100" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400">Kegiatan</span>
+                        <span className="text-sm font-semibold text-slate-700">{rk.totalEntries}</span>
+                      </div>
+                      <div className="w-px bg-slate-100" />
+                      <div className="flex flex-col">
+                        <span className="text-[10px] text-slate-400">Rata2 Nilai</span>
+                        <span className="text-sm font-semibold text-slate-700">{rk.avgScore !== null ? rk.avgScore.toFixed(1) : '-'}</span>
+                      </div>
+                    </div>
+                    
+                    <Link href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="p-2 rounded-xl bg-slate-50 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                      <ArrowRight size={18} />
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           )}
