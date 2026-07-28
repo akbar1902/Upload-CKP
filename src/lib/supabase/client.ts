@@ -29,7 +29,7 @@ export function createClient() {
       autoRefreshToken: false,
       detectSessionInUrl: true,
       persistSession: true,
-      lock: (name: string, acquireLock: () => Promise<any>) => acquireLock(),
+      lock: (name: string, acquireTimeout: number, fn: () => Promise<any>) => fn(),
     },
   });
   return client;
