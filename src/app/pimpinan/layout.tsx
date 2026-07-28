@@ -10,8 +10,12 @@ export default function PimpinanLayout({ children }: { children: React.ReactNode
   const router = useRouter();
 
   React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
+    if (!loading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role !== 'pimpinan' && user.role !== 'admin') {
+        router.replace('/pegawai'); // Redirect unauthorized users to pegawai dashboard
+      }
     }
   }, [user, loading, router]);
 

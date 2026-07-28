@@ -10,8 +10,14 @@ export default function PegawaiLayout({ children }: { children: React.ReactNode 
   const router = useRouter();
 
   React.useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/login');
+    if (!loading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role === 'admin') {
+        router.replace('/admin');
+      } else if (user.role === 'pimpinan') {
+        router.replace('/pimpinan');
+      }
     }
   }, [user, loading, router]);
 

@@ -205,6 +205,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
+        // Enforce login on every new visit (clear session if opening a new tab/browser)
+        if (typeof window !== 'undefined') {
+          const hasVisited = sessionStorage.getItem('has_visited');
+          if (!hasVisited) {
+            sessionStorage.setItem('has_visited', 'true');
+            await supabase.auth.signOut();
+            setSupabaseUser(null);
+            setUser(null);
+            setLoading(false);
+            return;
+          }
+        }
+
         // getSession() reads from local cache — instant, no network call
         const { data: { session } } = await supabase.auth.getSession();
         if (!mountedRef.current) return;
