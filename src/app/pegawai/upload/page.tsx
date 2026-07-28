@@ -91,22 +91,38 @@ export default function UploadPage() {
 
   React.useEffect(() => {
     const fetchMasterRKs = async () => {
-      const { data } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
+      const { data, error: rkError } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
+      if (rkError) {
+        console.error('Error fetching master RKs:', rkError);
+      }
       if (data) {
         setMasterRKs(data);
-        const teamsMap = new Map<string, string>();
-        data.forEach((rk: any) => {
-          if (rk.tim_kerja) {
-            teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || '');
-          }
-        });
-        const teams = Array.from(teamsMap.entries()).map(([tim_kerja, ketua_tim_id]) => ({ tim_kerja, ketua_tim_id }));
-        setUniqueTeams(teams);
-        setTimKerjaList(Array.from(teamsMap.keys()));
       }
 
-      const { data: ketuas } = await supabase.from('profiles').select('id, full_name, unit_kerja');
-      if (ketuas) setKetuaTims(ketuas);
+      // Fetch ketuas from users table
+      const { data: ketuas, error: ketuaError } = await supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']);
+      if (ketuaError) {
+        console.error('Error fetching ketuas:', ketuaError);
+      }
+      
+      if (ketuas) {
+        setKetuaTims(ketuas);
+        // Use users table for tim_kerja list to ensure it's always populated with active teams
+        const activeTeams = Array.from(new Set(ketuas.map(k => k.unit_kerja).filter(Boolean))) as string[];
+        
+        // Also merge with teams from mappings just in case
+        const teamsMap = new Map<string, string>();
+        if (data) {
+          data.forEach((rk: any) => {
+            if (rk.tim_kerja) {
+              teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || '');
+            }
+          });
+        }
+        
+        const allTeams = Array.from(new Set([...activeTeams, ...Array.from(teamsMap.keys())]));
+        setTimKerjaList(allTeams);
+      }
     };
     fetchMasterRKs();
   }, [supabase]);
@@ -216,8 +232,11 @@ export default function UploadPage() {
 
     parseResult.entries.forEach(entry => {
       const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+      if (!rawRK.trim()) return;
+      
       const matchedRK = fuzzyMatchRK(rawRK, masterNames);
-      if (matchedRK && matchedRK.trim() !== '' && !masterNames.includes(matchedRK)) {
+      // If the matched string is not exactly in masterNames (e.g. it was a new string returned because score was low)
+      if (!masterNames.includes(matchedRK)) {
         newUnmatched.add(matchedRK);
       }
     });
