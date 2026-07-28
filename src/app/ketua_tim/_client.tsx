@@ -22,6 +22,7 @@ export default function KetuaTimDashboardClient() {
   const { user, loading: authLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState('semua');
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -177,13 +178,40 @@ export default function KetuaTimDashboardClient() {
   }, [rks, entries, uploads]);
 
   const filteredRKs = useMemo(() => {
-    if (!searchQuery.trim()) return rkStats;
-    const q = searchQuery.toLowerCase();
-    return rkStats.filter((rk: any) =>
-      rk.rencana_kinerja?.toLowerCase().includes(q) ||
-      rk.tim_kerja?.toLowerCase().includes(q)
-    );
-  }, [rkStats, searchQuery]);
+    let result = rkStats;
+    
+    // 1. Text Search Filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter((rk: any) =>
+        rk.rencana_kinerja?.toLowerCase().includes(q) ||
+        rk.tim_kerja?.toLowerCase().includes(q)
+      );
+    }
+    
+    // 2. Status Filter
+    if (filterStatus !== 'semua') {
+      result = result.filter((rk: any) => {
+        if (filterStatus === 'perlu_dinilai') return rk.totalEntries > 0 && !rk.allEvaluated;
+        if (filterStatus === 'selesai') return rk.totalEntries > 0 && rk.allEvaluated;
+        if (filterStatus === 'belum_ada') return rk.totalEntries === 0;
+        return true;
+      });
+    }
+
+    // 3. Sorting
+    // Priority 1: Perlu dinilai (un-evaluated) first
+    // Priority 2: Higher number of totalPegawai
+    return result.sort((a: any, b: any) => {
+      const aPending = a.totalEntries > 0 && !a.allEvaluated;
+      const bPending = b.totalEntries > 0 && !b.allEvaluated;
+      
+      if (aPending && !bPending) return -1;
+      if (!aPending && bPending) return 1;
+      
+      return b.totalPegawai - a.totalPegawai;
+    });
+  }, [rkStats, searchQuery, filterStatus]);
 
   // Overall KPIs
   const totalRKs = rkStats.length;
@@ -246,60 +274,83 @@ export default function KetuaTimDashboardClient() {
             </div>
           </div>
 
-          <div className="relative mb-4 max-w-xs md:hidden">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-            <input type="search" placeholder="Cari RK..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 h-9 text-sm bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+            <div className="relative w-full md:max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input 
+                type="search" 
+                placeholder="Cari Rencana Kinerja atau Tim Kerja..." 
+                value={searchQuery} 
+                onChange={e => setSearchQuery(e.target.value)} 
+                className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm" 
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
+            >
+              <option value="semua">Semua Status</option>
+              <option value="perlu_dinilai">Perlu Dinilai</option>
+              <option value="selesai">Selesai Dinilai</option>
+              <option value="belum_ada">Belum Ada Laporan</option>
+            </select>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 rounded-2xl" />)}
+              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
           ) : filteredRKs.length === 0 ? (
-            <div className="text-center py-16 text-slate-400">
-              <FileText className="h-8 w-8 mx-auto mb-3 opacity-40" />
-              <p className="text-sm font-medium text-slate-600">Tidak ada Rencana Kinerja ditemukan</p>
+            <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
+              <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+              <p className="text-base font-semibold text-slate-700">Tidak ada Rencana Kinerja ditemukan</p>
+              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau kata kunci pencarian Anda.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredRKs.map((rk: any) => (
-                <div key={rk.id} className="bg-white rounded-2xl p-5 border border-slate-200 hover:shadow-md transition-shadow relative overflow-hidden group">
-                  <div className="absolute top-0 left-0 w-1 h-full" style={{ background: rk.totalEntries === 0 ? '#E2E8F0' : rk.allEvaluated ? '#10B981' : '#F59E0B' }} />
+                <div key={rk.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-blue-200">
+                  <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                   
-                  <div className="flex justify-between items-start mb-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                      {rk.tim_kerja || 'Tim Kerja'}
-                    </p>
+                  <div className="flex justify-between items-start mb-3 pl-2">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
+                    </span>
                     {rk.totalEntries > 0 && (
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${rk.allEvaluated ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-500/20'}`}>
                         {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
                       </span>
                     )}
                   </div>
                   
-                  <h4 className="text-sm font-bold text-slate-800 mb-4 line-clamp-2" title={rk.rencana_kinerja}>
+                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 line-clamp-2 pl-2 leading-relaxed group-hover:text-blue-700 transition-colors" title={rk.rencana_kinerja}>
                     {rk.rencana_kinerja}
                   </h4>
                   
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex gap-4">
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 pl-2">
+                    <div className="flex gap-4 sm:gap-6">
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400">Pegawai</span>
-                        <span className="text-sm font-semibold text-slate-700">{rk.totalPegawai}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Pegawai</span>
+                        <span className="text-[15px] font-black text-slate-700 flex items-center gap-1.5">
+                          {rk.totalPegawai} <Users size={12} className="text-slate-300" />
+                        </span>
                       </div>
-                      <div className="w-px bg-slate-100" />
+                      <div className="w-px bg-slate-200" />
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400">Kegiatan</span>
-                        <span className="text-sm font-semibold text-slate-700">{rk.totalEntries}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Kegiatan</span>
+                        <span className="text-[15px] font-black text-slate-700">{rk.totalEntries}</span>
                       </div>
-                      <div className="w-px bg-slate-100" />
+                      <div className="w-px bg-slate-200" />
                       <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400">Rata2 Nilai</span>
-                        <span className="text-sm font-semibold text-slate-700">{rk.avgScore !== null ? rk.avgScore.toFixed(1) : '-'}</span>
+                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Rata2 Nilai</span>
+                        <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-emerald-600' : 'text-slate-300'}`}>
+                          {rk.avgScore !== null ? rk.avgScore.toFixed(1) : '-'}
+                        </span>
                       </div>
                     </div>
                     
-                    <Link href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="p-2 rounded-xl bg-slate-50 text-slate-500 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                    <Link href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
                       <ArrowRight size={18} />
                     </Link>
                   </div>
