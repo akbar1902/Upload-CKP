@@ -45,6 +45,7 @@ export default function UploadPage() {
   const [uploadStep, setUploadStep] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
+  const [isLocked, setIsLocked] = useState(false);
 
   // States for Team Assignment Prompt
   const [showTeamModal, setShowTeamModal] = useState(false);
@@ -68,6 +69,21 @@ export default function UploadPage() {
 
   const checkExistingUpload = useCallback(async (b: number, t: number) => {
     if (!user) return;
+    
+    // Check lock status first
+    const { data: lockData, error: lockError } = await supabase
+      .from('periode_ckp')
+      .select('is_locked')
+      .eq('bulan', b)
+      .eq('tahun', t)
+      .maybeSingle();
+      
+    if (!lockError && lockData) {
+      setIsLocked(!!lockData.is_locked);
+    } else {
+      setIsLocked(false);
+    }
+
     const { data, error } = await supabase
       .from('ckp_uploads')
       .select('id, version, status')
@@ -486,7 +502,15 @@ export default function UploadPage() {
               </div>
             </div>
 
-            {existingUpload && (
+            {isLocked && (
+              <div className="mt-4 flex items-start gap-2 p-3 rounded-lg border bg-red-50 border-red-200">
+                <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
+                <div className="text-sm">
+                  <p className="text-red-700">Periode CKP untuk bulan dan tahun ini <strong>sudah dikunci</strong> oleh Admin. Anda tidak dapat mengupload data.</p>
+                </div>
+              </div>
+            )}
+            {!isLocked && existingUpload && (
               <div className={`mt-4 flex items-start gap-2 p-3 rounded-lg border ${
                 existingUpload.status === 'approved'
                   ? 'bg-red-50 border-red-200'
@@ -520,7 +544,7 @@ export default function UploadPage() {
           <CardContent>
             <UploadDropzone
               onFileSelected={handleFileSelected}
-              disabled={existingUpload?.status === 'approved'}
+              disabled={isLocked || existingUpload?.status === 'approved'}
             />
           </CardContent>
         </Card>
@@ -624,7 +648,7 @@ export default function UploadPage() {
               )}
               {parseResult.success && (
                 <div className="flex justify-end pt-2">
-                  <Button onClick={handlePreSubmit} loading={uploading} disabled={existingUpload?.status === 'approved'} size="lg">
+                  <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg">
                     <Send className="h-4 w-4 mr-2" />
                     Submit CKP {getBulanName(bulan)} {tahun}
                   </Button>
