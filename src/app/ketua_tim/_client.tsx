@@ -274,32 +274,52 @@ export default function KetuaTimDashboardClient() {
             </div>
           </div>
 
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-            <div className="relative w-full md:max-w-md flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input 
-                type="search" 
-                placeholder="Cari Rencana Kinerja atau Tim Kerja..." 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm" 
-              />
+          <div className="flex flex-col gap-4 mb-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="relative w-full md:max-w-md flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input 
+                  type="search" 
+                  placeholder="Cari Rencana Kinerja atau Tim Kerja..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm" 
+                />
+              </div>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
+              >
+                <option value="semua">Semua Status</option>
+                <option value="perlu_dinilai">Perlu Dinilai</option>
+                <option value="selesai">Selesai Dinilai</option>
+                <option value="belum_ada">Belum Ada Laporan</option>
+              </select>
             </div>
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
-            >
-              <option value="semua">Semua Status</option>
-              <option value="perlu_dinilai">Perlu Dinilai</option>
-              <option value="selesai">Selesai Dinilai</option>
-              <option value="belum_ada">Belum Ada Laporan</option>
-            </select>
+            
+            <div className="w-full">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    router.push(`/ketua_tim/rk/${e.target.value}?bulan=${bulan}&tahun=${tahun}`);
+                  }
+                }}
+                className="w-full h-10 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 shadow-sm"
+              >
+                <option value="">🚀 Lompat Cepat ke Rencana Kinerja...</option>
+                {rkStats.map((rk: any) => (
+                  <option key={`jump-${rk.id}`} value={rk.id}>
+                    {rk.rencana_kinerja}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
           ) : filteredRKs.length === 0 ? (
             <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
@@ -308,7 +328,7 @@ export default function KetuaTimDashboardClient() {
               <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau kata kunci pencarian Anda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredRKs.map((rk: any) => (
                 <Link key={rk.id} href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block">
                   <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
@@ -324,7 +344,7 @@ export default function KetuaTimDashboardClient() {
                     )}
                   </div>
                   
-                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 line-clamp-2 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
+                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
                     {rk.rencana_kinerja}
                   </h4>
                   
