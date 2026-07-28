@@ -66,7 +66,7 @@ export default function AdminRKPage() {
           <div className="flex gap-2">
             <Link 
               href="/admin/rk/import"
-              className="btn-secondary flex items-center gap-2 text-green-700 border-green-200 hover:bg-green-50"
+              className="btn-secondary flex items-center gap-2 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30"
             >
               <FileSpreadsheet size={14} /> 
               Upload Excel
@@ -111,7 +111,7 @@ export default function AdminRKPage() {
                       <div className="font-semibold line-clamp-2 max-w-md" style={{ color: 'var(--text-primary)' }}>{r.rencana_kinerja}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="badge-pill bg-blue-50 text-blue-700 text-[11px] px-2 py-0.5">
+                      <span className="badge-pill bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] px-2 py-0.5">
                         {r.tim_kerja || '—'}
                       </span>
                     </td>

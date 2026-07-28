@@ -144,7 +144,7 @@ export default function AdminPegawaiPage() {
                       <div className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{u.nip} • {u.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="badge-pill bg-blue-50 text-blue-700 text-[11px] capitalize px-2 py-0.5">
+                      <span className="badge-pill bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] capitalize px-2 py-0.5">
                         {u.role === 'anggota' ? 'Pegawai' : u.role}
                       </span>
                     </td>
