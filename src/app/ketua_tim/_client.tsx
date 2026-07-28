@@ -310,21 +310,21 @@ export default function KetuaTimDashboardClient() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {filteredRKs.map((rk: any) => (
-                <div key={rk.id} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-blue-200">
-                  <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <Link key={rk.id} href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block">
+                  <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
                   
                   <div className="flex justify-between items-start mb-3 pl-2">
                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                       <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
                     </span>
                     {rk.totalEntries > 0 && (
-                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-500/20' : 'bg-amber-50 text-amber-700 ring-1 ring-amber-500/20'}`}>
+                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-[var(--primary-soft)] text-[var(--primary)] ring-1 ring-[var(--primary)]/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
                         {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
                       </span>
                     )}
                   </div>
                   
-                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 line-clamp-2 pl-2 leading-relaxed group-hover:text-blue-700 transition-colors" title={rk.rencana_kinerja}>
+                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 line-clamp-2 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
                     {rk.rencana_kinerja}
                   </h4>
                   
@@ -344,17 +344,17 @@ export default function KetuaTimDashboardClient() {
                       <div className="w-px bg-slate-200" />
                       <div className="flex flex-col">
                         <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Rata2 Nilai</span>
-                        <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-emerald-600' : 'text-slate-300'}`}>
+                        <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-[var(--primary)]' : 'text-slate-300'}`}>
                           {rk.avgScore !== null ? rk.avgScore.toFixed(1) : '-'}
                         </span>
                       </div>
                     </div>
                     
-                    <Link href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
+                    <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
                       <ArrowRight size={18} />
-                    </Link>
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
