@@ -32,12 +32,12 @@ export default function AdminLogsPage() {
     let result = logs;
 
     if (filterEntity !== 'all') {
-      result = result.filter(l => l.entity_type === filterEntity);
+      result = result.filter((l: any) => l.entity_type === filterEntity);
     }
 
     if (search.trim()) {
       const q = search.toLowerCase();
-      result = result.filter(l => 
+      result = result.filter((l: any) => 
         (l.action && l.action.toLowerCase().includes(q)) ||
         (l.user?.full_name && l.user.full_name.toLowerCase().includes(q))
       );
