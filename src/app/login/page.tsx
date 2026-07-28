@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/ui/logo';
 import { createClient } from '@/lib/supabase/client';
+import { useAuth } from '@/hooks/use-auth';
 import { resetPasswordDirectAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,20 +27,15 @@ export default function LoginPage() {
   const [resetError, setResetError] = useState('');
 
   const supabase = useMemo(() => createClient(), []);
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
-  // Redirect jika sudah ada session aktif
+  // Redirect jika sudah ada session aktif menurut useAuth
   useEffect(() => {
-    const checkSession = async () => {
-      const result = await supabase.auth.getUser();
-      const user = result.data?.user;
-      if (user) {
-        const role = user.user_metadata?.role as string | undefined;
-        router.replace(role === 'pimpinan' || role === 'admin' ? '/pimpinan' : '/pegawai');
-      }
-    };
-    checkSession();
-  }, [supabase, router]);
+    if (!authLoading && user) {
+      router.replace(user.role === 'pimpinan' || user.role === 'admin' ? '/pimpinan' : '/pegawai');
+    }
+  }, [user, authLoading, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

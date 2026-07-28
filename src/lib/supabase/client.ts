@@ -24,6 +24,12 @@ export function createClient() {
     throw new Error('Supabase URL and Anon Key must be set in environment variables');
   }
 
-  client = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      detectSessionInUrl: true,
+      persistSession: true,
+    },
+  });
   return client;
 }
