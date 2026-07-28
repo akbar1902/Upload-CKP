@@ -7,7 +7,7 @@ import AdminPegawaiClient from './_client';
 export const dynamic = 'force-dynamic';
 
 export default async function AdminPegawaiPage() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
