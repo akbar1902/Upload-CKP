@@ -33,7 +33,19 @@ export default function LoginPage() {
   // Redirect jika sudah ada session aktif menurut useAuth
   useEffect(() => {
     if (!authLoading && user) {
-      router.replace(user.role === 'pimpinan' || user.role === 'admin' ? '/pimpinan' : '/pegawai');
+      switch (user.role) {
+        case 'admin':
+          router.replace('/admin');
+          break;
+        case 'pimpinan':
+          router.replace('/pimpinan');
+          break;
+        case 'ketua_tim':
+          router.replace('/ketua_tim');
+          break;
+        default:
+          router.replace('/pegawai');
+      }
     }
   }, [user, authLoading, router]);
 
