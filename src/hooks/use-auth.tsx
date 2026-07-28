@@ -197,17 +197,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Safety timeout: never stay in loading state forever (15s for slow connections)
     const safetyTimeout = setTimeout(() => {
-      if (mountedRef.current && loading) {
+      if (mountedRef.current) {
         console.warn('[Auth] Safety timeout: forcing loading=false');
-        setLoading(false);
+        setLoading(prev => {
+          if (prev) return false;
+          return prev;
+        });
       }
     }, 15000);
 
     const init = async () => {
       try {
 
-        // getSession() reads from local cache — instant, no network call
-        const { data: { session } } = await supabase.auth.getSession();
+        // getSession() reads from local cache — instant, no network call.
+        // However, we wrap it in a timeout just in case the browser storage hangs.
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise<{data: {session: any}}>((_, reject) => 
+          setTimeout(() => reject(new Error('getSession timeout')), 5000)
+        );
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
         if (!mountedRef.current) return;
 
         if (session?.user) {
