@@ -132,6 +132,15 @@ export default function PegawaiDashboard() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
   const supabase = useMemo(() => createClient(), []);
+  const queryClient = useQueryClient();
+
+  const handleDeleteSuccess = useCallback((deletedId: string) => {
+    queryClient.setQueryData(['pegawai-uploads', user?.id], (old: CKPUpload[] | undefined) => {
+      if (!old) return old;
+      return old.filter(u => u.id !== deletedId);
+    });
+    queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user?.id] });
+  }, [queryClient, user?.id]);
 
   const currentMonth = new Date().getMonth() + 1;
   const currentYear = new Date().getFullYear();
@@ -464,13 +473,13 @@ export default function PegawaiDashboard() {
           ) : viewMode === 'list' ? (
             <div className="space-y-3 card-list">
               {filteredUploads.map((upload) => (
-                <ActivityCard key={upload.id} upload={upload} onDeleteSuccess={() => refetch()} />
+                <ActivityCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-list">
               {filteredUploads.map((upload) => (
-                <ActivityGridCard key={upload.id} upload={upload} onDeleteSuccess={() => refetch()} />
+                <ActivityGridCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}
             </div>
           )}
