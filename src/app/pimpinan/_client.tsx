@@ -253,7 +253,7 @@ export default function PimpinanDashboard() {
           <div>
             <h2 className="text-[22px] font-semibold tracking-tight"
                 style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Dashboard Pimpinan
+              {user?.role === 'admin' ? 'Monitoring CKP (Admin)' : 'Dashboard Pimpinan'}
             </h2>
             <p className="text-[13px] mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
               {getBulanName(bulan)} {tahun}

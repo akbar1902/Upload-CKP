@@ -17,7 +17,7 @@ import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/type
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
-  RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff,
+  RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock,
   Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList
 } from 'lucide-react';
 
@@ -400,7 +400,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   }
 
   // Pimpinan can review and approve, Ketua Tim can review
-  const isPimpinan = currentUser?.role === 'pimpinan' || currentUser?.role === 'admin';
+  // Pimpinan can review and approve, Ketua Tim can review. Admin is read-only.
+  const isAdmin = currentUser?.role === 'admin';
+  const isPimpinan = currentUser?.role === 'pimpinan';
   const isKetuaTim = currentUser?.role === 'ketua_tim' || isPimpinan;
   
   const canReview = isKetuaTim && (upload.status === 'submitted' || (isPimpinan && upload.status === 'approved')); 
@@ -461,16 +463,25 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             <button onClick={handleExport} className="btn-secondary">
               <Download size={14} /> Export
             </button>
-            {isPimpinan && upload.status === 'submitted' && (
-              <button
-                onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
-                className={`btn-primary ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
-                disabled={!allScored}
-                title={!allScored ? 'Semua RK harus dinilai sebelum disetujui' : ''}
-              >
-                <CheckCircle2 size={14} /> Approval Pimpinan
-              </button>
-            )}
+            <div className="flex gap-2">
+              {isAdmin ? (
+                <button
+                  disabled
+                  className="btn-primary opacity-50 cursor-not-allowed"
+                >
+                  <Lock size={14} className="mr-1" /> View Only (Admin)
+                </button>
+              ) : isPimpinan && upload.status === 'submitted' ? (
+                <button
+                  onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
+                  className={`btn-primary ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  disabled={!allScored}
+                  title={!allScored ? 'Semua RK harus dinilai sebelum disetujui' : ''}
+                >
+                  <CheckCircle2 size={14} /> Approval Pimpinan
+                </button>
+              ) : null}
+            </div>
             {canReopen && (
               <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary" style={{ color: '#D97706', borderColor: '#FDE68A' }}>
                 <Unlock size={14} /> Buka Kembali

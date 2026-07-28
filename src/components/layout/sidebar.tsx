@@ -57,6 +57,7 @@ export function Sidebar() {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
   const isKetuaTim = user?.role === 'ketua_tim' || isPimpinan;
   
   // Dashboard Sub-items based on role
@@ -80,11 +81,20 @@ export function Sidebar() {
 
   // Build main nav items
   const navItems: NavItem[] = [];
-  if (isPimpinan) {
+  if (isAdmin) {
+    navItems.push({ href: '/admin', label: 'Monitoring CKP', icon: LayoutDashboard });
+    navItems.push({ href: '/admin/pegawai', label: 'Kepegawaian', icon: Users });
+    navItems.push({ href: '/admin/rk', label: 'Rencana Kinerja', icon: Users });
+    navItems.push({ href: '/admin/periode', label: 'Pengaturan Periode', icon: Lock });
+    navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
+  } else if (isPimpinan) {
     navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
   }
-  navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
-  navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
+  
+  if (!isAdmin) {
+    navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
+    navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
+  }
 
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
@@ -109,7 +119,7 @@ export function Sidebar() {
     .join('')
     .toUpperCase() || 'U';
 
-  const roleLabel = isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai');
+  const roleLabel = isAdmin ? 'Admin' : (isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai'));
 
   const navContent = (
     <div className="flex flex-col h-full select-none">
@@ -180,82 +190,84 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto" aria-label="Navigasi utama">
         
         {/* Nested Dashboard Menu */}
-        <div>
-          <button
-            onClick={() => {
-              if (collapsed) setCollapsed(false);
-              setIsDashboardOpen(!isDashboardOpen);
-            }}
-            className={cn(
-              "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
-              collapsed && "justify-center px-3"
-            )}
-            style={
-              isDashboardActive
-                ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
-                : { color: 'var(--sidebar-text-muted)' }
-            }
-            onMouseEnter={(e) => {
-              if (!isDashboardActive) {
-                (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+        {!isAdmin && (
+          <div>
+            <button
+              onClick={() => {
+                if (collapsed) setCollapsed(false);
+                setIsDashboardOpen(!isDashboardOpen);
+              }}
+              className={cn(
+                "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+                collapsed && "justify-center px-3"
+              )}
+              style={
+                isDashboardActive
+                  ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                  : { color: 'var(--sidebar-text-muted)' }
               }
-            }}
-            onMouseLeave={(e) => {
-              if (!isDashboardActive) {
-                (e.currentTarget as HTMLElement).style.background = 'transparent';
-                (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-              }
-            }}
-          >
-            <div className="flex items-center gap-3">
-              <LayoutDashboard size={18} className="flex-shrink-0" />
-              {!collapsed && <span>Dashboard</span>}
-            </div>
-            {!collapsed && (
-              <ChevronDown 
-                size={16} 
-                className={cn("transition-transform duration-200", isDashboardOpen ? "rotate-180" : "")} 
-              />
+              onMouseEnter={(e) => {
+                if (!isDashboardActive) {
+                  (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isDashboardActive) {
+                  (e.currentTarget as HTMLElement).style.background = 'transparent';
+                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                }
+              }}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard size={18} className="flex-shrink-0" />
+                {!collapsed && <span>Dashboard</span>}
+              </div>
+              {!collapsed && (
+                <ChevronDown 
+                  size={16} 
+                  className={cn("transition-transform duration-200", isDashboardOpen ? "rotate-180" : "")} 
+                />
+              )}
+            </button>
+            
+            {/* Sub-items */}
+            {(!collapsed && isDashboardOpen) && (
+              <div className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]">
+                {dashboardSubItems.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
+                      style={
+                        active
+                          ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                          : { color: 'var(--sidebar-text-muted)' }
+                      }
+                      onMouseEnter={(e) => {
+                        if (!active) {
+                          (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!active) {
+                          (e.currentTarget as HTMLElement).style.background = 'transparent';
+                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                        }
+                      }}
+                    >
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          </button>
-          
-          {/* Sub-items */}
-          {(!collapsed && isDashboardOpen) && (
-            <div className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]">
-              {dashboardSubItems.map((item) => {
-                const active = isActive(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
-                    style={
-                      active
-                        ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
-                        : { color: 'var(--sidebar-text-muted)' }
-                    }
-                    onMouseEnter={(e) => {
-                      if (!active) {
-                        (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                        (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!active) {
-                        (e.currentTarget as HTMLElement).style.background = 'transparent';
-                        (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                      }
-                    }}
-                  >
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Other Items */}
         {navItems.map((item) => {
