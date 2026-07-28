@@ -108,7 +108,7 @@ export default function UploadPage() {
       if (ketuas) {
         setKetuaTims(ketuas);
         // Use users table for tim_kerja list to ensure it's always populated with active teams
-        const activeTeams = Array.from(new Set(ketuas.map(k => k.unit_kerja).filter(Boolean))) as string[];
+        const activeTeams = Array.from(new Set(ketuas.map((k: any) => k.unit_kerja).filter(Boolean))) as string[];
         
         // Also merge with teams from mappings just in case
         const teamsMap = new Map<string, string>();
