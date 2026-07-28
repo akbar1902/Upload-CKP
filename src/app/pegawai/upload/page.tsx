@@ -675,10 +675,22 @@ export default function UploadPage() {
                       </div>
                       <div>
                         <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Ketua Tim</label>
-                        <div className="h-10 px-3 py-2 rounded-lg text-sm flex items-center"
-                             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
-                          {rkTeamMapping[rk]?.ketua_tim_id ? ketuaTims.find(k => k.id === rkTeamMapping[rk]?.ketua_tim_id)?.full_name || 'Tidak diketahui' : 'Pilih tim kerja...'}
-                        </div>
+                        <select
+                          className="w-full text-sm rounded-lg h-10 px-3 outline-none"
+                          style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                          value={rkTeamMapping[rk]?.ketua_tim_id || ''}
+                          onChange={(e) => {
+                            setRkTeamMapping(prev => ({
+                              ...prev,
+                              [rk]: { ...prev[rk], ketua_tim_id: e.target.value }
+                            }));
+                          }}
+                        >
+                          <option value="">-- Pilih Ketua Tim --</option>
+                          {ketuaTims.map(k => (
+                            <option key={k.id} value={k.id}>{k.full_name} {k.unit_kerja ? `(${k.unit_kerja})` : ''}</option>
+                          ))}
+                        </select>
                       </div>
                     </div>
                   </div>
