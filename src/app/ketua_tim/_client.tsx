@@ -11,6 +11,7 @@ import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
 import {
   Users, Clock, CheckCircle2, Search,
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
@@ -302,8 +303,19 @@ export default function KetuaTimDashboardClient() {
       return;
     }
     
-    const rows: string[] = ['Nama Pegawai,Rencana Kinerja,Rata-rata Nilai'];
+    const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
     
+    const headerRows = [
+      ['REKAP NILAI RENCANA KINERJA PEGAWAI'],
+      ['BPS Kabupaten Belitung'],
+      [`Periode: ${getPeriodName(bulan)} ${tahun}`],
+      [],
+    ];
+
+    const dataHeaders = ['No', 'Nama Pegawai', 'Rencana Kinerja', 'Rata-rata Nilai'];
+    const dataRows: any[] = [];
+    
+    let rowIndex = 1;
     allRKStats.forEach((rk: any) => {
       const userAverages = new Map<string, { totalScore: number, count: number, name: string }>();
       
@@ -326,27 +338,39 @@ export default function KetuaTimDashboardClient() {
       });
       
       userAverages.forEach((val) => {
-        const avg = (val.totalScore / val.count).toFixed(2);
-        const escapedName = `"${val.name.replace(/"/g, '""')}"`;
-        const escapedRK = `"${rk.rencana_kinerja.replace(/"/g, '""')}"`;
-        rows.push(`${escapedName},${escapedRK},${avg}`);
+        const avgRaw = val.totalScore / val.count;
+        const finalAvg = isTriwulan ? Math.round(avgRaw) : Number(avgRaw.toFixed(1));
+        
+        dataRows.push([
+          rowIndex++,
+          val.name,
+          rk.rencana_kinerja,
+          finalAvg
+        ]);
       });
     });
     
-    if (rows.length === 1) {
+    if (dataRows.length === 0) {
       toast.error('Belum ada data nilai untuk diekspor');
       return;
     }
     
-    const csvContent = rows.join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `Rekap_Nilai_${bulan}_${tahun}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const allRows = [...headerRows, dataHeaders, ...dataRows];
+    
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    
+    ws['!cols'] = [
+      { wch: 5 },   // No
+      { wch: 30 },  // Nama
+      { wch: 50 },  // Rencana Kinerja
+      { wch: 15 },  // Nilai
+    ];
+    
+    XLSX.utils.book_append_sheet(wb, ws, 'Rekap_Nilai');
+    
+    const fileName = `Rekap_Nilai_KetuaTim_${bulan}_${tahun}.xlsx`;
+    XLSX.writeFile(wb, fileName);
   };
 
   const filteredRKs = useMemo(() => applyFilters(rkStats), [rkStats, searchQuery, filterStatus]);

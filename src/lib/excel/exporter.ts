@@ -124,6 +124,8 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
     'Versi',
   ];
 
+  const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
+
   const dataRows = uploads.map((upload, index) => [
     index + 1,
     upload.user?.full_name || '-',
@@ -131,7 +133,9 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
     upload.user?.unit_kerja || '-',
     upload.total_entries,
     upload.avg_progres?.toFixed(1) || '0',
-    upload.rata_rata_nilai?.toFixed(1) || '-',
+    upload.rata_rata_nilai !== null && upload.rata_rata_nilai !== undefined
+      ? (isTriwulan ? Math.round(upload.rata_rata_nilai) : upload.rata_rata_nilai.toFixed(1))
+      : '-',
     upload.status,
     upload.uploaded_at ? new Date(upload.uploaded_at).toLocaleDateString('id-ID') : '-',
     upload.version,
