@@ -314,7 +314,7 @@ export default function KetuaTimDashboardClient() {
         
         const userId = upload.user_id;
         const userObj = data?.users.find((u: any) => u.id === userId);
-        const userName = userObj ? userObj.name : 'Unknown User';
+        const userName = userObj ? userObj.full_name : 'Unknown User';
         
         const existing = userAverages.get(userId);
         if (existing) {
