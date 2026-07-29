@@ -369,7 +369,21 @@ export default function KetuaTimDashboardClient() {
     
     XLSX.utils.book_append_sheet(wb, ws, 'Rekap_Nilai');
     
-    const fileName = `Rekap_Nilai_KetuaTim_${bulan}_${tahun}.xlsx`;
+    const timKerja = allRKStats.length > 0 && allRKStats[0].tim_kerja ? allRKStats[0].tim_kerja : (user?.unit_kerja || 'Tim');
+    let periodeStr = `${bulan}`;
+    if (typeof bulan === 'string' && bulan.startsWith('T')) {
+      const tMap: Record<string, string> = {
+        'T1': 'Triwulan I',
+        'T2': 'Triwulan II',
+        'T3': 'Triwulan III',
+        'T4': 'Triwulan IV',
+      };
+      periodeStr = tMap[bulan] || bulan;
+    } else {
+      periodeStr = `Bulan ${getBulanName(bulan as number)}`;
+    }
+    
+    const fileName = `Rekap CKP_${timKerja}_${periodeStr}.xlsx`;
     XLSX.writeFile(wb, fileName);
   };
 
