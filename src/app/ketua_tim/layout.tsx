@@ -13,13 +13,13 @@ export default function PegawaiLayout({ children }: { children: React.ReactNode 
     if (!loading) {
       if (!user) {
         router.replace('/login');
-      } else if (user.role !== 'ketua_tim') {
+      } else if (user.role !== 'ketua_tim' && user.role !== 'pimpinan' && user.role !== 'admin') {
         router.replace('/pegawai'); // redirect unauthorized users
       }
     }
   }, [user, loading, router]);
 
-  if (loading || !user || user.role !== 'ketua_tim') {
+  if (loading || !user || (user.role !== 'ketua_tim' && user.role !== 'pimpinan' && user.role !== 'admin')) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
         <div className="w-8 h-8 rounded-full border-2 border-[var(--primary)] border-t-transparent animate-spin" />

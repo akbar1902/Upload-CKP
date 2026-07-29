@@ -5,17 +5,23 @@ import { Select } from '@/components/ui/select';
 import { BULAN_NAMES } from '@/lib/utils';
 
 interface PeriodFilterProps {
-  bulan: number;
+  bulan: string | number;
   tahun: number;
-  onBulanChange: (bulan: number) => void;
+  onBulanChange: (bulan: string | number) => void;
   onTahunChange: (tahun: number) => void;
 }
 
 export function PeriodFilter({ bulan, tahun, onBulanChange, onTahunChange }: PeriodFilterProps) {
-  const bulanOptions = BULAN_NAMES.map((name, index) => ({
-    value: String(index + 1),
-    label: name,
-  }));
+  const bulanOptions = [
+    { value: 'T1', label: 'Triwulan I (Jan-Mar)' },
+    { value: 'T2', label: 'Triwulan II (Apr-Jun)' },
+    { value: 'T3', label: 'Triwulan III (Jul-Sep)' },
+    { value: 'T4', label: 'Triwulan IV (Okt-Des)' },
+    ...BULAN_NAMES.map((name, index) => ({
+      value: String(index + 1),
+      label: name,
+    }))
+  ];
 
   const currentYear = new Date().getFullYear();
   const tahunOptions = Array.from({ length: 7 }, (_, i) => ({
@@ -29,7 +35,10 @@ export function PeriodFilter({ bulan, tahun, onBulanChange, onTahunChange }: Per
         <Select
           options={bulanOptions}
           value={String(bulan)}
-          onChange={(e) => onBulanChange(Number(e.target.value))}
+          onChange={(e) => {
+            const val = e.target.value;
+            onBulanChange(val.startsWith('T') ? val : Number(val));
+          }}
         />
       </div>
       <div className="min-w-[100px]">

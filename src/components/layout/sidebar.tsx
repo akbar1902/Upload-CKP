@@ -66,7 +66,6 @@ export function Sidebar() {
     dashboardSubItems = [
       { href: '/pimpinan', label: 'Dashboard Pimpinan', icon: LayoutDashboard },
       { href: '/ketua_tim', label: 'Dashboard Ketua Tim', icon: LayoutDashboard },
-      { href: '/pegawai', label: 'Dashboard Anggota', icon: LayoutDashboard },
     ];
   } else if (isKetuaTim) {
     dashboardSubItems = [
@@ -92,7 +91,9 @@ export function Sidebar() {
   }
   
   if (!isAdmin) {
-    navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
+    if (!isPimpinan) {
+      navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
+    }
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }
 

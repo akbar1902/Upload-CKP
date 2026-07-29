@@ -97,13 +97,17 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
 /**
  * Export multiple uploads summary to Excel (for pimpinan)
  */
-export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bulan: number, tahun: number): void {
+export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bulan: string | number, tahun: number): void {
   const wb = XLSX.utils.book_new();
 
   const headerRows = [
     ['REKAP CAPAIAN KINERJA PEGAWAI (CKP)'],
     ['BPS Kabupaten Belitung'],
-    [`Periode: ${getBulanName(bulan)} ${tahun}`],
+    [`Periode: ${
+      typeof bulan === 'string' && bulan.startsWith('T')
+        ? { 'T1': 'Triwulan I (Jan-Mar)', 'T2': 'Triwulan II (Apr-Jun)', 'T3': 'Triwulan III (Jul-Sep)', 'T4': 'Triwulan IV (Okt-Des)' }[bulan] || bulan
+        : getBulanName(bulan as number)
+    } ${tahun}`],
     [],
   ];
 
@@ -151,6 +155,9 @@ export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bul
 
   XLSX.utils.book_append_sheet(wb, ws, 'Rekap CKP');
 
-  const fileName = `Rekap_CKP_${getBulanName(bulan)}_${tahun}.xlsx`;
+  const periodStr = typeof bulan === 'string' && bulan.startsWith('T')
+    ? { 'T1': 'Triwulan_I', 'T2': 'Triwulan_II', 'T3': 'Triwulan_III', 'T4': 'Triwulan_IV' }[bulan] || bulan
+    : getBulanName(bulan as number);
+  const fileName = `Rekap_CKP_${periodStr}_${tahun}.xlsx`;
   XLSX.writeFile(wb, fileName);
 }

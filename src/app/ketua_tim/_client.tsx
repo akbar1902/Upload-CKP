@@ -32,12 +32,12 @@ export default function KetuaTimDashboardClient() {
 
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
-  const bulan = paramBulan ? parseInt(paramBulan) : currentMonth;
+  const bulan: string | number = paramBulan && paramBulan.startsWith('T') ? paramBulan : (paramBulan ? parseInt(paramBulan) : currentMonth);
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
 
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
-  const setBulan = (b: number) => {
+  const setBulan = (b: string | number) => {
     router.push(`?bulan=${b}&tahun=${tahun}`);
   };
 
@@ -46,58 +46,91 @@ export default function KetuaTimDashboardClient() {
   };
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
-    queryKey: ['ketua-tim-uploads', bulan, tahun],
+    queryKey: ['ketua-tim-uploads', bulan, tahun, user?.id, user?.role],
     queryFn: async ({ queryKey }) => {
-      const [_key, qBulan, qTahun] = queryKey as [string, number, number];
+      const [_key, qBulan, qTahun] = queryKey as [string, string | number, number];
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       try {
         if (!user) return { rks: [], uploads: [], entries: [], users: [] };
 
-        // 1. Get RKs for this ketua tim
-        const { data: mappingData, error: mapError } = await supabase
-          .from('rk_ketua_tim_mapping')
-          .select('*')
-          .eq('ketua_tim_id', user.id)
-          .abortSignal(controller.signal);
+        // 1. Get RKs
+        let mappingQuery = supabase.from('rk_ketua_tim_mapping').select('*');
+        if (user.role !== 'pimpinan' && user.role !== 'admin') {
+          mappingQuery = mappingQuery.eq('ketua_tim_id', user.id);
+        }
+        
+        const { data: mappingData, error: mapError } = await mappingQuery.abortSignal(controller.signal);
 
         if (mapError) throw mapError;
 
         if (!mappingData || mappingData.length === 0) {
-          return { rks: [], uploads: [], entries: [], users: [] };
+          return { rks: [], uploads: [], entries: [], users: [], assignments: [] };
         }
 
+        const rkIds = mappingData.map((m: any) => m.id);
         const rkNames = mappingData.map((m: any) => m.rencana_kinerja);
 
-        // 2. Get uploads for the selected month that are submitted or approved
-        const { data: uploadsData, error: uploadsError } = await supabase
+        // Fetch user assignments for these RKs (chunked to avoid URI Too Long)
+        let assignmentsData: any[] = [];
+        for (let i = 0; i < rkIds.length; i += 100) {
+          const chunk = rkIds.slice(i, i + 100);
+          const { data, error } = await supabase
+            .from('user_rk_assignments')
+            .select('user_id, rk_id')
+            .in('rk_id', chunk)
+            .abortSignal(controller.signal);
+          if (error) throw error;
+          if (data) assignmentsData.push(...data);
+        }
+
+        // 2. Get uploads for the selected month/period that are submitted or approved
+        let uploadsQuery = supabase
           .from('ckp_uploads')
           .select('id, user_id, status, uploaded_at')
-          .eq('bulan', qBulan)
           .eq('tahun', qTahun)
-          .in('status', ['submitted', 'approved', 'revision_required'])
-          .abortSignal(controller.signal);
+          .in('status', ['submitted', 'approved', 'revision_required']);
+
+        if (typeof qBulan === 'string' && qBulan.startsWith('T')) {
+          const triwulanMap: Record<string, number[]> = {
+            'T1': [1, 2, 3],
+            'T2': [4, 5, 6],
+            'T3': [7, 8, 9],
+            'T4': [10, 11, 12]
+          };
+          uploadsQuery = uploadsQuery.in('bulan', triwulanMap[qBulan] || []);
+        } else {
+          uploadsQuery = uploadsQuery.eq('bulan', qBulan);
+        }
+
+        const { data: uploadsData, error: uploadsError } = await uploadsQuery.abortSignal(controller.signal);
 
         if (uploadsError) throw uploadsError;
         const uploadIds = uploadsData?.map((u: any) => u.id) || [];
 
         if (uploadIds.length === 0) {
-          return { rks: mappingData, uploads: [], entries: [], users: [] };
+          return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsData || [] };
         }
 
-        // 3. Get entries for these uploads that match the RKs
+        // 3. Get entries for these uploads (filter by RK names in memory to avoid URI Too Long)
         const { data: entriesData, error: entriesError } = await supabase
           .from('ckp_entries')
           .select('*')
           .in('upload_id', uploadIds)
-          .in('rencana_kinerja', rkNames)
           .abortSignal(controller.signal);
 
         if (entriesError) throw entriesError;
+        
+        const validRkNames = new Set(rkNames);
+        const filteredEntriesData = (entriesData || []).filter((e: any) => validRkNames.has(e.rencana_kinerja));
 
-        const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
-        const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+        const relevantUploadIds = new Set(filteredEntriesData.map((e: any) => e.upload_id));
+        
+        // We don't filter out user.id here anymore, because we need Pimpinan's own upload if we are showing otherRks (Wait, no, if Pimpinan submits something for Team Belitung, it shouldn't show up in their dashboard anyway, but we will filter it in rkStats processing)
+        const relevantUploads = (uploadsData || []).filter((u: any) => 
+          relevantUploadIds.has(u.id)
+        );
         const relevantUserIds = Array.from(new Set(relevantUploads.map((u: any) => u.user_id)));
 
         let usersData: any[] = [];
@@ -114,8 +147,9 @@ export default function KetuaTimDashboardClient() {
         return {
           rks: mappingData,
           uploads: relevantUploads,
-          entries: entriesData || [],
+          entries: filteredEntriesData,
           users: usersData,
+          assignments: assignmentsData || [],
         };
       } finally {
         clearTimeout(timeoutId);
@@ -141,12 +175,40 @@ export default function KetuaTimDashboardClient() {
   const rks = data?.rks || [];
   const entries = data?.entries || [];
   const uploads = data?.uploads || [];
+  const assignments = data?.assignments || [];
   const error = queryError ? queryError.message : null;
 
   // Process data for RK Cards
   const rkStats = useMemo(() => {
-    return rks.map((rk: any) => {
-      const rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja);
+    const displayRks = rks.filter((rk: any) => rk.ketua_tim_id === user?.id);
+    
+    return displayRks.map((rk: any) => {
+      let rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja);
+      
+      const validKetuaTimIds = new Set(
+         rks.filter((r: any) => r.rencana_kinerja === rk.rencana_kinerja).map((r: any) => r.ketua_tim_id).filter(Boolean)
+      );
+      
+      const assignedUserIds = new Set(
+        assignments.filter((a: any) => a.rk_id === rk.id).map((a: any) => a.user_id)
+      );
+
+      rkEntries = rkEntries.filter((e: any) => {
+         const upload = uploads.find((u: any) => u.id === e.upload_id);
+         if (!upload) return false;
+         
+         if (user?.role === 'pimpinan' || user?.role === 'admin') {
+            return assignedUserIds.has(upload.user_id) || validKetuaTimIds.has(upload.user_id);
+         }
+         return assignedUserIds.has(upload.user_id);
+      });
+      
+      // Filter out the logged-in user themselves (Pimpinan cannot evaluate themselves, Radina cannot evaluate themselves)
+      rkEntries = rkEntries.filter((e: any) => {
+         const upload = uploads.find((u: any) => u.id === e.upload_id);
+         return upload?.user_id !== user?.id;
+      });
+
       const uniquePegawaiIds = new Set(
         rkEntries.map((e: any) => {
           const upload = uploads.find((u: any) => u.id === e.upload_id);
@@ -161,9 +223,26 @@ export default function KetuaTimDashboardClient() {
         ? rkEntries.reduce((acc: number, curr: any) => acc + (curr.progres || 0), 0) / rkEntries.length
         : 0;
 
-      const avgScore = evaluatedEntries.length > 0
-        ? evaluatedEntries.reduce((acc: number, curr: any) => acc + (curr.nilai || 0), 0) / evaluatedEntries.length
-        : null;
+      let avgScore = null;
+      if (evaluatedEntries.length > 0) {
+        const userScores = new Map<string, { total: number; count: number }>();
+        evaluatedEntries.forEach((e: any) => {
+          const upload = uploads.find((u: any) => u.id === e.upload_id);
+          if (upload) {
+            const existing = userScores.get(upload.user_id) || { total: 0, count: 0 };
+            userScores.set(upload.user_id, { total: existing.total + e.nilai, count: existing.count + 1 });
+          }
+        });
+        
+        let sumOfUserAverages = 0;
+        userScores.forEach(val => {
+          sumOfUserAverages += (val.total / val.count);
+        });
+        
+        if (userScores.size > 0) {
+          avgScore = sumOfUserAverages / userScores.size;
+        }
+      }
 
       return {
         ...rk,
@@ -172,15 +251,14 @@ export default function KetuaTimDashboardClient() {
         evaluatedEntries: evaluatedEntries.length,
         allEvaluated,
         avgProgress: Math.min(100, avgProgress),
-        avgScore
+        avgScore,
+        entries: rkEntries
       };
-    });
-  }, [rks, entries, uploads]);
+    }).filter(Boolean);
+  }, [rks, entries, uploads, user?.id, user?.role]);
 
-  const filteredRKs = useMemo(() => {
-    let result = rkStats;
-
-    // 1. Text Search Filter
+  const applyFilters = (list: any[]) => {
+    let result = list;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter((rk: any) =>
@@ -188,8 +266,6 @@ export default function KetuaTimDashboardClient() {
         rk.tim_kerja?.toLowerCase().includes(q)
       );
     }
-
-    // 2. Status Filter
     if (filterStatus !== 'semua') {
       result = result.filter((rk: any) => {
         if (filterStatus === 'perlu_dinilai') return rk.totalEntries > 0 && !rk.allEvaluated;
@@ -198,26 +274,87 @@ export default function KetuaTimDashboardClient() {
         return true;
       });
     }
-
-    // 3. Sorting
-    // Priority 1: Perlu dinilai (un-evaluated) first
-    // Priority 2: Higher number of totalPegawai
     return result.sort((a: any, b: any) => {
       const aPending = a.totalEntries > 0 && !a.allEvaluated;
       const bPending = b.totalEntries > 0 && !b.allEvaluated;
-
       if (aPending && !bPending) return -1;
       if (!aPending && bPending) return 1;
-
       return b.totalPegawai - a.totalPegawai;
     });
-  }, [rkStats, searchQuery, filterStatus]);
+  };
 
-  // Overall KPIs
-  const totalRKs = rkStats.length;
-  const activeRKs = rkStats.filter((rk: any) => rk.totalEntries > 0).length;
-  const pendingRKs = rkStats.filter((rk: any) => rk.totalEntries > 0 && !rk.allEvaluated).length;
-  const avgOverallProgress = activeRKs > 0 ? rkStats.reduce((s: number, rk: any) => s + rk.avgProgress, 0) / activeRKs : 0;
+  const getPeriodName = (p: string | number) => {
+    if (typeof p === 'string' && p.startsWith('T')) {
+      const tMap: Record<string, string> = {
+        'T1': 'Triwulan I (Jan-Mar)',
+        'T2': 'Triwulan II (Apr-Jun)',
+        'T3': 'Triwulan III (Jul-Sep)',
+        'T4': 'Triwulan IV (Okt-Des)',
+      };
+      return tMap[p] || p;
+    }
+    return getBulanName(p as number);
+  };
+
+  const handleExport = () => {
+    if (!allRKStats || allRKStats.length === 0) {
+      toast.error('Tidak ada data untuk diekspor');
+      return;
+    }
+    
+    const rows: string[] = ['Nama Pegawai,Rencana Kinerja,Rata-rata Nilai'];
+    
+    allRKStats.forEach((rk: any) => {
+      const userAverages = new Map<string, { totalScore: number, count: number, name: string }>();
+      
+      rk.entries.forEach((e: any) => {
+        if (e.nilai === null) return;
+        const upload = uploads.find((u: any) => u.id === e.upload_id);
+        if (!upload) return;
+        
+        const userId = upload.user_id;
+        const userObj = data?.users.find((u: any) => u.id === userId);
+        const userName = userObj ? userObj.name : 'Unknown User';
+        
+        const existing = userAverages.get(userId);
+        if (existing) {
+          existing.totalScore += e.nilai;
+          existing.count += 1;
+        } else {
+          userAverages.set(userId, { totalScore: e.nilai, count: 1, name: userName });
+        }
+      });
+      
+      userAverages.forEach((val) => {
+        const avg = (val.totalScore / val.count).toFixed(2);
+        const escapedName = `"${val.name.replace(/"/g, '""')}"`;
+        const escapedRK = `"${rk.rencana_kinerja.replace(/"/g, '""')}"`;
+        rows.push(`${escapedName},${escapedRK},${avg}`);
+      });
+    });
+    
+    if (rows.length === 1) {
+      toast.error('Belum ada data nilai untuk diekspor');
+      return;
+    }
+    
+    const csvContent = rows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Rekap_Nilai_${bulan}_${tahun}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const filteredRKs = useMemo(() => applyFilters(rkStats), [rkStats, searchQuery, filterStatus]);
+  const allRKStats = rkStats;
+  const totalRKs = allRKStats.length;
+  const activeRKs = allRKStats.filter((rk: any) => rk.totalEntries > 0).length;
+  const pendingRKs = allRKStats.filter((rk: any) => rk.totalEntries > 0 && !rk.allEvaluated).length;
+  const avgOverallProgress = activeRKs > 0 ? allRKStats.reduce((s: number, rk: any) => s + rk.avgProgress, 0) / activeRKs : 0;
 
   if (error && !loading && rks.length === 0) {
     return (
@@ -237,6 +374,54 @@ export default function KetuaTimDashboardClient() {
     );
   }
 
+  const renderRkCard = (rk: any) => (
+    <Link key={rk.id} href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block">
+      <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
+
+      <div className="flex justify-between items-start mb-3 pl-2">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+          <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
+        </span>
+        {rk.totalEntries > 0 && (
+          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-[var(--primary-soft)] text-[var(--primary)] ring-1 ring-[var(--primary)]/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
+            {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
+          </span>
+        )}
+      </div>
+
+      <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
+        {rk.rencana_kinerja}
+      </h4>
+
+      <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 pl-2">
+        <div className="flex gap-4 sm:gap-6">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Pegawai</span>
+            <span className="text-[15px] font-black text-slate-700 flex items-center gap-1.5">
+              {rk.totalPegawai} <Users size={12} className="text-slate-300" />
+            </span>
+          </div>
+          <div className="w-px bg-slate-200" />
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Kegiatan</span>
+            <span className="text-[15px] font-black text-slate-700">{rk.totalEntries}</span>
+          </div>
+          <div className="w-px bg-slate-200" />
+          <div className="flex flex-col">
+            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Rata2 Nilai</span>
+            <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-[var(--primary)]' : 'text-slate-300'}`}>
+              {rk.avgScore !== null ? (typeof bulan === 'string' && bulan.startsWith('T') ? Math.round(rk.avgScore) : rk.avgScore.toFixed(1)) : '-'}
+            </span>
+          </div>
+        </div>
+
+        <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
+          <ArrowRight size={18} />
+        </div>
+      </div>
+    </Link>
+  );
+
   return (
     <>
       <Header pendingCount={0} />
@@ -245,13 +430,17 @@ export default function KetuaTimDashboardClient() {
           <div>
             <h2 className="text-xl font-semibold text-slate-800">Dashboard Ketua Tim</h2>
             <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-2">
-              {getBulanName(bulan)} {tahun}
+              {getPeriodName(bulan)} {tahun}
               {!isCurrentPeriod && (
                 <span className="inline-flex items-center gap-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Filter aktif</span>
               )}
             </p>
           </div>
           <div className="flex items-center gap-2">
+            <button onClick={handleExport} className="btn-secondary flex items-center gap-2 h-10 px-4 mr-2" disabled={loading}>
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export Rekap</span>
+            </button>
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
             <button onClick={() => refetch()} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -270,7 +459,7 @@ export default function KetuaTimDashboardClient() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-semibold text-slate-800">Daftar Rencana Kinerja</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{filteredRKs.length} RK ditampilkan</p>
+              <p className="text-xs text-slate-400 mt-0.5">{allRKStats.length} RK ditampilkan</p>
             </div>
           </div>
 
@@ -308,7 +497,7 @@ export default function KetuaTimDashboardClient() {
                 className="w-full h-10 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 shadow-sm"
               >
                 <option value="">Pilih RK Disini...</option>
-                {rkStats.map((rk: any) => (
+                {allRKStats.map((rk: any) => (
                   <option key={`jump-${rk.id}`} value={rk.id}>
                     {rk.rencana_kinerja}
                   </option>
@@ -321,61 +510,28 @@ export default function KetuaTimDashboardClient() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
-          ) : filteredRKs.length === 0 ? (
+          ) : allRKStats.length === 0 ? (
             <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
               <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <p className="text-base font-semibold text-slate-700">Tidak ada Rencana Kinerja ditemukan</p>
               <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau kata kunci pencarian Anda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredRKs.map((rk: any) => (
-                <Link key={rk.id} href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block">
-                  <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
-
-                  <div className="flex justify-between items-start mb-3 pl-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                      <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
-                    </span>
-                    {rk.totalEntries > 0 && (
-                      <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-[var(--primary-soft)] text-[var(--primary)] ring-1 ring-[var(--primary)]/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
-                        {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
-                      </span>
-                    )}
+            <div className="space-y-8">
+              {filteredRKs.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">Rencana Kinerja</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredRKs.map(renderRkCard)}
                   </div>
+                </div>
+              )}
 
-                  <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
-                    {rk.rencana_kinerja}
-                  </h4>
-
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 pl-2">
-                    <div className="flex gap-4 sm:gap-6">
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Pegawai</span>
-                        <span className="text-[15px] font-black text-slate-700 flex items-center gap-1.5">
-                          {rk.totalPegawai} <Users size={12} className="text-slate-300" />
-                        </span>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Kegiatan</span>
-                        <span className="text-[15px] font-black text-slate-700">{rk.totalEntries}</span>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex flex-col">
-                        <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Rata2 Nilai</span>
-                        <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-[var(--primary)]' : 'text-slate-300'}`}>
-                          {rk.avgScore !== null ? rk.avgScore.toFixed(1) : '-'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
-                      <ArrowRight size={18} />
-                    </div>
-                  </div>
-                </Link>
-              ))}
+              {filteredRKs.length === 0 && (
+                <div className="text-center py-10">
+                   <p className="text-sm text-slate-400">Pencarian tidak menemukan hasil.</p>
+                </div>
+              )}
             </div>
           )}
         </div>

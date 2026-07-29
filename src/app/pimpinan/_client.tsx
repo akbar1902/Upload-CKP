@@ -55,12 +55,12 @@ export default function PimpinanDashboard() {
 
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
-  const bulan = paramBulan ? parseInt(paramBulan) : currentMonth;
+  const bulan: string | number = paramBulan && paramBulan.startsWith('T') ? paramBulan : (paramBulan ? parseInt(paramBulan) : currentMonth);
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
 
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
-  const setBulan = (b: number) => {
+  const setBulan = (b: string | number) => {
     router.push(`?bulan=${b}&tahun=${tahun}`);
   };
 
@@ -74,14 +74,26 @@ export default function PimpinanDashboard() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
+        let uploadsQuery = supabase
+          .from('ckp_uploads')
+          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+          .eq('tahun', tahun)
+          .order('uploaded_at', { ascending: false });
+
+        if (typeof bulan === 'string' && bulan.startsWith('T')) {
+          const triwulanMap: Record<string, number[]> = {
+            'T1': [1, 2, 3],
+            'T2': [4, 5, 6],
+            'T3': [7, 8, 9],
+            'T4': [10, 11, 12]
+          };
+          uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
+        } else {
+          uploadsQuery = uploadsQuery.eq('bulan', bulan);
+        }
+
         const queryPromise = Promise.all([
-          supabase
-            .from('ckp_uploads')
-            .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-            .eq('bulan', bulan)
-            .eq('tahun', tahun)
-            .order('uploaded_at', { ascending: false })
-            .abortSignal(controller.signal),
+          uploadsQuery.abortSignal(controller.signal),
           supabase
             .from('users')
             .select('*')
@@ -217,6 +229,19 @@ export default function PimpinanDashboard() {
     ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length)
     : 0;
 
+  const getPeriodName = (p: string | number) => {
+    if (typeof p === 'string' && p.startsWith('T')) {
+      const tMap: Record<string, string> = {
+        'T1': 'Triwulan I (Jan-Mar)',
+        'T2': 'Triwulan II (Apr-Jun)',
+        'T3': 'Triwulan III (Jul-Sep)',
+        'T4': 'Triwulan IV (Okt-Des)',
+      };
+      return tMap[p] || p;
+    }
+    return getBulanName(p as number);
+  };
+
   const handleExportRekap = () => {
     exportRekapToExcel(uploads, bulan, tahun);
     toast.success('Rekap Excel berhasil diunduh');
@@ -256,7 +281,7 @@ export default function PimpinanDashboard() {
               {user?.role === 'admin' ? 'Monitoring CKP (Admin)' : 'Dashboard Pimpinan'}
             </h2>
             <p className="text-[13px] mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
-              {getBulanName(bulan)} {tahun}
+              {getPeriodName(bulan)} {tahun}
               {!isCurrentPeriod && (
                 <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
                       style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>

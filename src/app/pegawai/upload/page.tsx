@@ -228,6 +228,7 @@ export default function UploadPage() {
       toast.info('Sedang memuat data pengguna, mohon tunggu...');
       return;
     }
+    
     if (!user) {
       toast.error('Sesi login tidak ditemukan. Silakan login ulang.');
       router.push('/login');
@@ -245,7 +246,19 @@ export default function UploadPage() {
       return;
     }
 
-    const masterNames = Array.from(new Set(masterRKs.map(r => String(r.rencana_kinerja))));
+    // Refetch masterRKs to prevent stale state from causing incorrect unmatched modal
+    let freshMasterRKs = masterRKs;
+    try {
+      const { data, error } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
+      if (data && !error) {
+        freshMasterRKs = data;
+        setMasterRKs(data);
+      }
+    } catch (err) {
+      console.error('Failed to refetch masterRKs:', err);
+    }
+
+    const masterNames = Array.from(new Set(freshMasterRKs.map(r => String(r.rencana_kinerja))));
     const newUnmatched = new Set<string>();
 
     parseResult.entries.forEach(entry => {

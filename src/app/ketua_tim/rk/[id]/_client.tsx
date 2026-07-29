@@ -36,18 +36,20 @@ function KPICard({ icon, value, label, sub, iconBg }: {
 }
 
 function PegawaiRKGroup({
-  upload,
+  uploads,
+  user,
   entries,
   rkName,
   canReview,
   onSaveScore,
   defaultScore
 }: {
-  upload: CKPUpload & { user?: User };
+  uploads: CKPUpload[];
+  user: User;
   entries: CKPEntry[];
   rkName: string;
   canReview: boolean;
-  onSaveScore: (uploadId: string, score: number | null) => Promise<void>;
+  onSaveScore: (uploadIds: string[], score: number | null) => Promise<void>;
   defaultScore: number | null;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -62,10 +64,12 @@ function PegawaiRKGroup({
     const currentSavedStr = defaultScore?.toString() ?? '';
     if (score === currentSavedStr) return;
 
+    const uploadIds = uploads.map(u => u.id);
+
     if (score === '') {
       setSaving(true);
       try {
-        await onSaveScore(upload.id, null);
+        await onSaveScore(uploadIds, null);
       } catch {
         setScore(currentSavedStr);
       } finally {
@@ -83,7 +87,7 @@ function PegawaiRKGroup({
     
     setSaving(true);
     try {
-      await onSaveScore(upload.id, num);
+      await onSaveScore(uploadIds, num);
     } catch {
       setScore(currentSavedStr);
     } finally {
@@ -102,15 +106,18 @@ function PegawaiRKGroup({
   return (
     <div className="activity-card mb-4 bg-white border rounded-2xl shadow-sm hover:shadow transition-shadow" aria-expanded={expanded} style={{ borderColor: 'var(--border)' }}>
       {/* Header */}
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+      <div 
+        className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center cursor-pointer"
+        onClick={() => setExpanded(!expanded)}
+      >
         <div className="flex-1 min-w-0 flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
             <UserIcon className="text-blue-600" size={20} />
           </div>
           <div>
-            <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{upload.user?.full_name || 'Pegawai'}</h4>
+            <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{user.full_name || 'Pegawai'}</h4>
             <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              {upload.user?.nip ? `NIP. ${upload.user.nip}` : 'NIP tidak tersedia'}
+              {user.nip ? `NIP. ${user.nip}` : 'NIP tidak tersedia'}
             </p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} Kegiatan</span>
@@ -120,7 +127,7 @@ function PegawaiRKGroup({
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0">
+        <div className="flex items-center gap-3 w-full sm:w-auto mt-4 sm:mt-0" onClick={e => e.stopPropagation()}>
           <div className="flex flex-col items-end">
              <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
              {canReview ? (
@@ -174,6 +181,7 @@ function PegawaiRKGroup({
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-2">
+                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>{getBulanName(entries.find(e2 => e2.id === entry.id)?.upload_id ? uploads.find(u => u.id === entry.upload_id)?.bulan || 0 : 0)}</span>
                       <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
                       <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.tanggal_mulai)}</span>
                     </div>
@@ -183,6 +191,12 @@ function PegawaiRKGroup({
                         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
                         <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-[var(--success)]' : 'text-[var(--primary)]'}`}>{entry.progres}%</span>
                       </div>
+                      {entry.nilai !== null && (
+                        <div className="flex items-center gap-1.5 ml-3 pl-3 border-l" style={{ borderColor: 'var(--border)' }}>
+                          <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Nilai:</span>
+                          <span className="text-[12px] font-bold" style={{ color: 'var(--success)' }}>{entry.nilai}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -207,13 +221,13 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
-  const bulan = paramBulan ? parseInt(paramBulan) : currentMonth;
+  const bulan: string | number = paramBulan && paramBulan.startsWith('T') ? paramBulan : (paramBulan ? parseInt(paramBulan) : currentMonth);
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
 
   const [searchQuery, setSearchQuery] = useState('');
   
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
-    queryKey: ['rk-detail', rkId, bulan, tahun],
+    queryKey: ['rk-detail', rkId, bulan, tahun, currentUser?.id, currentUser?.role],
     queryFn: async () => {
       // 1. Get RK mapping details
       const { data: mappingData, error: mapError } = await supabase
@@ -227,13 +241,36 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
       const rkName = mappingData.rencana_kinerja;
 
-      // 2. Fetch all active uploads for the selected month
-      const { data: uploadsData, error: uploadsError } = await supabase
+      // 1.5 Fetch user_rk_assignments for this RK
+      const { data: assignmentsData, error: assignmentsError } = await supabase
+        .from('user_rk_assignments')
+        .select('user_id')
+        .eq('rk_id', rkId);
+
+      if (assignmentsError) throw assignmentsError;
+      
+      const assignedUserIds = new Set(assignmentsData?.map((a: any) => a.user_id) || []);
+
+      // 2. Fetch all active uploads for the selected month/period
+      let uploadsQuery = supabase
         .from('ckp_uploads')
         .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-        .eq('bulan', bulan)
         .eq('tahun', tahun)
         .in('status', ['submitted', 'approved', 'revision_required']);
+
+      if (typeof bulan === 'string' && bulan.startsWith('T')) {
+        const triwulanMap: Record<string, number[]> = {
+          'T1': [1, 2, 3],
+          'T2': [4, 5, 6],
+          'T3': [7, 8, 9],
+          'T4': [10, 11, 12]
+        };
+        uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
+      } else {
+        uploadsQuery = uploadsQuery.eq('bulan', bulan);
+      }
+        
+      const { data: uploadsData, error: uploadsError } = await uploadsQuery;
         
       if (uploadsError) throw uploadsError;
       
@@ -251,9 +288,27 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         .eq('rencana_kinerja', rkName);
         
       if (entriesError) throw entriesError;
+      // Find ALL ketua_tim_ids for this rencana_kinerja across all teams
+      const { data: allMappingsForRK } = await supabase
+        .from('rk_ketua_tim_mapping')
+        .select('ketua_tim_id')
+        .eq('rencana_kinerja', rkName);
+        
+      const validKetuaTimIds = new Set(allMappingsForRK?.map((m: any) => m.ketua_tim_id).filter(Boolean));
       
       const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
-      const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+      
+      let relevantUploads = (uploadsData || []).filter((u: any) => {
+         if (!relevantUploadIds.has(u.id)) return false;
+         
+         if (currentUser?.role === 'pimpinan' || currentUser?.role === 'admin') {
+            return assignedUserIds.has(u.user_id) || validKetuaTimIds.has(u.user_id);
+         }
+         return assignedUserIds.has(u.user_id);
+      });
+      
+      // Filter out the logged-in user themselves
+      relevantUploads = relevantUploads.filter((u: any) => u.user_id !== currentUser?.id);
 
       const newUploads = relevantUploads.map((u: any) => ({
         ...u,
@@ -277,14 +332,15 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const uploads: (CKPUpload & { user?: User })[] = data?.uploads || [];
   const error = queryError ? queryError.message : null;
 
-  const handleSaveScore = async (uploadId: string, score: number | null) => {
+  const handleSaveScore = async (uploadIds: string[], score: number | null) => {
     if (!rk) return;
     
     // Optimistic update
     queryClient.setQueryData(['rk-detail', rkId, bulan, tahun], (old: any) => {
       if (!old) return old;
+      const uploadIdsSet = new Set(uploadIds);
       const newEntries = old.entries.map((e: any) => 
-        e.upload_id === uploadId 
+        uploadIdsSet.has(e.upload_id)
           ? { ...e, nilai: score, dinilai_oleh: currentUser?.id } 
           : e
       );
@@ -293,8 +349,10 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     });
 
     try {
-      const result = await gradeRencanaKinerjaAction(uploadId, rk.rencana_kinerja, score);
-      if (!result.success) throw new Error(result.error);
+      await Promise.all(uploadIds.map(async (uploadId) => {
+        const result = await gradeRencanaKinerjaAction(uploadId, rk.rencana_kinerja, score);
+        if (!result.success) throw new Error(result.error);
+      }));
       void queryClient.invalidateQueries({ queryKey: ['rk-detail', rkId, bulan, tahun] });
     } catch (error: any) {
       await queryClient.invalidateQueries({ queryKey: ['rk-detail', rkId, bulan, tahun] });
@@ -364,7 +422,20 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     );
   }
 
-  const bulanNama = getBulanName(bulan);
+  const getPeriodName = (p: string | number) => {
+    if (typeof p === 'string' && p.startsWith('T')) {
+      const tMap: Record<string, string> = {
+        'T1': 'Triwulan I (Jan-Mar)',
+        'T2': 'Triwulan II (Apr-Jun)',
+        'T3': 'Triwulan III (Jul-Sep)',
+        'T4': 'Triwulan IV (Okt-Des)',
+      };
+      return tMap[p] || p;
+    }
+    return getBulanName(p as number);
+  };
+
+  const bulanNama = getPeriodName(bulan);
   
   const evaluatedCount = uploads.filter(u => {
     const rkEntries = entries.filter(e => e.upload_id === u.id);
@@ -375,13 +446,33 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   
   const avgProgress = entries.length > 0 ? entries.reduce((s, e) => s + (e.progres || 0), 0) / entries.length : 0;
   const scoredEntries = entries.filter(e => e.nilai !== null);
-  const avgScore = scoredEntries.length > 0 ? scoredEntries.reduce((s, e) => s + (e.nilai || 0), 0) / scoredEntries.length : null;
+  let avgScoreRaw = null;
+  if (scoredEntries.length > 0) {
+    const userScores = new Map<string, { total: number; count: number }>();
+    scoredEntries.forEach(e => {
+       const upload = uploads.find(u => u.id === e.upload_id);
+       if (upload) {
+          const existing = userScores.get(upload.user_id) || { total: 0, count: 0 };
+          userScores.set(upload.user_id, { total: existing.total + e.nilai!, count: existing.count + 1 });
+       }
+    });
+    
+    let sumOfUserAverages = 0;
+    userScores.forEach(val => {
+       sumOfUserAverages += (val.total / val.count);
+    });
+    
+    if (userScores.size > 0) {
+       avgScoreRaw = sumOfUserAverages / userScores.size;
+    }
+  }
+  const avgScore = avgScoreRaw !== null ? Math.round(avgScoreRaw) : null;
 
   return (
     <>
       <Header />
       <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.push('/ketua_tim')} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
+        <button onClick={() => router.push(`/ketua_tim?bulan=${bulan}&tahun=${tahun}`)} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
@@ -408,7 +499,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
           <KPICard icon={<UserIcon size={18} style={{ color: 'var(--primary)' }} />} value={uploads.length} label="Total Pegawai" iconBg="var(--primary-soft)" />
           <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={evaluatedCount} label="Selesai Dinilai" iconBg="var(--success-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgProgress.toFixed(0)}%`} label="Rata-rata Capaian" iconBg="var(--primary-soft)" />
-          <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={avgScore !== null ? avgScore.toFixed(1) : '-'} label="Rata-rata Nilai" iconBg="var(--primary-soft)" />
+          <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={avgScoreRaw !== null ? (typeof bulan === 'string' && bulan.startsWith('T') ? Math.round(avgScoreRaw) : avgScoreRaw.toFixed(1)) : '-'} label="Rata-rata Nilai" iconBg="var(--primary-soft)" />
         </div>
 
         <div className="pt-4 border-t border-slate-200">
@@ -432,18 +523,42 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
           <div className="space-y-4">
             {filteredUploads.length > 0 ? (
-              filteredUploads.map(upload => {
-                const userEntries = entries.filter(e => e.upload_id === upload.id);
-                // Assume all entries for this RK by this user have the same score
-                const defaultScore = userEntries[0]?.nilai ?? null;
-                // Can review if status is submitted, or if it's approved (Ketua Tim can still revise their grades if needed, or we restrict it)
-                // Let's allow review for anything except draft
-                const canReview = upload.status !== 'draft';
+              Object.values(filteredUploads.reduce((acc: Record<string, { user: User, uploads: CKPUpload[] }>, upload) => {
+                const userId = upload.user_id;
+                if (!acc[userId] && upload.user) {
+                  acc[userId] = { user: upload.user, uploads: [] };
+                }
+                if (acc[userId]) {
+                  acc[userId].uploads.push(upload);
+                }
+                return acc;
+              }, {})).map(({ user, uploads: userUploads }) => {
+                const uploadIds = userUploads.map(u => u.id);
+                const userEntries = entries.filter(e => uploadIds.includes(e.upload_id));
+                // Sort entries by month ascending (which corresponds to upload_id if we fetch uploads)
+                userEntries.sort((a, b) => {
+                   const aUpload = userUploads.find(u => u.id === a.upload_id);
+                   const bUpload = userUploads.find(u => u.id === b.upload_id);
+                   return (aUpload?.bulan || 0) - (bUpload?.bulan || 0);
+                });
+                
+                // Determine score to show
+                const scoredEntries = userEntries.filter(e => e.nilai !== null);
+                let defaultScore = null;
+                if (scoredEntries.length > 0) {
+                   const avg = scoredEntries.reduce((s, e) => s + e.nilai!, 0) / scoredEntries.length;
+                   defaultScore = Math.round(avg);
+                }
+                
+                // Can review if status is submitted, or if it's approved, but NOT in Triwulan view
+                const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
+                const canReview = !isTriwulan && userUploads.some(u => u.status !== 'draft');
                 
                 return (
                   <PegawaiRKGroup
-                    key={upload.id}
-                    upload={upload}
+                    key={user.id}
+                    uploads={userUploads}
+                    user={user}
                     entries={userEntries}
                     rkName={rk.rencana_kinerja}
                     canReview={canReview}
