@@ -179,7 +179,7 @@ export default function UploadPage() {
       }
     }
     
-    if (bestScore > 0.8) {
+    if (bestScore > 0.95) {
        return bestMatch;
     }
 
