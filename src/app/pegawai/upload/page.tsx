@@ -311,7 +311,8 @@ export default function UploadPage() {
 
       setUploadStep(1);
       setUploadProgress(30);
-      const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${file.name}`;
+      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+      const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
       
       const { error: storageError } = await supabase.storage
         .from('ckp-files')
