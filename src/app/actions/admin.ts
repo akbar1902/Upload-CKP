@@ -62,7 +62,27 @@ export async function createEmployee(data: any) {
 
 export async function deleteEmployee(userId: string) {
   try {
-    // Deleting from auth.users will cascade to public.users if ON DELETE CASCADE is set
+    // 1. Ambil semua upload_id milik user ini
+    const { data: uploads } = await supabaseAdmin.from('ckp_uploads').select('id').eq('user_id', userId);
+    
+    // 2. Hapus entri CKP yang terkait dengan upload milik user ini
+    if (uploads && uploads.length > 0) {
+      const uploadIds = uploads.map(u => u.id);
+      // Hapus per batch atau langsung dengan .in()
+      await supabaseAdmin.from('ckp_entries').delete().in('upload_id', uploadIds);
+      // Hapus uploads
+      await supabaseAdmin.from('ckp_uploads').delete().eq('user_id', userId);
+    }
+
+    // 3. Hapus data terkait lainnya secara manual untuk menghindari error Foreign Key
+    await supabaseAdmin.from('user_rk_assignments').delete().eq('user_id', userId);
+    await supabaseAdmin.from('rk_ketua_tim_mapping').update({ ketua_tim_id: null }).eq('ketua_tim_id', userId);
+    await supabaseAdmin.from('audit_logs').delete().eq('user_id', userId);
+    
+    // Hapus dari public.users jika trigger tidak menangani cascade
+    await supabaseAdmin.from('users').delete().eq('id', userId);
+
+    // Terakhir, hapus dari auth.users
     const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
     
     if (error) {
