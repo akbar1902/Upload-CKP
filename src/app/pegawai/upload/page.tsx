@@ -246,6 +246,8 @@ export default function UploadPage() {
       return;
     }
 
+    setUploading(true); // Memberikan feedback loading segera saat tombol diklik
+
     // Refetch masterRKs to prevent stale state from causing incorrect unmatched modal
     let freshMasterRKs = masterRKs;
     try {
@@ -273,6 +275,7 @@ export default function UploadPage() {
     });
 
     if (newUnmatched.size > 0) {
+      setUploading(false); // Reset loading state karena memunculkan modal
       setUnmatchedRKs(Array.from(newUnmatched));
       
       const initialMap: Record<string, { tim_kerja: string, ketua_tim_id: string }> = {};
