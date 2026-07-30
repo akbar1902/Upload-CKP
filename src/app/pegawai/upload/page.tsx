@@ -30,12 +30,8 @@ export default function UploadPage() {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  let defaultMonth = currentDate.getMonth(); // 0-11, so it's already previous month (1-12)
+  let defaultMonth = currentDate.getMonth() + 1; // 1-12 (Bulan saat ini)
   let defaultYear = currentDate.getFullYear();
-  if (defaultMonth === 0) {
-    defaultMonth = 12;
-    defaultYear -= 1;
-  }
 
   const [bulan, setBulan] = useState(defaultMonth);
   const [tahun, setTahun] = useState(defaultYear);
