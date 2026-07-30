@@ -65,21 +65,28 @@ export async function deleteEmployee(userId: string) {
     // 1. Ambil semua upload_id milik user ini
     const { data: uploads } = await supabaseAdmin.from('ckp_uploads').select('id').eq('user_id', userId);
     
-    // 2. Hapus entri CKP yang terkait dengan upload milik user ini
+    // 2. Hapus referensi dari approvals untuk upload milik user ini
     if (uploads && uploads.length > 0) {
       const uploadIds = uploads.map(u => u.id);
-      // Hapus per batch atau langsung dengan .in()
+      await supabaseAdmin.from('approvals').delete().in('upload_id', uploadIds);
       await supabaseAdmin.from('ckp_entries').delete().in('upload_id', uploadIds);
-      // Hapus uploads
       await supabaseAdmin.from('ckp_uploads').delete().eq('user_id', userId);
     }
 
-    // 3. Hapus data terkait lainnya secara manual untuk menghindari error Foreign Key
+    // 3. Hapus data yang dimiliki user secara langsung
     await supabaseAdmin.from('user_rk_assignments').delete().eq('user_id', userId);
-    await supabaseAdmin.from('rk_ketua_tim_mapping').update({ ketua_tim_id: null }).eq('ketua_tim_id', userId);
     await supabaseAdmin.from('audit_logs').delete().eq('user_id', userId);
+    await supabaseAdmin.from('employee_profiles').delete().eq('user_id', userId);
+    await supabaseAdmin.from('approvals').delete().eq('reviewer_id', userId);
     
-    // Hapus dari public.users jika trigger tidak menangani cascade
+    // 4. Nullify referensi di tabel lain (karena foreign key mungkin mencegah delete)
+    await supabaseAdmin.from('rk_ketua_tim_mapping').update({ ketua_tim_id: null }).eq('ketua_tim_id', userId);
+    await supabaseAdmin.from('ckp_uploads').update({ approved_by: null }).eq('approved_by', userId);
+    await supabaseAdmin.from('ckp_entries').update({ dinilai_oleh: null }).eq('dinilai_oleh', userId);
+    await supabaseAdmin.from('periode_ckp').update({ locked_by: null }).eq('locked_by', userId);
+    await supabaseAdmin.from('user_rk_assignments').update({ assigned_by: null }).eq('assigned_by', userId);
+
+    // Hapus dari public.users
     await supabaseAdmin.from('users').delete().eq('id', userId);
 
     // Terakhir, hapus dari auth.users
