@@ -49,6 +49,7 @@ export default function UploadPage() {
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
   const [masterRKs, setMasterRKs] = useState<any[]>([]);
+  const [masterKegiatan, setMasterKegiatan] = useState<any[]>([]);
   const [uniqueTeams, setUniqueTeams] = useState<{tim_kerja: string, ketua_tim_id: string}[]>([]);
   const [ketuaTims, setKetuaTims] = useState<any[]>([]);
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
@@ -141,6 +142,19 @@ export default function UploadPage() {
     fetchMasterRKs();
   }, [supabase]);
 
+  React.useEffect(() => {
+    if (!user) return;
+    const fetchUserKegiatan = async () => {
+      const { data, error } = await supabase.from('master_kegiatan_anggota')
+         .select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)')
+         .eq('user_id', user.id);
+      if (data) {
+        setMasterKegiatan(data);
+      }
+    };
+    fetchUserKegiatan();
+  }, [supabase, user]);
+
   const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   
   const getSimilarity = (s1: string, s2: string) => {
@@ -180,6 +194,32 @@ export default function UploadPage() {
     }
 
     return String(input).trim().replace(/\s+/g, ' ');
+  };
+
+  const fuzzyMatchKegiatan = (input: string, masterKegs: any[]) => {
+    if (!input) return null;
+    const normInput = normalize(input);
+    if (!normInput) return null;
+    
+    let bestMatch = null;
+    let bestScore = 0;
+    
+    for (const master of masterKegs) {
+      const normMaster = normalize(master.kegiatan_nama);
+      if (normMaster === normInput) return master;
+      
+      const score = getSimilarity(normInput, normMaster);
+      if (score > bestScore) {
+        bestScore = score;
+        bestMatch = master;
+      }
+    }
+    
+    if (bestScore > 0.90) { 
+       return bestMatch;
+    }
+
+    return null;
   };
 
   const handleFileSelected = (selectedFile: File) => {
@@ -263,10 +303,29 @@ export default function UploadPage() {
       const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
       if (!rawRK.trim()) return;
       
-      const matchedRK = fuzzyMatchRK(rawRK, masterNames);
-      // If the matched string is not exactly in masterNames (e.g. it was a new string returned because score was low)
-      if (!masterNames.includes(matchedRK)) {
-        newUnmatched.add(matchedRK);
+      let trueRK = '';
+      
+      // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota (misal: "Laporan Cuti")
+      const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+      
+      if (kegiatanMatch) {
+         // Jika ya, RK Aslinya adalah RK Ketua yang menaungi kegiatan tersebut
+         trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+         
+         // Jika kolom kegiatan di Excel kosong, kita pindahkan string ini ke kolom kegiatan
+         // Karena string ini memang sebuah kegiatan, bukan RK Induk
+         if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+            entry.kegiatan = rawRK;
+         }
+         entry.rencana_kinerja = trueRK;
+      } else {
+         // Jika bukan kegiatan anggota, kita asumsikan itu memang RK (atau RK baru)
+         trueRK = fuzzyMatchRK(rawRK, masterNames);
+         entry.rencana_kinerja = trueRK; 
+      }
+      
+      if (!masterNames.includes(trueRK)) {
+        newUnmatched.add(trueRK);
       }
     });
 
