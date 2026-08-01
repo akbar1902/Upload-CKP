@@ -2,7 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
-export async function gradeRencanaKinerjaAction(uploadId: string, rencanaKinerja: string, score: number | null) {
+export async function gradeRencanaKinerjaAction(uploadIds: string | string[], rencanaKinerja: string, score: number | null) {
   try {
     const supabase = await createServerSupabaseClient();
     
@@ -12,13 +12,16 @@ export async function gradeRencanaKinerjaAction(uploadId: string, rencanaKinerja
       return { success: false, error: 'Sesi berakhir' };
     }
 
+    // Accept both single string and array for backward compatibility
+    const ids = Array.isArray(uploadIds) ? uploadIds : [uploadIds];
+
     const { error } = await supabase
       .from('ckp_entries')
       .update({ 
         nilai: score,
         dinilai_oleh: user.id
       })
-      .eq('upload_id', uploadId)
+      .in('upload_id', ids)
       .eq('rencana_kinerja', rencanaKinerja);
 
     if (error) {

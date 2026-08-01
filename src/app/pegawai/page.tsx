@@ -11,7 +11,7 @@ export default async function PegawaiPage() {
   if (!user) redirect('/login');
 
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
+    defaultOptions: { queries: { staleTime: 1000 * 60 * 2 } },
   });
 
   // queryKey must match exactly: ['pegawai-uploads', user.id]
@@ -29,7 +29,7 @@ export default async function PegawaiPage() {
       if (error) throw error;
       return (data as CKPUpload[]) ?? [];
     },
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   return (

@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { useQueryClient } from '@tanstack/react-query';
+import { createClient } from '@/lib/supabase/client';
 import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
 import {
@@ -49,10 +51,31 @@ const SIDEBAR_COLLAPSED = 72;
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  const queryClient = useQueryClient();
+  const supabase = useCallback(() => createClient(), []);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
+  const [prefetchedUpload, setPrefetchedUpload] = useState(false);
+
+  // Prefetch upload master data on hover so the upload page opens instantly
+  const prefetchUploadData = useCallback(async () => {
+    if (prefetchedUpload) return;
+    setPrefetchedUpload(true);
+    const sb = supabase();
+    await queryClient.prefetchQuery({
+      queryKey: ['upload-master-data'],
+      queryFn: async () => {
+        const [{ data: rks }, { data: ketuas }] = await Promise.all([
+          sb.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
+          sb.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
+        ]);
+        return { masterRKs: rks || [], ketuaTims: ketuas || [] };
+      },
+      staleTime: 1000 * 60 * 10, // 10 minutes — master data rarely changes
+    });
+  }, [queryClient, supabase, prefetchedUpload]);
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
@@ -297,6 +320,10 @@ export function Sidebar() {
                 if (!active) {
                   (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
                   (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                }
+                // Prefetch upload master data when hovering the Upload CKP link
+                if (item.href === '/pegawai/upload') {
+                  void prefetchUploadData();
                 }
               }}
               onMouseLeave={(e) => {

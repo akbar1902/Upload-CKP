@@ -323,7 +323,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     },
     enabled: !!rkId && !authLoading,
     networkMode: 'always',
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   const loading = authLoading || queryPending;
@@ -335,8 +335,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const handleSaveScore = async (uploadIds: string[], score: number | null) => {
     if (!rk) return;
     
-    // Optimistic update
-    queryClient.setQueryData(['rk-detail', rkId, bulan, tahun], (old: any) => {
+    // Optimistic update — match the exact query key used by useQuery
+    const rkDetailKey = ['rk-detail', rkId, bulan, tahun, currentUser?.id, currentUser?.role];
+    queryClient.setQueryData(rkDetailKey, (old: any) => {
       if (!old) return old;
       const uploadIdsSet = new Set(uploadIds);
       const newEntries = old.entries.map((e: any) => 
@@ -344,18 +345,19 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
           ? { ...e, nilai: score, dinilai_oleh: currentUser?.id } 
           : e
       );
-      
       return { ...old, entries: newEntries };
     });
 
     try {
-      await Promise.all(uploadIds.map(async (uploadId) => {
-        const result = await gradeRencanaKinerjaAction(uploadId, rk.rencana_kinerja, score);
-        if (!result.success) throw new Error(result.error);
-      }));
-      void queryClient.invalidateQueries({ queryKey: ['rk-detail', rkId, bulan, tahun] });
+      // Single server action call with all uploadIds at once — 1 round trip instead of N
+      const result = await gradeRencanaKinerjaAction(uploadIds, rk.rencana_kinerja, score);
+      if (!result.success) throw new Error(result.error);
+      // Invalidate both this page and the dashboard so both show updated scores
+      void queryClient.invalidateQueries({ queryKey: ['rk-detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
     } catch (error: any) {
-      await queryClient.invalidateQueries({ queryKey: ['rk-detail', rkId, bulan, tahun] });
+      // Roll back optimistic update on failure
+      void queryClient.invalidateQueries({ queryKey: ['rk-detail'] });
       toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
     }
   };
@@ -472,7 +474,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     <>
       <Header />
       <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.push(`/ketua_tim?bulan=${bulan}&tahun=${tahun}`)} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>

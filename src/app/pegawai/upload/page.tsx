@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseExcelFile } from '@/lib/excel/parser';
 import type { ParseResult } from '@/lib/excel/parser';
 import { Header } from '@/components/layout/header';
@@ -48,11 +48,46 @@ export default function UploadPage() {
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
-  const [masterRKs, setMasterRKs] = useState<any[]>([]);
   const [masterKegiatan, setMasterKegiatan] = useState<any[]>([]);
-  const [uniqueTeams, setUniqueTeams] = useState<{tim_kerja: string, ketua_tim_id: string}[]>([]);
-  const [ketuaTims, setKetuaTims] = useState<any[]>([]);
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
+  const [parsing, setParsing] = useState(false);
+
+  // Fetch master data using React Query — reads from sidebar prefetch cache instantly
+  const { data: masterData } = useQuery({
+    queryKey: ['upload-master-data'],
+    queryFn: async () => {
+      const [{ data: rks }, { data: ketuas }] = await Promise.all([
+        supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
+        supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
+      ]);
+      return { masterRKs: rks || [], ketuaTims: ketuas || [] };
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes — master data rarely changes
+  });
+
+  const masterRKs = useMemo(() => masterData?.masterRKs || [], [masterData]);
+  const ketuaTims = useMemo(() => masterData?.ketuaTims || [], [masterData]);
+  const uniqueTeams = useMemo<{tim_kerja: string, ketua_tim_id: string}[]>(() => {
+    const seen = new Set<string>();
+    const teams: {tim_kerja: string, ketua_tim_id: string}[] = [];
+    for (const rk of masterRKs) {
+      if (rk.tim_kerja && !seen.has(rk.tim_kerja)) {
+        seen.add(rk.tim_kerja);
+        teams.push({ tim_kerja: rk.tim_kerja, ketua_tim_id: rk.ketua_tim_id || '' });
+      }
+    }
+    return teams;
+  }, [masterRKs]);
+
+  React.useEffect(() => {
+    if (!ketuaTims.length) return;
+    const activeTeams = Array.from(new Set(ketuaTims.map((k: any) => k.unit_kerja).filter(Boolean))) as string[];
+    const teamsMap = new Map<string, string>();
+    masterRKs.forEach((rk: any) => { if (rk.tim_kerja) teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || ''); });
+    const allTeams = Array.from(new Set([...activeTeams, ...Array.from(teamsMap.keys())]));
+    setTimKerjaList(allTeams);
+    setTeamToKetuaMap(teamsMap);
+  }, [ketuaTims, masterRKs]);
 
   const bulanOptions = BULAN_NAMES.map((name, index) => ({
     value: String(index + 1),
@@ -103,60 +138,9 @@ export default function UploadPage() {
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
 
-  React.useEffect(() => {
-    const fetchMasterRKs = async () => {
-      const { data, error: rkError } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
-      if (rkError) {
-        console.error('Error fetching master RKs:', rkError);
-      }
-      if (data) {
-        setMasterRKs(data);
-      }
-
-      // Fetch ketuas from users table
-      const { data: ketuas, error: ketuaError } = await supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']);
-      if (ketuaError) {
-        console.error('Error fetching ketuas:', ketuaError);
-      }
-      
-      if (ketuas) {
-        setKetuaTims(ketuas);
-        // Use users table for tim_kerja list to ensure it's always populated with active teams
-        const activeTeams = Array.from(new Set(ketuas.map((k: any) => k.unit_kerja).filter(Boolean))) as string[];
-        
-        // Also merge with teams from mappings just in case
-        const teamsMap = new Map<string, string>();
-        if (data) {
-          data.forEach((rk: any) => {
-            if (rk.tim_kerja) {
-              teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || '');
-            }
-          });
-        }
-        
-        const allTeams = Array.from(new Set([...activeTeams, ...Array.from(teamsMap.keys())]));
-        setTimKerjaList(allTeams);
-        setTeamToKetuaMap(teamsMap);
-      }
-    };
-    fetchMasterRKs();
-  }, [supabase]);
-
-  React.useEffect(() => {
-    if (!user) return;
-    const fetchUserKegiatan = async () => {
-      const { data, error } = await supabase.from('master_kegiatan_anggota')
-         .select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)')
-         .eq('user_id', user.id);
-      if (data) {
-        setMasterKegiatan(data);
-      }
-    };
-    fetchUserKegiatan();
-  }, [supabase, user]);
-
   const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   
+
   const getSimilarity = (s1: string, s2: string) => {
     if (!s1 || !s2) return 0;
     if (s1 === s2) return 1;
@@ -257,8 +241,6 @@ export default function UploadPage() {
     };
   }, [file, bulan, tahun]);
 
-  const [parsing, setParsing] = useState(false);
-
   const handlePreSubmit = async () => {
     if (authLoading) {
       toast.info('Sedang memuat data pengguna, mohon tunggu...');
@@ -284,19 +266,7 @@ export default function UploadPage() {
 
     setUploading(true); // Memberikan feedback loading segera saat tombol diklik
 
-    // Refetch masterRKs to prevent stale state from causing incorrect unmatched modal
-    let freshMasterRKs = masterRKs;
-    try {
-      const { data, error } = await supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000);
-      if (data && !error) {
-        freshMasterRKs = data;
-        setMasterRKs(data);
-      }
-    } catch (err) {
-      console.error('Failed to refetch masterRKs:', err);
-    }
-
-    const masterNames = Array.from(new Set(freshMasterRKs.map(r => String(r.rencana_kinerja))));
+    const masterNames: string[] = Array.from(new Set(masterRKs.map((r: any) => String(r.rencana_kinerja))));
     const newUnmatched = new Set<string>();
 
     parseResult.entries.forEach(entry => {
@@ -431,7 +401,7 @@ export default function UploadPage() {
       }
 
       const masterDict = [...masterRKs];
-      const masterNames = Array.from(new Set(masterDict.map(r => String(r.rencana_kinerja))));
+      const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
       const distinctMatchedRKs = new Set<string>();
 
       setUploadStep(4);
@@ -760,7 +730,7 @@ export default function UploadPage() {
                           value={rkTeamMapping[rk]?.tim_kerja || ''}
                           onChange={(e) => {
                             const selectedTim = e.target.value;
-                            const ketua = ketuaTims.find(k => k.unit_kerja === selectedTim);
+                            const ketua = ketuaTims.find((k: any) => k.unit_kerja === selectedTim);
                             const ketuaId = ketua ? ketua.id : (teamToKetuaMap.get(selectedTim) || '');
                             setRkTeamMapping(prev => ({
                               ...prev,
@@ -786,7 +756,7 @@ export default function UploadPage() {
                           }}
                         >
                           <option value="">-- Pilih Ketua Tim --</option>
-                          {ketuaTims.map(k => (
+                          {ketuaTims.map((k: any) => (
                             <option key={k.id} value={k.id}>{k.full_name} {k.unit_kerja ? `(${k.unit_kerja})` : ''}</option>
                           ))}
                         </select>

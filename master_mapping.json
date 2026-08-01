@@ -194,137 +194,72 @@
   },
   {
     "rk_ketua": "Nilai SAKIP oleh Inspektorat",
-    "sub_rk": [
-      "Terpenuhinya Dokumen Pendukung Implementasi SAKIP",
-      "Terlaksananya Penerapan Manajemen Risiko Secara Komprehensif dan Berkelanjutan",
-      "Terlaksananya Penjaminan Kualitas Sensus dan Survei"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Sumber Daya Hayati yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Penyusunan Publikasi/Laporan Statistik Sumber Daya Hayati yang Berkualitas",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Sumber Daya Hayati"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Sumber Daya Mineral dan Konstruksi yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Penyusunan Publikasi/Laporan Statistik Sumber Daya Mineral dan Konstruksi yang Berkualitas",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Sumber Daya Mineral dan Konstruksi"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Industri Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Penyusunan Publikasi/Laporan Statistik Industri Yang Berkualitas",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Industri"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Indeks Implementasi BerAKHLAK",
-    "sub_rk": [
-      "Terlaksananya Pembangunan Zona Integritas yang Baik",
-      "Terlaksananya Implementasi Nilai Budaya Kerja yang Baik",
-      "Terlaksananya Rekrutmen Mitra Statistik BPS",
-      "Terlaksananya Pengisian Matrik Rencana Kinerja Bulanan"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Analisis Statistik dan Neraca Satelit yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Penyusunan Publikasi Daerah Dalam Angka 2026",
-      "Terlaksananya Publikasi/laporan Analisis dan Pengembangan Statistik Yang Berkualitas",
-      "Terlaksanya Pengembangan Metodologi Sensus dan Survei"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Indeks Pelayanan Publik - Penilaian Mandiri",
-    "sub_rk": [
-      "Terlaksananya Kegiatan Survei Kebutuhan Data (SKD) 2026",
-      "Terlaksanya Pemantauan dan Evaluasi Kinerja Penyelenggaraan Pelayanan Publik (PEKPPP)",
-      "Terlaksananya Pelayanan Publik BPS Kabupaten Belitung",
-      "Terlaksanya Manajemen Official Website BPS Kabupaten Belitung",
-      "Terlaksananya Publisitas Data dan Kegiatan Perkantoran",
-      "Terlaksananya Peliputan Kegiatan, Manajemen Aset, dan Pengembangan Kehumasan",
-      "Terlaksananya Konferensi Pers dan Pengacaraan Kehumasan Lainnya",
-      "Terlaksananya Pengembangan Infrastruktur dan Layanan Teknologi Informasi dan Komunikasi"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Kependudukan Dan Ketenagakerjaan Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Survei Angkatan Kerja Nasional (Sakernas) Tahun 2026",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Kependudukan Dan Ketenagakerjaan"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Kesejahteraan Rakyat Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Survei Sosial Ekonomi Nasional (Susenas) Tahun 2026",
-      "Terlaksananya Survei Ekonomi Rumah Tangga Triwulanan (Seruti) Tahun 2026",
-      "Terlaksananya Pemutakhiran Data Tunggal Sosial Ekonomi Nasional (DTSEN) Tahun 2026",
-      "Terlaksananya Pendataan Survei Nasional Literasi dan Inklusi Keuangan (SNLIK) Tahun 2026",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Kesejahteraan Rakyat"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Ketahanan Sosial Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Pengumpulan Data Statistik Politik dan Keamanan (Statpolkam) Tahun 2026",
-      "Terlaksananya Pemutakhiran Data Potensi Desa (Podes) Tahun 2026",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Ketahanan Sosial"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Kumulatif Desa Yang Berpredikat Desa Cinta Statistik",
-    "sub_rk": [
-      "Terlaksananya Pembinaan Desa Cantik Tahun 2026"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Harga Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Penyusunan Publikasi/Laporan Statistik Harga",
-      "Terlaksananya Penyusunan Publikasi/Laporan Penyusunan Inflasi",
-      "Terlaksananya Penyusunan Publikasi/Laporan Survei Biaya Hidup",
-      "Terlaksananya Penyusunan Publikasi/ laporan Survei Penyempurnaan Diagram Timbang Nilai Tukar Petani",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Harga"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Neraca Produksi Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Publikasi/Laporan Neraca Produksi Yang Berkualitas",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Neraca Produksi"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Neraca Pengeluaran Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Publikasi/Laporan Statistik Neraca Pengeluaran Yang Berkualitas",
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Neraca Pengeluaran"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Tingkat Penyelenggaraan Pembinaan Statistik Sektoral sesuai standar",
-    "sub_rk": [
-      "Terwujudnya Penguatan Penyelenggaraan Pembinaan Statistik Sektoral Kementerian/Lembaga/Pemerintah Daerah"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Distribusi Yang Berkualitas",
-    "sub_rk": [
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Distribusi",
-      "Terlaksananya Penyusunan Publikasi/Laporan Statistik Distribusi",
-      "Terlaksananya Penyusunan Publikasi/Laporan Sensus Ekonomi"
-    ]
+    "sub_rk": []
   },
   {
     "rk_ketua": "Persentase Publikasi/Laporan Statistik Jasa yang Berkualitas",
     "sub_rk": [
-      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Jasa",
-      "Terlaksananya Penyusunan Publikasi/Laporan Keuangan, Teknologi Informasi, dan Pariwisata"
+      "Terlaksananya Pengelolaan Manajemen Lapangan dan Mitra pada Kegiatan Statistik Jasa"
     ]
   },
   {
@@ -343,8 +278,7 @@
       "Terlaksananya Penjaminan Kualitas Sensus dan Survei Kegiatan Tahun 2026",
       "Melaksanakan Kegiatan yang Berkaitan dengan Penjaminan Kualitas Sensus dan Survei",
       "Terlaksananya kegiatan yang Berkaitan dengan Penjaminan Kualitas Sensus dan Survei",
-      "Terlaksananya kegiatan Penerapan Manajemen Risiko Secara Komprehensif dan Berkelanjutan",
-      "Terlaksananya Penerapan Manajemen Risiko Secara Komprehensif dan Berkelanjutan"
+      "Terlaksananya kegiatan Penerapan Manajemen Risiko Secara Komprehensif dan Berkelanjutan"
     ]
   },
   {

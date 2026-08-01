@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
@@ -25,6 +25,7 @@ export default function KetuaTimDashboardClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('semua');
 
+  const queryClient = useQueryClient();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -37,6 +38,15 @@ export default function KetuaTimDashboardClient() {
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
 
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
+
+  // Prefetch RK detail page on card hover — makes navigation feel instant
+  const prefetchedRks = useMemo(() => new Set<string>(), []);
+  const prefetchRkDetail = useCallback((rkId: string) => {
+    if (prefetchedRks.has(rkId)) return;
+    prefetchedRks.add(rkId);
+    // router.prefetch triggers Next.js to prefetch server components + JS bundle
+    router.prefetch(`/ketua_tim/rk/${rkId}?bulan=${bulan}&tahun=${tahun}`);
+  }, [router, bulan, tahun, prefetchedRks]);
 
   const setBulan = (b: string | number) => {
     router.push(`?bulan=${b}&tahun=${tahun}`);
@@ -158,7 +168,7 @@ export default function KetuaTimDashboardClient() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 2,
   });
 
   const loading = authLoading || queryPending;
@@ -413,7 +423,12 @@ export default function KetuaTimDashboardClient() {
   }
 
   const renderRkCard = (rk: any) => (
-    <Link key={rk.id} href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`} className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block">
+    <Link
+      key={rk.id}
+      href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`}
+      onMouseEnter={() => prefetchRkDetail(rk.id)}
+      className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block"
+    >
       <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
 
       <div className="flex justify-between items-start mb-3 pl-2">
