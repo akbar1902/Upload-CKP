@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
-import { ChevronDown, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
