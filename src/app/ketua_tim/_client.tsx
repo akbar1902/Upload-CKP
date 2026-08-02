@@ -124,14 +124,23 @@ export default function KetuaTimDashboardClient() {
           return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsData || [] };
         }
 
-        // 3. Get entries for these uploads (filter by RK names in memory to avoid URI Too Long)
-        const { data: entriesData, error: entriesError } = await supabase
-          .from('ckp_entries')
-          .select('*')
-          .in('upload_id', uploadIds)
-          .abortSignal(controller.signal);
+        // 3. Get entries for these uploads (chunked to bypass 1000 row limit)
+        let entriesData: any[] = [];
+        let from = 0;
+        const limit = 999;
+        while (true) {
+          const { data: chunk, error: entriesError } = await supabase
+            .from('ckp_entries')
+            .select('*')
+            .in('upload_id', uploadIds)
+            .range(from, from + limit)
+            .abortSignal(controller.signal);
 
-        if (entriesError) throw entriesError;
+          if (entriesError) throw entriesError;
+          if (chunk) entriesData.push(...chunk);
+          if (!chunk || chunk.length <= limit) break;
+          from += limit + 1;
+        }
         
         const validRkNames = new Set(rkNames);
         const filteredEntriesData = (entriesData || []).filter((e: any) => validRkNames.has(e.rencana_kinerja));

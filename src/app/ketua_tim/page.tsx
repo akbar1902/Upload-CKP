@@ -60,14 +60,23 @@ export default async function KetuaTimPage({
         return { rks: mappingData, uploads: [], entries: [], users: [] };
       }
       
-      // 3. Get entries for these uploads that match the RKs
-      const { data: entriesData, error: entriesError } = await supabase
-        .from('ckp_entries')
-        .select('*')
-        .in('upload_id', uploadIds)
-        .in('rencana_kinerja', rkNames);
-        
-      if (entriesError) throw entriesError;
+      // 3. Get entries for these uploads that match the RKs (chunked to bypass 1000 row limit)
+      let entriesData: any[] = [];
+      let from = 0;
+      const limit = 999;
+      while (true) {
+        const { data: chunk, error: entriesError } = await supabase
+          .from('ckp_entries')
+          .select('*')
+          .in('upload_id', uploadIds)
+          .in('rencana_kinerja', rkNames)
+          .range(from, from + limit);
+          
+        if (entriesError) throw entriesError;
+        if (chunk) entriesData.push(...chunk);
+        if (!chunk || chunk.length <= limit) break;
+        from += limit + 1;
+      }
       
       const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
       const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
