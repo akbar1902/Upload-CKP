@@ -156,27 +156,37 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       rkGroups[rk].push(row);
     }
 
-    // Fetch all users mapping once to match Ketua Tim
-    const { data: users } = await supabase.from('users').select('id, full_name').in('role', ['ketua_tim', 'pimpinan', 'admin']);
+    // Fetch all existing mappings to inherit ketua_tim_id for existing teams
+    const { data: existingMappings } = await supabase.from('rk_ketua_tim_mapping').select('tim_kerja, ketua_tim_id').not('ketua_tim_id', 'is', null);
+    const timKerjaToKetuaId: Record<string, string> = {};
+    if (existingMappings) {
+      existingMappings.forEach(m => {
+        if (m.tim_kerja && m.ketua_tim_id) {
+           timKerjaToKetuaId[m.tim_kerja] = m.ketua_tim_id;
+        }
+      });
+    }
 
     for (const rk of Object.keys(rkGroups)) {
       const rows = rkGroups[rk];
       
       const timKerja = rows[0].tim_kerja?.trim() || rows[0].tim?.trim() || null;
-      const ketuaTimName = rows[0].ketua_tim?.trim() || rows.find((r:any) => r.ketua_tim)?.ketua_tim?.trim() || null;
       
-      let ketuaTimId = null;
-      if (ketuaTimName && users) {
-        const u = users.find(u => u.full_name?.toLowerCase().includes(ketuaTimName.toLowerCase()));
-        if (u) ketuaTimId = u.id;
+      const payload: any = {
+        rencana_kinerja: rk,
+        tim_kerja: timKerja
+      };
+
+      // Auto inherit ketua_tim_id if it exists for this team
+      if (timKerja && timKerjaToKetuaId[timKerja]) {
+        payload.ketua_tim_id = timKerjaToKetuaId[timKerja];
       }
       
       // Upsert the Master RK
-      const { data: upsertData, error: upsertError } = await supabase.from('rk_ketua_tim_mapping').upsert({
-        rencana_kinerja: rk,
-        ketua_tim_id: ketuaTimId,
-        tim_kerja: timKerja
-      }, { onConflict: 'rencana_kinerja,tim_kerja' }).select().single();
+      const { data: upsertData, error: upsertError } = await supabase.from('rk_ketua_tim_mapping').upsert(
+        payload, 
+        { onConflict: 'rencana_kinerja,tim_kerja' }
+      ).select().single();
 
       if (upsertError) {
         console.error("Upsert Master RK error:", upsertError);

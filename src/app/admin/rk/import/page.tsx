@@ -24,13 +24,11 @@ export default function ImportRKPage() {
     const ws = XLSX.utils.json_to_sheet([
       {
         "Tim Kerja": "Statistik Sosial",
-        "Ketua Tim": "Budi Santoso",
         "RK Utama": "Terlaksananya Survei Angkatan Kerja Nasional",
         "Sub RK": "Melakukan pendataan lapangan Sakernas"
       },
       {
         "Tim Kerja": "Statistik Sosial",
-        "Ketua Tim": "Budi Santoso",
         "RK Utama": "Terlaksananya Survei Angkatan Kerja Nasional",
         "Sub RK": "Membuat laporan hasil Sakernas"
       }
@@ -49,7 +47,6 @@ export default function ImportRKPage() {
       const mappedData = data.map((r: any, i: number) => ({
         _id: `json-${i}`,
         tim_kerja: r.tim_kerja || r.timKerja || r["Tim Kerja"],
-        ketua_tim: r.ketua_tim || r.ketuaTim || r["Ketua Tim"],
         rk_utama: r.rk_utama || r.rkUtama || r["RK Utama"],
         sub_rk: r.sub_rk || r.subRk || r["Sub RK"],
       })).filter(r => r.tim_kerja && r.rk_utama);
@@ -82,7 +79,6 @@ export default function ImportRKPage() {
         const mappedData = rows.map((r, i) => ({
           _id: `excel-${i}`,
           tim_kerja: r['Tim Kerja'] || r['Tim kerja'] || r['tim_kerja'],
-          ketua_tim: r['Ketua Tim'] || r['Ketua team'] || r['ketua_tim'],
           rk_utama: r['RK Utama'] || r['Rencana kinerja'] || r['Rencana Kinerja'] || r['rencana_kinerja'],
           sub_rk: r['Sub RK'] || r['Sub Rk'] || r['sub_rk'],
         })).filter(r => r.tim_kerja && r.rk_utama);
@@ -200,7 +196,6 @@ export default function ImportRKPage() {
                   <pre>{`[
   {
     "tim_kerja": "Statistik Sosial",
-    "ketua_tim": "Budi Santoso",
     "rk_utama": "Terlaksananya Survei Nasional",
     "sub_rk": "Melakukan pendataan lapangan"
   }
@@ -243,7 +238,6 @@ export default function ImportRKPage() {
                 <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
                   <tr>
                     <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Tim Kerja</th>
-                    <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Ketua Tim</th>
                     <th className="px-4 py-3 font-medium border-b border-[var(--border)] w-1/3">RK Utama</th>
                     <th className="px-4 py-3 font-medium border-b border-[var(--border)] w-1/3">Sub RK</th>
                   </tr>
@@ -252,7 +246,6 @@ export default function ImportRKPage() {
                   {previewData.map((r) => (
                     <tr key={r._id} className="border-b last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
                       <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">{r.tim_kerja}</td>
-                      <td className="px-4 py-3" style={{ color: 'var(--text-primary)' }}>{r.ketua_tim || '—'}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold line-clamp-2" style={{ color: 'var(--text-primary)' }} title={r.rk_utama}>
                           {r.rk_utama}

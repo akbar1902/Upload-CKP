@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
-import { Search, Plus, Trash2, FileSpreadsheet, RefreshCw, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -20,6 +20,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
   // Modal States
   const [showAddMasterModal, setShowAddMasterModal] = useState(false);
   const [showAddSubModal, setShowAddSubModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<{id: string, name: string, type: 'master' | 'sub'} | null>(null);
   const [selectedRkForSub, setSelectedRkForSub] = useState<any>(null);
 
   // Form States
@@ -92,27 +93,25 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     }, {} as Record<string, any[]>);
   }, [filteredRks]);
 
-  const handleDeleteMaster = async (id: string, name: string) => {
-    if (confirm(`Yakin ingin menghapus RK Utama: ${name}?`)) {
-      const { error } = await supabase.from('rk_ketua_tim_mapping').delete().eq('id', id);
-      if (!error) {
+  const executeDelete = async () => {
+    if (!deleteConfirm) return;
+    setIsSubmitting(true);
+    try {
+      if (deleteConfirm.type === 'master') {
+        const { error } = await supabase.from('rk_ketua_tim_mapping').delete().eq('id', deleteConfirm.id);
+        if (error) throw error;
         toast.success("RK berhasil dihapus");
-        refetch();
       } else {
-        toast.error("Gagal menghapus: " + error.message);
-      }
-    }
-  };
-
-  const handleDeleteSub = async (id: string, name: string) => {
-    if (confirm(`Yakin ingin menghapus Sub-RK: ${name}?`)) {
-      const { error } = await supabase.from('master_kegiatan_anggota').delete().eq('id', id);
-      if (!error) {
+        const { error } = await supabase.from('master_kegiatan_anggota').delete().eq('id', deleteConfirm.id);
+        if (error) throw error;
         toast.success("Sub-RK berhasil dihapus");
-        refetch();
-      } else {
-        toast.error("Gagal menghapus: " + error.message);
       }
+      refetch();
+    } catch (e: any) {
+      toast.error("Gagal menghapus: " + e.message);
+    } finally {
+      setIsSubmitting(false);
+      setDeleteConfirm(null);
     }
   };
 
@@ -272,7 +271,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                 >
                                   <Plus size={14} />
                                 </button>
-                                <button onClick={() => handleDeleteMaster(r.id, r.rencana_kinerja)} title="Hapus RK Master" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 transition-colors">
+                                <button onClick={() => setDeleteConfirm({id: r.id, name: r.rencana_kinerja, type: 'master'})} title="Hapus RK Master" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 transition-colors">
                                   <Trash2 size={14} />
                                 </button>
                               </div>
@@ -293,7 +292,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                             <span className="text-xs text-slate-400 mt-0.5">{idx + 1}.</span>
                                             <span className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{sub.kegiatan_nama}</span>
                                           </div>
-                                          <button onClick={() => handleDeleteSub(sub.id, sub.kegiatan_nama)} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
+                                          <button onClick={() => setDeleteConfirm({id: sub.id, name: sub.kegiatan_nama, type: 'sub'})} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
                                             <Trash2 size={14} />
                                           </button>
                                         </li>
@@ -407,6 +406,40 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setShowAddSubModal(false)}>Batal</button>
               <button className="btn-primary" onClick={handleAddSub} disabled={isSubmitting}>
                 {isSubmitting ? 'Menyimpan...' : 'Simpan Sub-RK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Konfirmasi Hapus */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2 text-red-600">
+                 <AlertTriangle size={20} />
+                 <h3 className="font-semibold text-lg">Konfirmasi Hapus</h3>
+              </div>
+              <button onClick={() => setDeleteConfirm(null)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Apakah Anda yakin ingin menghapus {deleteConfirm.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?
+              </p>
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/50">
+                <p className="text-sm font-medium line-clamp-3 text-red-800 dark:text-red-200">{deleteConfirm.name}</p>
+              </div>
+              {deleteConfirm.type === 'master' && (
+                <p className="text-[13px] text-red-600 dark:text-red-400 mt-2">
+                  <strong>Peringatan:</strong> Menghapus RK Utama akan otomatis menghapus seluruh Sub-RK di dalamnya. Tindakan ini tidak dapat dibatalkan.
+                </p>
+              )}
+            </div>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300" onClick={() => setDeleteConfirm(null)}>Batal</button>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm" onClick={executeDelete} disabled={isSubmitting}>
+                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
             </div>
           </div>
