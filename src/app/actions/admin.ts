@@ -144,37 +144,34 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
   try {
     const supabase = await createServerSupabaseClient();
     
-    // Group data by rencana_kinerja
+    let processedMaster = 0;
+    let processedSub = 0;
+
+    // Group by rk_utama
     const rkGroups: Record<string, any[]> = {};
     for (const row of data) {
-      const rk = row.rencana_kinerja?.trim();
+      const rk = row.rk_utama?.trim() || row.rencana_kinerja?.trim();
       if (!rk) continue;
       if (!rkGroups[rk]) rkGroups[rk] = [];
       rkGroups[rk].push(row);
     }
 
-    let processed = 0;
+    // Fetch all users mapping once to match Ketua Tim
+    const { data: users } = await supabase.from('users').select('id, full_name').in('role', ['ketua_tim', 'pimpinan', 'admin']);
 
     for (const rk of Object.keys(rkGroups)) {
       const rows = rkGroups[rk];
       
-      // Find the row marked as 'Ketua Tim' or 'Ketua'
-      const ketuaRow = rows.find((r: any) => r.status?.trim().toLowerCase() === 'ketua tim' || r.status?.trim().toLowerCase() === 'ketua');
-      // If no ketua tim row, just use the first row's tim_kerja
-      const timKerja = ketuaRow?.tim_kerja || rows[0].tim_kerja || null;
-
+      const timKerja = rows[0].tim_kerja?.trim() || rows[0].tim?.trim() || null;
+      const ketuaTimName = rows[0].ketua_tim?.trim() || rows.find((r:any) => r.ketua_tim)?.ketua_tim?.trim() || null;
+      
       let ketuaTimId = null;
-      if (ketuaRow && ketuaRow.nama) {
-        const { data: user } = await supabase
-          .from('users')
-          .select('id')
-          .ilike('full_name', `%${ketuaRow.nama.trim()}%`)
-          .limit(1)
-          .single();
-        if (user) ketuaTimId = user.id;
+      if (ketuaTimName && users) {
+        const u = users.find(u => u.full_name?.toLowerCase().includes(ketuaTimName.toLowerCase()));
+        if (u) ketuaTimId = u.id;
       }
-
-      // Upsert the RK mapping
+      
+      // Upsert the Master RK
       const { data: upsertData, error: upsertError } = await supabase.from('rk_ketua_tim_mapping').upsert({
         rencana_kinerja: rk,
         ketua_tim_id: ketuaTimId,
@@ -182,41 +179,42 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       }, { onConflict: 'rencana_kinerja,tim_kerja' }).select().single();
 
       if (upsertError) {
-        console.error("Upsert error:", upsertError);
+        console.error("Upsert Master RK error:", upsertError);
         throw new Error(upsertError.message);
       }
+      processedMaster++;
 
-      // Now process assignments (everyone who is NOT explicitly a Ketua Tim is considered Anggota)
-      // We will first wipe existing assignments for this RK so the excel serves as the source of truth
-      await supabase.from('user_rk_assignments').delete().eq('rk_id', upsertData.id);
-
-      const anggotaRows = rows.filter((r: any) => r.status?.trim().toLowerCase() !== 'ketua tim' && r.status?.trim().toLowerCase() !== 'ketua');
+      // Process Sub RKs
+      const subRks = new Set<string>();
+      rows.forEach(r => {
+         const sub = r.sub_rk?.trim() || r.kegiatan?.trim();
+         if (sub) subRks.add(sub);
+      });
       
-      for (const ang of anggotaRows) {
-        if (!ang.nama) continue;
-        const { data: u } = await supabase
-          .from('users')
-          .select('id')
-          .ilike('full_name', `%${ang.nama.trim()}%`)
-          .limit(1)
-          .single();
-
-        if (u) {
-          await supabase.from('user_rk_assignments').insert({
-            rk_id: upsertData.id,
-            user_id: u.id,
-            assigned_by: adminId
-          });
-        }
+      if (subRks.size > 0) {
+         // Fetch existing sub RKs to prevent duplicate inserts
+         const { data: existingSubs } = await supabase.from('master_kegiatan_anggota').select('kegiatan_nama').eq('rk_id', upsertData.id);
+         const existingSubNames = new Set((existingSubs || []).map(s => s.kegiatan_nama));
+         
+         const toInsert = Array.from(subRks)
+            .filter(sub => !existingSubNames.has(sub))
+            .map(sub => ({
+               rk_id: upsertData.id,
+               kegiatan_nama: sub,
+               user_id: adminId // Store who added it
+            }));
+            
+         if (toInsert.length > 0) {
+            const { error: subError } = await supabase.from('master_kegiatan_anggota').insert(toInsert);
+            if (subError) console.error("Insert Sub RK error:", subError);
+            else processedSub += toInsert.length;
+         }
       }
-
-      processed++;
     }
 
     revalidatePath('/admin/rk');
-    return { success: true, processed };
+    return { success: true, processed: processedMaster, processedSub };
   } catch (error: any) {
-    console.error("Bulk upload error:", error);
     return { success: false, error: error.message };
   }
 }
