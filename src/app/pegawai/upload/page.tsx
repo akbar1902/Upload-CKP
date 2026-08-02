@@ -46,7 +46,7 @@ export default function UploadPage() {
   // States for Team Assignment Prompt
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
-  const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
+  const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, rk_id: string }>>({});
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
@@ -303,9 +303,9 @@ export default function UploadPage() {
       setUploading(false); // Reset loading state karena memunculkan modal
       setUnmatchedRKs(Array.from(newUnmatched));
       
-      const initialMap: Record<string, { tim_kerja: string, ketua_tim_id: string }> = {};
+      const initialMap: Record<string, { tim_kerja: string, rk_id: string }> = {};
       Array.from(newUnmatched).forEach(rk => {
-        initialMap[rk] = { tim_kerja: '', ketua_tim_id: '' };
+        initialMap[rk] = { tim_kerja: '', rk_id: '' };
       });
       setRkTeamMapping(initialMap);
       
@@ -409,7 +409,22 @@ export default function UploadPage() {
 
       const entriesToInsert = parseResult.entries.map((entry) => {
         const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
-        const matchedRK = fuzzyMatchRK(rawRK, masterNames);
+        let matchedRK = '';
+        
+        const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+        if (kegiatanMatch) {
+            matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') entry.kegiatan = rawRK;
+        } else {
+            matchedRK = fuzzyMatchRK(rawRK, masterNames);
+            if (!masterNames.includes(matchedRK) && rkTeamMapping[matchedRK]?.rk_id) {
+               const mappedRKObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
+               if (mappedRKObj) {
+                  if (!entry.kegiatan || String(entry.kegiatan).trim() === '') entry.kegiatan = rawRK;
+                  matchedRK = mappedRKObj.rencana_kinerja;
+               }
+            }
+        }
         
         if (matchedRK && matchedRK.trim() !== '') {
           distinctMatchedRKs.add(matchedRK);
@@ -439,20 +454,26 @@ export default function UploadPage() {
         const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.includes(rk));
         
         if (unmatched.length > 0) {
-          const newRKsToMaster = unmatched.map(rk => {
+          const newMappings = unmatched.map(rk => {
             const mapping = rkTeamMapping[rk];
             return {
-              rencana_kinerja: rk,
-              created_by: user.id,
-              tim_kerja: mapping?.tim_kerja || null,
-              ketua_tim_id: mapping?.ketua_tim_id || null,
+              user_id: user.id,
+              rk_id: mapping?.rk_id || null,
+              kegiatan_nama: rk,
             };
-          });
-          const { data: insertedRKs, error: insErr } = await supabase.from('rk_ketua_tim_mapping').insert(newRKsToMaster).select('id, rencana_kinerja');
-          if (!insErr && insertedRKs) {
-            masterDict.push(...insertedRKs);
-            validRKsToAssign.push(...unmatched);
+          }).filter(m => m.rk_id !== null);
+          
+          if (newMappings.length > 0) {
+             const { error: insErr } = await supabase.from('master_kegiatan_anggota').insert(newMappings);
+             if (insErr) console.error("Failed to save mappings", insErr);
           }
+          // Also assign to the valid RKs
+          unmatched.forEach(rk => {
+            const mappedObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
+            if (mappedObj && masterNames.includes(mappedObj.rencana_kinerja)) {
+              validRKsToAssign.push(mappedObj.rencana_kinerja);
+            }
+          });
         }
 
         if (validRKsToAssign.length > 0) {
@@ -718,59 +739,62 @@ export default function UploadPage() {
             </div>
             <div className="p-6 overflow-y-auto flex-1" style={{ background: 'var(--bg-base)' }}>
               <div className="space-y-4">
-                {unmatchedRKs.map((rk, idx) => (
-                  <div key={idx} className="p-5 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                    <p className="font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>{rk}</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih Tim Kerja</label>
-                        <select 
-                          className="w-full text-sm rounded-lg h-10 px-3 outline-none"
-                          style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-                          value={rkTeamMapping[rk]?.tim_kerja || ''}
-                          onChange={(e) => {
-                            const selectedTim = e.target.value;
-                            const ketua = ketuaTims.find((k: any) => k.unit_kerja === selectedTim);
-                            const ketuaId = ketua ? ketua.id : (teamToKetuaMap.get(selectedTim) || '');
-                            setRkTeamMapping(prev => ({
-                              ...prev,
-                              [rk]: { tim_kerja: selectedTim, ketua_tim_id: ketuaId }
-                            }));
-                          }}
-                        >
-                          <option value="">-- Pilih Tim --</option>
-                          {timKerjaList.map((tim, i) => <option key={i} value={tim}>{tim}</option>)}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Ketua Tim</label>
-                        <select
-                          className="w-full text-sm rounded-lg h-10 px-3 outline-none"
-                          style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-                          value={rkTeamMapping[rk]?.ketua_tim_id || ''}
-                          onChange={(e) => {
-                            setRkTeamMapping(prev => ({
-                              ...prev,
-                              [rk]: { ...prev[rk], ketua_tim_id: e.target.value }
-                            }));
-                          }}
-                        >
-                          <option value="">-- Pilih Ketua Tim --</option>
-                          {ketuaTims.map((k: any) => (
-                            <option key={k.id} value={k.id}>{k.full_name} {k.unit_kerja ? `(${k.unit_kerja})` : ''}</option>
-                          ))}
-                        </select>
+                {unmatchedRKs.map((rk, idx) => {
+                  const selectedTim = rkTeamMapping[rk]?.tim_kerja || '';
+                  const availableRKs = masterRKs.filter((r: any) => r.tim_kerja === selectedTim);
+                  
+                  return (
+                    <div key={idx} className="p-5 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                      <p className="font-semibold mb-4 text-sm" style={{ color: 'var(--text-primary)' }}>Teks yang tidak dikenali: "{rk}"</p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>1. Pilih Tim Kerja</label>
+                          <select 
+                            className="w-full text-sm rounded-lg h-10 px-3 outline-none"
+                            style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                            value={selectedTim}
+                            onChange={(e) => {
+                              setRkTeamMapping(prev => ({
+                                ...prev,
+                                [rk]: { tim_kerja: e.target.value, rk_id: '' }
+                              }));
+                            }}
+                          >
+                            <option value="">-- Pilih Tim --</option>
+                            {timKerjaList.map((tim, i) => <option key={i} value={tim}>{tim}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>2. Pilih Rencana Kinerja Master</label>
+                          <select
+                            className="w-full text-sm rounded-lg h-10 px-3 outline-none"
+                            style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                            value={rkTeamMapping[rk]?.rk_id || ''}
+                            disabled={!selectedTim}
+                            onChange={(e) => {
+                              setRkTeamMapping(prev => ({
+                                ...prev,
+                                [rk]: { ...prev[rk], rk_id: e.target.value }
+                              }));
+                            }}
+                          >
+                            <option value="">-- Pilih RK Master --</option>
+                            {availableRKs.map((r: any) => (
+                              <option key={r.id} value={r.id}>{r.rencana_kinerja}</option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             <div className="p-6 flex justify-end gap-3" style={{ background: 'var(--card-bg)', borderTop: '1px solid var(--border)' }}>
               <Button variant="outline" onClick={() => setShowTeamModal(false)}>Batal</Button>
               <Button onClick={() => {
-                const invalid = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja || !rkTeamMapping[rk]?.ketua_tim_id);
-                if (invalid) { toast.error('Lengkapi semua mapping'); return; }
+                const invalid = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja || !rkTeamMapping[rk]?.rk_id);
+                if (invalid) { toast.error('Lengkapi semua mapping RK Master'); return; }
                 processUpload();
               }}>Lanjutkan Upload</Button>
             </div>
