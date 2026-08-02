@@ -9,7 +9,7 @@ import { Search, Plus, Trash2, FileSpreadsheet, RefreshCw, ChevronDown, ChevronU
 import { toast } from 'sonner';
 import Link from 'next/link';
 
-export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: any[] }) {
+export default function AdminRencanaKinerjaClient({ initialData }: { initialData: any }) {
   const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -51,7 +51,7 @@ export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: 
 
       return { rks, subsByRk, ketuaTims };
     },
-    initialData: { rks: initialRks, subsByRk: {}, ketuaTims: [] },
+    initialData: initialData,
   });
 
   const { rks, subsByRk, ketuaTims } = data || { rks: [], subsByRk: {}, ketuaTims: [] };
