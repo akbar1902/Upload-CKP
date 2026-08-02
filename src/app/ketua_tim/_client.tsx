@@ -191,7 +191,11 @@ export default function KetuaTimDashboardClient() {
 
   // Process data for RK Cards
   const rkStats = useMemo(() => {
-    const displayRks = rks.filter((rk: any) => rk.ketua_tim_id === user?.id);
+    const displayRks = rks.filter((rk: any) => {
+      if (rk.ketua_tim_id === user?.id) return true;
+      if (user?.role === 'pimpinan' || user?.role === 'admin') return true;
+      return false;
+    });
     
     return displayRks.map((rk: any) => {
       let rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja);
@@ -209,6 +213,10 @@ export default function KetuaTimDashboardClient() {
          if (!upload) return false;
          
          if (user?.role === 'pimpinan' || user?.role === 'admin') {
+            if (rk.ketua_tim_id !== user.id) {
+               // For RKs of other teams, Pimpinan only evaluates the Ketua Tim themselves
+               return upload.user_id === rk.ketua_tim_id;
+            }
             return assignedUserIds.has(upload.user_id) || validKetuaTimIds.has(upload.user_id);
          }
          return assignedUserIds.has(upload.user_id);

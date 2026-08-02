@@ -96,7 +96,16 @@ function PegawaiRKGroup({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.currentTarget.blur();
+    if (e.key === 'Enter') {
+      e.currentTarget.blur(); // Triggers save
+      // Find the next score input and focus it
+      const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.score-input:not(:disabled)'));
+      const currentIndex = inputs.indexOf(e.currentTarget);
+      if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+        inputs[currentIndex + 1].focus();
+        inputs[currentIndex + 1].select(); // Optional: select existing score for easy overwrite
+      }
+    }
   };
 
   const hasScore = defaultScore !== null;
@@ -141,7 +150,7 @@ function PegawaiRKGroup({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={saving}
-                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    className="score-input border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                     placeholder="-"
                     title="Tekan Enter atau klik di luar untuk menyimpan"
                   />
@@ -302,6 +311,10 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
          if (!relevantUploadIds.has(u.id)) return false;
          
          if (currentUser?.role === 'pimpinan' || currentUser?.role === 'admin') {
+            if (mappingData.ketua_tim_id !== currentUser.id) {
+               // For RKs of other teams, Pimpinan only evaluates the Ketua Tim themselves
+               return u.user_id === mappingData.ketua_tim_id;
+            }
             return assignedUserIds.has(u.user_id) || validKetuaTimIds.has(u.user_id);
          }
          return assignedUserIds.has(u.user_id);
@@ -474,11 +487,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     <>
       <Header />
       <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
-                style={{ color: 'var(--text-secondary)' }}
-                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
-                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}>
-          <ArrowLeft size={14} /> Kembali ke Dashboard
+        <button onClick={() => router.back()} className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors w-fit border border-slate-200 shadow-sm"
+                title="Kembali ke Dashboard">
+          <ArrowLeft size={16} /> Kembali ke Dashboard
         </button>
 
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
