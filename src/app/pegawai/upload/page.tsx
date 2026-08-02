@@ -48,25 +48,25 @@ export default function UploadPage() {
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, ketua_tim_id: string }>>({});
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
-  const [masterKegiatan, setMasterKegiatan] = useState<any[]>([]);
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
 
-  // Fetch master data using React Query — reads from sidebar prefetch cache instantly
   const { data: masterData } = useQuery({
     queryKey: ['upload-master-data'],
     queryFn: async () => {
-      const [{ data: rks }, { data: ketuas }] = await Promise.all([
+      const [{ data: rks }, { data: ketuas }, { data: kegiatan }] = await Promise.all([
         supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
         supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
+        supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000),
       ]);
-      return { masterRKs: rks || [], ketuaTims: ketuas || [] };
+      return { masterRKs: rks || [], ketuaTims: ketuas || [], masterKegiatan: kegiatan || [] };
     },
     staleTime: 1000 * 60 * 10, // 10 minutes — master data rarely changes
   });
 
   const masterRKs = useMemo(() => masterData?.masterRKs || [], [masterData]);
   const ketuaTims = useMemo(() => masterData?.ketuaTims || [], [masterData]);
+  const masterKegiatan = useMemo(() => masterData?.masterKegiatan || [], [masterData]);
   const uniqueTeams = useMemo<{tim_kerja: string, ketua_tim_id: string}[]>(() => {
     const seen = new Set<string>();
     const teams: {tim_kerja: string, ketua_tim_id: string}[] = [];
