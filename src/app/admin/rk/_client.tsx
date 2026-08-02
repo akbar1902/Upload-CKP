@@ -14,6 +14,7 @@ export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: 
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState('');
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
   // Modal States
@@ -55,15 +56,41 @@ export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: 
 
   const { rks, subsByRk, ketuaTims } = data || { rks: [], subsByRk: {}, ketuaTims: [] };
 
+  const uniqueTeams = useMemo(() => {
+    const teams = new Set<string>();
+    rks.forEach((r: any) => {
+      if (r.tim_kerja) teams.add(r.tim_kerja);
+    });
+    return Array.from(teams).sort();
+  }, [rks]);
+
   const filteredRks = useMemo(() => {
-    if (!search.trim()) return rks;
-    const q = search.toLowerCase();
-    return rks.filter((r: any) => 
-      r.rencana_kinerja.toLowerCase().includes(q) ||
-      (r.tim_kerja && r.tim_kerja.toLowerCase().includes(q)) ||
-      (r.ketua_tim?.full_name && r.ketua_tim.full_name.toLowerCase().includes(q))
-    );
-  }, [rks, search]);
+    let result = rks;
+    
+    if (selectedTeam) {
+      result = result.filter((r: any) => r.tim_kerja === selectedTeam);
+    }
+    
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter((r: any) => 
+        r.rencana_kinerja.toLowerCase().includes(q) ||
+        (r.tim_kerja && r.tim_kerja.toLowerCase().includes(q)) ||
+        (r.ketua_tim?.full_name && r.ketua_tim.full_name.toLowerCase().includes(q))
+      );
+    }
+    
+    return result;
+  }, [rks, search, selectedTeam]);
+
+  const groupedRks = useMemo(() => {
+    return filteredRks.reduce((acc: any, rk: any) => {
+      const team = rk.tim_kerja || 'Tanpa Tim Kerja';
+      if (!acc[team]) acc[team] = [];
+      acc[team].push(rk);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [filteredRks]);
 
   const handleDeleteMaster = async (id: string, name: string) => {
     if (confirm(`Yakin ingin menghapus RK Utama: ${name}?`)) {
@@ -163,16 +190,31 @@ export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: 
           </div>
         </div>
 
-        <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-          <input
-            type="search"
-            placeholder="Cari Rencana Kinerja, Tim Kerja, Ketua Tim..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 h-10 text-[13px] rounded-xl border focus:ring-2 outline-none transition-colors"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Cari Rencana Kinerja, Tim Kerja, Ketua Tim..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 h-10 text-[13px] rounded-xl border focus:ring-2 outline-none transition-colors"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            />
+          </div>
+          <div className="w-full sm:w-64">
+            <select
+              className="w-full h-10 text-[13px] px-3 rounded-xl border outline-none transition-colors"
+              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+            >
+              <option value="">Semua Tim Kerja</option>
+              {uniqueTeams.map((team) => (
+                <option key={team} value={team}>{team}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {isPending ? (
@@ -186,84 +228,89 @@ export default function AdminRencanaKinerjaClient({ initialRks }: { initialRks: 
                 <tr>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)] w-10"></th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Rencana Kinerja Utama</th>
-                  <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Tim Kerja</th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Ketua Tim</th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)] text-right">Aksi</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredRks.map((r: any) => {
-                  const isExpanded = expandedRowId === r.id;
-                  const subs = subsByRk[r.id] || [];
-                  return (
-                    <React.Fragment key={r.id}>
-                      <tr className={`border-b last:border-b-0 transition-colors ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} style={{ borderColor: 'var(--border)' }}>
-                        <td className="px-4 py-3 text-center">
-                          <button 
-                            onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
-                            className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                            style={{ color: 'var(--text-tertiary)' }}
-                          >
-                            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                          </button>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="font-semibold line-clamp-2 max-w-md" style={{ color: 'var(--text-primary)' }}>{r.rencana_kinerja}</div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="badge-pill bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[11px] px-2 py-0.5">
-                            {r.tim_kerja || '—'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div style={{ color: 'var(--text-primary)' }}>{r.ketua_tim?.full_name || 'Belum di-set'}</div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button 
-                              onClick={() => { setSelectedRkForSub(r); setShowAddSubModal(true); }} 
-                              title="Tambah Sub-RK" 
-                              className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 transition-colors border border-emerald-200 dark:border-emerald-800"
-                            >
-                              <Plus size={14} />
-                            </button>
-                            <button onClick={() => handleDeleteMaster(r.id, r.rencana_kinerja)} title="Hapus RK Master" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 transition-colors">
-                              <Trash2 size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                      {/* Expanded Row for Sub-RKs */}
-                      {isExpanded && (
-                        <tr className="bg-slate-50/50 dark:bg-slate-900/30" style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td></td>
-                          <td colSpan={4} className="p-4">
-                            <div className="rounded-lg border shadow-inner p-4" style={{ background: 'var(--bg-base)', borderColor: 'var(--border)' }}>
-                              <h4 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Daftar Kegiatan Anggota (Sub-RK)</h4>
-                              {subs.length > 0 ? (
-                                <ul className="space-y-2">
-                                  {subs.map((sub: any, idx: number) => (
-                                    <li key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                                      <div className="flex items-start gap-2">
-                                        <span className="text-xs text-slate-400 mt-0.5">{idx + 1}.</span>
-                                        <span className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{sub.kegiatan_nama}</span>
-                                      </div>
-                                      <button onClick={() => handleDeleteSub(sub.id, sub.kegiatan_nama)} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              ) : (
-                                <p className="text-[13px] text-slate-500 italic">Belum ada Sub-RK yang dipetakan ke RK Utama ini.</p>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  );
-                })}
+                {Object.entries(groupedRks).map(([team, rksInTeam]) => (
+                  <React.Fragment key={team}>
+                    {/* Header Tim Kerja */}
+                    <tr className="bg-slate-100 dark:bg-slate-800/80">
+                      <td colSpan={4} className="px-4 py-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
+                        Tim Kerja: <span className="text-blue-600 dark:text-blue-400">{team}</span>
+                      </td>
+                    </tr>
+                    {/* Render RKs */}
+                    {(rksInTeam as any[]).map((r: any) => {
+                      const isExpanded = expandedRowId === r.id;
+                      const subs = subsByRk[r.id] || [];
+                      return (
+                        <React.Fragment key={r.id}>
+                          <tr className={`border-b last:border-b-0 transition-colors ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} style={{ borderColor: 'var(--border)' }}>
+                            <td className="px-4 py-3 text-center">
+                              <button 
+                                onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
+                                className="p-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                                style={{ color: 'var(--text-tertiary)' }}
+                              >
+                                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                              </button>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="font-semibold line-clamp-2 max-w-md" style={{ color: 'var(--text-primary)' }}>{r.rencana_kinerja}</div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div style={{ color: 'var(--text-primary)' }}>{r.ketua_tim?.full_name || 'Belum di-set'}</div>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex justify-end gap-2">
+                                <button 
+                                  onClick={() => { setSelectedRkForSub(r); setShowAddSubModal(true); }} 
+                                  title="Tambah Sub-RK" 
+                                  className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 transition-colors border border-emerald-200 dark:border-emerald-800"
+                                >
+                                  <Plus size={14} />
+                                </button>
+                                <button onClick={() => handleDeleteMaster(r.id, r.rencana_kinerja)} title="Hapus RK Master" className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 transition-colors">
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                          {/* Expanded Row for Sub-RKs */}
+                          {isExpanded && (
+                            <tr className="bg-slate-50/50 dark:bg-slate-900/30" style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td></td>
+                              <td colSpan={3} className="p-4">
+                                <div className="rounded-lg border shadow-inner p-4" style={{ background: 'var(--bg-base)', borderColor: 'var(--border)' }}>
+                                  <h4 className="text-xs font-bold mb-3 uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>Daftar Kegiatan Anggota (Sub-RK)</h4>
+                                  {subs.length > 0 ? (
+                                    <ul className="space-y-2">
+                                      {subs.map((sub: any, idx: number) => (
+                                        <li key={sub.id} className="flex items-center justify-between p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                                          <div className="flex items-start gap-2">
+                                            <span className="text-xs text-slate-400 mt-0.5">{idx + 1}.</span>
+                                            <span className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{sub.kegiatan_nama}</span>
+                                          </div>
+                                          <button onClick={() => handleDeleteSub(sub.id, sub.kegiatan_nama)} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
+                                            <Trash2 size={14} />
+                                          </button>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <p className="text-[13px] text-slate-500 italic">Belum ada Sub-RK yang dipetakan ke RK Utama ini.</p>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </React.Fragment>
+                ))}
                 {filteredRks.length === 0 && (
                   <tr>
                     <td colSpan={5} className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>
