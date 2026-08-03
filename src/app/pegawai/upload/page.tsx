@@ -17,10 +17,10 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import masterMappingDataRaw from '@/data/master_mapping.json';
 
 export default function UploadPage() {
   const { user, loading: authLoading } = useAuth();
@@ -80,7 +80,6 @@ export default function UploadPage() {
   }, [masterRKs]);
 
   React.useEffect(() => {
-    if (!ketuaTims.length) return;
     const activeTeams = Array.from(new Set(ketuaTims.map((k: any) => k.unit_kerja).filter(Boolean))) as string[];
     const teamsMap = new Map<string, string>();
     masterRKs.forEach((rk: any) => { if (rk.tim_kerja) teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || ''); });
@@ -138,8 +137,17 @@ export default function UploadPage() {
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
 
-  const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const normalize = (str: string) => (str || '').toLowerCase().replace(/tahun\s*20\d{2}/g, '').replace(/[^a-z0-9]/g, '');
   
+  const localSubRkMap = useMemo(() => {
+    const map = new Map<string, string>();
+    (masterMappingDataRaw as Array<{rk_ketua: string, sub_rk: string[]}>).forEach(item => {
+      item.sub_rk.forEach(sub => {
+        map.set(normalize(sub), item.rk_ketua);
+      });
+    });
+    return map;
+  }, []);
 
   const getSimilarity = (s1: string, s2: string) => {
     if (!s1 || !s2) return 0;
@@ -270,28 +278,42 @@ export default function UploadPage() {
     const newUnmatched = new Set<string>();
 
     parseResult.entries.forEach(entry => {
-      const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+      let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+      if (!rawRK.trim()) {
+         rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
+      }
       if (!rawRK.trim()) return;
       
       let trueRK = '';
+      const normRawRK = normalize(rawRK);
       
-      // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota (misal: "Laporan Cuti")
-      const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
-      
-      if (kegiatanMatch) {
-         // Jika ya, RK Aslinya adalah RK Ketua yang menaungi kegiatan tersebut
-         trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-         
-         // Jika kolom kegiatan di Excel kosong, kita pindahkan string ini ke kolom kegiatan
-         // Karena string ini memang sebuah kegiatan, bukan RK Induk
+      if (localSubRkMap.has(normRawRK)) {
+         trueRK = localSubRkMap.get(normRawRK)!;
          if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
             entry.kegiatan = rawRK;
+         } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
+            entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
          }
          entry.rencana_kinerja = trueRK;
       } else {
-         // Jika bukan kegiatan anggota, kita asumsikan itu memang RK (atau RK baru)
-         trueRK = fuzzyMatchRK(rawRK, masterNames);
-         entry.rencana_kinerja = trueRK; 
+         // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota (misal: "Laporan Cuti")
+         const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+         
+         if (kegiatanMatch) {
+            // Jika ya, RK Aslinya adalah RK Ketua yang menaungi kegiatan tersebut
+            trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+            
+            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+               entry.kegiatan = rawRK;
+            } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
+               entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
+            }
+            entry.rencana_kinerja = trueRK;
+         } else {
+            // Jika bukan kegiatan anggota, kita asumsikan itu memang RK (atau RK baru)
+            trueRK = fuzzyMatchRK(rawRK, masterNames);
+            entry.rencana_kinerja = trueRK; 
+         }
       }
       
       if (!masterNames.includes(trueRK)) {
@@ -408,21 +430,42 @@ export default function UploadPage() {
       setUploadProgress(90);
 
       const entriesToInsert = parseResult.entries.map((entry) => {
-        const rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+        let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+        if (!rawRK.trim()) {
+           rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
+        }
         let matchedRK = '';
         
-        const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
-        if (kegiatanMatch) {
-            matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') entry.kegiatan = rawRK;
+        const normRawRK = normalize(rawRK);
+        if (localSubRkMap.has(normRawRK)) {
+            matchedRK = localSubRkMap.get(normRawRK)!;
+            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+               entry.kegiatan = rawRK;
+            } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
+               entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
+            }
         } else {
-            matchedRK = fuzzyMatchRK(rawRK, masterNames);
-            if (!masterNames.includes(matchedRK) && rkTeamMapping[matchedRK]?.rk_id) {
-               const mappedRKObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
-               if (mappedRKObj) {
-                  if (!entry.kegiatan || String(entry.kegiatan).trim() === '') entry.kegiatan = rawRK;
-                  matchedRK = mappedRKObj.rencana_kinerja;
-               }
+            const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+            if (kegiatanMatch) {
+                matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+                if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                   entry.kegiatan = rawRK;
+                } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
+                   entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
+                }
+            } else {
+                matchedRK = fuzzyMatchRK(rawRK, masterNames);
+                if (!masterNames.includes(matchedRK) && rkTeamMapping[matchedRK]?.rk_id) {
+                   const mappedRKObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
+                   if (mappedRKObj) {
+                      if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                         entry.kegiatan = rawRK;
+                      } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
+                         entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
+                      }
+                      matchedRK = mappedRKObj.rencana_kinerja;
+                   }
+                }
             }
         }
         
