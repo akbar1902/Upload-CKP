@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
@@ -213,6 +213,8 @@ function RencanaKinerjaGroup({
 
 export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: string }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const source = searchParams.get('source');
   const { user: currentUser, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
@@ -233,16 +235,35 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         .from('ckp_uploads').select('*').eq('id', uploadId).single();
       if (uploadError) throw new Error(uploadError.message);
 
-      const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
+      const [employeeRes, entriesRes, approvalsRes, currentUserRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
         supabase.from('ckp_entries').select('*').eq('upload_id', uploadId).order('row_number'),
         supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').eq('upload_id', uploadId).order('created_at', { ascending: false }),
+        currentUser ? supabase.from('users').select('role').eq('id', currentUser.id).single() : Promise.resolve({ data: null }),
       ]);
+
+      let entriesData = (entriesRes.data as CKPEntry[]) || [];
+      const employeeData = employeeRes.data as User;
+      const currentUserData = currentUserRes.data;
+
+      if (source === 'ketua_tim' && currentUserData?.role === 'pimpinan' && employeeData.role === 'ketua_tim') {
+        const { data: rkMapping } = await supabase
+          .from('rk_ketua_tim_mapping')
+          .select('rencana_kinerja')
+          .eq('ketua_tim_id', employeeData.id);
+          
+        if (rkMapping && rkMapping.length > 0) {
+          const ownRks = rkMapping.map((m: any) => m.rencana_kinerja);
+          entriesData = entriesData.filter((e: any) => e.rencana_kinerja && ownRks.includes(e.rencana_kinerja));
+        } else {
+          entriesData = [];
+        }
+      }
 
       return {
         upload: uploadData as CKPUpload,
-        employee: employeeRes.data as User,
-        entries: (entriesRes.data as CKPEntry[]) || [],
+        employee: employeeData,
+        entries: entriesData,
         approvals: (approvalsRes.data || []).map((a: any) => ({ ...a })) as Approval[],
       };
     },

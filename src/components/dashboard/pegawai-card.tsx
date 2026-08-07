@@ -10,7 +10,7 @@ export interface PegawaiRow {
   upload: (CKPUpload & { user?: User }) | null;
 }
 
-export function PegawaiCard({ row }: { row: PegawaiRow }) {
+export function PegawaiCard({ row, source }: { row: PegawaiRow, source?: string }) {
   const { user, upload } = row;
   const initials = user.full_name
     .split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -45,7 +45,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
               <p className="text-[11px] sm:text-[12px] mt-0.5 truncate"
-                 style={{ color: 'var(--text-tertiary)' }}>{user.nip || '—'}</p>
+                 style={{ color: 'var(--text-tertiary)' }}>{user.unit_kerja || user.nip || '—'}</p>
               
               {/* Badge on Mobile (Centered under name) */}
               <div className="mt-1.5 sm:hidden inline-block">
@@ -102,7 +102,7 @@ export function PegawaiCard({ row }: { row: PegawaiRow }) {
       <div className="mt-auto pt-1">
         {hasUpload ? (
           <Link
-            href={`/penilaian/${upload!.id}`}
+            href={`/penilaian/${upload!.id}${source ? `?source=${source}` : ''}`}
             className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
             style={{
               color: 'var(--text-secondary)',
