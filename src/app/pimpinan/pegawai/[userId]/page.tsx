@@ -11,7 +11,8 @@ export default async function PimpinanPegawaiDetailPage({
 }) {
   const { userId } = await params;
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) redirect('/login');
   if (!userId) redirect('/pimpinan/pegawai');

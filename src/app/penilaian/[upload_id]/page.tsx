@@ -15,7 +15,8 @@ export default async function PenilaianCKPDetailPage({
   const resolvedParams = await searchParams;
   const source = resolvedParams.source as string | undefined;
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) redirect('/login');
   if (!upload_id) redirect('/');

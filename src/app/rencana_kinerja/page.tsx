@@ -9,7 +9,8 @@ export const metadata = {
 export default async function RencanaKinerjaPage() {
   const supabase = await createServerSupabaseClient();
   // 1. Dapatkan info auth
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  const { data: { session }, error: authError } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (authError || !user) {
     redirect("/login");

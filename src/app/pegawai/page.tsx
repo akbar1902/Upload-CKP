@@ -6,7 +6,8 @@ import PegawaiDashboardClient from './_client';
 
 export default async function PegawaiPage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
 
   if (!user) redirect('/login');
 
