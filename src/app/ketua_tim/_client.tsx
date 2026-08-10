@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getBulanName } from '@/lib/utils';
+import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
@@ -29,8 +29,9 @@ export default function KetuaTimDashboardClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const defaultPeriod = getDefaultPeriod(10);
+  const currentMonth = defaultPeriod.bulan;
+  const currentYear = defaultPeriod.tahun;
 
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');

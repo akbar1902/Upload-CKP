@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
-import { getBulanName, formatDateTime } from '@/lib/utils';
+import { getBulanName, formatDateTime, getDefaultPeriod } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import {
   FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
@@ -142,8 +142,9 @@ export default function PegawaiDashboard() {
     queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user?.id] });
   }, [queryClient, user?.id]);
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const defaultPeriod = getDefaultPeriod(10);
+  const currentMonth = defaultPeriod.bulan;
+  const currentYear = defaultPeriod.tahun;
 
   const { data: uploads, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pegawai-uploads', user?.id],

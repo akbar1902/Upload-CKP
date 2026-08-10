@@ -2,14 +2,27 @@ import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import type { CKPUpload } from '@/types/database';
+import { getDefaultPeriod } from '@/lib/utils';
 import PegawaiDashboardClient from './_client';
 
-export default async function PegawaiPage() {
+export default async function PegawaiPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+}) {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
 
   if (!user) redirect('/login');
+
+  const resolvedParams = await searchParams;
+  const qBulan = resolvedParams.bulan ? parseInt(resolvedParams.bulan as string) : undefined;
+  const qTahun = resolvedParams.tahun ? parseInt(resolvedParams.tahun as string) : undefined;
+
+  const defaultPeriod = getDefaultPeriod(10);
+  const bulan = qBulan || defaultPeriod.bulan;
+  const tahun = qTahun || defaultPeriod.tahun;
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 1000 * 60 * 2 } },

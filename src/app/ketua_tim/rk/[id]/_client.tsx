@@ -8,7 +8,7 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getBulanName, formatDate } from '@/lib/utils';
+import { getBulanName, formatDate, getDefaultPeriod } from '@/lib/utils';
 import { gradeRencanaKinerjaAction } from '@/app/actions/penilaian';
 import type { CKPUpload, CKPEntry, User } from '@/types/database';
 import { toast } from 'sonner';
@@ -225,8 +225,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const defaultPeriod = getDefaultPeriod(10);
+  const currentMonth = defaultPeriod.bulan;
+  const currentYear = defaultPeriod.tahun;
   
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');

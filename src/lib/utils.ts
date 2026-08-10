@@ -149,3 +149,25 @@ export async function executeWithRetry<T>(
     }
   }
 }
+
+/**
+ * Smart Default Period:
+ * Determines the default month and year for CKP dashboards.
+ * If the current date is <= cutoffDate (default 10), it returns the previous month.
+ * Otherwise, it returns the current month.
+ */
+export function getDefaultPeriod(cutoffDate: number = 10): { bulan: number; tahun: number } {
+  const now = new Date();
+  let bulan = now.getMonth() + 1;
+  let tahun = now.getFullYear();
+
+  if (now.getDate() <= cutoffDate) {
+    bulan -= 1;
+    if (bulan === 0) {
+      bulan = 12;
+      tahun -= 1;
+    }
+  }
+
+  return { bulan, tahun };
+}
