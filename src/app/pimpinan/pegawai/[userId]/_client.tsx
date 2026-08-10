@@ -215,7 +215,7 @@ export default function PimpinanPegawaiDetailPage() {
                           <td className="py-3 px-4 text-center"><UploadStatusBadge status={upload.status} /></td>
                           <td className="py-3 px-4 text-xs" style={{ color: 'var(--text-tertiary)' }}>{formatDateTime(upload.uploaded_at)}</td>
                           <td className="py-3 px-4 text-right">
-                            <Link href={`/penilaian/${upload.id}`}>
+                            <Link href={`/penilaian/${upload.id}`} prefetch={true}>
                               <Button variant="ghost" size="sm" className="opacity-70 group-hover:opacity-100">
                                 Review <ArrowRight className="h-3.5 w-3.5" />
                               </Button>

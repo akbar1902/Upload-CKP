@@ -26,29 +26,31 @@ export interface ActivityCardProps {
 
 export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const queryClient = useQueryClient();
 
   const handleDelete = async () => {
-    setIsDeleting(true);
+    // 1. Optimistic Delete
     const toastId = toast.loading('Menghapus CKP...');
+    
+    // Backup old data
+    const previousUploads = queryClient.getQueryData(['pegawai-uploads', upload.user_id]);
+    queryClient.setQueryData(['pegawai-uploads', upload.user_id], (old: CKPUpload[] | undefined) => {
+      if (!old) return old;
+      return old.filter(u => u.id !== upload.id);
+    });
+
     try {
       const res = await deleteCkpUploadAction(upload.id);
       if (res.success) {
         toast.success('CKP berhasil dihapus', { id: toastId });
-        if (onDeleteSuccess) {
-          onDeleteSuccess();
-        } else {
-          queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
-        }
       } else {
-        toast.error(res.error || 'Gagal menghapus CKP', { id: toastId });
+        throw new Error(res.error || 'Gagal menghapus CKP');
       }
     } catch (e: any) {
-      toast.error(e.message || 'Terjadi kesalahan', { id: toastId });
-    } finally {
-      setIsDeleting(false);
+      // 2. Rollback on failure
+      queryClient.setQueryData(['pegawai-uploads', upload.user_id], previousUploads);
+      toast.error(e.message || 'Terjadi kesalahan saat menghapus', { id: toastId });
     }
   };
 
@@ -223,9 +225,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           {/* CTA & Actions */}
           <div className="flex flex-row w-full items-center justify-between gap-3 mt-5 pt-5 border-t"
                style={{ borderColor: 'var(--border)' }}>
-            <Link
-              href={`/pegawai/ckp/${upload.id}`}
-              className="inline-flex items-center gap-2 text-[13px] font-medium transition-colors"
+            <Link prefetch={true} href={`/pegawai/ckp/${upload.id}`} className="inline-flex items-center gap-2 text-[13px] font-medium transition-colors"
               style={{ color: 'var(--primary)' }}
             >
               Lihat Detail Lengkap <ArrowRight size={13} />
@@ -237,29 +237,26 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
                   <span className="text-[12px] text-slate-500 hidden sm:inline">Yakin hapus?</span>
                   <button
                     onClick={() => setShowConfirmDelete(false)}
-                    disabled={isDeleting}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
                   >
                     Batal
                   </button>
                   <button
                     onClick={handleDelete}
-                    disabled={isDeleting}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-red-600 hover:bg-red-700 transition-colors disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
                   >
-                    {isDeleting ? '...' : 'Ya, Hapus'}
+                    Ya, Hapus
                   </button>
                 </div>
               ) : (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200"
-                  style={{ color: 'var(--danger)' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-colors"
+                  style={{ color: 'var(--danger)', border: '1px solid var(--danger-soft)', background: 'var(--danger-soft)' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
                 >
-                  <Trash2 size={13} />
-                  Hapus CKP
+                  <Trash2 size={13} /> Hapus
                 </button>
               )
             )}

@@ -36,7 +36,6 @@ import { toast } from 'sonner';
 
 // ── Grid card (alternate view) ─────────────────────────────
 function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
-  const [isDeleting, setIsDeleting] = useState(false);
   const queryClient = useQueryClient();
   const pct = Math.min(upload.avg_progres || 0, 100);
   const progressClass = getProgressClass(pct);
@@ -48,24 +47,30 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       return;
     }
     
-    setIsDeleting(true);
+    // 1. Optimistic Delete (Remove from UI instantly)
     const toastId = toast.loading('Menghapus CKP...');
+    
+    // Backup old data for rollback
+    const previousUploads = queryClient.getQueryData(['pegawai-uploads', upload.user_id]);
+    queryClient.setQueryData(['pegawai-uploads', upload.user_id], (old: CKPUpload[] | undefined) => {
+      if (!old) return old;
+      return old.filter(u => u.id !== upload.id);
+    });
+
     try {
       const res = await deleteCkpUploadAction(upload.id);
       if (res.success) {
         toast.success('CKP berhasil dihapus', { id: toastId });
         if (onDeleteSuccess) {
           onDeleteSuccess();
-        } else {
-          queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
         }
       } else {
-        toast.error(res.error || 'Gagal menghapus', { id: toastId });
+        throw new Error(res.error || 'Gagal menghapus');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Terjadi kesalahan', { id: toastId });
-    } finally {
-      setIsDeleting(false);
+      // 2. Rollback on failure
+      queryClient.setQueryData(['pegawai-uploads', upload.user_id], previousUploads);
+      toast.error(err.message || 'Terjadi kesalahan saat menghapus', { id: toastId });
     }
   };
 
@@ -101,6 +106,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       <div className="flex items-center gap-2 mt-2">
         <Link
           href={`/pegawai/ckp/${upload.id}`}
+          prefetch={true}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200"
           style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.08)' }}
         >
@@ -109,7 +115,6 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         {canDelete && (
           <button
             onClick={handleDelete}
-            disabled={isDeleting}
             title="Hapus CKP"
             className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 disabled:opacity-50"
             style={{ color: 'var(--danger)' }}
@@ -306,7 +311,7 @@ export default function PegawaiDashboard() {
               {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </p>
           </div>
-          <Link href="/pegawai/upload">
+          <Link href="/pegawai/upload" prefetch={true}>
             <button className="btn-primary">
               <Plus size={15} />
               Upload CKP
@@ -464,9 +469,9 @@ export default function PegawaiDashboard() {
                   : 'Upload CKP bulanan pertama Anda untuk mulai.'}
               </p>
               {!searchQuery && (
-                <Link href="/pegawai/upload">
-                  <button className="btn-primary">
-                    <Upload size={14} /> Upload Sekarang
+                <Link href="/pegawai/upload" prefetch={true}>
+                  <button className="px-5 py-2.5 rounded-full bg-[var(--primary)] text-white text-[13px] font-medium shadow-sm hover:shadow transition-all duration-200">
+                    Upload CKP Baru
                   </button>
                 </Link>
               )}

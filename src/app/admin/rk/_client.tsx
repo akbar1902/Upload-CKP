@@ -177,6 +177,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
           </div>
           <div className="flex gap-2">
             <Link 
+              prefetch={true}
               href="/admin/rk/import"
               className="btn-secondary flex items-center gap-2 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30"
             >

@@ -340,6 +340,7 @@ export default function PimpinanKetuaTimDashboardClient() {
             </div>
             <Link
               href="/pimpinan/pegawai"
+              prefetch={true}
               className="text-[13px] font-medium flex items-center gap-1 transition-colors"
               style={{ color: 'var(--primary)' }}
             >

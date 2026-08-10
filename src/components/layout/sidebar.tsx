@@ -264,6 +264,7 @@ export function Sidebar() {
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={true}
                       onClick={() => setMobileOpen(false)}
                       className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
                       style={
@@ -302,11 +303,11 @@ export function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               onClick={() => setMobileOpen(false)}
               title={item.label}
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
-              prefetch={!isPlaceholder}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
                 collapsed && "justify-center px-3"

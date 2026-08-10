@@ -103,6 +103,7 @@ export function PegawaiCard({ row, source }: { row: PegawaiRow, source?: string 
         {hasUpload ? (
           <Link
             href={`/penilaian/${upload!.id}${source ? `?source=${source}` : ''}`}
+            prefetch={true}
             className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
             style={{
               color: 'var(--text-secondary)',

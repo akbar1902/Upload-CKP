@@ -446,6 +446,7 @@ export default function KetuaTimDashboardClient() {
     <Link
       key={rk.id}
       href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`}
+      prefetch={true}
       onMouseEnter={() => prefetchRkDetail(rk.id)}
       className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block"
     >

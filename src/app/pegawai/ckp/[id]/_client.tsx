@@ -537,7 +537,7 @@ export default function CKPDetailPage() {
             </button>
             {canReupload && (
               <>
-                <Link href="/pegawai/upload">
+                <Link href="/pegawai/upload" prefetch={true}>
                   <button className="btn-secondary"
                     style={{ color: '#D97706', borderColor: '#FDE68A' }}>
                     <RefreshCw size={14} /> Upload Ulang
@@ -585,7 +585,7 @@ export default function CKPDetailPage() {
                 CKP Anda telah ditolak. Silakan upload ulang setelah diperbaiki.
               </p>
             </div>
-            <Link href="/pegawai/upload">
+            <Link href="/pegawai/upload" prefetch={true}>
               <button className="btn-primary text-[12px] py-1.5 px-3"
                 style={{ background: '#DC2626' }}>Upload Ulang</button>
             </Link>

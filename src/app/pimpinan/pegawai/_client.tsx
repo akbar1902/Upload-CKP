@@ -83,6 +83,7 @@ function StaffCard({ u, index }: { u: User; index: number }) {
         {/* CTA */}
         <Link
           href={`/pimpinan/pegawai/${u.id}`}
+          prefetch={true}
           className="flex items-center gap-2 flex-shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all"
           style={{
             background: 'var(--primary-soft)',
