@@ -11,11 +11,12 @@ import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName } from '@/lib/utils';
 import { exportRekapToExcel } from '@/lib/excel/exporter';
+import { downloadAllCkpZip } from '@/lib/zip/exporter';
 import type { CKPUpload, UploadStatus, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   Users, Clock, CheckCircle2, Search,
-  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp,
+  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, Archive
 } from 'lucide-react';
 
 import { KPICard } from '@/components/dashboard/kpi-card';
@@ -46,6 +47,7 @@ export default function PimpinanDashboard() {
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [isZipping, setIsZipping] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -242,6 +244,19 @@ export default function PimpinanDashboard() {
     return getBulanName(p as number);
   };
 
+  const handleDownloadZip = async () => {
+    try {
+      setIsZipping(true);
+      toast.loading('Sedang menyiapkan file ZIP...', { id: 'zip-download' });
+      await downloadAllCkpZip(uploads, bulan, tahun);
+      toast.success('File ZIP berhasil diunduh', { id: 'zip-download' });
+    } catch (err: any) {
+      toast.error(err.message || 'Gagal mendownload ZIP', { id: 'zip-download' });
+    } finally {
+      setIsZipping(false);
+    }
+  };
+
   const handleExportRekap = () => {
     exportRekapToExcel(uploads, bulan, tahun);
     toast.success('Rekap Excel berhasil diunduh');
@@ -310,6 +325,15 @@ export default function PimpinanDashboard() {
               aria-label="Export rekap ke Excel"
             >
               <Download className="h-4 w-4" />
+            </button>
+            <button
+              onClick={handleDownloadZip}
+              disabled={isZipping || uploads.length === 0}
+              className="filter-btn"
+              title="Download semua file asli (ZIP)"
+              aria-label="Download semua file asli (ZIP)"
+            >
+              <Archive className={`h-4 w-4 ${isZipping ? 'animate-pulse opacity-50' : ''}`} />
             </button>
           </div>
         </div>

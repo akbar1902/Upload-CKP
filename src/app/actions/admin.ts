@@ -228,3 +228,89 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function toggleEmployeeStatus(userId: string, currentStatus: boolean) {
+  try {
+    const newStatus = !currentStatus;
+    
+    // Update in public.users
+    const { error: dbError } = await supabaseAdmin
+      .from('users')
+      .update({ is_active: newStatus })
+      .eq('id', userId);
+
+    if (dbError) throw dbError;
+
+    // Optional: block login via Auth API if deactivating (though useAuth might already redirect out)
+    // Actually, setting ban_duration is a robust way to prevent login.
+    if (!newStatus) {
+      await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: '87600h' }); // 10 years ban
+    } else {
+      await supabaseAdmin.auth.admin.updateUserById(userId, { ban_duration: 'none' });
+    }
+
+    revalidatePath('/admin/pegawai');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
+  try {
+    // 1. Ambil data ketua tim lama untuk mewariskan unit_kerja (nama tim)
+    const { data: oldUser } = await supabaseAdmin
+      .from('users')
+      .select('unit_kerja')
+      .eq('id', oldUserId)
+      .single();
+    const oldUnitKerja = oldUser?.unit_kerja || null;
+
+    // 2. Ambil nama ketua tim baru untuk log atau verifikasi
+    const { data: newUser, error: fetchError } = await supabaseAdmin
+      .from('users')
+      .select('full_name, role')
+      .eq('id', newUserId)
+      .single();
+
+    if (fetchError || !newUser) {
+      return { success: false, error: 'Pengganti tidak ditemukan' };
+    }
+
+    // 2. Update rk_ketua_tim_mapping
+    const { error: updateMappingError } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .update({ ketua_tim_id: newUserId })
+      .eq('ketua_tim_id', oldUserId);
+
+    if (updateMappingError) throw updateMappingError;
+
+    // 3. Jadikan ketua tim lama sebagai anggota (jika belum dideaktifasi)
+    const { error: demoteError } = await supabaseAdmin
+      .from('users')
+      .update({ role: 'anggota' })
+      .eq('id', oldUserId)
+      .eq('role', 'ketua_tim');
+    
+    if (demoteError) throw demoteError;
+
+    // 4. Jadikan penggantinya sebagai ketua tim dan warisi nama tim (unit_kerja)
+    const { error: promoteError } = await supabaseAdmin
+      .from('users')
+      .update({ role: 'ketua_tim', unit_kerja: oldUnitKerja })
+      .eq('id', newUserId);
+
+    if (promoteError) throw promoteError;
+
+    // 5. Update auth metadata for the new ketua_tim so their session reflects the new role
+    // and also for old user.
+    await supabaseAdmin.auth.admin.updateUserById(newUserId, { user_metadata: { role: 'ketua_tim' } });
+    await supabaseAdmin.auth.admin.updateUserById(oldUserId, { user_metadata: { role: 'anggota' } });
+
+    revalidatePath('/admin/pegawai');
+    revalidatePath('/admin/rk');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}

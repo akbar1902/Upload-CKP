@@ -29,7 +29,19 @@ export default async function AdminPegawaiPage() {
     console.error('Error fetching users (SSR):', error);
   }
 
-  const initialUsers = (data as User[]) ?? [];
+  const { data: mappings } = await supabase.from('rk_ketua_tim_mapping').select('ketua_tim_id, tim_kerja').not('ketua_tim_id', 'is', null);
 
-  return <AdminPegawaiClient initialUsers={initialUsers} />;
+  const initialUsers = (data as (User & { managed_teams?: string })[]) ?? [];
+  if (mappings && initialUsers.length > 0) {
+    initialUsers.forEach(u => {
+      if (u.role === 'ketua_tim') {
+        const tims = mappings.filter((m: any) => m.ketua_tim_id === u.id).map((m: any) => m.tim_kerja).filter(Boolean);
+        if (tims.length > 0) {
+          u.managed_teams = [...new Set(tims)].join(', ');
+        }
+      }
+    });
+  }
+
+  return <AdminPegawaiClient initialUsers={initialUsers as User[]} />;
 }
