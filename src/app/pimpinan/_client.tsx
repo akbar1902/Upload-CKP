@@ -98,7 +98,7 @@ export default function PimpinanDashboard() {
           uploadsQuery.abortSignal(controller.signal),
           supabase
             .from('users')
-            .select('*')
+            .select('id, email, full_name, nip, role, unit_kerja, is_active')
             .in('role', ['anggota', 'ketua_tim'])
             .eq('is_active', true)
             .order('full_name')

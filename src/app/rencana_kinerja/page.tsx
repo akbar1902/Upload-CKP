@@ -52,28 +52,29 @@ export default async function RencanaKinerjaPage() {
     myManagedRKs = data || [];
   }
 
-  // 4. Fetch audit logs (History)
-  const { data: myAuditLogsRes } = await supabase
-    .from('audit_logs')
-    .select('*, user:users(full_name, role)')
-    .eq('entity_type', 'rencana_kinerja')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  let teamAuditLogsRes: any[] = [];
-  if (isKetuaTimOrAdmin && myManagedRKs.length > 0) {
-    const rkIds = myManagedRKs.map(rk => rk.id);
-    const { data } = await supabase
+  // 4. Fetch audit logs secara paralel (myLogs & teamLogs tidak saling bergantung)
+  const rkIds = myManagedRKs.map(rk => rk.id);
+  const [myAuditLogsRes, teamAuditLogsResult] = await Promise.all([
+    supabase
       .from('audit_logs')
       .select('*, user:users(full_name, role)')
       .eq('entity_type', 'rencana_kinerja')
-      .in('entity_id', rkIds)
-      .neq('user_id', user.id)
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
-      .limit(100);
-    teamAuditLogsRes = data || [];
-  }
+      .limit(100),
+    isKetuaTimOrAdmin && rkIds.length > 0
+      ? supabase
+          .from('audit_logs')
+          .select('*, user:users(full_name, role)')
+          .eq('entity_type', 'rencana_kinerja')
+          .in('entity_id', rkIds)
+          .neq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(100)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+
+  const teamAuditLogsRes = 'data' in teamAuditLogsResult ? (teamAuditLogsResult.data ?? []) : [];
 
   // Ambil daftar unik tim_kerja untuk autocomplete
   const timKerjaList = Array.from(new Set((allRKs || []).map(rk => rk.tim_kerja).filter(Boolean)));
@@ -86,7 +87,7 @@ export default async function RencanaKinerjaPage() {
       myManagedRKs={myManagedRKs}
       allUsers={allUsers || []}
       timKerjaList={timKerjaList}
-      auditLogs={myAuditLogsRes || []}
+      auditLogs={myAuditLogsRes.data || []}
       teamAuditLogs={teamAuditLogsRes}
     />
   );

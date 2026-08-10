@@ -131,6 +131,13 @@ export async function updateSession(request: NextRequest) {
       return redirectResponse;
     }
 
+    // Protect admin routes
+    if (pathname.startsWith('/admin') && role !== 'admin') {
+      const url = request.nextUrl.clone();
+      url.pathname = isPimpinan ? '/pimpinan' : (role === 'ketua_tim' ? '/ketua_tim' : '/pegawai');
+      return NextResponse.redirect(url);
+    }
+
     // Protect pimpinan routes
     if (pathname.startsWith('/pimpinan') && !isPimpinan) {
       const url = request.nextUrl.clone();
@@ -145,13 +152,9 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Since everyone can access /pegawai (to upload their own CKP), 
-    // we don't strictly redirect pimpinan/ketua_tim away from /pegawai.
-    // However, if they just visit `/pegawai` explicitly without wanting to, it's fine,
-    // they can just use the navigation menu to go back.
-    // Wait, the previous logic redirected pimpinan away from /pegawai:
-    // `if (pathname.startsWith('/pegawai') && isPimpinan)`
-    // I will remove that so they can upload their CKP.
+    // Since everyone can access /pegawai (to upload their own CKP),
+    // pimpinan/ketua_tim are not redirected away from /pegawai.
+    // The layouts no longer do client-side auth guards — the proxy handles all redirects.
 
   }
 

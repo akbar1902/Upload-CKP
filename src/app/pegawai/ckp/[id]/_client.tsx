@@ -312,7 +312,7 @@ export default function CKPDetailPage() {
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['ckp-detail', id],
     queryFn: async () => {
-      if (!id || !user) throw new Error("Missing ID or User");
+      if (!id) throw new Error("Missing ID");
 
       const fetchLogic = async () => {
         const controller = new AbortController();
@@ -344,7 +344,7 @@ export default function CKPDetailPage() {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
       ]);
     },
-    enabled: !!id && !!user && !authLoading,
+    enabled: !!id,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash

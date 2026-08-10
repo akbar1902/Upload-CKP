@@ -235,18 +235,17 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         .from('ckp_uploads').select('*').eq('id', uploadId).single();
       if (uploadError) throw new Error(uploadError.message);
 
-      const [employeeRes, entriesRes, approvalsRes, currentUserRes] = await Promise.all([
+      const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
         supabase.from('ckp_entries').select('*').eq('upload_id', uploadId).order('row_number'),
         supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').eq('upload_id', uploadId).order('created_at', { ascending: false }),
-        currentUser ? supabase.from('users').select('role').eq('id', currentUser.id).single() : Promise.resolve({ data: null }),
       ]);
 
       let entriesData = (entriesRes.data as CKPEntry[]) || [];
       const employeeData = employeeRes.data as User;
-      const currentUserData = currentUserRes.data;
+      const reviewerRole = currentUser?.role;
 
-      if (source === 'ketua_tim' && currentUserData?.role === 'pimpinan' && employeeData.role === 'ketua_tim') {
+      if (source === 'ketua_tim' && reviewerRole === 'pimpinan' && employeeData.role === 'ketua_tim') {
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('rencana_kinerja')

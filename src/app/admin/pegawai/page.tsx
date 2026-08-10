@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import type { User } from '@/types/database';
 import AdminPegawaiClient from './_client';
 
-export const dynamic = 'force-dynamic';
+// Note: cookies() already makes this page dynamic — force-dynamic is not needed
 
 export default async function AdminPegawaiPage() {
   const cookieStore = await cookies();
@@ -22,7 +22,7 @@ export default async function AdminPegawaiPage() {
 
   const { data, error } = await supabase
     .from('users')
-    .select('*')
+    .select('id, email, full_name, nip, role, unit_kerja, is_active, created_at, updated_at')
     .order('full_name');
 
   if (error) {

@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -236,7 +236,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const [searchQuery, setSearchQuery] = useState('');
   
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
-    queryKey: ['rk-detail', rkId, bulan, tahun, currentUser?.id, currentUser?.role],
+    // KEY must match server prefetch in ketua_tim/rk/[id]/page.tsx exactly
+    queryKey: ['rk-detail', rkId, bulan, tahun],
     queryFn: async () => {
       // 1. Get RK mapping details
       const { data: mappingData, error: mapError } = await supabase
@@ -334,12 +335,13 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         uploads: newUploads,
       };
     },
-    enabled: !!rkId && !authLoading,
+    enabled: !!rkId,
     networkMode: 'always',
     staleTime: 1000 * 60 * 2,
+    placeholderData: keepPreviousData,
   });
 
-  const loading = authLoading || queryPending;
+  const loading = authLoading || (!data && queryPending);
   const rk = data?.rk || null;
   const entries: CKPEntry[] = data?.entries || [];
   const uploads: (CKPUpload & { user?: User })[] = data?.uploads || [];
@@ -348,8 +350,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const handleSaveScore = async (uploadIds: string[], score: number | null) => {
     if (!rk) return;
     
-    // Optimistic update — match the exact query key used by useQuery
-    const rkDetailKey = ['rk-detail', rkId, bulan, tahun, currentUser?.id, currentUser?.role];
+    // Optimistic update — use the simplified query key (matches server prefetch)
+    const rkDetailKey = ['rk-detail', rkId, bulan, tahun];
     queryClient.setQueryData(rkDetailKey, (old: any) => {
       if (!old) return old;
       const uploadIdsSet = new Set(uploadIds);

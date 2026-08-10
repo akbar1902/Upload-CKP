@@ -3,7 +3,7 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import AdminPeriodeClient from './_client';
 
-export const dynamic = 'force-dynamic';
+// Note: cookies() already makes this page dynamic — force-dynamic is not needed
 
 export default async function AdminPeriodePage() {
   const cookieStore = await cookies();

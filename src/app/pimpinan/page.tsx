@@ -38,7 +38,7 @@ export default async function PimpinanPage({
           .order('uploaded_at', { ascending: false }),
         supabase
           .from('users')
-          .select('*')
+          .select('id, email, full_name, nip, role, unit_kerja, is_active')
           .in('role', ['anggota', 'ketua_tim'])
           .eq('is_active', true)
           .order('full_name'),

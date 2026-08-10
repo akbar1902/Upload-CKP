@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
@@ -57,7 +57,8 @@ export default function KetuaTimDashboardClient() {
   };
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
-    queryKey: ['ketua-tim-uploads', bulan, tahun, user?.id, user?.role],
+    // KEY must match server prefetch in ketua_tim/page.tsx exactly
+    queryKey: ['ketua-tim-uploads', bulan, tahun],
     queryFn: async ({ queryKey }) => {
       const [_key, qBulan, qTahun] = queryKey as [string, string | number, number];
       const controller = new AbortController();
@@ -175,9 +176,10 @@ export default function KetuaTimDashboardClient() {
         clearTimeout(timeoutId);
       }
     },
-    enabled: !!user && !authLoading,
+    enabled: !!bulan && !!tahun,
     networkMode: 'always',
     staleTime: 1000 * 60 * 2,
+    placeholderData: keepPreviousData,
   });
 
   const loading = authLoading || queryPending;

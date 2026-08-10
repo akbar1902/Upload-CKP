@@ -17,8 +17,14 @@ export default async function KetuaTimPage({
     redirect('/');
   }
 
-  const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
-  const isPimpinan = userData?.role === 'pimpinan' || userData?.role === 'admin';
+  // Try JWT metadata first (instant, no DB call) — proxy writes role to JWT on login
+  let userRole = user.user_metadata?.role as string | undefined;
+  if (!userRole || userRole === 'pegawai') {
+    // Fallback: fetch from DB (only needed on first session or after role change)
+    const { data: userData } = await supabase.from('users').select('role').eq('id', user.id).single();
+    userRole = userData?.role;
+  }
+  const isPimpinan = userRole === 'pimpinan' || userRole === 'admin';
 
   const resolvedParams = await searchParams;
   const qBulan = resolvedParams.bulan ? parseInt(resolvedParams.bulan as string) : undefined;
@@ -77,6 +83,7 @@ export default async function KetuaTimPage({
     });
   } else {
     await queryClient.prefetchQuery({
+      // KEY must match exactly what _client.tsx uses: ['ketua-tim-uploads', bulan, tahun]
       queryKey: ['ketua-tim-uploads', bulan, tahun],
       queryFn: async () => {
         // 1. Get RKs for this ketua tim
@@ -88,24 +95,31 @@ export default async function KetuaTimPage({
         if (mapError) throw mapError;
         
         if (!mappingData || mappingData.length === 0) {
-          return { rks: [], uploads: [], entries: [], users: [] };
+          return { rks: [], uploads: [], entries: [], users: [], assignments: [] };
         }
         
         const rkNames = mappingData.map((m: any) => m.rencana_kinerja);
+        const rkIds = mappingData.map((m: any) => m.id);
         
-        // 2. Get uploads for the selected month that are submitted or approved
-        const { data: uploadsData, error: uploadsError } = await supabase
-          .from('ckp_uploads')
-          .select('id, user_id, status, uploaded_at')
-          .eq('bulan', bulan)
-          .eq('tahun', tahun)
-          .in('status', ['submitted', 'approved', 'revision_required']); // Include all non-draft statuses
+        // 2. Fetch uploads + assignments in parallel (independent queries)
+        const [uploadsRes, assignmentsRes] = await Promise.all([
+          supabase
+            .from('ckp_uploads')
+            .select('id, user_id, status, uploaded_at')
+            .eq('bulan', bulan)
+            .eq('tahun', tahun)
+            .in('status', ['submitted', 'approved', 'revision_required']),
+          supabase
+            .from('user_rk_assignments')
+            .select('user_id, rk_id')
+            .in('rk_id', rkIds),
+        ]);
           
-        if (uploadsError) throw uploadsError;
-        const uploadIds = uploadsData?.map((u: any) => u.id) || [];
+        if (uploadsRes.error) throw uploadsRes.error;
+        const uploadIds = uploadsRes.data?.map((u: any) => u.id) || [];
         
         if (uploadIds.length === 0) {
-          return { rks: mappingData, uploads: [], entries: [], users: [] };
+          return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsRes.data || [] };
         }
         
         // 3. Get entries for these uploads that match the RKs (chunked to bypass 1000 row limit)
@@ -127,14 +141,14 @@ export default async function KetuaTimPage({
         }
         
         const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
-        const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+        const relevantUploads = (uploadsRes.data || []).filter((u: any) => relevantUploadIds.has(u.id));
         const relevantUserIds = Array.from(new Set(relevantUploads.map((u: any) => u.user_id)));
         
         let usersData: any[] = [];
         if (relevantUserIds.length > 0) {
           const { data: uData, error: uError } = await supabase
             .from('users')
-            .select('*')
+            .select('id, email, full_name, nip, role, unit_kerja, is_active')
             .in('id', relevantUserIds);
           if (uError) throw uError;
           usersData = uData || [];
@@ -145,6 +159,7 @@ export default async function KetuaTimPage({
           uploads: relevantUploads,
           entries: entriesData || [],
           users: usersData,
+          assignments: assignmentsRes.data || [],
         };
       },
       staleTime: 1000 * 60 * 2,
