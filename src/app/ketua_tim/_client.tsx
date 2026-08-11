@@ -183,7 +183,7 @@ export default function KetuaTimDashboardClient() {
     placeholderData: keepPreviousData,
   });
 
-  const loading = authLoading || queryPending || queryFetching;
+  const loading = authLoading || queryPending;
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
@@ -193,7 +193,7 @@ export default function KetuaTimDashboardClient() {
       }, 10000);
     }
     return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
+  }, [authLoading, queryPending, queryFetching, refetch]);
 
   const rks = data?.rks || [];
   const entries = data?.entries || [];
@@ -517,7 +517,7 @@ export default function KetuaTimDashboardClient() {
             </button>
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
             <button onClick={() => refetch()} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${queryFetching ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
