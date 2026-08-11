@@ -117,7 +117,7 @@ export default function PimpinanQuickApprovalClient() {
     enabled: !!authUser && !authLoading,
   });
 
-  const loading = authLoading || isPending || isFetching;
+  const loading = authLoading || isPending;
   const uploads = data || [];
 
   const filteredUploads = useMemo(() => {
@@ -208,7 +208,7 @@ export default function PimpinanQuickApprovalClient() {
           <div className="flex items-center gap-2">
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
             <button onClick={() => refetch()} className="filter-btn" title="Refresh">
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>

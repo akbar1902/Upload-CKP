@@ -131,7 +131,7 @@ export default function PimpinanDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const loading = authLoading || queryPending || queryFetching;
+  const loading = authLoading || queryPending;
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
@@ -143,7 +143,7 @@ export default function PimpinanDashboard() {
       }, 15000);
     }
     return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
+  }, [authLoading, queryPending, queryFetching, refetch]);
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
@@ -327,7 +327,7 @@ export default function PimpinanDashboard() {
               title="Refresh data"
               aria-label="Refresh data"
             >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${queryFetching ? 'animate-spin' : ''}`} />
             </button>
             <button
               onClick={handleExportRekap}
