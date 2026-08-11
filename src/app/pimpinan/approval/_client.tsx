@@ -73,7 +73,7 @@ export default function PimpinanQuickApprovalClient() {
       const uploadsList = uploadsRes || [];
       if (uploadsList.length === 0) return [];
 
-      const uploadIds = uploadsList.map(u => u.id);
+      const uploadIds = uploadsList.map((u: any) => u.id);
 
       // 2. Fetch entries to check which uploads are fully scored
       // We only need to check if there are any unscored entries per upload.
@@ -96,12 +96,12 @@ export default function PimpinanQuickApprovalClient() {
 
       return uploadsList.map((u: any) => {
         const entries = entriesByUpload.get(u.id) || [];
-        const rks = new Set(entries.map(e => e.rencana_kinerja || 'Tidak Diketahui'));
+        const rks = new Set(entries.map((e: any) => e.rencana_kinerja || 'Tidak Diketahui'));
         
         let allScored = false;
         if (rks.size > 0) {
            const rkGroups = Array.from(rks).map(rk => {
-              const e = entries.find(en => (en.rencana_kinerja || 'Tidak Diketahui') === rk);
+              const e = entries.find((en: any) => (en.rencana_kinerja || 'Tidak Diketahui') === rk);
               return e ? e.nilai : null;
            });
            allScored = rkGroups.every(score => score !== null);
