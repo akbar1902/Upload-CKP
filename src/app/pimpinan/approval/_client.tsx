@@ -52,7 +52,7 @@ export default function PimpinanQuickApprovalClient() {
     queryFn: async () => {
       let uploadsQuery = supabase
         .from('ckp_uploads')
-        .select('*, user:user_id(id, full_name, nip, unit_kerja), entries:ckp_entries(nilai, rencana_kinerja)')
+        .select('*, user:user_id(id, full_name, nip, unit_kerja)')
         .eq('tahun', tahun)
         .eq('status', 'submitted')
         .order('uploaded_at', { ascending: true });
@@ -66,17 +66,46 @@ export default function PimpinanQuickApprovalClient() {
         uploadsQuery = uploadsQuery.eq('bulan', bulan);
       }
 
+      // 1. Fetch Uploads
       const { data: uploadsRes, error: uploadsErr } = await uploadsQuery;
       if (uploadsErr) throw new Error(uploadsErr.message);
 
-      return (uploadsRes || []).map((u: any) => {
-        const entries = u.entries || [];
-        const rks = new Set(entries.map((e: any) => e.rencana_kinerja || 'Tidak Diketahui'));
-        const rkGroups = Array.from(rks).map(rk => {
-           const e = entries.find((en: any) => (en.rencana_kinerja || 'Tidak Diketahui') === rk);
-           return e ? e.nilai : null;
-        });
-        const allScored = rkGroups.every(score => score !== null);
+      const uploadsList = uploadsRes || [];
+      if (uploadsList.length === 0) return [];
+
+      const uploadIds = uploadsList.map(u => u.id);
+
+      // 2. Fetch entries to check which uploads are fully scored
+      // We only need to check if there are any unscored entries per upload.
+      // But because entries are grouped by rencana_kinerja, we can just fetch distinct rk with their nilais.
+      // Fetching all entries' nilais for these uploads is safer than a huge join if done separately.
+      const { data: entriesData, error: entriesErr } = await supabase
+        .from('ckp_entries')
+        .select('upload_id, rencana_kinerja, nilai')
+        .in('upload_id', uploadIds);
+        
+      if (entriesErr) throw new Error(entriesErr.message);
+
+      const entriesByUpload = new Map<string, any[]>();
+      if (entriesData) {
+         for (const e of entriesData) {
+           if (!entriesByUpload.has(e.upload_id)) entriesByUpload.set(e.upload_id, []);
+           entriesByUpload.get(e.upload_id)!.push(e);
+         }
+      }
+
+      return uploadsList.map((u: any) => {
+        const entries = entriesByUpload.get(u.id) || [];
+        const rks = new Set(entries.map(e => e.rencana_kinerja || 'Tidak Diketahui'));
+        
+        let allScored = false;
+        if (rks.size > 0) {
+           const rkGroups = Array.from(rks).map(rk => {
+              const e = entries.find(en => (en.rencana_kinerja || 'Tidak Diketahui') === rk);
+              return e ? e.nilai : null;
+           });
+           allScored = rkGroups.every(score => score !== null);
+        }
 
         return {
           ...u,
