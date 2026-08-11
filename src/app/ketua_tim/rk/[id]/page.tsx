@@ -80,7 +80,10 @@ export default async function RkDetailPage({
       if (entriesError) throw entriesError;
       
       const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
-      const relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+      let relevantUploads = (uploadsData || []).filter((u: any) => relevantUploadIds.has(u.id));
+      
+      // Filter out the logged-in user themselves
+      relevantUploads = relevantUploads.filter((u: any) => u.user_id !== user.id);
 
       const newUploads = relevantUploads.map((u: any) => ({
         ...u,

@@ -143,7 +143,7 @@ export default async function KetuaTimPage({
         }
         
         const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
-        const relevantUploads = (uploadsRes.data || []).filter((u: any) => relevantUploadIds.has(u.id));
+        const relevantUploads = (uploadsRes.data || []).filter((u: any) => relevantUploadIds.has(u.id) && u.user_id !== user.id);
         const relevantUserIds = Array.from(new Set(relevantUploads.map((u: any) => u.user_id)));
         
         let usersData: any[] = [];

@@ -573,9 +573,10 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                    defaultScore = Math.round(avg);
                 }
                 
-                // Can review if status is submitted, or if it's approved, but NOT in Triwulan view
+                // Can review if status is submitted or revision_required, but NOT in Triwulan view and NOT if approved
                 const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
-                const canReview = !isTriwulan && userUploads.some(u => u.status !== 'draft');
+                const isApproved = userUploads.some(u => u.status === 'approved');
+                const canReview = !isTriwulan && !isApproved && userUploads.some(u => u.status !== 'draft');
                 
                 return (
                   <PegawaiRKGroup

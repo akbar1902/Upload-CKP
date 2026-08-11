@@ -71,7 +71,7 @@ export default function PimpinanDashboard() {
     router.push(`?bulan=${bulan}&tahun=${t}`);
   };
 
-  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, isFetching: queryFetching, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-uploads', bulan, tahun],
     queryFn: async () => {
       const controller = new AbortController();
@@ -131,12 +131,12 @@ export default function PimpinanDashboard() {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const loading = authLoading || queryPending;
+  const loading = authLoading || queryPending || queryFetching;
 
   // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
   React.useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
+    if (!authLoading && (queryPending || queryFetching)) {
       timeout = setTimeout(() => {
         console.warn('Failsafe triggered: retrying stuck query');
         void refetch();

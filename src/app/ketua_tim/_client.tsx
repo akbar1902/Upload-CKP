@@ -57,7 +57,7 @@ export default function KetuaTimDashboardClient() {
     router.push(`?bulan=${bulan}&tahun=${t}`);
   };
 
-  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, isFetching: queryFetching, error: queryError, refetch } = useQuery({
     // KEY must match server prefetch in ketua_tim/page.tsx exactly
     queryKey: ['ketua-tim-uploads', bulan, tahun],
     queryFn: async ({ queryKey }) => {
@@ -183,11 +183,11 @@ export default function KetuaTimDashboardClient() {
     placeholderData: keepPreviousData,
   });
 
-  const loading = authLoading || queryPending;
+  const loading = authLoading || queryPending || queryFetching;
 
   useEffect(() => {
     let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
+    if (!authLoading && (queryPending || queryFetching)) {
       timeout = setTimeout(() => {
         void refetch();
       }, 10000);
