@@ -341,7 +341,6 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
   });
-
   const loading = authLoading || (!data && queryPending);
   const rk = data?.rk || null;
   const entries: CKPEntry[] = data?.entries || [];
@@ -353,6 +352,14 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     
     // Optimistic update — use the simplified query key (matches server prefetch)
     const rkDetailKey = ['rk-detail', rkId, bulan, tahun];
+    
+    // 1. Cancel outgoing fetches so they don't overwrite optimistic update
+    await queryClient.cancelQueries({ queryKey: rkDetailKey });
+
+    // 2. Backup previous state
+    const previousData = queryClient.getQueryData(rkDetailKey);
+
+    // 3. Optimistic update
     queryClient.setQueryData(rkDetailKey, (old: any) => {
       if (!old) return old;
       const uploadIdsSet = new Set(uploadIds);
@@ -373,7 +380,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
     } catch (error: any) {
       // Roll back optimistic update on failure
-      void queryClient.invalidateQueries({ queryKey: ['rk-detail'] });
+      queryClient.setQueryData(rkDetailKey, previousData);
       toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
     }
   };
