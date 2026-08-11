@@ -15,7 +15,7 @@ import { downloadAllCkpZip } from '@/lib/zip/exporter';
 import type { CKPUpload, UploadStatus, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
-  Users, Clock, CheckCircle2, Search,
+  Users, Clock, CheckCircle2, Search, Zap,
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, Archive
 } from 'lucide-react';
 
@@ -307,6 +307,16 @@ export default function PimpinanDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {pendingCount > 0 && (
+              <Link
+                href={`/pimpinan/approval?bulan=${bulan}&tahun=${tahun}`}
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              >
+                <Zap className="h-4 w-4" fill="currentColor" />
+                Persetujuan Cepat
+                <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] leading-none ml-1">{pendingCount}</span>
+              </Link>
+            )}
             <PeriodFilter
               bulan={bulan} tahun={tahun}
               onBulanChange={setBulan} onTahunChange={setTahun}
