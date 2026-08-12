@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -170,7 +171,9 @@ export default async function KetuaTimPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      {isPimpinan ? <PimpinanKetuaTimDashboardClient /> : <KetuaTimDashboardClient />}
+      <Suspense fallback={null}>
+        {isPimpinan ? <PimpinanKetuaTimDashboardClient /> : <KetuaTimDashboardClient />}
+      </Suspense>
     </HydrationBoundary>
   );
 }

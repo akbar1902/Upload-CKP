@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
@@ -101,7 +102,9 @@ export default async function RkDetailPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <RkDetailClient rkId={id} />
+      <Suspense fallback={null}>
+        <RkDetailClient rkId={id} />
+      </Suspense>
     </HydrationBoundary>
   );
 }
