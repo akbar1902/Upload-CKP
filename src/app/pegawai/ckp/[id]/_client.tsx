@@ -488,15 +488,16 @@ export default function CKPDetailPage() {
       <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
 
         {/* ── Back ──────────────────────────────────── */}
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-[13px] font-medium transition-colors"
+        <Link
+          href="/pegawai"
+          prefetch={true}
+          className="inline-flex items-center gap-2 text-[13px] font-medium transition-colors"
           style={{ color: 'var(--text-secondary)' }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)'; }}
         >
           <ArrowLeft size={14} /> Kembali
-        </button>
+        </Link>
 
         {/* ── Page header ───────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">

@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -564,15 +565,15 @@ export default function UploadPage() {
     <>
       <Header />
       <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
-        <button onClick={() => router.back()}
-          className="flex items-center gap-1 text-[13px] font-medium transition-colors"
+        <Link href="/pegawai" prefetch={true}
+          className="inline-flex items-center gap-1 text-[13px] font-medium transition-colors"
           style={{ color: 'var(--text-tertiary)' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; }}
+          onMouseEnter={(e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
+          onMouseLeave={(e: React.MouseEvent) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; }}
         >
           <ArrowLeft className="h-4 w-4" />
           Kembali
-        </button>
+        </Link>
 
         <div>
           <h2 className="text-[24px] font-semibold tracking-tight flex items-center gap-2"

@@ -129,7 +129,7 @@ export function Header({
                   <ChevronRight size={11} className="breadcrumb-sep flex-shrink-0" aria-hidden="true" />
                 )}
                 {crumb.href ? (
-                  <Link href={crumb.href}>{crumb.label}</Link>
+                  <Link href={crumb.href} prefetch={true}>{crumb.label}</Link>
                 ) : (
                   <span>{crumb.label}</span>
                 )}
