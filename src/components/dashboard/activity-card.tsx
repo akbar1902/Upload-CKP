@@ -73,6 +73,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         {/* Clickable Area for Date and Title */}
         <Link 
           href={`/pegawai/ckp/${upload.id}`} 
+          prefetch={true}
           className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0 group cursor-pointer"
         >
           {/* Date block */}
