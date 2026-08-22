@@ -549,6 +549,9 @@ export default function UploadPage() {
       setUploadProgress(100);
       toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
       
+      // Invalidate dashboard query cache so new data appears without manual refresh
+      queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
+      
       setTimeout(() => {
         setUploading(false);
         router.push(`/pegawai/ckp/${uploadData.id}`);
