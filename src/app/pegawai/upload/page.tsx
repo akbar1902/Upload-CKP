@@ -292,8 +292,6 @@ export default function UploadPage() {
          trueRK = localSubRkMap.get(normRawRK)!;
          if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
             entry.kegiatan = rawRK;
-         } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
-            entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
          }
          entry.rencana_kinerja = trueRK;
       } else {
@@ -306,8 +304,6 @@ export default function UploadPage() {
             
             if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
                entry.kegiatan = rawRK;
-            } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
-               entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
             }
             entry.rencana_kinerja = trueRK;
          } else {
@@ -442,8 +438,6 @@ export default function UploadPage() {
             matchedRK = localSubRkMap.get(normRawRK)!;
             if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
                entry.kegiatan = rawRK;
-            } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
-               entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
             }
         } else {
             const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
@@ -451,8 +445,6 @@ export default function UploadPage() {
                 matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
                 if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
                    entry.kegiatan = rawRK;
-                } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
-                   entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
                 }
             } else {
                 matchedRK = fuzzyMatchRK(rawRK, masterNames);
@@ -461,8 +453,6 @@ export default function UploadPage() {
                    if (mappedRKObj) {
                       if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
                          entry.kegiatan = rawRK;
-                      } else if (String(entry.kegiatan).trim() !== rawRK.trim()) {
-                         entry.kegiatan = rawRK.trim() + "\n\n" + String(entry.kegiatan).trim();
                       }
                       matchedRK = mappedRKObj.rencana_kinerja;
                    }
