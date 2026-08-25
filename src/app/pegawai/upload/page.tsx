@@ -52,7 +52,7 @@ export default function UploadPage() {
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
 
-  const { data: masterData } = useQuery({
+  const { data: masterData, isLoading: isMasterLoading, refetch: refetchMasterData } = useQuery({
     queryKey: ['upload-master-data'],
     queryFn: async () => {
       const [{ data: rks }, { data: ketuas }, { data: kegiatan }] = await Promise.all([
@@ -62,7 +62,7 @@ export default function UploadPage() {
       ]);
       return { masterRKs: rks || [], ketuaTims: ketuas || [], masterKegiatan: kegiatan || [] };
     },
-    staleTime: 1000 * 60 * 10, // 10 minutes — master data rarely changes
+    staleTime: 1000 * 60 * 2, // 2 minutes — agar data baru lebih cepat masuk tanpa perlu manual reload
   });
 
   const masterRKs = useMemo(() => masterData?.masterRKs || [], [masterData]);
@@ -252,7 +252,7 @@ export default function UploadPage() {
 
   const handlePreSubmit = async () => {
     if (authLoading) {
-      toast.info('Sedang memuat data pengguna, mohon tunggu...');
+      toast.info('Sedang memuat data sistem, mohon tunggu sebentar...');
       return;
     }
     
@@ -275,7 +275,11 @@ export default function UploadPage() {
 
     setUploading(true); // Memberikan feedback loading segera saat tombol diklik
 
-    const masterNames: string[] = Array.from(new Set(masterRKs.map((r: any) => String(r.rencana_kinerja))));
+    const { data: freshMasterData } = await refetchMasterData();
+    const currentMasterRKs = freshMasterData?.masterRKs || masterRKs;
+    const currentMasterKegiatan = freshMasterData?.masterKegiatan || masterKegiatan;
+
+    const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
     const newUnmatched = new Set<string>();
 
     parseResult.entries.forEach(entry => {
@@ -295,11 +299,10 @@ export default function UploadPage() {
          }
          entry.rencana_kinerja = trueRK;
       } else {
-         // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota (misal: "Laporan Cuti")
-         const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+         // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota
+         const kegiatanMatch = fuzzyMatchKegiatan(rawRK, currentMasterKegiatan);
          
          if (kegiatanMatch) {
-            // Jika ya, RK Aslinya adalah RK Ketua yang menaungi kegiatan tersebut
             trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
             
             if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
@@ -307,7 +310,6 @@ export default function UploadPage() {
             }
             entry.rencana_kinerja = trueRK;
          } else {
-            // Jika bukan kegiatan anggota, kita asumsikan itu memang RK (atau RK baru)
             trueRK = fuzzyMatchRK(rawRK, masterNames);
             entry.rencana_kinerja = trueRK; 
          }
@@ -330,11 +332,11 @@ export default function UploadPage() {
       
       setShowTeamModal(true);
     } else {
-      processUpload();
+      processUpload(currentMasterRKs, currentMasterKegiatan);
     }
   };
 
-  const processUpload = async () => {
+  const processUpload = async (latestMasterRKs?: any[], latestMasterKegiatan?: any[]) => {
     if (!user || !file || !parseResult || !parseResult.success) {
       return;
     }
@@ -419,7 +421,8 @@ export default function UploadPage() {
         uploadData = data;
       }
 
-      const masterDict = [...masterRKs];
+      const masterDict = latestMasterRKs || [...masterRKs];
+      const mKegiatan = latestMasterKegiatan || masterKegiatan;
       const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
       const distinctMatchedRKs = new Set<string>();
 
@@ -440,7 +443,7 @@ export default function UploadPage() {
                entry.kegiatan = rawRK;
             }
         } else {
-            const kegiatanMatch = fuzzyMatchKegiatan(rawRK, masterKegiatan);
+            const kegiatanMatch = fuzzyMatchKegiatan(rawRK, mKegiatan);
             if (kegiatanMatch) {
                 matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
                 if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
@@ -449,7 +452,7 @@ export default function UploadPage() {
             } else {
                 matchedRK = fuzzyMatchRK(rawRK, masterNames);
                 if (!masterNames.includes(matchedRK) && rkTeamMapping[matchedRK]?.rk_id) {
-                   const mappedRKObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
+                   const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
                    if (mappedRKObj) {
                       if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
                          entry.kegiatan = rawRK;
@@ -503,7 +506,7 @@ export default function UploadPage() {
           }
           // Also assign to the valid RKs
           unmatched.forEach(rk => {
-            const mappedObj = masterRKs.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
+            const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
             if (mappedObj && masterNames.includes(mappedObj.rencana_kinerja)) {
               validRKsToAssign.push(mappedObj.rencana_kinerja);
             }
@@ -750,7 +753,7 @@ export default function UploadPage() {
                 <div className="flex justify-end pt-2">
                   <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg">
                     <Send className="h-4 w-4 mr-2" />
-                    Submit CKP {getBulanName(bulan)} {tahun}
+                    {uploading ? 'Memproses Data...' : `Submit CKP ${getBulanName(bulan)} ${tahun}`}
                   </Button>
                 </div>
               )}
