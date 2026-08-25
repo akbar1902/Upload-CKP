@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 export default function AdminPegawaiClient({ initialUsers }: { initialUsers: User[] }) {
   const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   
   // Modal state
@@ -158,11 +159,22 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       confirmText: currentStatus ? 'Nonaktifkan' : 'Aktifkan',
       confirmStyle: currentStatus ? 'warning' : 'primary',
       onConfirm: async () => {
+        // Optimistic update agar UI langsung berubah
+        queryClient.setQueryData(['admin-pegawai'], (old: any) => {
+          if (!old) return old;
+          return old.map((u: any) => u.id === userId ? { ...u, is_active: !currentStatus } : u);
+        });
+
         const res = await toggleEmployeeStatus(userId, currentStatus);
         if (res.success) {
           toast.success(`Pegawai berhasil di${currentStatus ? 'nonaktifkan' : 'aktifkan'}`);
           refetch();
         } else {
+          // Revert jika gagal
+          queryClient.setQueryData(['admin-pegawai'], (old: any) => {
+            if (!old) return old;
+            return old.map((u: any) => u.id === userId ? { ...u, is_active: currentStatus } : u);
+          });
           toast.error("Gagal mengubah status: " + res.error);
         }
         setConfirmModal(prev => ({ ...prev, isOpen: false }));
