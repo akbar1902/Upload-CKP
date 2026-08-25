@@ -180,7 +180,7 @@ function PegawaiRKGroup({
       {expanded && (
         <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
           <h5 className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Detail Kegiatan</h5>
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {entries.map((entry) => (
               <div key={entry.id} className="p-4 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                 <div className="flex flex-col h-full">
@@ -188,13 +188,12 @@ function PegawaiRKGroup({
                     <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entry.kegiatan || '—'}</p>
                     <p className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{entry.capaian || '—'}</p>
                   </div>
-                  <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
+                  <div className="flex items-center justify-between mt-auto pt-3 border-t flex-wrap gap-y-2" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>{getBulanName(entries.find(e2 => e2.id === entry.id)?.upload_id ? uploads.find(u => u.id === entry.upload_id)?.bulan || 0 : 0)}</span>
-                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
-                      <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.tanggal_mulai)}</span>
+                      <span className="text-[11px] px-2 py-0.5 rounded whitespace-nowrap" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
+                      <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.tanggal_mulai)}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-right">
+                    <div className="flex items-center gap-2 text-right flex-wrap">
                       {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
