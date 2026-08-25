@@ -153,6 +153,9 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           {/* Mobile date */}
           <p className="text-[11px] mt-2 sm:hidden font-medium" style={{ color: 'var(--text-secondary)' }}>
             {formatDate(entry.tanggal_mulai)}
+            {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
+              <> - {formatDate(entry.tanggal_selesai)}</>
+            )}
             {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
           </p>
 

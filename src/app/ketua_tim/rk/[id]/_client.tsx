@@ -191,7 +191,12 @@ function PegawaiRKGroup({
                   <div className="flex items-center justify-between mt-auto pt-3 border-t flex-wrap gap-y-2" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] px-2 py-0.5 rounded whitespace-nowrap" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
-                      <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.tanggal_mulai)}</span>
+                      <span className="text-[11px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                        {formatDate(entry.tanggal_mulai)}
+                        {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
+                          <> - {formatDate(entry.tanggal_selesai)}</>
+                        )}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-right flex-wrap">
                       {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
