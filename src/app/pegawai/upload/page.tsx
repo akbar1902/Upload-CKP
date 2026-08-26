@@ -276,20 +276,25 @@ export default function UploadPage() {
 
       setUploading(true); // Memberikan feedback loading segera saat tombol diklik
 
-      // Gunakan timeout agar tidak mentok di 0% jika jaringan bermasalah
-      let freshMasterData: any = null;
-      try {
-        const result = await Promise.race([
-          refetchMasterData(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
-        ]);
-        freshMasterData = (result as any)?.data;
-      } catch (e) {
-        console.warn('Gagal memuat ulang data master (timeout/error), menggunakan data cache');
-      }
+      let currentMasterRKs = masterRKs;
+      let currentMasterKegiatan = masterKegiatan;
 
-      const currentMasterRKs = freshMasterData?.masterRKs || masterRKs;
-      const currentMasterKegiatan = freshMasterData?.masterKegiatan || masterKegiatan;
+      // Fetch data terbaru langsung ke Supabase (bypass React Query cache) agar 100% fresh
+      try {
+        const fetchPromise = Promise.all([
+          supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
+          supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000)
+        ]);
+        
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+        
+        const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        
+        if (rksRes?.data) currentMasterRKs = rksRes.data;
+        if (kegRes?.data) currentMasterKegiatan = kegRes.data;
+      } catch (e) {
+        console.warn('Gagal memuat ulang data master (timeout/error), menggunakan data cache:', e);
+      }
 
       const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
       const newUnmatched = new Set<string>();
