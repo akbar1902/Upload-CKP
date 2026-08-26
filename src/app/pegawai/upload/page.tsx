@@ -18,7 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
-import { saveKegiatanAnggotaMapping } from '@/app/actions/ckp';
+import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota } from '@/app/actions/ckp';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -56,10 +56,10 @@ export default function UploadPage() {
   const { data: masterData, isLoading: isMasterLoading, refetch: refetchMasterData } = useQuery({
     queryKey: ['upload-master-data'],
     queryFn: async () => {
-      const [{ data: rks }, { data: ketuas }, { data: kegiatan }] = await Promise.all([
+      const [{ data: rks }, { data: ketuas }, kegiatan] = await Promise.all([
         supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
         supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
-        supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000),
+        getMasterKegiatanAnggota(),
       ]);
       return { masterRKs: rks || [], ketuaTims: ketuas || [], masterKegiatan: kegiatan || [] };
     },
@@ -331,7 +331,7 @@ export default function UploadPage() {
         try {
           const fetchPromise = Promise.all([
             supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
-            supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000)
+            getMasterKegiatanAnggota()
           ]);
           
           const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Koneksi ke server terlalu lambat (Timeout). Silakan periksa internet Anda dan coba lagi.')), 15000));
@@ -339,10 +339,9 @@ export default function UploadPage() {
           const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
           
           if (rksRes?.error) throw new Error(rksRes.error.message);
-          if (kegRes?.error) throw new Error(kegRes.error.message);
 
           if (rksRes?.data) currentMasterRKs = rksRes.data;
-          if (kegRes?.data) currentMasterKegiatan = kegRes.data;
+          if (kegRes) currentMasterKegiatan = kegRes;
 
           // Cek ulang dengan data master yang benar-benar baru
           const recheck = getUnmatched(currentMasterRKs, currentMasterKegiatan);

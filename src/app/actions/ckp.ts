@@ -21,6 +21,26 @@ export async function saveKegiatanAnggotaMapping(mappings: any[]) {
 }
 
 
+export async function getMasterKegiatanAnggota() {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { data, error } = await supabaseAdmin
+      .from('master_kegiatan_anggota')
+      .select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)')
+      .limit(10000);
+      
+    if (error) throw new Error(error.message);
+    return data || [];
+  } catch (error: any) {
+    console.error('[getMasterKegiatanAnggota] Error:', error);
+    return [];
+  }
+}
+
 export async function deleteCkpUploadAction(uploadId: string) {
   try {
     const supabase = await createServerSupabaseClient();
