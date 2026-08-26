@@ -1,6 +1,25 @@
 'use server';
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createClient } from '@supabase/supabase-js';
+
+export async function saveKegiatanAnggotaMapping(mappings: any[]) {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { error } = await supabaseAdmin.from('master_kegiatan_anggota').insert(mappings);
+    if (error) throw new Error(error.message);
+    
+    return { success: true };
+  } catch (error: any) {
+    console.error('[saveKegiatanAnggotaMapping] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 
 export async function deleteCkpUploadAction(uploadId: string) {
   try {

@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
+import { saveKegiatanAnggotaMapping } from '@/app/actions/ckp';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -561,8 +562,8 @@ export default function UploadPage() {
           }).filter(m => m.rk_id !== null);
           
           if (newMappings.length > 0) {
-             const { error: insErr } = await supabase.from('master_kegiatan_anggota').insert(newMappings);
-             if (insErr) console.error("Failed to save mappings", insErr);
+             const result = await saveKegiatanAnggotaMapping(newMappings);
+             if (!result.success) console.error("Failed to save mappings", result.error);
           }
           // Also assign to the valid RKs
           unmatched.forEach(rk => {
