@@ -550,22 +550,23 @@ export default function UploadPage() {
         const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
         const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
         
-        if (unmatched.length > 0) {
-          const newMappings = unmatched.map(rk => {
+        if (Object.keys(rkTeamMapping).length > 0) {
+          const newMappings = Object.keys(rkTeamMapping).map(rk => {
             const mapping = rkTeamMapping[rk];
             return {
               user_id: user.id,
               rk_id: mapping?.rk_id || null,
               kegiatan_nama: rk,
             };
-          }).filter(m => m.rk_id !== null);
+          }).filter(m => m.rk_id !== null && m.rk_id !== '');
           
           if (newMappings.length > 0) {
              const result = await saveKegiatanAnggotaMapping(newMappings);
              if (!result.success) console.error("Failed to save mappings", result.error);
           }
+          
           // Also assign to the valid RKs
-          unmatched.forEach(rk => {
+          Object.keys(rkTeamMapping).forEach(rk => {
             const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
             if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
               validRKsToAssign.push(mappedObj.rencana_kinerja);
