@@ -386,9 +386,15 @@ export default function UploadPage() {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
       
-      const { error: storageError } = await supabase.storage
+      const uploadPromise = supabase.storage
         .from('ckp-files')
         .upload(storagePath, file, { upsert: true });
+
+      const timeoutPromise = new Promise<{ error: Error | null, data: any }>((_, reject) => {
+        setTimeout(() => reject(new Error('Proses upload file terlalu lama (Timeout). Pastikan koneksi internet stabil dan file Excel tidak sedang dibuka (close file terlebih dahulu).')), 30000);
+      });
+
+      const { error: storageError } = await Promise.race([uploadPromise, timeoutPromise]);
 
       if (storageError) throw new Error(storageError.message);
 
