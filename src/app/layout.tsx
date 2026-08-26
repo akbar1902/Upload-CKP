@@ -63,7 +63,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>
-              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
                 <RecoveryManager>
                   {children}
                 </RecoveryManager>
