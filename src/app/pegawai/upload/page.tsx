@@ -383,15 +383,32 @@ export default function UploadPage() {
 
       setUploadStep(1);
       setUploadProgress(30);
+
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
-      
+
+      // 1. Baca file ke memory terlebih dahulu (menghindari hang jika file sedang dibuka/dilock Excel)
+      let uploadDataBuffer: ArrayBuffer;
+      try {
+        const bufferPromise = file.arrayBuffer();
+        const readTimeout = new Promise<ArrayBuffer>((_, reject) => 
+          setTimeout(() => reject(new Error('Gagal membaca file. Pastikan file Excel Anda sudah di-CLOSE (tidak sedang dibuka).')), 5000)
+        );
+        uploadDataBuffer = await Promise.race([bufferPromise, readTimeout]);
+      } catch (err: any) {
+        throw new Error(err.message || 'Gagal membaca file lokal.');
+      }
+
+      // 2. Upload dari memory ke Supabase
       const uploadPromise = supabase.storage
         .from('ckp-files')
-        .upload(storagePath, file, { upsert: true });
+        .upload(storagePath, uploadDataBuffer, { 
+          upsert: true,
+          contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        });
 
       const timeoutPromise = new Promise<{ error: Error | null, data: any }>((_, reject) => {
-        setTimeout(() => reject(new Error('Proses upload file terlalu lama (Timeout). Pastikan koneksi internet stabil dan file Excel tidak sedang dibuka (close file terlebih dahulu).')), 30000);
+        setTimeout(() => reject(new Error('Proses upload terlalu lama (Timeout Jaringan). Pastikan koneksi internet Anda stabil.')), 30000);
       });
 
       const { error: storageError } = await Promise.race([uploadPromise, timeoutPromise]);
