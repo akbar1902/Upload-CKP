@@ -40,7 +40,7 @@ export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [parseResult, setParseResult] = useState<ParseResult | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadStep, setUploadStep] = useState(0);
+  const [uploadStep, setUploadStep] = useState(-1);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
   const [isLocked, setIsLocked] = useState(false);
@@ -904,7 +904,7 @@ export default function UploadPage() {
       )}
 
       {/* Progress Modal */}
-      {uploading && !showTeamModal && (
+      {uploading && !showTeamModal && uploadStep >= 0 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center" style={{ background: 'var(--card-bg)' }}>
             <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
