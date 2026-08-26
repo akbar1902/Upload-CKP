@@ -251,36 +251,48 @@ export default function UploadPage() {
   }, [file, bulan, tahun]);
 
   const handlePreSubmit = async () => {
-    if (authLoading) {
-      toast.info('Sedang memuat data sistem, mohon tunggu sebentar...');
-      return;
-    }
-    
-    if (!user) {
-      toast.error('Sesi login tidak ditemukan. Silakan login ulang.');
-      router.push('/login');
-      return;
-    }
-    if (!file || !parseResult?.success) return;
+    try {
+      if (authLoading) {
+        toast.info('Sedang memuat data sistem, mohon tunggu sebentar...');
+        return;
+      }
+      
+      if (!user) {
+        toast.error('Sesi login tidak ditemukan. Silakan login ulang.');
+        router.push('/login');
+        return;
+      }
+      if (!file || !parseResult?.success) return;
 
-    if (existingUpload?.status === 'approved') {
-      toast.error('CKP sudah disetujui. Tidak dapat mengupload ulang.');
-      return;
-    }
+      if (existingUpload?.status === 'approved') {
+        toast.error('CKP sudah disetujui. Tidak dapat mengupload ulang.');
+        return;
+      }
 
-    if (existingUpload?.status === 'submitted') {
-      toast.error('CKP sedang dalam proses review. Tunggu hasil review sebelum upload ulang.');
-      return;
-    }
+      if (existingUpload?.status === 'submitted') {
+        toast.error('CKP sedang dalam proses review. Tunggu hasil review sebelum upload ulang.');
+        return;
+      }
 
-    setUploading(true); // Memberikan feedback loading segera saat tombol diklik
+      setUploading(true); // Memberikan feedback loading segera saat tombol diklik
 
-    const { data: freshMasterData } = await refetchMasterData();
-    const currentMasterRKs = freshMasterData?.masterRKs || masterRKs;
-    const currentMasterKegiatan = freshMasterData?.masterKegiatan || masterKegiatan;
+      // Gunakan timeout agar tidak mentok di 0% jika jaringan bermasalah
+      let freshMasterData: any = null;
+      try {
+        const result = await Promise.race([
+          refetchMasterData(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+        ]);
+        freshMasterData = (result as any)?.data;
+      } catch (e) {
+        console.warn('Gagal memuat ulang data master (timeout/error), menggunakan data cache');
+      }
 
-    const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
-    const newUnmatched = new Set<string>();
+      const currentMasterRKs = freshMasterData?.masterRKs || masterRKs;
+      const currentMasterKegiatan = freshMasterData?.masterKegiatan || masterKegiatan;
+
+      const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
+      const newUnmatched = new Set<string>();
 
     parseResult.entries.forEach(entry => {
       let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
@@ -320,19 +332,24 @@ export default function UploadPage() {
       }
     });
 
-    if (newUnmatched.size > 0) {
-      setUploading(false); // Reset loading state karena memunculkan modal
-      setUnmatchedRKs(Array.from(newUnmatched));
-      
-      const initialMap: Record<string, { tim_kerja: string, rk_id: string }> = {};
-      Array.from(newUnmatched).forEach(rk => {
-        initialMap[rk] = { tim_kerja: '', rk_id: '' };
-      });
-      setRkTeamMapping(initialMap);
-      
-      setShowTeamModal(true);
-    } else {
-      processUpload(currentMasterRKs, currentMasterKegiatan);
+      if (newUnmatched.size > 0) {
+        setUploading(false); // Reset loading state karena memunculkan modal
+        setUnmatchedRKs(Array.from(newUnmatched));
+        
+        const initialMap: Record<string, { tim_kerja: string, rk_id: string }> = {};
+        Array.from(newUnmatched).forEach(rk => {
+          initialMap[rk] = { tim_kerja: '', rk_id: '' };
+        });
+        setRkTeamMapping(initialMap);
+        
+        setShowTeamModal(true);
+      } else {
+        processUpload(currentMasterRKs, currentMasterKegiatan);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Terjadi kesalahan saat memproses data sistem.');
+      setUploading(false);
     }
   };
 
