@@ -279,66 +279,78 @@ export default function UploadPage() {
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
 
-      // Fetch data terbaru langsung ke Supabase (bypass React Query cache) agar 100% fresh
-      try {
-        const fetchPromise = Promise.all([
-          supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
-          supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000)
-        ]);
-        
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Koneksi ke server terlalu lambat (Timeout). Silakan periksa internet Anda dan coba lagi.')), 15000));
-        
-        const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
-        
-        if (rksRes?.error) throw new Error(rksRes.error.message);
-        if (kegRes?.error) throw new Error(kegRes.error.message);
+      const getUnmatched = (rks: any[], kegiatan: any[]) => {
+        const names = Array.from(new Set(rks.map((r: any) => String(r.rencana_kinerja))));
+        const unmatched = new Set<string>();
 
-        if (rksRes?.data) currentMasterRKs = rksRes.data;
-        if (kegRes?.data) currentMasterKegiatan = kegRes.data;
-      } catch (e: any) {
-        throw new Error(e.message || 'Gagal mengambil data referensi terbaru dari server.');
-      }
+        parseResult.entries.forEach(entry => {
+          let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
+          if (!rawRK.trim()) {
+             rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
+          }
+          if (!rawRK.trim()) return;
+          
+          let trueRK = '';
+          const normRawRK = normalize(rawRK);
+          
+          if (localSubRkMap.has(normRawRK)) {
+             trueRK = localSubRkMap.get(normRawRK)!;
+             if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                entry.kegiatan = rawRK;
+             }
+             entry.rencana_kinerja = trueRK;
+          } else {
+             const kegiatanMatch = fuzzyMatchKegiatan(rawRK, kegiatan);
+             
+             if (kegiatanMatch) {
+                trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+                
+                if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                   entry.kegiatan = rawRK;
+                }
+                entry.rencana_kinerja = trueRK;
+             } else {
+                trueRK = fuzzyMatchRK(rawRK, names);
+                entry.rencana_kinerja = trueRK; 
+             }
+          }
+          
+          if (!names.some(m => m.toLowerCase() === trueRK.toLowerCase())) {
+            unmatched.add(trueRK);
+          }
+        });
+        
+        return { unmatched, names };
+      };
 
-      const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
-      const newUnmatched = new Set<string>();
+      let { unmatched: newUnmatched, names: masterNames } = getUnmatched(currentMasterRKs, currentMasterKegiatan);
 
-    parseResult.entries.forEach(entry => {
-      let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
-      if (!rawRK.trim()) {
-         rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
+      // Jika ada RK yang tidak dikenali di cache, barulah fetch data master terbaru (siapa tahu baru diinput)
+      if (newUnmatched.size > 0) {
+        try {
+          const fetchPromise = Promise.all([
+            supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
+            supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000)
+          ]);
+          
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Koneksi ke server terlalu lambat (Timeout). Silakan periksa internet Anda dan coba lagi.')), 15000));
+          
+          const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
+          
+          if (rksRes?.error) throw new Error(rksRes.error.message);
+          if (kegRes?.error) throw new Error(kegRes.error.message);
+
+          if (rksRes?.data) currentMasterRKs = rksRes.data;
+          if (kegRes?.data) currentMasterKegiatan = kegRes.data;
+
+          // Cek ulang dengan data master yang benar-benar baru
+          const recheck = getUnmatched(currentMasterRKs, currentMasterKegiatan);
+          newUnmatched = recheck.unmatched;
+          masterNames = recheck.names;
+        } catch (e: any) {
+          throw new Error(e.message || 'Gagal mengambil data referensi terbaru dari server.');
+        }
       }
-      if (!rawRK.trim()) return;
-      
-      let trueRK = '';
-      const normRawRK = normalize(rawRK);
-      
-      if (localSubRkMap.has(normRawRK)) {
-         trueRK = localSubRkMap.get(normRawRK)!;
-         if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-            entry.kegiatan = rawRK;
-         }
-         entry.rencana_kinerja = trueRK;
-      } else {
-         // Coba periksa apakah rawRK ini sebenarnya adalah sebuah Kegiatan Anggota
-         const kegiatanMatch = fuzzyMatchKegiatan(rawRK, currentMasterKegiatan);
-         
-         if (kegiatanMatch) {
-            trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-            
-            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-               entry.kegiatan = rawRK;
-            }
-            entry.rencana_kinerja = trueRK;
-         } else {
-            trueRK = fuzzyMatchRK(rawRK, masterNames);
-            entry.rencana_kinerja = trueRK; 
-         }
-      }
-      
-      if (!masterNames.some(m => m.toLowerCase() === trueRK.toLowerCase())) {
-        newUnmatched.add(trueRK);
-      }
-    });
 
       if (newUnmatched.size > 0) {
         setUploading(false); // Reset loading state karena memunculkan modal
