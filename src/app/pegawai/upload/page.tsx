@@ -286,14 +286,17 @@ export default function UploadPage() {
           supabase.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000)
         ]);
         
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 15000));
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Koneksi ke server terlalu lambat (Timeout). Silakan periksa internet Anda dan coba lagi.')), 15000));
         
         const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
         
+        if (rksRes?.error) throw new Error(rksRes.error.message);
+        if (kegRes?.error) throw new Error(kegRes.error.message);
+
         if (rksRes?.data) currentMasterRKs = rksRes.data;
         if (kegRes?.data) currentMasterKegiatan = kegRes.data;
-      } catch (e) {
-        console.warn('Gagal memuat ulang data master (timeout/error), menggunakan data cache:', e);
+      } catch (e: any) {
+        throw new Error(e.message || 'Gagal mengambil data referensi terbaru dari server.');
       }
 
       const masterNames: string[] = Array.from(new Set(currentMasterRKs.map((r: any) => String(r.rencana_kinerja))));
@@ -332,7 +335,7 @@ export default function UploadPage() {
          }
       }
       
-      if (!masterNames.includes(trueRK)) {
+      if (!masterNames.some(m => m.toLowerCase() === trueRK.toLowerCase())) {
         newUnmatched.add(trueRK);
       }
     });
@@ -496,7 +499,7 @@ export default function UploadPage() {
                 }
             } else {
                 matchedRK = fuzzyMatchRK(rawRK, masterNames);
-                if (!masterNames.includes(matchedRK) && rkTeamMapping[matchedRK]?.rk_id) {
+                if (!masterNames.some(m => m.toLowerCase() === matchedRK.toLowerCase()) && rkTeamMapping[matchedRK]?.rk_id) {
                    const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
                    if (mappedRKObj) {
                       if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
@@ -532,8 +535,8 @@ export default function UploadPage() {
       if (entriesErr) throw entriesErr;
 
       if (distinctMatchedRKs.size > 0) {
-        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.includes(rk));
-        const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.includes(rk));
+        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
+        const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
         
         if (unmatched.length > 0) {
           const newMappings = unmatched.map(rk => {
@@ -552,7 +555,7 @@ export default function UploadPage() {
           // Also assign to the valid RKs
           unmatched.forEach(rk => {
             const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
-            if (mappedObj && masterNames.includes(mappedObj.rencana_kinerja)) {
+            if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
               validRKsToAssign.push(mappedObj.rencana_kinerja);
             }
           });
