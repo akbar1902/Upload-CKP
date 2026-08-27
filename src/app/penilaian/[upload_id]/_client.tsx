@@ -254,7 +254,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('rencana_kinerja')
-          .eq('ketua_tim_id', employeeData.id);
+          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${currentUser?.id}`);
           
         if (rkMapping && rkMapping.length > 0) {
           const ownRks = rkMapping.map((m: any) => m.rencana_kinerja);
