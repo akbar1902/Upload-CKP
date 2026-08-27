@@ -455,7 +455,7 @@ export default function UploadPage() {
       setUploadStep(4);
       setUploadProgress(90);
 
-      const entriesToInsert = parseResult.entries.map((entry) => {
+      const v2EntriesResolved = parseResult.entries.map((entry) => {
         let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
         if (!rawRK.trim()) {
            rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
@@ -492,6 +492,43 @@ export default function UploadPage() {
         if (matchedRK && matchedRK.trim() !== '') {
           distinctMatchedRKs.add(matchedRK);
         }
+        
+        return { entry, matchedRK };
+      });
+
+      // Bandingkan struktur RK antara V1 (existingEntries) dan V2 (v2EntriesResolved)
+      const oldRkActivities = new Map<string, Set<string>>();
+      existingEntries.forEach((e: any) => {
+        const rk = normalize(e.rencana_kinerja || '');
+        if (!oldRkActivities.has(rk)) oldRkActivities.set(rk, new Set());
+        oldRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
+      });
+
+      const newRkActivities = new Map<string, Set<string>>();
+      v2EntriesResolved.forEach(({ entry, matchedRK }) => {
+        const rk = normalize(matchedRK || '');
+        if (!newRkActivities.has(rk)) newRkActivities.set(rk, new Set());
+        newRkActivities.get(rk)!.add(normalize(entry.kegiatan || ''));
+      });
+
+      const unchangedRKs = new Set<string>();
+      newRkActivities.forEach((newActivities, rk) => {
+         const oldActivities = oldRkActivities.get(rk);
+         if (oldActivities && oldActivities.size === newActivities.size) {
+            let isSame = true;
+            for (const act of newActivities) {
+               if (!oldActivities.has(act)) {
+                  isSame = false;
+                  break;
+               }
+            }
+            if (isSame) unchangedRKs.add(rk);
+         }
+      });
+
+      const entriesToInsert = v2EntriesResolved.map(({ entry, matchedRK }) => {
+        const rk = normalize(matchedRK || '');
+        const isRkUnchanged = unchangedRKs.has(rk);
 
         const matchingOldEntry = existingEntries.find((e: any) => 
           normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
@@ -511,8 +548,8 @@ export default function UploadPage() {
           capaian: entry.capaian || null,
           data_dukung: entry.data_dukung || null,
           extra_columns: entry.extra_columns || {},
-          nilai: matchingOldEntry ? matchingOldEntry.nilai : null,
-          dinilai_oleh: matchingOldEntry ? matchingOldEntry.dinilai_oleh : null,
+          nilai: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.nilai : null,
+          dinilai_oleh: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.dinilai_oleh : null,
           catatan_koreksi: null, // Always start clean on new upload
         }
       });
