@@ -651,7 +651,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                 // Determine score to show
                 const scoredEntries = userEntries.filter(e => e.nilai !== null);
                 let defaultScore = null;
-                if (scoredEntries.length > 0) {
+                // Hanya tampilkan nilai default jika SEMUA kegiatan sudah dinilai.
+                // Jika ada kegiatan baru/pindahan yang belum dinilai, biarkan kosong agar user menilainya ulang.
+                if (scoredEntries.length === userEntries.length && userEntries.length > 0) {
                    const avg = scoredEntries.reduce((s, e) => s + e.nilai!, 0) / scoredEntries.length;
                    defaultScore = Math.round(avg);
                 }

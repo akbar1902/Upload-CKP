@@ -312,12 +312,14 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       if (!map.has(rk)) map.set(rk, []);
       map.get(rk)!.push(e);
     });
-    return Array.from(map.entries()).map(([rk, entries]) => ({
-      rk,
-      entries,
-      // Assuming all entries in the same RK have the same score if graded at the RK level
-      defaultScore: entries[0]?.nilai ?? null
-    }));
+    return Array.from(map.entries()).map(([rk, entries]) => {
+      const allScored = entries.every(e => e.nilai !== null);
+      return {
+        rk,
+        entries,
+        defaultScore: allScored ? (entries[0]?.nilai ?? null) : null
+      };
+    });
   }, [entries]);
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
