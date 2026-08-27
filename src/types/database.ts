@@ -3,7 +3,7 @@
 // ============================================================
 
 export type UserRole = 'anggota' | 'ketua_tim' | 'pimpinan' | 'admin';
-export type UploadStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_required';
+export type UploadStatus = 'draft' | 'submitted' | 'scored' | 'approved' | 'rejected' | 'revision_required';
 export type ApprovalAction = 'approved' | 'rejected' | 'revision_required' | 'reopened';
 
 export interface User {

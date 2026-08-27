@@ -271,7 +271,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         .from('ckp_uploads')
         .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
         .eq('tahun', tahun)
-        .in('status', ['submitted', 'approved', 'revision_required']);
+        .in('status', ['submitted', 'scored', 'approved', 'revision_required']);
 
       if (typeof bulan === 'string' && bulan.startsWith('T')) {
         const triwulanMap: Record<string, number[]> = {

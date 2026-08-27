@@ -54,7 +54,7 @@ export default function PimpinanQuickApprovalClient() {
         .from('ckp_uploads')
         .select('*, user:user_id(id, full_name, nip, unit_kerja)')
         .eq('tahun', tahun)
-        .eq('status', 'submitted')
+        .in('status', ['submitted', 'scored'])
         .order('uploaded_at', { ascending: true });
 
       if (typeof bulan === 'string' && bulan.startsWith('T')) {

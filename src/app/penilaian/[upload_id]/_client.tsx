@@ -23,6 +23,7 @@ import {
 
 const STATUS_CFG = {
   submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
+  scored: { label: 'Sudah Dinilai', cls: 'badge-scored', dot: '🟣' },
   approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
   rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
   revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
@@ -430,7 +431,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const isPimpinan = currentUser?.role === 'pimpinan';
   const isKetuaTim = currentUser?.role === 'ketua_tim' || isPimpinan;
   
-  const canReview = isKetuaTim && (upload.status === 'submitted' || (isPimpinan && upload.status === 'approved')); 
+  const canReview = isKetuaTim && (upload.status === 'submitted' || upload.status === 'scored' || (isPimpinan && upload.status === 'approved')); 
   // Pimpinan can always override if needed, but typically they change status first. 
   // The user said: "jika bu baiq melakukan penilaian sebelum dinilai oleh ketua tim tidak masalah." and "pimpinan bisa membatalkan approval lalu menilai ulang"
   // So canReview is true if status is submitted or if it's pimpinan modifying an approved one (we can just allow it if status is submitted, and let pimpinan reopen first if it's approved).
@@ -496,7 +497,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 >
                   <Lock size={14} className="mr-1" /> View Only (Admin)
                 </button>
-              ) : isPimpinan && upload.status === 'submitted' ? (
+              ) : isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') ? (
                 <button
                   onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
                   className={`btn-primary ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}

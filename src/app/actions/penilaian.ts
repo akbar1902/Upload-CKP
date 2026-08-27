@@ -28,6 +28,31 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
       return { success: false, error: error.message };
     }
 
+    // Auto-update status to 'scored' if all entries have a score
+    const { data: uploads } = await supabase
+      .from('ckp_uploads')
+      .select('id, status')
+      .in('id', ids);
+
+    for (const upload of uploads || []) {
+      if (upload.status !== 'submitted' && upload.status !== 'scored') continue;
+
+      const { data: entries } = await supabase
+        .from('ckp_entries')
+        .select('nilai')
+        .eq('upload_id', upload.id);
+        
+      const allScored = entries && entries.length > 0 && entries.every(e => e.nilai !== null);
+      const newStatus = allScored ? 'scored' : 'submitted';
+
+      if (upload.status !== newStatus) {
+        await supabase
+          .from('ckp_uploads')
+          .update({ status: newStatus })
+          .eq('id', upload.id);
+      }
+    }
+
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || 'Server error' };

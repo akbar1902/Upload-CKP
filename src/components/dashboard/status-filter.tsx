@@ -14,6 +14,7 @@ interface StatusFilterProps {
 const statuses: { value: UploadStatus | 'all' }[] = [
   { value: 'all' },
   { value: 'submitted' },
+  { value: 'scored' },
   { value: 'approved' },
   { value: 'rejected' },
   { value: 'revision_required' },

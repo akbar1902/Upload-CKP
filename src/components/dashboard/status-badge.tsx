@@ -3,6 +3,7 @@ import type { UploadStatus } from '@/types/database';
 
 export const STATUS_CONFIG = {
   submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#FF9500' },
+  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: '#AF52DE' },
   approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '#34C759' },
   rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '#FF3B30' },
   revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '#FF9500' },
@@ -38,6 +39,7 @@ export function StatusLabel({ status }: { status: UploadStatus | null }) {
   const map: Record<UploadStatus, { label: string; bg: string; color: string }> = {
     draft:             { label: 'Draft',          bg: 'var(--bg-secondary)',    color: 'var(--text-secondary)' },
     submitted:         { label: 'Menunggu Review', bg: 'var(--primary-soft)',    color: 'var(--primary)' },
+    scored:            { label: 'Sudah Dinilai',   bg: 'rgba(175, 82, 222, 0.1)', color: '#AF52DE' },
     approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success)' },
     rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger)' },
     revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning)' },

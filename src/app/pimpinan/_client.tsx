@@ -200,10 +200,11 @@ export default function PimpinanDashboard() {
     // 3. Sorting (Default: Menunggu Review -> Disetujui -> Belum Lapor)
     return result.sort((a, b) => {
       const getStatusScore = (upload: CKPUpload | null) => {
-        if (!upload || !upload.status) return 3; // Belum Lapor
-        if (upload.status === 'approved') return 2; // Disetujui
-        if (upload.status === 'submitted') return 1; // Menunggu Review
-        return 4; // Lainnya
+        if (!upload || !upload.status) return 4; // Belum Lapor
+        if (upload.status === 'approved') return 3; // Disetujui
+        if (upload.status === 'scored') return 1; // Sudah Dinilai (highest priority for approval)
+        if (upload.status === 'submitted') return 2; // Menunggu Review
+        return 5; // Lainnya
       };
 
       const scoreA = getStatusScore(a.upload as CKPUpload | null);
@@ -226,7 +227,7 @@ export default function PimpinanDashboard() {
   }, [pegawaiRows]);
 
   const uploadedCount = uniqueUploads.length;
-  const pendingCount = uniqueUploads.filter(u => u.status === 'submitted').length;
+  const pendingCount = uniqueUploads.filter(u => u.status === 'submitted' || u.status === 'scored').length;
   const approvedCount = uniqueUploads.filter(u => u.status === 'approved').length;
   const avgCapaian = uniqueUploads.length > 0
     ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length)

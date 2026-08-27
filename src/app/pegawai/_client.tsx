@@ -220,9 +220,9 @@ export default function PegawaiDashboard() {
 
   // Stats
   const stats = useMemo(() => ({
-    total: uploadsArr.length, // keep total as historical count
+    total: uploadsArr.length,
     approved: uniqueUploads.filter(u => u.status === 'approved').length,
-    pending: uniqueUploads.filter(u => u.status === 'submitted').length,
+    pending: uniqueUploads.filter(u => u.status === 'submitted' || u.status === 'scored').length,
     rejected: uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
     avgProgres: uniqueUploads.length
       ? (uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length).toFixed(0)

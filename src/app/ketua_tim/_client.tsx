@@ -98,12 +98,12 @@ export default function KetuaTimDashboardClient() {
           if (data) assignmentsData.push(...data);
         }
 
-        // 2. Get uploads for the selected month/period that are submitted or approved
+        // 2. Get uploads for the selected month/period that are submitted, scored, or approved
         let uploadsQuery = supabase
           .from('ckp_uploads')
           .select('id, user_id, status, uploaded_at')
           .eq('tahun', qTahun)
-          .in('status', ['submitted', 'approved', 'revision_required']);
+          .in('status', ['submitted', 'scored', 'approved', 'revision_required']);
 
         if (typeof qBulan === 'string' && qBulan.startsWith('T')) {
           const triwulanMap: Record<string, number[]> = {

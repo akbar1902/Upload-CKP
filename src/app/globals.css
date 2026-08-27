@@ -246,6 +246,7 @@ body {
 }
 .badge-approved  { background: rgba(52,199,89,0.1);  color: #248A3D; }
 .badge-submitted { background: rgba(255,149,0,0.1);  color: #C93400; }
+.badge-scored { background: rgba(175,82,222,0.1); color: #AF52DE; }
 .badge-rejected  { background: rgba(255,59,48,0.1);  color: #D70015; }
 .badge-revision  { background: rgba(255,149,0,0.1);  color: #A05A00; }
 .badge-draft     { background: var(--bg-secondary);   color: var(--text-secondary); }
@@ -253,6 +254,7 @@ body {
 
 .dark .badge-approved  { background: rgba(48,209,88,0.15);  color: #30D158; }
 .dark .badge-submitted { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+.dark .badge-scored { background: rgba(191,90,242,0.15); color: #BF5AF2; }
 .dark .badge-rejected  { background: rgba(255,69,58,0.15);  color: #FF453A; }
 .dark .badge-revision  { background: rgba(255,159,10,0.15); color: #FF9F0A; }
 .dark .badge-draft     { background: rgba(255,255,255,0.06); color: var(--text-secondary); }

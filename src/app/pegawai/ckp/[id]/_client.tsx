@@ -47,6 +47,7 @@ function getProgressClass(pct: number): string {
 // ── Upload status badge ────────────────────────────────────
 const STATUS_CFG = {
   submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
+  scored: { label: 'Sudah Dinilai', cls: 'badge-scored', dot: '🟣' },
   approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
   rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
   revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
