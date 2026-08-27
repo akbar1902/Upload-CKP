@@ -117,7 +117,7 @@ function PegawaiRKGroup({
 
   const hasScore = defaultScore !== null;
   const avgProgress = entries.length > 0 ? entries.reduce((s, e) => s + (e.progres || 0), 0) / entries.length : 0;
-  const dinilaiOleh = entries[0]?.dinilai_oleh;
+  const dinilaiOleh = entries[0]?.dinilai_oleh && entries[0]?.nilai !== null;
 
   return (
     <div className="activity-card mb-4 bg-white border rounded-2xl shadow-sm hover:shadow transition-shadow" aria-expanded={expanded} style={{ borderColor: 'var(--border)' }}>

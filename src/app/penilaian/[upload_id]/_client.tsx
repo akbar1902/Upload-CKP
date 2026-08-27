@@ -122,7 +122,7 @@ function RencanaKinerjaGroup({
 
   // The scorer's role info could be embedded in the UI if needed
   // For now, if dinilai_oleh is set, it means it has been graded.
-  const dinilaiOleh = entries[0]?.dinilai_oleh;
+  const dinilaiOleh = entries[0]?.dinilai_oleh && entries[0]?.nilai !== null;
 
   return (
     <div className="activity-card mb-4" aria-expanded={expanded}>
