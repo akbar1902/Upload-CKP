@@ -15,6 +15,7 @@ const badgeVariants = cva(
         outline: "border-[var(--border)] text-[var(--text-secondary)]",
         draft: "border-[var(--border)] bg-[var(--bg-secondary)] text-[var(--text-secondary)]",
         submitted: "border-transparent bg-[var(--primary-soft)] text-[var(--primary)]",
+        scored: "border-transparent bg-[rgba(175,82,222,0.1)] text-[#AF52DE] dark:bg-[rgba(191,90,242,0.15)] dark:text-[#BF5AF2]",
         approved: "border-transparent bg-[var(--success-soft)] text-[#248A3D] dark:text-[#30D158]",
         rejected: "border-transparent bg-[var(--danger-soft)] text-[#D70015] dark:text-[#FF453A]",
         revision_required: "border-transparent bg-[var(--warning-soft)] text-[#A05A00] dark:text-[#FF9F0A]",
