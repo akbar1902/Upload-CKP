@@ -20,37 +20,37 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-[0_4px_12px_rgba(16,185,129,0.25)]">
             {data.ketuaTim.full_name.substring(0, 2).toUpperCase()}
           </div>
           <div>
             <h3 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">{data.ketuaTim.full_name}</h3>
-            <p className="text-[12px] text-slate-500 dark:text-slate-400 mt-0.5">NIP: {data.ketuaTim.nip || '-'}</p>
+            <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 mt-0.5">NIP: {data.ketuaTim.nip || '-'}</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end">
-            <span className="text-[20px] font-bold text-orange-600 dark:text-orange-400 leading-none">
+            <span className="text-[20px] font-extrabold text-amber-600 dark:text-amber-400 leading-none">
               {data.totalPendingKegiatan}
             </span>
-            <span className="text-[11px] font-medium text-slate-500 uppercase tracking-wider mt-1">
-              Kegiatan Tertunda
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
+              Tugas Tertunda
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-400">
+          <div className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100 dark:border-slate-800/50 bg-slate-50/50 dark:bg-slate-900/20 p-5 space-y-4">
-          <div className="text-[13px] font-semibold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-            <Users size={16} className="text-indigo-500" />
-            Daftar Pegawai yang Belum Dinilai ({data.pegawaiDetails.length})
+        <div className="border-t border-slate-100 dark:border-slate-800 bg-[#f8faf9] dark:bg-slate-900/40 p-5 space-y-4">
+          <div className="text-[13px] font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
+            <Users size={16} />
+            Daftar Anggota Tim ({data.pegawaiDetails.length})
           </div>
           
-          <div className="grid gap-3">
+          <div className="grid gap-2.5">
             {data.pegawaiDetails.map((pegawai) => (
               <PegawaiDetailCard key={pegawai.id} pegawai={pegawai} />
             ))}
@@ -67,35 +67,35 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
   return (
     <div className="bg-white dark:bg-[#25262b] rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden">
       <div 
-        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-xs font-bold">
+          <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-[11px] font-bold">
             {pegawai.full_name.substring(0, 2).toUpperCase()}
           </div>
           <div>
             <div className="text-[14px] font-semibold text-slate-800 dark:text-slate-200">{pegawai.full_name}</div>
-            <div className="text-[11px] text-slate-500">{pegawai.unit_kerja || 'BPS Kabupaten Belitung'}</div>
+            <div className="text-[11px] font-medium text-slate-500">{pegawai.unit_kerja || 'BPS Kabupaten Belitung'}</div>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-orange-100 dark:bg-orange-500/10 text-orange-700 dark:text-orange-400 text-[12px] font-medium">
-            <FileText size={14} />
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 text-[12px] font-semibold">
+            <FileText size={13} />
             {pegawai.pendingKegiatanCount} Kegiatan
           </span>
-          {expanded ? <ChevronUp size={16} className="text-slate-400" /> : <ChevronDown size={16} className="text-slate-400" />}
+          {expanded ? <ChevronUp size={16} className="text-emerald-500" /> : <ChevronDown size={16} className="text-slate-400" />}
         </div>
       </div>
       
       {expanded && (
-        <div className="p-3.5 pt-0">
-          <div className="pl-11 pr-2">
-            <ul className="space-y-2">
+        <div className="p-3 pt-0 bg-emerald-50/30 dark:bg-slate-800/20">
+          <div className="pl-11 pr-2 pt-2">
+            <ul className="space-y-1.5">
               {pegawai.kegiatanNames.map((keg, idx) => (
-                <li key={idx} className="text-[12px] text-slate-600 dark:text-slate-400 flex items-start gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
-                  <div className="min-w-1.5 h-1.5 rounded-full bg-orange-400 mt-1.5" />
-                  <span>{keg}</span>
+                <li key={idx} className="text-[12.5px] font-medium text-slate-600 dark:text-slate-400 flex items-start gap-2.5 py-1.5">
+                  <div className="min-w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500 mt-[6px]" />
+                  <span className="leading-snug">{keg}</span>
                 </li>
               ))}
             </ul>
