@@ -328,33 +328,7 @@ export default function UploadPage() {
         return { unmatched, names };
       };
 
-      let { unmatched: newUnmatched, names: masterNames } = getUnmatched(currentMasterRKs, currentMasterKegiatan);
-
-      // Jika ada RK yang tidak dikenali di cache, barulah fetch data master terbaru (siapa tahu baru diinput)
-      if (newUnmatched.size > 0) {
-        try {
-          const fetchPromise = Promise.all([
-            supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
-            getMasterKegiatanAnggota()
-          ]);
-          
-          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Koneksi ke server terlalu lambat (Timeout). Silakan periksa internet Anda dan coba lagi.')), 15000));
-          
-          const [rksRes, kegRes] = await Promise.race([fetchPromise, timeoutPromise]) as any;
-          
-          if (rksRes?.error) throw new Error(rksRes.error.message);
-
-          if (rksRes?.data) currentMasterRKs = rksRes.data;
-          if (kegRes) currentMasterKegiatan = kegRes;
-
-          // Cek ulang dengan data master yang benar-benar baru
-          const recheck = getUnmatched(currentMasterRKs, currentMasterKegiatan);
-          newUnmatched = recheck.unmatched;
-          masterNames = recheck.names;
-        } catch (e: any) {
-          throw new Error(e.message || 'Gagal mengambil data referensi terbaru dari server.');
-        }
-      }
+      const { unmatched: newUnmatched } = getUnmatched(currentMasterRKs, currentMasterKegiatan);
 
       if (newUnmatched.size > 0) {
         setUploading(false); // Reset loading state karena memunculkan modal
@@ -405,48 +379,23 @@ export default function UploadPage() {
 
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
-      // 1. Baca file ke memory terlebih dahulu (menghindari hang jika file sedang dibuka/dilock Excel)
-      let uploadDataBuffer: ArrayBuffer;
-      try {
-        const bufferPromise = file.arrayBuffer();
-        const readTimeout = new Promise<ArrayBuffer>((_, reject) =>
-          setTimeout(() => reject(new Error('Gagal membaca file. Pastikan file Excel Anda sudah di-CLOSE (tidak sedang dibuka).')), 15000)
-        );
-        uploadDataBuffer = await Promise.race([bufferPromise, readTimeout]);
-      } catch (err: any) {
-        throw new Error(err.message || 'Gagal membaca file lokal.');
-      }
 
-      // 2. Upload dari memory ke Supabase
+      // Upload langsung File object ke Supabase (paling cepat, seperti kode asli)
       const uploadPromise = supabase.storage
         .from('ckp-files')
-        .upload(storagePath, uploadDataBuffer, { 
-          upsert: true,
-          contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        });
+        .upload(storagePath, file, { upsert: true });
 
-      const uploadTimeoutPromise = new Promise<{ error: Error | null, data: any }>((_, reject) => {
-        setTimeout(() => reject(new Error('Proses upload terlalu lama (Timeout Jaringan). Pastikan koneksi internet Anda stabil.')), 60000);
-      });
-
-      // Animasi progress pelan-pelan selama upload storage (Supabase tidak punya progress callback)
+      // Animasi progress asimtotik — selalu bergerak, tidak pernah berhenti
       let animatedProgress = 30;
       const progressInterval = setInterval(() => {
-        animatedProgress = Math.min(animatedProgress + 1.5, 58);
+        animatedProgress = animatedProgress + (92 - animatedProgress) * 0.06;
         setUploadProgress(Math.round(animatedProgress));
-      }, 300);
+      }, 400);
 
-      let storageUploadError: Error | null = null;
-      try {
-        const result = await Promise.race([uploadPromise, uploadTimeoutPromise]);
-        storageUploadError = result.error as Error | null;
-      } catch (err: any) {
-        clearInterval(progressInterval);
-        throw new Error(err.message || 'Proses upload storage gagal.');
-      }
+      const { error: storageError } = await uploadPromise;
       clearInterval(progressInterval);
 
-      if (storageUploadError) throw new Error(storageUploadError.message);
+      if (storageError) throw new Error(storageError.message);
 
 
       if (oldUploadId) {
