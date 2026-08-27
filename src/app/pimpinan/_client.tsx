@@ -318,6 +318,13 @@ export default function PimpinanDashboard() {
                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] leading-none ml-1">{pendingCount}</span>
               </Link>
             )}
+            <Link
+              href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <Users className="h-4 w-4" />
+              Monitoring Penilaian
+            </Link>
             <PeriodFilter
               bulan={bulan} tahun={tahun}
               onBulanChange={setBulan} onTahunChange={setTahun}

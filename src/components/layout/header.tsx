@@ -57,6 +57,13 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Detail Pegawai',
     };
   }
+  if (pathname.includes('/monitoring-penilaian')) {
+    const base = pathname.includes('/admin') ? '/admin' : '/pimpinan';
+    return {
+      crumbs: [{ label: 'Dashboard', href: base }, { label: 'Monitoring Penilaian' }],
+      title: 'Monitoring Penilaian Ketua Tim',
+    };
+  }
   if (pathname === '/rencana_kinerja') {
     return {
       crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : '/pegawai' }, { label: 'Rencana Kinerja' }],
