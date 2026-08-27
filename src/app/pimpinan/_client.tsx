@@ -398,6 +398,7 @@ export default function PimpinanDashboard() {
                 { id: 'all', label: 'Semua' },
                 { id: 'submitted', label: 'Menunggu Review' },
                 { id: 'scored', label: 'Sudah Dinilai' },
+                { id: 'revision_required', label: 'Perlu Revisi' },
                 { id: 'approved', label: 'Disetujui' },
                 { id: 'belum_lapor', label: 'Belum Lapor' }
               ].map(st => (
