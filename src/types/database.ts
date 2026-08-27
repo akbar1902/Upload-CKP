@@ -3,7 +3,7 @@
 // ============================================================
 
 export type UserRole = 'anggota' | 'ketua_tim' | 'pimpinan' | 'admin';
-export type UploadStatus = 'draft' | 'submitted' | 'scored' | 'approved' | 'rejected' | 'revision_required';
+export type UploadStatus = 'draft' | 'submitted' | 'scored' | 'approved' | 'rejected' | 'revision_required' | 'superseded';
 export type ApprovalAction = 'approved' | 'rejected' | 'revision_required' | 'reopened';
 
 export interface User {
@@ -72,6 +72,7 @@ export interface CKPEntry {
   capaian: string | null;
   nilai: number | null;
   dinilai_oleh: string | null;
+  catatan_koreksi: string | null;
   data_dukung: string | null;
   extra_columns: Record<string, unknown>;
   created_at: string;

@@ -13,12 +13,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
+import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
   RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock,
-  Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList
+  Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle
 } from 'lucide-react';
 
 const STATUS_CFG = {
@@ -62,13 +63,15 @@ function RencanaKinerjaGroup({
   entries,
   canReview,
   onSaveScore,
-  defaultScore
+  defaultScore,
+  onMoveEntryClick
 }: {
   rkName: string;
   entries: CKPEntry[];
   canReview: boolean;
   onSaveScore: (rk: string, score: number | null) => Promise<void>;
   defaultScore: number | null;
+  onMoveEntryClick?: (entry: CKPEntry) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
@@ -201,6 +204,16 @@ function RencanaKinerjaGroup({
                     </div>
                     <div className="flex items-center gap-2 text-right">
                       {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
+                      {canReview && onMoveEntryClick && (
+                        <button 
+                          onClick={() => onMoveEntryClick(entry)} 
+                          className="p-1 rounded-md transition-colors"
+                          style={{ color: 'var(--primary)', background: 'var(--primary-soft)' }}
+                          title="Pindah ke RK Lain (Koreksi RK)"
+                        >
+                          <ArrowRightLeft size={14} />
+                        </button>
+                      )}
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
                         <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-[var(--success)]' : 'text-[var(--primary)]'}`}>{entry.progres}%</span>
@@ -227,6 +240,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [defaultModalAction, setDefaultModalAction] = useState<ApprovalAction>('approved');
+  const [entryToMove, setEntryToMove] = useState<CKPEntry | null>(null);
+  const [targetMoveRk, setTargetMoveRk] = useState<string>('');
+  const [isMovingEntry, setIsMovingEntry] = useState(false);
   
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -241,10 +257,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         .from('ckp_uploads').select('*').eq('id', uploadId).single();
       if (uploadError) throw new Error(uploadError.message);
 
-      const [employeeRes, entriesRes, approvalsRes] = await Promise.all([
+      const [employeeRes, entriesRes, approvalsRes, masterRkRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
         supabase.from('ckp_entries').select('*').eq('upload_id', uploadId).order('row_number'),
         supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').eq('upload_id', uploadId).order('created_at', { ascending: false }),
+        supabase.from('rk_ketua_tim_mapping').select('rencana_kinerja, tim_kerja').order('rencana_kinerja'),
       ]);
 
       let entriesData = (entriesRes.data as CKPEntry[]) || [];
@@ -270,6 +287,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         employee: employeeData,
         entries: entriesData,
         approvals: (approvalsRes.data || []).map((a: any) => ({ ...a })) as Approval[],
+        masterRks: masterRkRes.data || [],
       };
     },
     enabled: !!uploadId && !authLoading,
@@ -284,6 +302,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const employee = data?.employee || null;
   const entries: CKPEntry[] = data?.entries || [];
   const approvals: Approval[] = data?.approvals || [];
+  const masterRks: any[] = data?.masterRks || [];
 
   // Group entries by RK
   const rkGroups = useMemo(() => {
@@ -367,6 +386,26 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     if (!upload || !employee) return;
     exportToExcel({ upload, entries, user: employee });
     toast.success('File Excel berhasil diunduh');
+  };
+
+  const handleExecuteMoveEntry = async () => {
+    try {
+      if (!entryToMove || !targetMoveRk.trim()) return;
+      
+      setIsMovingEntry(true);
+      const result = await moveEntriesAction([entryToMove.id], targetMoveRk);
+        
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success("Kegiatan berhasil dipindah ke RK yang baru.");
+      setEntryToMove(null);
+      setTargetMoveRk('');
+      refetch();
+    } catch (err: any) {
+      toast.error("Gagal memindahkan kegiatan: " + (err.message || 'Error tidak diketahui'));
+    } finally {
+      setIsMovingEntry(false);
+    }
   };
 
   const error = queryError ? queryError.message : null;
@@ -548,6 +587,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 canReview={canReview}
                 onSaveScore={handleSaveScore}
                 defaultScore={group.defaultScore}
+                onMoveEntryClick={(entry) => {
+                  setEntryToMove(entry);
+                  setTargetMoveRk('');
+                }}
               />
             ))}
             
@@ -579,6 +622,57 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           period={`${bulanNama} ${upload.tahun}`}
           defaultAction={defaultModalAction}
         />
+      )}
+
+      {/* Modal Pindah RK / Koreksi RK */}
+      {entryToMove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Pindah/Koreksi Rencana Kinerja</h3>
+              <button onClick={() => setEntryToMove(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                 <XCircle size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
+                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Kegiatan</p>
+                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entryToMove.kegiatan}</p>
+                <p className="text-[11px] mt-2 font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">RK Awal (Salah)</p>
+                <p className="text-[13px] font-medium text-red-600 dark:text-red-400">{entryToMove.rencana_kinerja}</p>
+              </div>
+              
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih RK Induk Baru</label>
+                <input 
+                  type="text" 
+                  list="master-rk-list"
+                  className="w-full text-sm rounded-lg h-10 px-3 outline-none focus:ring-2"
+                  style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                  placeholder="Ketik atau pilih Rencana Kinerja..."
+                  value={targetMoveRk}
+                  onChange={(e) => setTargetMoveRk(e.target.value)}
+                />
+                <datalist id="master-rk-list">
+                  {masterRks.map((rk, idx) => (
+                    <option key={idx} value={rk.rencana_kinerja} />
+                  ))}
+                </datalist>
+                <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                  Pilih dari daftar RK yang ada atau ketik manual jika RK tidak ada di daftar. Kegiatan ini akan langsung dipindahkan ke grup RK yang baru.
+                </p>
+              </div>
+            </div>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setEntryToMove(null)}>
+                Batal
+              </button>
+              <button className="btn-primary" onClick={handleExecuteMoveEntry} disabled={isMovingEntry || !targetMoveRk.trim() || targetMoveRk === entryToMove.rencana_kinerja}>
+                {isMovingEntry ? 'Menyimpan...' : 'Simpan Perubahan'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

@@ -14,7 +14,7 @@ import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2, AlertTriangle
 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
@@ -114,7 +114,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
   const color = getActivityColor(index);
 
   return (
-    <div className="activity-card" aria-expanded={expanded}>
+    <div className={`activity-card ${entry.catatan_koreksi ? '!border-amber-400 !bg-amber-50' : ''}`} aria-expanded={expanded}>
       {/* ── Main row ─────────────────────────────── */}
       <div className="flex items-start gap-4 p-5">
 
@@ -149,6 +149,18 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
                 {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
               </span>
             </div>
+
+            {entry.catatan_koreksi && (
+              <>
+                <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5 mt-2" style={{ color: 'var(--amber-700)' }}>Catatan Perbaikan</p>
+                <div className="mt-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[13px] flex items-start gap-2 col-span-1 md:col-span-2">
+                  <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-600" />
+                  <div>
+                    {entry.catatan_koreksi}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Mobile date */}

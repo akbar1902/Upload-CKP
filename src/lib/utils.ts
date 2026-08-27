@@ -63,6 +63,7 @@ export function getStatusColor(status: string): string {
     case 'approved': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
     case 'rejected': return 'bg-red-50 text-red-700 border-red-200';
     case 'revision_required': return 'bg-amber-50 text-amber-700 border-amber-200';
+    case 'superseded': return 'bg-slate-100 text-slate-500 border-slate-200';
     default: return 'bg-gray-100 text-gray-700 border-gray-200';
   }
 }
@@ -75,6 +76,7 @@ export function getStatusLabel(status: string): string {
     case 'approved': return 'Disetujui';
     case 'rejected': return 'Ditolak';
     case 'revision_required': return 'Perlu Revisi';
+    case 'superseded': return 'Diganti (Arsip)';
     default: return status;
   }
 }

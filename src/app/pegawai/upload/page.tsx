@@ -271,11 +271,6 @@ export default function UploadPage() {
         return;
       }
 
-      if (existingUpload?.status === 'submitted') {
-        toast.error('CKP sedang dalam proses review. Tunggu hasil review sebelum upload ulang.');
-        return;
-      }
-
       setUploading(true);
       setUploadStep(0);
       setUploadProgress(5);
@@ -378,15 +373,22 @@ export default function UploadPage() {
 
     try {
       let newVersion = 1;
-      let oldUploadId: string | null = null;
+      let previousUploadId: string | null = null;
+      let existingEntries: any[] = [];
 
-      if (existingUpload && (existingUpload.status === 'draft' || existingUpload.status === 'revision_required')) {
-        oldUploadId = existingUpload.id;
-        newVersion = existingUpload.version;
-      } else if (!existingUpload) {
-        newVersion = 1;
-      } else {
+      if (existingUpload) {
         newVersion = existingUpload.version + 1;
+        previousUploadId = existingUpload.id;
+        
+        // Fetch existing entries to preserve scores
+        const { data: entries } = await supabase
+          .from('ckp_entries')
+          .select('*')
+          .eq('upload_id', previousUploadId);
+          
+        if (entries) {
+          existingEntries = entries;
+        }
       }
 
       setUploadStep(1);
@@ -395,12 +397,10 @@ export default function UploadPage() {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
 
-      // Upload langsung File object ke Supabase (paling cepat, seperti kode asli)
       const uploadPromise = supabase.storage
         .from('ckp-files')
         .upload(storagePath, file, { upsert: true });
 
-      // Animasi progress asimtotik — selalu bergerak, tidak pernah berhenti
       let animatedProgress = 30;
       const progressInterval = setInterval(() => {
         animatedProgress = animatedProgress + (92 - animatedProgress) * 0.06;
@@ -412,57 +412,40 @@ export default function UploadPage() {
 
       if (storageError) throw new Error(storageError.message);
 
-
-      if (oldUploadId) {
-        setUploadStep(2);
-        setUploadProgress(50);
-        await supabase.from('ckp_entries').delete().eq('upload_id', oldUploadId);
-      }
-
       const totalEntries = parseResult.entries.length;
       const avgProgres = totalEntries > 0
         ? parseResult.entries.reduce((s, e) => s + (Number(e.progres) || 0), 0) / totalEntries
         : 0;
 
-      setUploadStep(3);
+      setUploadStep(2);
       setUploadProgress(70);
       
-      let uploadData: any;
-      if (oldUploadId) {
-        const { data, error } = await supabase
+      // If there's a previous upload, mark it as superseded
+      if (previousUploadId) {
+        await supabase
           .from('ckp_uploads')
-          .update({
-            file_name: file.name,
-            storage_path: storagePath,
-            status: 'submitted',
-            total_entries: totalEntries,
-            avg_progres: avgProgres,
-            catatan_pimpinan: null,
-          })
-          .eq('id', oldUploadId)
-          .select()
-          .single();
-        if (error) throw error;
-        uploadData = data;
-      } else {
-        const { data, error } = await supabase
-          .from('ckp_uploads')
-          .insert({
-            user_id: user.id,
-            bulan,
-            tahun,
-            version: newVersion,
-            file_name: file.name,
-            storage_path: storagePath,
-            status: 'submitted',
-            total_entries: totalEntries,
-            avg_progres: avgProgres,
-          })
-          .select()
-          .single();
-        if (error) throw error;
-        uploadData = data;
+          .update({ status: 'superseded' })
+          .eq('id', previousUploadId);
       }
+
+      // Always create a new upload row
+      const { data: uploadData, error } = await supabase
+        .from('ckp_uploads')
+        .insert({
+          user_id: user.id,
+          bulan,
+          tahun,
+          version: newVersion,
+          file_name: file.name,
+          storage_path: storagePath,
+          status: 'submitted',
+          total_entries: totalEntries,
+          avg_progres: avgProgres,
+        })
+        .select()
+        .single();
+        
+      if (error) throw error;
 
       const masterDict = latestMasterRKs || [...masterRKs];
       const mKegiatan = latestMasterKegiatan || masterKegiatan;
@@ -510,6 +493,11 @@ export default function UploadPage() {
           distinctMatchedRKs.add(matchedRK);
         }
 
+        const matchingOldEntry = existingEntries.find((e: any) => 
+          normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
+          normalize(e.rencana_kinerja || '') === normalize(matchedRK || '')
+        );
+
         return {
           upload_id: uploadData.id,
           row_number: entry.row_number || 0,
@@ -523,6 +511,9 @@ export default function UploadPage() {
           capaian: entry.capaian || null,
           data_dukung: entry.data_dukung || null,
           extra_columns: entry.extra_columns || {},
+          nilai: matchingOldEntry ? matchingOldEntry.nilai : null,
+          dinilai_oleh: matchingOldEntry ? matchingOldEntry.dinilai_oleh : null,
+          catatan_koreksi: null, // Always start clean on new upload
         }
       });
 
@@ -577,7 +568,7 @@ export default function UploadPage() {
 
       await supabase.from('audit_logs').insert({
         user_id: user.id,
-        action: oldUploadId ? 'replace_ckp' : 'upload_ckp',
+        action: 'upload_ckp',
         entity_type: 'ckp_uploads',
         entity_id: uploadData.id,
         new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },

@@ -10,11 +10,13 @@ import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDate, getDefaultPeriod } from '@/lib/utils';
 import { gradeRencanaKinerjaAction } from '@/app/actions/penilaian';
+import { markEntryAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, FileText, TrendingUp, CheckCircle2,
-  RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon
+  RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon,
+  XCircle, CheckSquare, AlertTriangle
 } from 'lucide-react';
 
 function KPICard({ icon, value, label, sub, iconBg }: {
@@ -42,7 +44,9 @@ function PegawaiRKGroup({
   rkName,
   canReview,
   onSaveScore,
-  defaultScore
+  defaultScore,
+  onMarkEntryClick,
+  forceExpanded
 }: {
   uploads: CKPUpload[];
   user: User;
@@ -51,8 +55,11 @@ function PegawaiRKGroup({
   canReview: boolean;
   onSaveScore: (uploadIds: string[], score: number | null) => Promise<void>;
   defaultScore: number | null;
+  onMarkEntryClick?: (entry: CKPEntry) => void;
+  forceExpanded?: boolean;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expandedState, setExpandedState] = useState(false);
+  const expanded = forceExpanded || expandedState;
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
   const [saving, setSaving] = useState(false);
 
@@ -117,7 +124,7 @@ function PegawaiRKGroup({
       {/* Header */}
       <div 
         className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center cursor-pointer"
-        onClick={() => setExpanded(!expanded)}
+        onClick={() => setExpandedState(!expandedState)}
       >
         <div className="flex-1 min-w-0 flex items-center gap-4">
           <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
@@ -168,7 +175,7 @@ function PegawaiRKGroup({
           </div>
           
           <button
-            onClick={() => setExpanded(!expanded)}
+            onClick={() => setExpandedState(!expandedState)}
             className="p-2 rounded-lg transition-colors ml-2 self-end bg-slate-50 hover:bg-slate-100 text-slate-500"
           >
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -182,11 +189,13 @@ function PegawaiRKGroup({
           <h5 className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Detail Kegiatan</h5>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {entries.map((entry) => (
-              <div key={entry.id} className="p-4 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+              <div key={entry.id} className={`p-4 rounded-xl shadow-sm border transition-colors ${entry.catatan_koreksi ? 'border-amber-400 bg-amber-50/30' : 'border-[var(--border)] bg-[var(--card-bg)]'}`}>
                 <div className="flex flex-col h-full">
-                  <div className="flex-1 mb-3">
-                    <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entry.kegiatan || '—'}</p>
-                    <p className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{entry.capaian || '—'}</p>
+                  <div className="flex-1 mb-3 flex items-start gap-3">
+                    <div className="flex-1">
+                      <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entry.kegiatan || '—'}</p>
+                      <p className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{entry.capaian || '—'}</p>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t flex-wrap gap-y-2" style={{ borderColor: 'var(--border)' }}>
                     <div className="flex items-center gap-2">
@@ -200,6 +209,16 @@ function PegawaiRKGroup({
                     </div>
                     <div className="flex items-center gap-2 text-right flex-wrap">
                       {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
+                      {canReview && onMarkEntryClick && (
+                        <button 
+                          onClick={() => onMarkEntryClick(entry)} 
+                          className="p-1 rounded-md transition-colors"
+                          style={{ color: 'var(--amber-600)', background: 'var(--amber-50)' }}
+                          title="Tandai Perlu Diperbaiki"
+                        >
+                          <AlertTriangle size={14} />
+                        </button>
+                      )}
                       <div className="flex items-center gap-1.5 ml-2">
                         <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Progres:</span>
                         <span className={`text-[12px] font-bold ${entry.progres >= 100 ? 'text-[var(--success)]' : 'text-[var(--primary)]'}`}>{entry.progres}%</span>
@@ -212,6 +231,15 @@ function PegawaiRKGroup({
                       )}
                     </div>
                   </div>
+                  {entry.catatan_koreksi && (
+                    <div className="mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[12px] flex items-start gap-2">
+                      <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+                      <div>
+                        <span className="font-semibold block mb-0.5">Catatan Perbaikan:</span>
+                        {entry.catatan_koreksi}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -237,9 +265,14 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const paramTahun = searchParams.get('tahun');
   const bulan: string | number = paramBulan && paramBulan.startsWith('T') ? paramBulan : (paramBulan ? parseInt(paramBulan) : currentMonth);
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
-
   const [searchQuery, setSearchQuery] = useState('');
   
+  const [entryToMark, setEntryToMark] = useState<CKPEntry | null>(null);
+  const [catatanKoreksi, setCatatanKoreksi] = useState<string>('');
+  const [isMarking, setIsMarking] = useState(false);
+  
+
+
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     // KEY must match server prefetch in ketua_tim/rk/[id]/page.tsx exactly
     queryKey: ['rk-detail', rkId, bulan, tahun],
@@ -389,14 +422,75 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     }
   };
 
-  const filteredUploads = useMemo(() => {
-    if (!searchQuery.trim()) return uploads;
-    const q = searchQuery.toLowerCase();
-    return uploads.filter(u =>
-      u.user?.full_name?.toLowerCase().includes(q) ||
-      u.user?.nip?.toLowerCase().includes(q)
-    );
-  }, [uploads, searchQuery]);
+  const handleExecuteMarkEntry = async () => {
+    if (!entryToMark) return;
+    
+    setIsMarking(true);
+    try {
+      const result = await markEntryAction(entryToMark.id, catatanKoreksi || null);
+        
+      if (!result.success) throw new Error(result.error);
+      
+      toast.success(catatanKoreksi ? "Catatan perbaikan berhasil disimpan." : "Catatan perbaikan berhasil dihapus.");
+      setEntryToMark(null);
+      setCatatanKoreksi('');
+      refetch();
+    } catch (err: any) {
+      toast.error("Gagal menyimpan catatan: " + (err.message || 'Error tidak diketahui'));
+    } finally {
+      setIsMarking(false);
+    }
+  };
+
+  const { filteredUserGroups, totalDisplayedUsers } = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    
+    const userGroupsMap = uploads.reduce((acc, upload) => {
+      const userId = upload.user_id;
+      if (!acc[userId] && upload.user) {
+        acc[userId] = { user: upload.user, uploads: [] };
+      }
+      if (acc[userId]) {
+        acc[userId].uploads.push(upload);
+      }
+      return acc;
+    }, {} as Record<string, { user: User, uploads: CKPUpload[] }>);
+    
+    const userGroups = Object.values(userGroupsMap);
+    
+    const finalGroups = userGroups.map(group => {
+       const uploadIds = group.uploads.map(u => u.id);
+       const userEntries = entries.filter(e => uploadIds.includes(e.upload_id));
+       
+       userEntries.sort((a, b) => {
+          const aUpload = group.uploads.find(u => u.id === a.upload_id);
+          const bUpload = group.uploads.find(u => u.id === b.upload_id);
+          return (aUpload?.bulan || 0) - (bUpload?.bulan || 0);
+       });
+       
+       if (!q) {
+          return { ...group, entries: userEntries, matches: true };
+       }
+       
+       const userMatches = group.user.full_name?.toLowerCase().includes(q) || 
+                           group.user.nip?.toLowerCase().includes(q);
+                           
+       let filteredEntries = userEntries;
+       if (!userMatches) {
+          filteredEntries = userEntries.filter(e => 
+            e.kegiatan?.toLowerCase().includes(q) || 
+            e.capaian?.toLowerCase().includes(q)
+          );
+       }
+       
+       return { ...group, entries: filteredEntries, matches: userMatches || filteredEntries.length > 0 };
+    }).filter(g => g.matches && g.entries.length > 0);
+    
+    return { 
+       filteredUserGroups: finalGroups, 
+       totalDisplayedUsers: finalGroups.length 
+    };
+  }, [uploads, entries, searchQuery]);
 
   if (error && !loading && !rk) {
     return (
@@ -532,43 +626,28 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         <div className="pt-4 border-t border-slate-200">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h3 className="text-lg font-bold text-slate-800">Daftar Pegawai ({filteredUploads.length})</h3>
+              <h3 className="text-lg font-bold text-slate-800">Daftar Pegawai ({totalDisplayedUsers})</h3>
               <p className="text-sm text-slate-500">Berikan nilai Rencana Kinerja untuk masing-masing pegawai di bawah ini.</p>
             </div>
             
-            <div className="relative w-full sm:max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <input 
-                type="search" 
-                placeholder="Cari pegawai..." 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20" 
-              />
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input 
+                  type="search" 
+                  placeholder="Cari pegawai..." 
+                  value={searchQuery} 
+                  onChange={e => setSearchQuery(e.target.value)} 
+                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20" 
+                />
+              </div>
             </div>
           </div>
 
           <div className="space-y-4">
-            {filteredUploads.length > 0 ? (
-              Object.values(filteredUploads.reduce((acc: Record<string, { user: User, uploads: CKPUpload[] }>, upload) => {
-                const userId = upload.user_id;
-                if (!acc[userId] && upload.user) {
-                  acc[userId] = { user: upload.user, uploads: [] };
-                }
-                if (acc[userId]) {
-                  acc[userId].uploads.push(upload);
-                }
-                return acc;
-              }, {})).map(({ user, uploads: userUploads }) => {
-                const uploadIds = userUploads.map(u => u.id);
-                const userEntries = entries.filter(e => uploadIds.includes(e.upload_id));
-                // Sort entries by month ascending (which corresponds to upload_id if we fetch uploads)
-                userEntries.sort((a, b) => {
-                   const aUpload = userUploads.find(u => u.id === a.upload_id);
-                   const bUpload = userUploads.find(u => u.id === b.upload_id);
-                   return (aUpload?.bulan || 0) - (bUpload?.bulan || 0);
-                });
-                
+            {filteredUserGroups.length > 0 ? (
+              filteredUserGroups.map(({ user, uploads: userUploads, entries: userEntries }) => {
                 // Determine score to show
                 const scoredEntries = userEntries.filter(e => e.nilai !== null);
                 let defaultScore = null;
@@ -592,6 +671,11 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                     canReview={canReview}
                     onSaveScore={handleSaveScore}
                     defaultScore={defaultScore}
+                    onMarkEntryClick={(entry) => {
+                      setEntryToMark(entry);
+                      setCatatanKoreksi(entry.catatan_koreksi || '');
+                    }}
+                    forceExpanded={!!searchQuery.trim()}
                   />
                 );
               })
@@ -604,6 +688,51 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
           </div>
         </div>
       </div>
+      
+      {entryToMark && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
+            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+                <AlertTriangle size={18} className="text-amber-500" />
+                Tandai Perlu Diperbaiki
+              </h3>
+              <button onClick={() => setEntryToMark(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+                 <XCircle size={20} />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm">
+                <p className="font-semibold mb-1" style={{ color: 'var(--primary)' }}>Kegiatan:</p>
+                <p className="text-slate-700">{entryToMark.kegiatan}</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Berikan Catatan Perbaikan</label>
+                <textarea 
+                  className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none"
+                  style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                  placeholder="Contoh: Kegiatan ini seharusnya masuk ke Rencana Kinerja X..."
+                  rows={4}
+                  value={catatanKoreksi}
+                  onChange={(e) => setCatatanKoreksi(e.target.value)}
+                />
+                <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                  Catatan ini akan terlihat oleh pegawai saat mereka memperbaiki dan merevisi file Excel.
+                </p>
+              </div>
+            </div>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setEntryToMark(null)}>
+                Batal
+              </button>
+              <button className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50" onClick={handleExecuteMarkEntry} disabled={isMarking}>
+                {isMarking ? 'Menyimpan...' : 'Simpan Catatan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

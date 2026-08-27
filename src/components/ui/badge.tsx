@@ -19,6 +19,7 @@ const badgeVariants = cva(
         approved: "border-transparent bg-[var(--success-soft)] text-[#248A3D] dark:text-[#30D158]",
         rejected: "border-transparent bg-[var(--danger-soft)] text-[#D70015] dark:text-[#FF453A]",
         revision_required: "border-transparent bg-[var(--warning-soft)] text-[#A05A00] dark:text-[#FF9F0A]",
+        superseded: "border-transparent bg-[var(--bg-secondary)] text-[#8E8E93]",
       },
     },
     defaultVariants: {

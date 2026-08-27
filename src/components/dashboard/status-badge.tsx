@@ -8,6 +8,7 @@ export const STATUS_CONFIG = {
   rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '#FF3B30' },
   revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '#FF9500' },
   draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '#AEAEB2' },
+  superseded:        { label: 'Diganti (Arsip)',   cls: 'badge-draft',     dot: '#8E8E93' },
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {
@@ -43,6 +44,7 @@ export function StatusLabel({ status }: { status: UploadStatus | null }) {
     approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success)' },
     rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger)' },
     revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning)' },
+    superseded:        { label: 'Diganti (Arsip)', bg: 'var(--bg-secondary)',    color: '#8E8E93' },
   };
   
   const s = map[status] ?? { label: status, bg: 'var(--bg-secondary)', color: 'var(--text-secondary)' };

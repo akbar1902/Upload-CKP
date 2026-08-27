@@ -94,3 +94,102 @@ export async function deleteCkpUploadAction(uploadId: string) {
     return { success: false, error: error.message || 'Terjadi kesalahan' };
   }
 }
+
+export async function moveEntriesAction(entryIds: string[], targetMoveRk: string) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || !['ketua_tim', 'pimpinan', 'admin'].includes(userData.role)) {
+      throw new Error('Unauthorized: Hanya pimpinan atau ketua tim yang dapat memindah RK.');
+    }
+
+    // Bypass RLS using service role to prevent any policy issues when moving across teams
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    const { error } = await supabaseAdmin
+      .from('ckp_entries')
+      .update({ rencana_kinerja: targetMoveRk })
+      .in('id', entryIds);
+
+    if (error) {
+      throw new Error(`Gagal update DB: ${error.message}`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[moveEntriesAction] Error:', error);
+    return { success: false, error: error.message || 'Terjadi kesalahan' };
+  }
+}
+
+export async function markEntryAction(entryId: string, catatanKoreksi: string | null) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new Error('Unauthorized');
+    }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData || !['ketua_tim', 'pimpinan', 'admin'].includes(userData.role)) {
+      throw new Error('Unauthorized: Hanya reviewer yang dapat memberikan catatan.');
+    }
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+    
+    // Update the entry
+    const { data: entryData, error: entryError } = await supabaseAdmin
+      .from('ckp_entries')
+      .update({ catatan_koreksi: catatanKoreksi || null })
+      .eq('id', entryId)
+      .select('upload_id')
+      .single();
+
+    if (entryError) {
+      throw new Error(`Gagal menyimpan catatan: ${entryError.message}`);
+    }
+
+    // If a note was added, we should set the upload status to revision_required
+    // so the Pegawai sees the warning on their dashboard immediately
+    if (catatanKoreksi && entryData?.upload_id) {
+      const { error: uploadError } = await supabaseAdmin
+        .from('ckp_uploads')
+        .update({ status: 'revision_required' })
+        .eq('id', entryData.upload_id)
+        .eq('status', 'submitted'); // Only change if it's currently submitted to prevent overriding 'approved' etc
+        
+      if (uploadError) {
+        console.error('[markEntryAction] Failed to update upload status:', uploadError);
+      }
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[markEntryAction] Error:', error);
+    return { success: false, error: error.message || 'Terjadi kesalahan' };
+  }
+}
+

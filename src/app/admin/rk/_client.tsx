@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
-import { ChevronDown, ChevronUp, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -22,6 +22,9 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
   const [showAddSubModal, setShowAddSubModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{id: string, name: string, type: 'master' | 'sub'} | null>(null);
   const [selectedRkForSub, setSelectedRkForSub] = useState<any>(null);
+  const [showMoveSubModal, setShowMoveSubModal] = useState(false);
+  const [selectedSubForMove, setSelectedSubForMove] = useState<any>(null);
+  const [targetRkId, setTargetRkId] = useState('');
 
   // Form States
   const [newMasterRk, setNewMasterRk] = useState({ rencana_kinerja: '', tim_kerja: '', ketua_tim_id: '' });
@@ -162,6 +165,28 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     }
   };
 
+  const handleMoveSub = async () => {
+    if (!targetRkId || !selectedSubForMove) return;
+    
+    setIsSubmitting(true);
+    const { error } = await supabase
+      .from('master_kegiatan_anggota')
+      .update({ rk_id: targetRkId })
+      .eq('id', selectedSubForMove.id);
+      
+    setIsSubmitting(false);
+    
+    if (error) {
+      toast.error("Gagal memindahkan Sub-RK: " + error.message);
+    } else {
+      toast.success("Sub-RK berhasil dipindahkan ke RK baru");
+      setShowMoveSubModal(false);
+      setTargetRkId('');
+      setSelectedSubForMove(null);
+      refetch();
+    }
+  };
+
   return (
     <>
       <Header />
@@ -293,9 +318,14 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                             <span className="text-xs text-slate-400 mt-0.5">{idx + 1}.</span>
                                             <span className="text-[13px]" style={{ color: 'var(--text-primary)' }}>{sub.kegiatan_nama}</span>
                                           </div>
-                                          <button onClick={() => setDeleteConfirm({id: sub.id, name: sub.kegiatan_nama, type: 'sub'})} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
-                                            <Trash2 size={14} />
-                                          </button>
+                                          <div className="flex items-center gap-1">
+                                            <button onClick={() => { setSelectedSubForMove(sub); setShowMoveSubModal(true); setTargetRkId(''); }} className="p-1 text-slate-400 hover:text-blue-500 transition-colors" title="Pindah Induk RK">
+                                              <ArrowRightLeft size={14} />
+                                            </button>
+                                            <button onClick={() => setDeleteConfirm({id: sub.id, name: sub.kegiatan_nama, type: 'sub'})} className="p-1 text-slate-400 hover:text-red-500 transition-colors" title="Hapus Sub-RK">
+                                              <Trash2 size={14} />
+                                            </button>
+                                          </div>
                                         </li>
                                       ))}
                                     </ul>
@@ -441,6 +471,46 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300" onClick={() => setDeleteConfirm(null)}>Batal</button>
               <button className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm" onClick={executeDelete} disabled={isSubmitting}>
                 {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Pindah Sub-RK */}
+      {showMoveSubModal && selectedSubForMove && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden" style={{ background: 'var(--card-bg)' }}>
+            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Pindah Induk RK</h3>
+              <button onClick={() => setShowMoveSubModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
+                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Sub-RK Saat Ini</p>
+                <p className="text-sm font-medium line-clamp-2" style={{ color: 'var(--text-primary)' }}>{selectedSubForMove.kegiatan_nama}</p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih RK Induk Baru</label>
+                <select
+                  className="w-full text-sm rounded-lg h-10 px-3 outline-none"
+                  style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                  value={targetRkId}
+                  onChange={(e) => setTargetRkId(e.target.value)}
+                >
+                  <option value="">-- Pilih RK Utama --</option>
+                  {rks.map((r: any) => (
+                    <option key={r.id} value={r.id} disabled={r.id === selectedSubForMove.rk_id}>
+                      {r.tim_kerja ? `[${r.tim_kerja}] ` : ''}{r.rencana_kinerja}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setShowMoveSubModal(false)}>Batal</button>
+              <button className="btn-primary" onClick={handleMoveSub} disabled={isSubmitting || !targetRkId}>
+                {isSubmitting ? 'Memindahkan...' : 'Pindah RK'}
               </button>
             </div>
           </div>
