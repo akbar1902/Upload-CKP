@@ -275,7 +275,11 @@ export default function UploadPage() {
         return;
       }
 
-      setUploading(true); // Memberikan feedback loading segera saat tombol diklik
+      setUploading(true);
+      setUploadStep(0);
+      setUploadProgress(5);
+      // Beri React satu tick untuk render progress modal SEBELUM logika berat
+      await new Promise<void>(r => setTimeout(r, 0));
 
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
@@ -401,13 +405,12 @@ export default function UploadPage() {
 
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
-
       // 1. Baca file ke memory terlebih dahulu (menghindari hang jika file sedang dibuka/dilock Excel)
       let uploadDataBuffer: ArrayBuffer;
       try {
         const bufferPromise = file.arrayBuffer();
-        const readTimeout = new Promise<ArrayBuffer>((_, reject) => 
-          setTimeout(() => reject(new Error('Gagal membaca file. Pastikan file Excel Anda sudah di-CLOSE (tidak sedang dibuka).')), 5000)
+        const readTimeout = new Promise<ArrayBuffer>((_, reject) =>
+          setTimeout(() => reject(new Error('Gagal membaca file. Pastikan file Excel Anda sudah di-CLOSE (tidak sedang dibuka).')), 15000)
         );
         uploadDataBuffer = await Promise.race([bufferPromise, readTimeout]);
       } catch (err: any) {
@@ -422,13 +425,29 @@ export default function UploadPage() {
           contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
 
-      const timeoutPromise = new Promise<{ error: Error | null, data: any }>((_, reject) => {
-        setTimeout(() => reject(new Error('Proses upload terlalu lama (Timeout Jaringan). Pastikan koneksi internet Anda stabil.')), 30000);
+      const uploadTimeoutPromise = new Promise<{ error: Error | null, data: any }>((_, reject) => {
+        setTimeout(() => reject(new Error('Proses upload terlalu lama (Timeout Jaringan). Pastikan koneksi internet Anda stabil.')), 60000);
       });
 
-      const { error: storageError } = await Promise.race([uploadPromise, timeoutPromise]);
+      // Animasi progress pelan-pelan selama upload storage (Supabase tidak punya progress callback)
+      let animatedProgress = 30;
+      const progressInterval = setInterval(() => {
+        animatedProgress = Math.min(animatedProgress + 1.5, 58);
+        setUploadProgress(Math.round(animatedProgress));
+      }, 300);
 
-      if (storageError) throw new Error(storageError.message);
+      let storageUploadError: Error | null = null;
+      try {
+        const result = await Promise.race([uploadPromise, uploadTimeoutPromise]);
+        storageUploadError = result.error as Error | null;
+      } catch (err: any) {
+        clearInterval(progressInterval);
+        throw new Error(err.message || 'Proses upload storage gagal.');
+      }
+      clearInterval(progressInterval);
+
+      if (storageUploadError) throw new Error(storageUploadError.message);
+
 
       if (oldUploadId) {
         setUploadStep(2);
