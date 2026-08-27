@@ -26,7 +26,7 @@ export function createClient() {
 
   client = createBrowserClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-      autoRefreshToken: false,
+      autoRefreshToken: true,
       detectSessionInUrl: true,
       persistSession: true,
       lock: (name: string, acquireTimeout: number, fn: () => Promise<any>) => fn(),

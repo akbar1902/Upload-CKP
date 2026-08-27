@@ -371,7 +371,16 @@ export default function UploadPage() {
     setUploadProgress(10);
     setShowTeamModal(false);
 
+    let progressInterval: ReturnType<typeof setInterval> | null = null;
+
     try {
+      // Refresh the session before uploading to prevent expired-token failures
+      // This is critical when users wait on the page before clicking submit
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('[Upload] Session refresh failed, proceeding anyway:', refreshError.message);
+      }
+
       let newVersion = 1;
       let previousUploadId: string | null = null;
       let existingEntries: any[] = [];
@@ -397,18 +406,25 @@ export default function UploadPage() {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
 
+      // Wrap storage upload with a timeout to prevent indefinite hangs
+      const UPLOAD_TIMEOUT_MS = 120_000; // 2 minutes
       const uploadPromise = supabase.storage
         .from('ckp-files')
         .upload(storagePath, file, { upsert: true });
 
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Upload timeout: proses upload file melebihi batas waktu 2 menit. Silakan coba lagi.')), UPLOAD_TIMEOUT_MS);
+      });
+
       let animatedProgress = 30;
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         animatedProgress = animatedProgress + (92 - animatedProgress) * 0.06;
         setUploadProgress(Math.round(animatedProgress));
       }, 400);
 
-      const { error: storageError } = await uploadPromise;
+      const { error: storageError } = await Promise.race([uploadPromise, timeoutPromise]);
       clearInterval(progressInterval);
+      progressInterval = null;
 
       if (storageError) throw new Error(storageError.message);
 
@@ -623,6 +639,7 @@ export default function UploadPage() {
       }, 1000);
 
     } catch (error: any) {
+      if (progressInterval) clearInterval(progressInterval);
       console.error('Upload error:', error);
       toast.error(error.message || 'Terjadi kesalahan saat upload data');
       setUploading(false);
