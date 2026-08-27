@@ -402,7 +402,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       const uploadIdsSet = new Set(uploadIds);
       const newEntries = old.entries.map((e: any) => 
         uploadIdsSet.has(e.upload_id)
-          ? { ...e, nilai: score, dinilai_oleh: currentUser?.id } 
+          ? { ...e, nilai: score, dinilai_oleh: score !== null ? currentUser?.id : null } 
           : e
       );
       return { ...old, entries: newEntries };

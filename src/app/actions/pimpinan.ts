@@ -17,7 +17,7 @@ export async function gradeRencanaKinerjaAction(uploadId: string, rencanaKinerja
       .from('ckp_entries')
       .update({ 
         nilai: score,
-        dinilai_oleh: user.id
+        dinilai_oleh: score !== null ? user.id : null
       })
       .eq('upload_id', uploadId)
       .eq('rencana_kinerja', rencanaKinerja);

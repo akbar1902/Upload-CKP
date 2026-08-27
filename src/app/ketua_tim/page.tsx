@@ -111,7 +111,7 @@ export default async function KetuaTimPage({
             .select('id, user_id, status, uploaded_at')
             .eq('bulan', bulan)
             .eq('tahun', tahun)
-            .in('status', ['submitted', 'approved', 'revision_required']),
+            .in('status', ['submitted', 'scored', 'approved', 'revision_required']),
           supabase
             .from('user_rk_assignments')
             .select('user_id, rk_id')

@@ -361,7 +361,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       if (!old) return old;
       const newEntries = old.entries.map((e: any) => 
         (e.rencana_kinerja || 'Tidak Diketahui') === rkName 
-          ? { ...e, nilai: score, dinilai_oleh: currentUser?.id } 
+          ? { ...e, nilai: score, dinilai_oleh: score !== null ? currentUser?.id : null } 
           : e
       );
       

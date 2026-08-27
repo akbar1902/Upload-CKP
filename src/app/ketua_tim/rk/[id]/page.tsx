@@ -61,7 +61,7 @@ export default async function RkDetailPage({
         .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
         .eq('bulan', bulan)
         .eq('tahun', tahun)
-        .in('status', ['submitted', 'approved', 'revision_required']); // Only consider active uploads
+        .in('status', ['submitted', 'scored', 'approved', 'revision_required']); // Only consider active uploads
         
       if (uploadsError) throw uploadsError;
       
