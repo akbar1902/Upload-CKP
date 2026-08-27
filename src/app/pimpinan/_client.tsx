@@ -320,9 +320,9 @@ export default function PimpinanDashboard() {
             )}
             <Link
               href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all duration-200"
             >
-              <Users className="h-4 w-4" />
+              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
               Monitoring Penilaian
             </Link>
             <PeriodFilter

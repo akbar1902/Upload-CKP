@@ -6,8 +6,9 @@ export default async function PimpinanMonitoringPenilaianPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
+  const appRole = user?.user_metadata?.role;
 
-  if (!user || (user.role !== 'pimpinan' && user.role !== 'admin')) {
+  if (!user || (appRole !== 'pimpinan' && appRole !== 'admin')) {
     redirect('/login');
   }
 
