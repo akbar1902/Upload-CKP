@@ -63,7 +63,8 @@ export default function UploadPage() {
       ]);
       return { masterRKs: rks || [], ketuaTims: ketuas || [], masterKegiatan: kegiatan || [] };
     },
-    staleTime: 1000 * 60 * 2, // 2 minutes — agar data baru lebih cepat masuk tanpa perlu manual reload
+    staleTime: 1000 * 60 * 10, // 10 menit — data RK master jarang berubah
+    refetchOnWindowFocus: false, // Jangan refetch saat window focus (bisa bersaing dengan upload)
   });
 
   const masterRKs = useMemo(() => masterData?.masterRKs || [], [masterData]);
@@ -280,6 +281,20 @@ export default function UploadPage() {
       setUploadProgress(5);
       // Beri React satu tick untuk render progress modal SEBELUM logika berat
       await new Promise<void>(r => setTimeout(r, 0));
+
+      // Guard: data master belum selesai dimuat → jangan jalankan matching
+      if (isMasterLoading) {
+        setUploading(false);
+        setUploadStep(-1);
+        toast.info('Data RK master sedang dimuat, mohon tunggu beberapa detik lalu coba lagi.');
+        return;
+      }
+
+      // Guard: data master kosong (mungkin gagal load) → skip validation, langsung upload
+      if (masterRKs.length === 0) {
+        processUpload([], []);
+        return;
+      }
 
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
