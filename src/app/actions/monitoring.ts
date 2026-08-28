@@ -9,14 +9,14 @@ export interface PendingScoringKetuaTim {
     full_name: string;
     nip: string | null;
   };
-  totalPendingKegiatan: number;
+  totalPendingRk: number;
   pegawaiDetails: {
     id: string;
     full_name: string;
     nip: string | null;
     unit_kerja: string | null;
-    pendingKegiatanCount: number;
-    kegiatanNames: string[];
+    pendingRkCount: number;
+    rkNames: string[];
   }[];
 }
 
@@ -106,13 +106,12 @@ export async function getPendingScoringKetuaTim(
       if (!resultGroup.has(ktId)) {
         resultGroup.set(ktId, {
           ketuaTim: ktUser,
-          totalPendingKegiatan: 0,
+          totalPendingRk: 0,
           pegawaiDetails: [],
         });
       }
 
       const ktGroup = resultGroup.get(ktId)!;
-      ktGroup.totalPendingKegiatan++;
 
       let pegDetail = ktGroup.pegawaiDetails.find(p => p.id === pegawai.id);
       if (!pegDetail) {
@@ -121,20 +120,23 @@ export async function getPendingScoringKetuaTim(
           full_name: pegawai.full_name,
           nip: pegawai.nip,
           unit_kerja: pegawai.unit_kerja,
-          pendingKegiatanCount: 0,
-          kegiatanNames: [],
+          pendingRkCount: 0,
+          rkNames: [],
         };
         ktGroup.pegawaiDetails.push(pegDetail);
       }
 
-      pegDetail.pendingKegiatanCount++;
-      if (entry.kegiatan) {
-        pegDetail.kegiatanNames.push(entry.kegiatan);
+      // Add to unique RKs for this pegawai
+      const rkName = entry.rencana_kinerja;
+      if (rkName && !pegDetail.rkNames.includes(rkName)) {
+        pegDetail.rkNames.push(rkName);
+        pegDetail.pendingRkCount++;
+        ktGroup.totalPendingRk++;
       }
     });
 
     // Convert map to array and sort by pending count descending
-    const finalData = Array.from(resultGroup.values()).sort((a, b) => b.totalPendingKegiatan - a.totalPendingKegiatan);
+    const finalData = Array.from(resultGroup.values()).sort((a, b) => b.totalPendingRk - a.totalPendingRk);
 
     return { data: finalData, error: null };
   } catch (err: any) {

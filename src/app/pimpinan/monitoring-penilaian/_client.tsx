@@ -31,10 +31,10 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
         <div className="flex items-center gap-4">
           <div className="flex flex-col items-end">
             <span className="text-[20px] font-extrabold text-amber-600 dark:text-amber-400 leading-none">
-              {data.totalPendingKegiatan}
+              {data.totalPendingRk}
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
-              Tugas Tertunda
+              RK Tertunda
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
@@ -82,7 +82,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
         <div className="flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-50 border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 text-[12px] font-semibold">
             <FileText size={13} />
-            {pegawai.pendingKegiatanCount} Kegiatan
+            {pegawai.pendingRkCount} RK
           </span>
           {expanded ? <ChevronUp size={16} className="text-emerald-500" /> : <ChevronDown size={16} className="text-slate-400" />}
         </div>
@@ -92,10 +92,10 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
         <div className="p-3 pt-0 bg-emerald-50/30 dark:bg-slate-800/20">
           <div className="pl-11 pr-2 pt-2">
             <ul className="space-y-1.5">
-              {pegawai.kegiatanNames.map((keg, idx) => (
+              {pegawai.rkNames.map((rk, idx) => (
                 <li key={idx} className="text-[12.5px] font-medium text-slate-600 dark:text-slate-400 flex items-start gap-2.5 py-1.5">
                   <div className="min-w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500 mt-[6px]" />
-                  <span className="leading-snug">{keg}</span>
+                  <span className="leading-snug">{rk}</span>
                 </li>
               ))}
             </ul>
