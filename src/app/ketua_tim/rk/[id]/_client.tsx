@@ -560,12 +560,22 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
   const bulanNama = getPeriodName(bulan);
   
-  const evaluatedCount = uploads.filter(u => {
-    const rkEntries = entries.filter(e => e.upload_id === u.id);
-    return rkEntries.length > 0 && rkEntries.every(e => e.nilai !== null);
+  const userGroupsMap = uploads.reduce((acc, upload) => {
+    if (!acc[upload.user_id]) {
+      acc[upload.user_id] = { uploads: [] };
+    }
+    acc[upload.user_id].uploads.push(upload);
+    return acc;
+  }, {} as Record<string, { uploads: typeof uploads }>);
+  const uniqueUsersCount = Object.keys(userGroupsMap).length;
+
+  const evaluatedUsersCount = Object.values(userGroupsMap).filter(group => {
+    const userUploadIds = group.uploads.map(u => u.id);
+    const userEntries = entries.filter(e => userUploadIds.includes(e.upload_id));
+    return userEntries.length > 0 && userEntries.every(e => e.nilai !== null);
   }).length;
   
-  const pendingCount = uploads.length - evaluatedCount;
+  const pendingCount = uniqueUsersCount - evaluatedUsersCount;
   
   const avgProgress = entries.length > 0 ? entries.reduce((s, e) => s + (e.progres || 0), 0) / entries.length : 0;
   const scoredEntries = entries.filter(e => e.nilai !== null);
@@ -617,8 +627,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <KPICard icon={<UserIcon size={18} style={{ color: 'var(--primary)' }} />} value={uploads.length} label="Total Pegawai" iconBg="var(--primary-soft)" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={evaluatedCount} label="Selesai Dinilai" iconBg="var(--success-soft)" />
+          <KPICard icon={<UserIcon size={18} style={{ color: 'var(--primary)' }} />} value={uniqueUsersCount} label="Total Pegawai" iconBg="var(--primary-soft)" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={evaluatedUsersCount} label="Selesai Dinilai" iconBg="var(--success-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgProgress.toFixed(0)}%`} label="Rata-rata Capaian" iconBg="var(--primary-soft)" />
           <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={avgScoreRaw !== null ? (typeof bulan === 'string' && bulan.startsWith('T') ? Math.round(avgScoreRaw) : avgScoreRaw.toFixed(1)) : '-'} label="Rata-rata Nilai" iconBg="var(--primary-soft)" />
         </div>
