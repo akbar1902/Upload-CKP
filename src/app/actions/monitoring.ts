@@ -103,6 +103,9 @@ export async function getPendingScoringKetuaTim(
       const pegawai = uploadToUser.get(entry.upload_id);
       if (!pegawai) return; // Should not happen, but safeguard
 
+      // Ketua Tim tidak menilai dirinya sendiri. RK milik Ketua Tim akan dinilai oleh Pimpinan.
+      if (pegawai.id === ktId) return;
+
       if (!resultGroup.has(ktId)) {
         resultGroup.set(ktId, {
           ketuaTim: ktUser,
