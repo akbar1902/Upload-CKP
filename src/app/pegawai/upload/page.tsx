@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
@@ -25,7 +25,7 @@ import {
 import masterMappingDataRaw from '@/data/master_mapping.json';
 
 export default function UploadPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, ensureSession } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
   const supabase = useMemo(() => createClient(), []);
@@ -52,6 +52,7 @@ export default function UploadPage() {
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
+  const uploadAbortRef = useRef<AbortController | null>(null);
 
   const { data: masterData, isLoading: isMasterLoading, refetch: refetchMasterData } = useQuery({
     queryKey: ['upload-master-data'],
@@ -139,6 +140,42 @@ export default function UploadPage() {
   React.useEffect(() => {
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
+
+  // ══════════════════════════════════════════════════════════════════
+  // PRE-WARM SESSION: Refresh session saat halaman pertama dibuka
+  // Ini memastikan token sudah valid SEBELUM user klik Submit,
+  // sehingga mengurangi kemungkinan stuck saat upload dimulai.
+  // ══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!user || authLoading) return;
+    // Fire-and-forget — just warm up the session
+    ensureSession().catch(() => {
+      console.warn('[Upload] Pre-warm session failed, will retry on submit');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only run once when user is loaded
+
+  // ══════════════════════════════════════════════════════════════════
+  // SAFETY AUTO-RESET: Jika uploading stuck > 3 menit, auto-reset
+  // Ini adalah jaring pengaman terakhir — seharusnya tidak pernah
+  // tercapai jika semua timeout per-operation bekerja dengan benar.
+  // ══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!uploading) return;
+    const safetyTimer = setTimeout(() => {
+      console.error('[Upload] Safety timeout reached — forcing upload reset');
+      // Abort any ongoing request
+      if (uploadAbortRef.current) {
+        uploadAbortRef.current.abort();
+        uploadAbortRef.current = null;
+      }
+      setUploading(false);
+      setUploadStep(-1);
+      setUploadProgress(0);
+      toast.error('Upload timeout: proses melebihi batas waktu 3 menit. Silakan coba lagi.', { duration: 8000 });
+    }, 180_000); // 3 minutes
+    return () => clearTimeout(safetyTimer);
+  }, [uploading]);
 
   const normalize = (str: string) => (str || '').toLowerCase().replace(/tahun\s*20\d{2}/g, '').replace(/[^a-z0-9]/g, '');
   
@@ -252,9 +289,26 @@ export default function UploadPage() {
     };
   }, [file, bulan, tahun]);
 
+  // ══════════════════════════════════════════════════════════════════
+  // CANCEL UPLOAD: Abort ongoing upload operations
+  // ══════════════════════════════════════════════════════════════════
+  const handleCancelUpload = useCallback(() => {
+    console.log('[Upload] User cancelled upload');
+    if (uploadAbortRef.current) {
+      uploadAbortRef.current.abort();
+      uploadAbortRef.current = null;
+    }
+    setUploading(false);
+    setUploadStep(-1);
+    setUploadProgress(0);
+    toast.info('Upload dibatalkan.');
+  }, []);
+
   const handlePreSubmit = async () => {
     try {
-      if (authLoading) {
+      // ── ALL GUARDS BEFORE setUploading(true) ─────────────────────
+      // Prevents UI flicker: modal only shows when we're truly ready
+      if (authLoading || isMasterLoading) {
         toast.info('Sedang memuat data sistem, mohon tunggu sebentar...');
         return;
       }
@@ -271,25 +325,18 @@ export default function UploadPage() {
         return;
       }
 
-      setUploading(true);
-      setUploadStep(0);
-      setUploadProgress(5);
-      // Beri React satu tick untuk render progress modal SEBELUM logika berat
-      await new Promise<void>(r => setTimeout(r, 0));
-
-      // Guard: data master belum selesai dimuat → jangan jalankan matching
-      if (isMasterLoading) {
-        setUploading(false);
-        setUploadStep(-1);
-        toast.info('Data RK master sedang dimuat, mohon tunggu beberapa detik lalu coba lagi.');
-        return;
-      }
-
       // Guard: data master kosong (mungkin gagal load) → skip validation, langsung upload
       if (masterRKs.length === 0) {
         processUpload([], []);
         return;
       }
+
+      // NOW set uploading — all guards have passed
+      setUploading(true);
+      setUploadStep(0);
+      setUploadProgress(5);
+      // Beri React satu tick untuk render progress modal SEBELUM logika berat
+      await new Promise<void>(r => setTimeout(r, 0));
 
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
@@ -342,6 +389,7 @@ export default function UploadPage() {
 
       if (newUnmatched.size > 0) {
         setUploading(false); // Reset loading state karena memunculkan modal
+        setUploadStep(-1);
         setUnmatchedRKs(Array.from(newUnmatched));
         
         const initialMap: Record<string, { tim_kerja: string, rk_id: string }> = {};
@@ -358,7 +406,63 @@ export default function UploadPage() {
       console.error(error);
       toast.error('Terjadi kesalahan saat memproses data sistem.');
       setUploading(false);
+      setUploadStep(-1);
     }
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // HELPER: Wrap a promise with a timeout
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const withTimeout = <T = any,>(promise: PromiseLike<T> | Promise<T>, ms: number, label: string): Promise<T> => {
+    return new Promise<T>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`Timeout: ${label} melebihi ${Math.round(ms / 1000)} detik`));
+      }, ms);
+      (promise as Promise<T>).then(
+        (result: T) => { clearTimeout(timer); resolve(result); },
+        (err: unknown) => { clearTimeout(timer); reject(err); }
+      );
+    });
+  };
+
+  // ══════════════════════════════════════════════════════════════════
+  // HELPER: Robust session refresh with retry (3 attempts, 8s each)
+  // This is the KEY fix for stuck loading after idle periods.
+  // ══════════════════════════════════════════════════════════════════
+  const ensureValidSession = async (): Promise<boolean> => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        // Use Promise.race directly (instead of withTimeout) to preserve AuthResponse type
+        const refreshResult = await Promise.race([
+          supabase.auth.refreshSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error(`Session refresh attempt ${attempt + 1} timeout`)), 8_000)
+          ),
+        ]);
+        if (!refreshResult.error && refreshResult.data?.session) {
+          console.log(`[Upload] Session refreshed successfully (attempt ${attempt + 1})`);
+          return true;
+        }
+        console.warn(`[Upload] Session refresh attempt ${attempt + 1} failed:`, refreshResult.error?.message);
+      } catch (err: any) {
+        console.warn(`[Upload] Session refresh attempt ${attempt + 1} error:`, err.message);
+      }
+      // Small delay before retry (except last attempt)
+      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+    }
+    // All attempts failed — try getSession as last resort (maybe token is still valid in cache)
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const expiresAt = session.expires_at;
+        const now = Math.floor(Date.now() / 1000);
+        if (expiresAt && (expiresAt - now) > 30) {
+          console.log('[Upload] Existing session still valid, proceeding');
+          return true;
+        }
+      }
+    } catch { /* ignore */ }
+    return false;
   };
 
   const processUpload = async (latestMasterRKs?: any[], latestMasterKegiatan?: any[]) => {
@@ -371,15 +475,28 @@ export default function UploadPage() {
     setUploadProgress(10);
     setShowTeamModal(false);
 
+    // Create AbortController for this upload session
+    const abortController = new AbortController();
+    uploadAbortRef.current = abortController;
+
     let progressInterval: ReturnType<typeof setInterval> | null = null;
 
-    try {
-      // Refresh the session before uploading to prevent expired-token failures
-      // This is critical when users wait on the page before clicking submit
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.warn('[Upload] Session refresh failed, proceeding anyway:', refreshError.message);
+    // Helper to check if upload was cancelled
+    const checkAborted = () => {
+      if (abortController.signal.aborted) {
+        throw new Error('Upload dibatalkan oleh pengguna.');
       }
+    };
+
+    try {
+      // ── STEP 0: Robust session refresh ──────────────────────────
+      // This is critical when users wait on the page before clicking submit
+      const sessionValid = await ensureValidSession();
+      if (!sessionValid) {
+        console.warn('[Upload] All session refresh attempts failed, proceeding with existing token');
+        // Don't block the upload — the token might still work for a few more seconds
+      }
+      checkAborted();
 
       let newVersion = 1;
       let previousUploadId: string | null = null;
@@ -389,16 +506,21 @@ export default function UploadPage() {
         newVersion = existingUpload.version + 1;
         previousUploadId = existingUpload.id;
         
-        // Fetch existing entries to preserve scores
-        const { data: entries } = await supabase
-          .from('ckp_entries')
-          .select('*')
-          .eq('upload_id', previousUploadId);
+        // Fetch existing entries to preserve scores (with timeout)
+        const { data: entries } = await withTimeout(
+          supabase
+            .from('ckp_entries')
+            .select('*')
+            .eq('upload_id', previousUploadId),
+          15_000,
+          'Fetch existing entries'
+        );
           
         if (entries) {
           existingEntries = entries;
         }
       }
+      checkAborted();
 
       setUploadStep(1);
       setUploadProgress(30);
@@ -406,15 +528,8 @@ export default function UploadPage() {
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
 
-      // Wrap storage upload with a timeout to prevent indefinite hangs
+      // ── STEP 1: Storage upload with timeout ─────────────────────
       const UPLOAD_TIMEOUT_MS = 120_000; // 2 minutes
-      const uploadPromise = supabase.storage
-        .from('ckp-files')
-        .upload(storagePath, file, { upsert: true });
-
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Upload timeout: proses upload file melebihi batas waktu 2 menit. Silakan coba lagi.')), UPLOAD_TIMEOUT_MS);
-      });
 
       let animatedProgress = 30;
       progressInterval = setInterval(() => {
@@ -422,9 +537,16 @@ export default function UploadPage() {
         setUploadProgress(Math.round(animatedProgress));
       }, 400);
 
-      const { error: storageError } = await Promise.race([uploadPromise, timeoutPromise]);
+      const { error: storageError } = await withTimeout(
+        supabase.storage
+          .from('ckp-files')
+          .upload(storagePath, file, { upsert: true }),
+        UPLOAD_TIMEOUT_MS,
+        'Upload file ke storage'
+      );
       clearInterval(progressInterval);
       progressInterval = null;
+      checkAborted();
 
       if (storageError) throw new Error(storageError.message);
 
@@ -436,32 +558,42 @@ export default function UploadPage() {
       setUploadStep(2);
       setUploadProgress(70);
       
-      // If there's a previous upload, mark it as superseded
+      // ── STEP 2: Mark previous upload as superseded ──────────────
       if (previousUploadId) {
-        await supabase
-          .from('ckp_uploads')
-          .update({ status: 'superseded' })
-          .eq('id', previousUploadId);
+        await withTimeout(
+          supabase
+            .from('ckp_uploads')
+            .update({ status: 'superseded' })
+            .eq('id', previousUploadId),
+          15_000,
+          'Update status upload lama'
+        );
       }
+      checkAborted();
 
-      // Always create a new upload row
-      const { data: uploadData, error } = await supabase
-        .from('ckp_uploads')
-        .insert({
-          user_id: user.id,
-          bulan,
-          tahun,
-          version: newVersion,
-          file_name: file.name,
-          storage_path: storagePath,
-          status: 'submitted',
-          total_entries: totalEntries,
-          avg_progres: avgProgres,
-        })
-        .select()
-        .single();
+      // ── STEP 3: Create new upload row ───────────────────────────
+      const { data: uploadData, error } = await withTimeout(
+        supabase
+          .from('ckp_uploads')
+          .insert({
+            user_id: user.id,
+            bulan,
+            tahun,
+            version: newVersion,
+            file_name: file.name,
+            storage_path: storagePath,
+            status: 'submitted',
+            total_entries: totalEntries,
+            avg_progres: avgProgres,
+          })
+          .select()
+          .single(),
+        15_000,
+        'Simpan data upload'
+      );
         
       if (error) throw error;
+      checkAborted();
 
       const masterDict = latestMasterRKs || [...masterRKs];
       const mKegiatan = latestMasterKegiatan || masterKegiatan;
@@ -469,7 +601,7 @@ export default function UploadPage() {
       const distinctMatchedRKs = new Set<string>();
 
       setUploadStep(4);
-      setUploadProgress(90);
+      setUploadProgress(85);
 
       const v2EntriesResolved = parseResult.entries.map((entry) => {
         let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
@@ -569,64 +701,104 @@ export default function UploadPage() {
           catatan_koreksi: null, // Always start clean on new upload
         }
       });
+      checkAborted();
 
-      const { error: entriesErr } = await supabase.from('ckp_entries').insert(entriesToInsert);
-      if (entriesErr) throw entriesErr;
-
-      if (distinctMatchedRKs.size > 0) {
-        const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
-        const unmatched = Array.from(distinctMatchedRKs).filter(rk => !masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
-        
-        if (Object.keys(rkTeamMapping).length > 0) {
-          const newMappings = Object.keys(rkTeamMapping).map(rk => {
-            const mapping = rkTeamMapping[rk];
-            return {
-              user_id: user.id,
-              rk_id: mapping?.rk_id || null,
-              kegiatan_nama: rk,
-            };
-          }).filter(m => m.rk_id !== null && m.rk_id !== '');
-          
-          if (newMappings.length > 0) {
-             const result = await saveKegiatanAnggotaMapping(newMappings);
-             if (!result.success) console.error("Failed to save mappings", result.error);
-          }
-          
-          // Also assign to the valid RKs
-          Object.keys(rkTeamMapping).forEach(rk => {
-            const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
-            if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
-              validRKsToAssign.push(mappedObj.rencana_kinerja);
-            }
-          });
-        }
-
-        if (validRKsToAssign.length > 0) {
-          const assignmentsToInsert = [];
-          for (const rkStr of validRKsToAssign) {
-            const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
-            if (rkObj) {
-              assignmentsToInsert.push({
-                rk_id: rkObj.id,
-                user_id: user.id,
-                assigned_by: user.id
-              });
-            }
-          }
-          if (assignmentsToInsert.length > 0) {
-            await supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
-          }
-        }
+      // ── STEP 4: Batch insert entries (50 per chunk) ─────────────
+      // Prevents Supabase timeout on large uploads (100+ entries)
+      const CHUNK_SIZE = 50;
+      for (let i = 0; i < entriesToInsert.length; i += CHUNK_SIZE) {
+        checkAborted();
+        const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
+        const { error: chunkErr } = await withTimeout(
+          supabase.from('ckp_entries').insert(chunk),
+          20_000,
+          `Insert entries batch ${Math.floor(i / CHUNK_SIZE) + 1}`
+        );
+        if (chunkErr) throw chunkErr;
+        // Update progress proportionally
+        const batchProgress = 85 + (10 * Math.min((i + CHUNK_SIZE) / entriesToInsert.length, 1));
+        setUploadProgress(Math.round(batchProgress));
       }
 
-      await supabase.from('audit_logs').insert({
-        user_id: user.id,
-        action: 'upload_ckp',
-        entity_type: 'ckp_uploads',
-        entity_id: uploadData.id,
-        new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
-      });
+      // ── STEP 5: Assign RKs and save mappings (non-critical) ─────
+      // Wrap in try-catch so failures here don't block the upload success
+      try {
+        if (distinctMatchedRKs.size > 0) {
+          const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
+          
+          if (Object.keys(rkTeamMapping).length > 0) {
+            const newMappings = Object.keys(rkTeamMapping).map(rk => {
+              const mapping = rkTeamMapping[rk];
+              return {
+                user_id: user.id,
+                rk_id: mapping?.rk_id || null,
+                kegiatan_nama: rk,
+              };
+            }).filter(m => m.rk_id !== null && m.rk_id !== '');
+            
+            if (newMappings.length > 0) {
+               const result = await withTimeout(
+                 saveKegiatanAnggotaMapping(newMappings),
+                 15_000,
+                 'Save kegiatan mapping'
+               );
+               if (!result.success) console.error("Failed to save mappings", result.error);
+            }
+            
+            // Also assign to the valid RKs
+            Object.keys(rkTeamMapping).forEach(rk => {
+              const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
+              if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
+                validRKsToAssign.push(mappedObj.rencana_kinerja);
+              }
+            });
+          }
 
+          if (validRKsToAssign.length > 0) {
+            const assignmentsToInsert = [];
+            for (const rkStr of validRKsToAssign) {
+              const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
+              if (rkObj) {
+                assignmentsToInsert.push({
+                  rk_id: rkObj.id,
+                  user_id: user.id,
+                  assigned_by: user.id
+                });
+              }
+            }
+            if (assignmentsToInsert.length > 0) {
+              await withTimeout(
+                supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }),
+                15_000,
+                'Assign RKs'
+              );
+            }
+          }
+        }
+      } catch (assignErr) {
+        // Non-critical — log but don't fail the upload
+        console.warn('[Upload] RK assignment/mapping failed (non-critical):', assignErr);
+      }
+
+      // ── STEP 6: Audit log (non-critical) ────────────────────────
+      try {
+        await withTimeout(
+          supabase.from('audit_logs').insert({
+            user_id: user.id,
+            action: 'upload_ckp',
+            entity_type: 'ckp_uploads',
+            entity_id: uploadData.id,
+            new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
+          }),
+          10_000,
+          'Audit log'
+        );
+      } catch {
+        console.warn('[Upload] Audit log insert failed (non-critical)');
+      }
+
+      // ── SUCCESS ─────────────────────────────────────────────────
+      uploadAbortRef.current = null;
       setUploadProgress(100);
       toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
       
@@ -640,9 +812,18 @@ export default function UploadPage() {
 
     } catch (error: any) {
       if (progressInterval) clearInterval(progressInterval);
-      console.error('Upload error:', error);
-      toast.error(error.message || 'Terjadi kesalahan saat upload data');
+      uploadAbortRef.current = null;
+      
+      // Don't show error toast if user cancelled
+      if (error.message?.includes('dibatalkan')) {
+        console.log('[Upload] Upload cancelled by user');
+      } else {
+        console.error('[Upload] Upload error:', error);
+        toast.error(error.message || 'Terjadi kesalahan saat upload data', { duration: 8000 });
+      }
       setUploading(false);
+      setUploadStep(-1);
+      setUploadProgress(0);
     }
   };
 
@@ -988,7 +1169,18 @@ export default function UploadPage() {
               </div>
             </div>
             
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-6 text-center">Mohon jangan menutup halaman ini.</p>
+            {uploadProgress < 100 && (
+              <button
+                onClick={handleCancelUpload}
+                className="mt-6 text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                style={{ color: 'var(--text-tertiary)', background: 'transparent' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; (e.currentTarget as HTMLElement).style.color = 'var(--danger)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)'; }}
+              >
+                Batalkan Upload
+              </button>
+            )}
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 text-center">Mohon jangan menutup halaman ini.</p>
           </div>
         </div>
       )}
