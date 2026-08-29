@@ -9,6 +9,7 @@ import { getPendingScoringKetuaTim, type PendingScoringKetuaTim } from '@/app/ac
 import { ChevronDown, ChevronUp, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+import { ScreenshotButton } from '@/components/ui/screenshot-button';
 
 function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
   const [expanded, setExpanded] = useState(false);
@@ -156,7 +157,7 @@ export default function MonitoringPenilaianClient() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div id="export-monitoring-section" className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
         
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#1a1b1e] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -179,9 +180,15 @@ export default function MonitoringPenilaianClient() {
               onClick={fetchData}
               className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
               disabled={loading}
+              title="Refresh Data"
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
+            <ScreenshotButton 
+              targetId="export-monitoring-section" 
+              filename={`Monitoring_Penilaian_${getBulanLabel()}_${tahun}`}
+              className="h-10 rounded-xl"
+            />
           </div>
         </div>
 
