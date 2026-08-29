@@ -428,7 +428,8 @@ export default function PimpinanDashboard() {
                <ScreenshotButton 
                  targetId="export-pegawai-section" 
                  filename={`Dashboard_Pegawai_${getPeriodName(bulan)}_${tahun}`}
-                 className="h-10 text-[12px] font-medium"
+                 className="h-10 w-10 shrink-0"
+                 size="icon"
                />
             </div>
           </div>

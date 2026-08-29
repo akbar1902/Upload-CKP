@@ -187,7 +187,8 @@ export default function MonitoringPenilaianClient() {
             <ScreenshotButton 
               targetId="export-monitoring-section" 
               filename={`Monitoring_Penilaian_${getBulanLabel()}_${tahun}`}
-              className="h-10 rounded-xl"
+              className="h-10 w-10 shrink-0"
+              size="icon"
             />
           </div>
         </div>

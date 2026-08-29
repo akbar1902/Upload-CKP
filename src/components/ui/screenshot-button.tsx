@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
-import html2canvas from 'html2canvas';
+import * as htmlToImage from 'html-to-image';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -35,19 +35,20 @@ export function ScreenshotButton({
 
     try {
       setIsCapturing(true);
-      
-      const canvas = await html2canvas(targetElement, {
-        scale: 2, // Higher resolution
-        useCORS: true, // Allow external images
-        logging: false,
-        backgroundColor: '#f8faf9' // match app bg
+      const dataUrl = await htmlToImage.toPng(targetElement, {
+        quality: 1,
+        pixelRatio: 2, // High resolution
+        backgroundColor: '#f8faf9', // match app bg
+        style: {
+          transform: 'none', // Prevent some glitching
+        },
+        cacheBust: true, // Prevents caching issues with images
       });
 
       // Convert to image and download
-      const image = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.download = `${filename}.png`;
-      link.href = image;
+      link.href = dataUrl;
       link.click();
       
       toast.success('Screenshot berhasil disimpan!');
@@ -66,9 +67,13 @@ export function ScreenshotButton({
       className={className}
       onClick={handleCapture}
       disabled={isCapturing}
+      title={size === 'icon' ? "Ambil Screenshot" : undefined}
     >
-      {isCapturing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Camera className="w-4 h-4 mr-2" />}
-      {children || 'Screenshot'}
+      {isCapturing 
+        ? <Loader2 className={`w-4 h-4 ${size === 'icon' ? '' : 'mr-2'} animate-spin`} /> 
+        : <Camera className={`w-4 h-4 ${size === 'icon' ? '' : 'mr-2'}`} />
+      }
+      {size !== 'icon' && (children || 'Screenshot')}
     </Button>
   );
 }
