@@ -804,6 +804,8 @@ export default function UploadPage() {
       
       // Invalidate dashboard query cache so new data appears without manual refresh
       queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
+      // Invalidate master data query cache so newly mapped RKs are immediately recognized in next upload
+      queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
       
       setTimeout(() => {
         setUploading(false);
