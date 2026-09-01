@@ -9,7 +9,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getBulanName } from '@/lib/utils';
+import { getBulanName, getDefaultPeriod } from '@/lib/utils';
 import { exportRekapToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, UploadStatus, User } from '@/types/database';
 import { toast } from 'sonner';
@@ -50,8 +50,9 @@ export default function PimpinanKetuaTimDashboardClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
+  const defaultPeriod = getDefaultPeriod(10);
+  const currentMonth = defaultPeriod.bulan;
+  const currentYear = defaultPeriod.tahun;
 
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
