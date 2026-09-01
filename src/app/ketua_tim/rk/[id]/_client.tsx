@@ -373,7 +373,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         uploads: newUploads,
       };
     },
-    enabled: !!user && !authLoading && !!rkId,
+    enabled: !!currentUser && !authLoading && !!rkId,
     networkMode: 'always',
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
