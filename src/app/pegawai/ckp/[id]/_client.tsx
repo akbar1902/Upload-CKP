@@ -360,7 +360,7 @@ export default function CKPDetailPage() {
         new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
       ]);
     },
-    enabled: !!id,
+    enabled: !!user && !authLoading && !!id,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
