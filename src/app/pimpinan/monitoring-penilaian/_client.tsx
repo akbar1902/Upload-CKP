@@ -16,7 +16,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
 
   return (
     <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
-      <div 
+      <div
         className="p-5 flex items-center justify-between cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
       >
@@ -35,7 +35,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
               {data.totalPendingRk}
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">
-              RK Tertunda
+              RK Belum Dinilai
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
@@ -50,7 +50,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
             <Users size={16} />
             Daftar Anggota Tim ({data.pegawaiDetails.length})
           </div>
-          
+
           <div className="grid gap-2.5">
             {data.pegawaiDetails.map((pegawai) => (
               <PegawaiDetailCard key={pegawai.id} pegawai={pegawai} />
@@ -67,7 +67,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
 
   return (
     <div className="bg-white dark:bg-[#25262b] rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden">
-      <div 
+      <div
         className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
@@ -88,7 +88,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
           {expanded ? <ChevronUp size={16} className="text-emerald-500" /> : <ChevronDown size={16} className="text-slate-400" />}
         </div>
       </div>
-      
+
       {expanded && (
         <div className="p-3 pt-0 bg-emerald-50/30 dark:bg-slate-800/20">
           <div className="pl-11 pr-2 pt-2">
@@ -111,15 +111,15 @@ export default function MonitoringPenilaianClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const defaultPeriod = getDefaultPeriod(10);
-  
+
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
-  
+
   // Karena parameter T1, T2 dsb sulit ditangani di action sederhana ini tanpa map,
   // Kita fallback ke angka bulan jika berupa string T1. (Bisa diperbaiki nanti jika perlu).
   const currentBulan = typeof defaultPeriod.bulan === 'string' ? 1 : defaultPeriod.bulan;
   const rawBulan = paramBulan || currentBulan;
-  
+
   const bulan = typeof rawBulan === 'string' && rawBulan.startsWith('T') ? 1 : parseInt(String(rawBulan));
   const tahun = paramTahun ? parseInt(paramTahun) : defaultPeriod.tahun;
 
@@ -158,7 +158,7 @@ export default function MonitoringPenilaianClient() {
     <>
       <Header />
       <div id="export-monitoring-section" className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
-        
+
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#1a1b1e] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div>
@@ -176,7 +176,7 @@ export default function MonitoringPenilaianClient() {
               onBulanChange={setBulan}
               onTahunChange={setTahun}
             />
-            <button 
+            <button
               onClick={fetchData}
               className="w-10 h-10 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-400"
               disabled={loading}
@@ -184,8 +184,8 @@ export default function MonitoringPenilaianClient() {
             >
               <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
             </button>
-            <ScreenshotButton 
-              targetId="export-monitoring-section" 
+            <ScreenshotButton
+              targetId="export-monitoring-section"
               filename={`Monitoring_Penilaian_${getBulanLabel()}_${tahun}`}
               className="h-10 w-10 shrink-0"
               size="icon"

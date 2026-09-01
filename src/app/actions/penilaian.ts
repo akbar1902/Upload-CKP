@@ -1,6 +1,6 @@
 "use server";
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 
 export async function gradeRencanaKinerjaAction(uploadIds: string | string[], rencanaKinerja: string, score: number | null) {
   try {
@@ -46,7 +46,8 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
       const newStatus = allScored ? 'scored' : 'submitted';
 
       if (upload.status !== newStatus) {
-        await supabase
+        const adminClient = createAdminClient();
+        await adminClient
           .from('ckp_uploads')
           .update({ status: newStatus })
           .eq('id', upload.id);
