@@ -74,13 +74,14 @@ export async function getPendingScoringKetuaTim(
 
     const ketuaTimIds = Array.from(new Set(validMappings.map(m => m.ketua_tim_id))) as string[];
 
-    // 4. Ambil data User untuk Ketua Tim
-    const { data: ketuaTimUsers, error: ktErr } = await supabase
-      .from('users')
-      .select('id, full_name, nip')
-      .in('id', ketuaTimIds);
+    // 4. Ambil data User untuk Ketua Tim dan Pimpinan
+    const [ketuaTimUsersRes, pimpinanRes] = await Promise.all([
+      supabase.from('users').select('id, full_name, nip').in('id', ketuaTimIds),
+      supabase.from('users').select('id, full_name, nip').eq('role', 'pimpinan').limit(1).single()
+    ]);
 
-    if (ktErr) throw ktErr;
+    const ketuaTimUsers = ketuaTimUsersRes.data;
+    const pimpinanUser = pimpinanRes.data;
 
     // Build Map RK -> Ketua Tim ID
     const rkToKetuaTim = new Map<string, string>();
@@ -95,26 +96,30 @@ export async function getPendingScoringKetuaTim(
 
     entries.forEach(entry => {
       const ktId = rkToKetuaTim.get(entry.rencana_kinerja || '');
-      if (!ktId) return; // Bukan wewenang ketua tim (atau belum di-map)
-
-      const ktUser = ketuaTimUsers?.find(u => u.id === ktId);
-      if (!ktUser) return;
-
       const pegawai = uploadToUser.get(entry.upload_id);
-      if (!pegawai) return; // Should not happen, but safeguard
+      if (!pegawai) return;
 
-      // Ketua Tim tidak menilai dirinya sendiri. RK milik Ketua Tim akan dinilai oleh Pimpinan.
-      if (pegawai.id === ktId) return;
+      let finalKtUser;
 
-      if (!resultGroup.has(ktId)) {
-        resultGroup.set(ktId, {
-          ketuaTim: ktUser,
+      if (!ktId || pegawai.id === ktId) {
+        // Jika RK tidak ada ketua tim ATAU RK milik Ketua Tim sendiri -> Pimpinan yang menilai
+        if (!pimpinanUser) return;
+        finalKtUser = pimpinanUser;
+      } else {
+        finalKtUser = ketuaTimUsers?.find(u => u.id === ktId);
+      }
+
+      if (!finalKtUser) return;
+
+      if (!resultGroup.has(finalKtUser.id)) {
+        resultGroup.set(finalKtUser.id, {
+          ketuaTim: finalKtUser,
           totalPendingRk: 0,
           pegawaiDetails: [],
         });
       }
 
-      const ktGroup = resultGroup.get(ktId)!;
+      const ktGroup = resultGroup.get(finalKtUser.id)!;
 
       let pegDetail = ktGroup.pegawaiDetails.find(p => p.id === pegawai.id);
       if (!pegDetail) {

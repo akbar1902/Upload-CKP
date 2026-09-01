@@ -225,13 +225,17 @@ export default function KetuaTimDashboardClient() {
          if (!upload) return false;
          
          if (user?.role === 'pimpinan' || user?.role === 'admin') {
-            if (rk.ketua_tim_id !== user.id) {
+            if (rk.ketua_tim_id && rk.ketua_tim_id !== user.id) {
                // For RKs of other teams, Pimpinan only evaluates the Ketua Tim themselves
                return upload.user_id === rk.ketua_tim_id;
             }
-            return assignedUserIds.has(upload.user_id) || validKetuaTimIds.has(upload.user_id);
+            // Jika RK tidak memiliki ketua tim, atau Pimpinan adalah ketua timnya, Pimpinan menilai semua
+            return true;
          }
-         return assignedUserIds.has(upload.user_id);
+         
+         // Untuk Ketua Tim biasa, tampilkan semua entri yang masuk ke RK mereka, 
+         // meskipun pegawai tidak secara resmi di-assign ke RK tersebut
+         return true;
       });
       
       // Filter out the logged-in user themselves (Pimpinan cannot evaluate themselves, Radina cannot evaluate themselves)
