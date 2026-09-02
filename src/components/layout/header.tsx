@@ -71,8 +71,8 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
     };
   }
   return {
-    crumbs: [{ label: 'CKP Digital' }],
-    title: 'CKP Digital',
+    crumbs: [{ label: 'SIKAP' }],
+    title: 'SIKAP',
   };
 }
 

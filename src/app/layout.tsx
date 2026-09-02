@@ -12,21 +12,21 @@ import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
   title: {
-    default: "CKP Digital — BPS Kabupaten Belitung",
-    template: "%s | CKP Digital",
+    default: "SIKAP — BPS Kabupaten Belitung",
+    template: "%s | SIKAP",
   },
   description: "Sistem Rekap Capaian Kinerja Pegawai (CKP) BPS Kabupaten Belitung. Upload, review, dan kelola kinerja pegawai secara digital.",
   keywords: "CKP, BPS, Belitung, kinerja pegawai, capaian kinerja",
   robots: { index: false, follow: false },
   openGraph: {
-    title: "CKP Digital — BPS Kabupaten Belitung",
+    title: "SIKAP — BPS Kabupaten Belitung",
     description: "Sistem Rekap Capaian Kinerja Pegawai BPS Kabupaten Belitung",
     type: "website",
     locale: "id_ID",
   },
   appleWebApp: {
     capable: true,
-    title: "CKP Digital",
+    title: "SIKAP",
     statusBarStyle: "default",
   },
 };
