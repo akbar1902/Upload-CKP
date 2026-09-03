@@ -172,8 +172,8 @@ export default function UploadPage() {
       setUploading(false);
       setUploadStep(-1);
       setUploadProgress(0);
-      toast.error('Upload timeout: proses melebihi batas waktu 3 menit. Silakan coba lagi.', { duration: 8000 });
-    }, 180_000); // 3 minutes
+      toast.error('Upload timeout: proses melebihi batas waktu. Silakan coba lagi.', { duration: 8000 });
+    }, 90_000); // 90 seconds — much tighter now that upload is optimized
     return () => clearTimeout(safetyTimer);
   }, [uploading]);
 
@@ -426,43 +426,42 @@ export default function UploadPage() {
   };
 
   // ══════════════════════════════════════════════════════════════════
-  // HELPER: Robust session refresh with retry (3 attempts, 8s each)
-  // This is the KEY fix for stuck loading after idle periods.
+  // HELPER: Fast session check — single attempt, no retry loop
+  // The pre-warm on page load already refreshed the session.
+  // This is just a quick sanity check, not a full retry loop.
   // ══════════════════════════════════════════════════════════════════
   const ensureValidSession = async (): Promise<boolean> => {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      try {
-        // Use Promise.race directly (instead of withTimeout) to preserve AuthResponse type
-        const refreshResult = await Promise.race([
-          supabase.auth.refreshSession(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Session refresh attempt ${attempt + 1} timeout`)), 8_000)
-          ),
-        ]);
-        if (!refreshResult.error && refreshResult.data?.session) {
-          console.log(`[Upload] Session refreshed successfully (attempt ${attempt + 1})`);
-          return true;
-        }
-        console.warn(`[Upload] Session refresh attempt ${attempt + 1} failed:`, refreshResult.error?.message);
-      } catch (err: any) {
-        console.warn(`[Upload] Session refresh attempt ${attempt + 1} error:`, err.message);
-      }
-      // Small delay before retry (except last attempt)
-      if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-    }
-    // All attempts failed — try getSession as last resort (maybe token is still valid in cache)
     try {
+      // Fast path: check cached session first (no network call)
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const expiresAt = session.expires_at;
         const now = Math.floor(Date.now() / 1000);
+        // If token has >30s left, it's good enough — proceed immediately
         if (expiresAt && (expiresAt - now) > 30) {
-          console.log('[Upload] Existing session still valid, proceeding');
           return true;
         }
+        // Token expiring soon — single quick refresh (3s timeout)
+        try {
+          const refreshResult = await Promise.race([
+            supabase.auth.refreshSession(),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error('Quick refresh timeout')), 3_000)
+            ),
+          ]);
+          if (!refreshResult.error && refreshResult.data?.session) {
+            return true;
+          }
+        } catch {
+          // Refresh failed — but token might still be valid for the requests ahead
+          console.warn('[Upload] Quick session refresh failed, proceeding with existing token');
+        }
+        return true; // Proceed anyway — better to try and fail than block
       }
-    } catch { /* ignore */ }
-    return false;
+      return false;
+    } catch {
+      return false;
+    }
   };
 
   const processUpload = async (latestMasterRKs?: any[], latestMasterKegiatan?: any[]) => {
@@ -479,8 +478,6 @@ export default function UploadPage() {
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
 
-    let progressInterval: ReturnType<typeof setInterval> | null = null;
-
     // Helper to check if upload was cancelled
     const checkAborted = () => {
       if (abortController.signal.aborted) {
@@ -489,63 +486,56 @@ export default function UploadPage() {
     };
 
     try {
-      // ── STEP 0: Robust session refresh ──────────────────────────
-      // This is critical when users wait on the page before clicking submit
-      const sessionValid = await ensureValidSession();
-      if (!sessionValid) {
-        console.warn('[Upload] All session refresh attempts failed, proceeding with existing token');
-        // Don't block the upload — the token might still work for a few more seconds
-      }
-      checkAborted();
-
+      // ── STEP 0: Quick session check + fetch existing entries (PARALLEL) ──
       let newVersion = 1;
       let previousUploadId: string | null = null;
       let existingEntries: any[] = [];
 
+      // Run session check and existing entries fetch in parallel
+      const sessionPromise = ensureValidSession();
+      const existingEntriesPromise = existingUpload
+        ? withTimeout(
+            supabase
+              .from('ckp_entries')
+              .select('*')
+              .eq('upload_id', existingUpload.id),
+            8_000,
+            'Fetch existing entries'
+          ).catch(() => ({ data: null }))
+        : Promise.resolve({ data: null });
+
+      const [sessionValid, entriesResult] = await Promise.all([
+        sessionPromise,
+        existingEntriesPromise,
+      ]);
+
+      if (!sessionValid) {
+        console.warn('[Upload] Session check failed, proceeding with existing token');
+      }
+
       if (existingUpload) {
         newVersion = existingUpload.version + 1;
         previousUploadId = existingUpload.id;
-        
-        // Fetch existing entries to preserve scores (with timeout)
-        const { data: entries } = await withTimeout(
-          supabase
-            .from('ckp_entries')
-            .select('*')
-            .eq('upload_id', previousUploadId),
-          15_000,
-          'Fetch existing entries'
-        );
-          
-        if (entries) {
-          existingEntries = entries;
+        if ((entriesResult as any)?.data) {
+          existingEntries = (entriesResult as any).data;
         }
       }
       checkAborted();
 
       setUploadStep(1);
-      setUploadProgress(30);
+      setUploadProgress(25);
 
       const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
       const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
 
-      // ── STEP 1: Storage upload with timeout ─────────────────────
-      const UPLOAD_TIMEOUT_MS = 120_000; // 2 minutes
-
-      let animatedProgress = 30;
-      progressInterval = setInterval(() => {
-        animatedProgress = animatedProgress + (92 - animatedProgress) * 0.06;
-        setUploadProgress(Math.round(animatedProgress));
-      }, 400);
-
+      // ── STEP 1: Storage upload (no animated progress — reduces re-renders) ──
       const { error: storageError } = await withTimeout(
         supabase.storage
           .from('ckp-files')
           .upload(storagePath, file, { upsert: true }),
-        UPLOAD_TIMEOUT_MS,
+        60_000, // 1 minute for files up to 5MB is generous
         'Upload file ke storage'
       );
-      clearInterval(progressInterval);
-      progressInterval = null;
       checkAborted();
 
       if (storageError) throw new Error(storageError.message);
@@ -556,22 +546,20 @@ export default function UploadPage() {
         : 0;
 
       setUploadStep(2);
-      setUploadProgress(70);
+      setUploadProgress(50);
       
-      // ── STEP 2: Mark previous upload as superseded ──────────────
-      if (previousUploadId) {
-        await withTimeout(
-          supabase
-            .from('ckp_uploads')
-            .update({ status: 'superseded' })
-            .eq('id', previousUploadId),
-          15_000,
-          'Update status upload lama'
-        );
-      }
-      checkAborted();
+      // ── STEP 2: Mark previous as superseded + Create new upload (PARALLEL) ──
+      const supersedeProm = previousUploadId
+        ? withTimeout(
+            supabase
+              .from('ckp_uploads')
+              .update({ status: 'superseded' })
+              .eq('id', previousUploadId),
+            8_000,
+            'Update status upload lama'
+          ).catch(err => console.warn('[Upload] Supersede failed (non-critical):', err))
+        : Promise.resolve();
 
-      // ── STEP 3: Create new upload row ───────────────────────────
       const { data: uploadData, error } = await withTimeout(
         supabase
           .from('ckp_uploads')
@@ -588,11 +576,12 @@ export default function UploadPage() {
           })
           .select()
           .single(),
-        15_000,
+        8_000,
         'Simpan data upload'
       );
         
       if (error) throw error;
+      await supersedeProm; // Ensure supersede is done before we proceed
       checkAborted();
 
       const masterDict = latestMasterRKs || [...masterRKs];
@@ -600,8 +589,8 @@ export default function UploadPage() {
       const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
       const distinctMatchedRKs = new Set<string>();
 
-      setUploadStep(4);
-      setUploadProgress(85);
+      setUploadStep(3);
+      setUploadProgress(65);
 
       const v2EntriesResolved = parseResult.entries.map((entry) => {
         let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
@@ -703,99 +692,79 @@ export default function UploadPage() {
       });
       checkAborted();
 
-      // ── STEP 4: Batch insert entries (50 per chunk) ─────────────
-      // Prevents Supabase timeout on large uploads (100+ entries)
-      const CHUNK_SIZE = 50;
+      setUploadStep(4);
+      setUploadProgress(80);
+
+      // ── STEP 4: Batch insert entries (200 per chunk — larger = fewer roundtrips) ──
+      const CHUNK_SIZE = 200;
       for (let i = 0; i < entriesToInsert.length; i += CHUNK_SIZE) {
         checkAborted();
         const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
         const { error: chunkErr } = await withTimeout(
           supabase.from('ckp_entries').insert(chunk),
-          20_000,
+          15_000,
           `Insert entries batch ${Math.floor(i / CHUNK_SIZE) + 1}`
         );
         if (chunkErr) throw chunkErr;
         // Update progress proportionally
-        const batchProgress = 85 + (10 * Math.min((i + CHUNK_SIZE) / entriesToInsert.length, 1));
+        const batchProgress = 80 + (15 * Math.min((i + CHUNK_SIZE) / entriesToInsert.length, 1));
         setUploadProgress(Math.round(batchProgress));
       }
 
-      // ── STEP 5: Assign RKs and save mappings (non-critical) ─────
-      // Wrap in try-catch so failures here don't block the upload success
-      try {
-        if (distinctMatchedRKs.size > 0) {
-          const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
-          
-          if (Object.keys(rkTeamMapping).length > 0) {
-            const newMappings = Object.keys(rkTeamMapping).map(rk => {
-              const mapping = rkTeamMapping[rk];
-              return {
-                user_id: user.id,
-                rk_id: mapping?.rk_id || null,
-                kegiatan_nama: rk,
-              };
-            }).filter(m => m.rk_id !== null && m.rk_id !== '');
+      // ── Non-critical operations: fire-and-forget (don't await) ──
+      // These run in the background — upload is already successful at this point
+      const fireAndForget = async () => {
+        try {
+          // RK assignment & mapping
+          if (distinctMatchedRKs.size > 0) {
+            const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
             
-            if (newMappings.length > 0) {
-               const result = await withTimeout(
-                 saveKegiatanAnggotaMapping(newMappings),
-                 15_000,
-                 'Save kegiatan mapping'
-               );
-               if (!result.success) console.error("Failed to save mappings", result.error);
-            }
-            
-            // Also assign to the valid RKs
-            Object.keys(rkTeamMapping).forEach(rk => {
-              const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
-              if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
-                validRKsToAssign.push(mappedObj.rencana_kinerja);
+            if (Object.keys(rkTeamMapping).length > 0) {
+              const newMappings = Object.keys(rkTeamMapping).map(rk => {
+                const mapping = rkTeamMapping[rk];
+                return { user_id: user.id, rk_id: mapping?.rk_id || null, kegiatan_nama: rk };
+              }).filter(m => m.rk_id !== null && m.rk_id !== '');
+              
+              if (newMappings.length > 0) {
+                saveKegiatanAnggotaMapping(newMappings).catch(e => console.warn('[Upload] Mapping save failed:', e));
               }
-            });
-          }
+              
+              Object.keys(rkTeamMapping).forEach(rk => {
+                const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
+                if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
+                  validRKsToAssign.push(mappedObj.rencana_kinerja);
+                }
+              });
+            }
 
-          if (validRKsToAssign.length > 0) {
-            const assignmentsToInsert = [];
-            for (const rkStr of validRKsToAssign) {
-              const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
-              if (rkObj) {
-                assignmentsToInsert.push({
-                  rk_id: rkObj.id,
-                  user_id: user.id,
-                  assigned_by: user.id
-                });
+            if (validRKsToAssign.length > 0) {
+              const assignmentsToInsert: any[] = [];
+              for (const rkStr of validRKsToAssign) {
+                const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
+                if (rkObj) {
+                  assignmentsToInsert.push({ rk_id: rkObj.id, user_id: user.id, assigned_by: user.id });
+                }
+              }
+              if (assignmentsToInsert.length > 0) {
+                supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }).then(() => {}, (e: any) => console.warn('[Upload] RK assign failed:', e));
               }
             }
-            if (assignmentsToInsert.length > 0) {
-              await withTimeout(
-                supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }),
-                15_000,
-                'Assign RKs'
-              );
-            }
           }
-        }
-      } catch (assignErr) {
-        // Non-critical — log but don't fail the upload
-        console.warn('[Upload] RK assignment/mapping failed (non-critical):', assignErr);
-      }
 
-      // ── STEP 6: Audit log (non-critical) ────────────────────────
-      try {
-        await withTimeout(
+          // Audit log
           supabase.from('audit_logs').insert({
             user_id: user.id,
             action: 'upload_ckp',
             entity_type: 'ckp_uploads',
             entity_id: uploadData.id,
             new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
-          }),
-          10_000,
-          'Audit log'
-        );
-      } catch {
-        console.warn('[Upload] Audit log insert failed (non-critical)');
-      }
+          }).then(() => {}, () => console.warn('[Upload] Audit log failed (non-critical)'));
+        } catch {
+          console.warn('[Upload] Background tasks failed (non-critical)');
+        }
+      };
+      // Fire and forget — don't await
+      void fireAndForget();
 
       // ── SUCCESS ─────────────────────────────────────────────────
       uploadAbortRef.current = null;
@@ -810,10 +779,9 @@ export default function UploadPage() {
       setTimeout(() => {
         setUploading(false);
         router.push(`/pegawai/ckp/${uploadData.id}`);
-      }, 1000);
+      }, 300); // Snappy redirect — no need to linger on 100%
 
     } catch (error: any) {
-      if (progressInterval) clearInterval(progressInterval);
       uploadAbortRef.current = null;
       
       // Don't show error toast if user cancelled

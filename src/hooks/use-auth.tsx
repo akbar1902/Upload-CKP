@@ -181,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return await Promise.race([
         doEnsure(),
         new Promise<boolean>((_, reject) => 
-          setTimeout(() => reject(new Error('ensureSession timed out')), 15000)
+          setTimeout(() => reject(new Error('ensureSession timed out')), 8000)
         )
       ]);
     } catch (err) {
