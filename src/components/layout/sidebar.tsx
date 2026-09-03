@@ -20,6 +20,7 @@ import {
   ChevronDown,
   Zap,
   Lock,
+  FileDown,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
@@ -107,6 +108,7 @@ export function Sidebar() {
     navItems.push({ href: '/admin', label: 'Monitoring CKP', icon: LayoutDashboard });
     navItems.push({ href: '/admin/pegawai', label: 'Kepegawaian', icon: Users });
     navItems.push({ href: '/admin/rk', label: 'Rencana Kinerja', icon: Users });
+    navItems.push({ href: '/admin/export-penilaian', label: 'Export Penilaian', icon: FileDown });
     navItems.push({ href: '/admin/periode', label: 'Pengaturan Periode', icon: Lock });
     navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
   } else if (isPimpinan) {
