@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { getBulanName } from '@/lib/utils';
+import { getBulanName, getFormattedPenilaianPeriod } from '@/lib/utils';
 import type { PimpinanInfo } from '@/app/actions/export';
 
 export interface ExportPdfParams {
@@ -55,33 +55,26 @@ export function generateEvaluationPdf({
   doc.setLineWidth(0.3);
   doc.line(14, 27, 196, 27);
 
+  const periodeText = getFormattedPenilaianPeriod(bulan, tahun);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
   doc.text('Badan Pusat Statistik', 14, 31);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Periode Penilaian: 1 ${bulanName} s.d. ${lastDay} ${bulanName} ${tahun}`, 196, 31, { align: 'right' });
+  doc.text(`Periode Penilaian: ${periodeText}`, 196, 31, { align: 'right' });
 
   // ── 2. TABEL PROFIL PEGAWAI & PEJABAT PENILAI ──────────────────────
   const profileTableData = [
     [
       '1', 'Nama', pegawai.full_name || '-',
-      '1', 'Nama', pimpinan.nama || 'Baiq Kurniawati, SST, M.Ak',
+      '1', 'Nama', pimpinan.nama || 'Baiq Kurniawati SST, M.Ak',
     ],
     [
       '2', 'NIP', pegawai.nip || '-',
       '2', 'NIP', pimpinan.nip || '197805052000122001',
     ],
     [
-      '3', 'Pangkat / Golongan', pegawai.golongan || '-',
-      '3', 'Pangkat / Golongan', pimpinan.pangkatGolongan || 'Pembina Tk. I / IV/b',
-    ],
-    [
-      '4', 'Jabatan', pegawai.jabatan || 'Pegawai',
-      '4', 'Jabatan', pimpinan.jabatan || 'Kepala BPS Kabupaten Belitung',
-    ],
-    [
-      '5', 'Unit Kerja', pegawai.unit_kerja || 'BPS Kabupaten Belitung',
-      '5', 'Unit Kerja', pimpinan.unitKerja || 'BPS Kabupaten Belitung',
+      '3', 'Unit Kerja', pegawai.unit_kerja || 'BPS Kabupaten Belitung',
+      '3', 'Unit Kerja', pimpinan.unitKerja || 'BPS Kabupaten Belitung',
     ],
   ];
 

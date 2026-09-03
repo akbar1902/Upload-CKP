@@ -167,3 +167,54 @@ export async function getExportEntriesForUpload(uploadId: string) {
     return [];
   }
 }
+
+export async function getAllEntriesForPeriodAction(bulan: number, tahun: number) {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: uploads, error: uploadsErr } = await supabaseAdmin
+      .from('ckp_uploads')
+      .select('id, user_id, version')
+      .eq('bulan', bulan)
+      .eq('tahun', tahun)
+      .neq('status', 'superseded')
+      .order('version', { ascending: false });
+
+    if (uploadsErr) throw uploadsErr;
+
+    const seenUsers = new Set<string>();
+    const latestUploadIds: string[] = [];
+    (uploads || []).forEach((u: any) => {
+      if (!seenUsers.has(u.user_id)) {
+        seenUsers.add(u.user_id);
+        latestUploadIds.push(u.id);
+      }
+    });
+
+    if (latestUploadIds.length === 0) return {};
+
+    const { data: entries, error: entriesErr } = await supabaseAdmin
+      .from('ckp_entries')
+      .select('*')
+      .in('upload_id', latestUploadIds)
+      .order('row_number', { ascending: true });
+
+    if (entriesErr) throw entriesErr;
+
+    const entriesByUploadId: Record<string, any[]> = {};
+    (entries || []).forEach((entry: any) => {
+      if (!entriesByUploadId[entry.upload_id]) {
+        entriesByUploadId[entry.upload_id] = [];
+      }
+      entriesByUploadId[entry.upload_id].push(entry);
+    });
+
+    return entriesByUploadId;
+  } catch (err: any) {
+    console.error('[getAllEntriesForPeriodAction] Error:', err);
+    return {};
+  }
+}

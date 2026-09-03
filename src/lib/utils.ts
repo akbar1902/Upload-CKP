@@ -14,6 +14,35 @@ export function getBulanName(bulan: number): string {
   return BULAN_NAMES[bulan - 1] || '';
 }
 
+export function getFormattedPenilaianPeriod(bulan: number, tahun: number): string {
+  const monthNames = [
+    '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+
+  if ([1, 4, 7, 10].includes(bulan)) {
+    // Bulan Pertama Triwulan: Tgl 1 s.d 25
+    return `1 ${monthNames[bulan]} s.d. 25 ${monthNames[bulan]} ${tahun}`;
+  } else if ([2, 5, 8, 11].includes(bulan)) {
+    // Bulan Kedua Triwulan: Tgl 26 bulan lalu s.d 25 bulan ini
+    const prevMonth = bulan === 1 ? 12 : bulan - 1;
+    const prevYear = bulan === 1 ? tahun - 1 : tahun;
+    if (prevYear !== tahun) {
+      return `26 ${monthNames[prevMonth]} ${prevYear} s.d. 25 ${monthNames[bulan]} ${tahun}`;
+    }
+    return `26 ${monthNames[prevMonth]} s.d. 25 ${monthNames[bulan]} ${tahun}`;
+  } else {
+    // Bulan Ketiga Triwulan: Tgl 26 bulan lalu s.d akhir bulan ini (30/31)
+    const prevMonth = bulan === 1 ? 12 : bulan - 1;
+    const prevYear = bulan === 1 ? tahun - 1 : tahun;
+    const lastDay = new Date(tahun, bulan, 0).getDate();
+    if (prevYear !== tahun) {
+      return `26 ${monthNames[prevMonth]} ${prevYear} s.d. ${lastDay} ${monthNames[bulan]} ${tahun}`;
+    }
+    return `26 ${monthNames[prevMonth]} s.d. ${lastDay} ${monthNames[bulan]} ${tahun}`;
+  }
+}
+
 export function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-';
   try {

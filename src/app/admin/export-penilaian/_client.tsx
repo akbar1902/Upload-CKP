@@ -3,18 +3,21 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
-import { BULAN_NAMES, getBulanName } from '@/lib/utils';
+import { BULAN_NAMES, getBulanName, getFormattedPenilaianPeriod } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
+import JSZip from 'jszip';
+import { saveAs } from 'file-saver';
 import { 
   FileDown, Printer, FileSpreadsheet, ExternalLink, Calendar, 
-  Users, CheckCircle2, AlertCircle, Loader2, Sparkles
+  Users, CheckCircle2, AlertCircle, Loader2, Sparkles, Archive
 } from 'lucide-react';
 import { 
   getExportPenilaianData, 
   getExportEntriesForUpload, 
+  getAllEntriesForPeriodAction,
   type PimpinanInfo, 
   type ExportPegawaiUpload 
 } from '@/app/actions/export';
@@ -54,6 +57,8 @@ export default function ExportPenilaianClient({
   const [entries, setEntries] = useState<any[]>([]);
   const [loadingEntries, setLoadingEntries] = useState<boolean>(false);
   const [downloadingPdf, setDownloadingPdf] = useState<boolean>(false);
+  const [downloadingAllZip, setDownloadingAllZip] = useState<boolean>(false);
+  const [bulkProgress, setBulkProgress] = useState<string>('');
 
   // Set default selected user (first user with upload or first active user)
   useEffect(() => {
@@ -132,8 +137,6 @@ export default function ExportPenilaianClient({
           full_name: currentSelectedUser.full_name,
           nip: currentSelectedUser.nip,
           unit_kerja: currentSelectedUser.unit_kerja || 'BPS Kabupaten Belitung',
-          jabatan: currentUpload?.profile?.jabatan || 'Pranata Komputer / Pegawai',
-          golongan: currentUpload?.profile?.golongan || '-',
         },
         pimpinan: data.pimpinan,
         bulan,
@@ -153,12 +156,65 @@ export default function ExportPenilaianClient({
     }
   };
 
+  // Bulk Download All Employees ZIP Action
+  const handleDownloadAllZip = async () => {
+    if (data.uploads.length === 0) {
+      toast.error('Tidak ada data CKP pegawai pada periode ini untuk didownload.');
+      return;
+    }
+
+    try {
+      setDownloadingAllZip(true);
+      setBulkProgress('Mengambil data kegiatan seluruh pegawai...');
+
+      const allEntriesMap = await getAllEntriesForPeriodAction(bulan, tahun);
+      const zip = new JSZip();
+      const folderName = `Evaluasi_Kinerja_Pegawai_${getBulanName(bulan)}_${tahun}`;
+      const folder = zip.folder(folderName);
+      if (!folder) throw new Error('Gagal membuat folder ZIP');
+
+      let count = 0;
+      for (const upload of data.uploads) {
+        count++;
+        setBulkProgress(`Membuat PDF (${count}/${data.uploads.length}): ${upload.user?.full_name || 'Pegawai'}`);
+
+        const empEntries = allEntriesMap[upload.id] || [];
+        const pdfDoc = generateEvaluationPdf({
+          pegawai: {
+            full_name: upload.user?.full_name || 'Pegawai',
+            nip: upload.user?.nip || null,
+            unit_kerja: upload.user?.unit_kerja || 'BPS Kabupaten Belitung',
+          },
+          pimpinan: data.pimpinan,
+          bulan,
+          tahun,
+          tanggalCetak,
+          entries: empEntries,
+        });
+
+        const pdfBlob = pdfDoc.output('blob');
+        const safeName = (upload.user?.full_name || `Pegawai_${count}`).replace(/[^a-zA-Z0-9]/g, '_');
+        const fileName = `${String(count).padStart(2, '0')}_Evaluasi_${safeName}.pdf`;
+        folder.file(fileName, pdfBlob);
+      }
+
+      setBulkProgress('Mengompres file ZIP...');
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      saveAs(zipBlob, `Evaluasi_Kinerja_Semua_Pegawai_${getBulanName(bulan)}_${tahun}.zip`);
+      toast.success(`Berhasil mendownload berkas penilaian untuk ${data.uploads.length} pegawai!`);
+    } catch (err: any) {
+      console.error('Bulk export error:', err);
+      toast.error('Gagal mendownload seluruh pegawai: ' + err.message);
+    } finally {
+      setDownloadingAllZip(false);
+      setBulkProgress('');
+    }
+  };
+
   // Print Action
   const handlePrint = () => {
     window.print();
   };
-
-  const lastDay = new Date(tahun, bulan, 0).getDate();
 
   return (
     <>
@@ -180,6 +236,27 @@ export default function ExportPenilaianClient({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Download All Button */}
+            <Button
+              onClick={handleDownloadAllZip}
+              disabled={downloadingAllZip || data.uploads.length === 0}
+              variant="outline"
+              className="gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold"
+            >
+              {downloadingAllZip ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                  <span className="text-xs">{bulkProgress || 'Memproses...'}</span>
+                </>
+              ) : (
+                <>
+                  <Archive className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                  <span>Download Semua Pegawai ({data.uploads.length} File ZIP)</span>
+                </>
+              )}
+            </Button>
+
+            {/* Download Single PDF Button */}
             <Button
               onClick={handleDownloadPdf}
               disabled={downloadingPdf || loadingEntries}
@@ -192,6 +269,8 @@ export default function ExportPenilaianClient({
               )}
               Download PDF
             </Button>
+
+            {/* Print Button */}
             <Button
               onClick={handlePrint}
               variant="outline"
@@ -317,7 +396,7 @@ export default function ExportPenilaianClient({
 
           <div className="flex justify-between items-center text-[11px] sm:text-[12px] font-medium text-slate-700 mb-4 px-1">
             <span className="font-bold text-slate-900">Badan Pusat Statistik</span>
-            <span>Periode Penilaian: 1 {getBulanName(bulan)} s.d. {lastDay} {getBulanName(bulan)} {tahun}</span>
+            <span>Periode Penilaian: {getFormattedPenilaianPeriod(bulan, tahun)}</span>
           </div>
 
           {/* Tabel Profil Pegawai & Pejabat Penilai Kinerja */}
@@ -350,25 +429,9 @@ export default function ExportPenilaianClient({
                 </tr>
                 <tr>
                   <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
-                  <td className="border border-slate-400 p-1.5 font-semibold">Pangkat / Golongan</td>
-                  <td className="border border-slate-400 p-1.5">{currentUpload?.profile?.golongan || '-'}</td>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
-                  <td className="border border-slate-400 p-1.5 font-semibold">Pangkat / Golongan</td>
-                  <td className="border border-slate-400 p-1.5">{data.pimpinan.pangkatGolongan}</td>
-                </tr>
-                <tr>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">4</td>
-                  <td className="border border-slate-400 p-1.5 font-semibold">Jabatan</td>
-                  <td className="border border-slate-400 p-1.5">{currentUpload?.profile?.jabatan || 'Pegawai'}</td>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">4</td>
-                  <td className="border border-slate-400 p-1.5 font-semibold">Jabatan</td>
-                  <td className="border border-slate-400 p-1.5">{data.pimpinan.jabatan}</td>
-                </tr>
-                <tr>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">5</td>
                   <td className="border border-slate-400 p-1.5 font-semibold">Unit Kerja</td>
                   <td className="border border-slate-400 p-1.5">{currentSelectedUser.unit_kerja || 'BPS Kabupaten Belitung'}</td>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">5</td>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
                   <td className="border border-slate-400 p-1.5 font-semibold">Unit Kerja</td>
                   <td className="border border-slate-400 p-1.5">{data.pimpinan.unitKerja}</td>
                 </tr>
