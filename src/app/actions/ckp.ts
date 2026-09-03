@@ -239,3 +239,231 @@ export async function markEntryAction(entryId: string, catatanKoreksi: string | 
   }
 }
 
+export async function submitCkpUploadAction(formData: FormData) {
+  try {
+    const file = formData.get('file') as File;
+    const userId = formData.get('userId') as string;
+    const bulan = Number(formData.get('bulan'));
+    const tahun = Number(formData.get('tahun'));
+    const entriesJson = formData.get('entries') as string;
+    const rkTeamMappingJson = formData.get('rkTeamMapping') as string;
+    const validRKsToAssignJson = formData.get('validRKsToAssign') as string;
+
+    if (!file || !userId || !bulan || !tahun || !entriesJson) {
+      return { success: false, error: 'Data upload tidak lengkap.' };
+    }
+
+    const entries = JSON.parse(entriesJson);
+    const rkTeamMapping = rkTeamMappingJson ? JSON.parse(rkTeamMappingJson) : {};
+    const validRKsToAssign: string[] = validRKsToAssignJson ? JSON.parse(validRKsToAssignJson) : [];
+
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // 1. Check existing upload for versioning
+    const { data: existingUpload } = await supabaseAdmin
+      .from('ckp_uploads')
+      .select('id, version, status')
+      .eq('user_id', userId)
+      .eq('bulan', bulan)
+      .eq('tahun', tahun)
+      .order('version', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingUpload?.status === 'approved') {
+      return { success: false, error: 'CKP periode ini sudah disetujui. Tidak dapat mengupload ulang.' };
+    }
+
+    let newVersion = 1;
+    let previousUploadId: string | null = null;
+    let existingEntries: any[] = [];
+
+    if (existingUpload) {
+      newVersion = existingUpload.version + 1;
+      previousUploadId = existingUpload.id;
+
+      const { data: oldEntries } = await supabaseAdmin
+        .from('ckp_entries')
+        .select('*')
+        .eq('upload_id', existingUpload.id);
+      if (oldEntries) existingEntries = oldEntries;
+    }
+
+    // 2. Upload file to Supabase Storage via admin client
+    const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    const storagePath = `${userId}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const { error: storageError } = await supabaseAdmin.storage
+      .from('ckp-files')
+      .upload(storagePath, buffer, {
+        upsert: true,
+        contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+
+    if (storageError) {
+      console.error('[submitCkpUploadAction] Storage upload error:', storageError);
+      return { success: false, error: `Gagal upload ke storage: ${storageError.message}` };
+    }
+
+    // 3. Mark previous upload as superseded
+    if (previousUploadId) {
+      await supabaseAdmin
+        .from('ckp_uploads')
+        .update({ status: 'superseded' })
+        .eq('id', previousUploadId);
+    }
+
+    // 4. Calculate total entries & avg progres
+    const totalEntries = entries.length;
+    const avgProgres = totalEntries > 0
+      ? entries.reduce((s: number, e: any) => s + (Number(e.progres) || 0), 0) / totalEntries
+      : 0;
+
+    // 5. Create new ckp_uploads record
+    const { data: uploadData, error: uploadError } = await supabaseAdmin
+      .from('ckp_uploads')
+      .insert({
+        user_id: userId,
+        bulan,
+        tahun,
+        version: newVersion,
+        file_name: file.name,
+        storage_path: storagePath,
+        status: 'submitted',
+        total_entries: totalEntries,
+        avg_progres: avgProgres,
+      })
+      .select()
+      .single();
+
+    if (uploadError || !uploadData) {
+      console.error('[submitCkpUploadAction] Insert upload error:', uploadError);
+      return { success: false, error: `Gagal menyimpan info upload: ${uploadError?.message}` };
+    }
+
+    // 6. Compare activities between old and new to preserve scores
+    const normalize = (str: string) => (str || '').toLowerCase().replace(/tahun\s*20\d{2}/g, '').replace(/[^a-z0-9]/g, '');
+
+    const oldRkActivities = new Map<string, Set<string>>();
+    existingEntries.forEach((e: any) => {
+      const rk = normalize(e.rencana_kinerja || '');
+      if (!oldRkActivities.has(rk)) oldRkActivities.set(rk, new Set());
+      oldRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
+    });
+
+    const newRkActivities = new Map<string, Set<string>>();
+    entries.forEach((e: any) => {
+      const rk = normalize(e.rencana_kinerja || '');
+      if (!newRkActivities.has(rk)) newRkActivities.set(rk, new Set());
+      newRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
+    });
+
+    const unchangedRKs = new Set<string>();
+    newRkActivities.forEach((newActs, rk) => {
+      const oldActs = oldRkActivities.get(rk);
+      if (oldActs && oldActs.size === newActs.size) {
+        let isSame = true;
+        for (const act of newActs) {
+          if (!oldActs.has(act)) {
+            isSame = false;
+            break;
+          }
+        }
+        if (isSame) unchangedRKs.add(rk);
+      }
+    });
+
+    const entriesToInsert = entries.map((item: any) => {
+      const entry = item.entry || item;
+      const matchedRK = item.matchedRK !== undefined ? item.matchedRK : entry.rencana_kinerja;
+      const rk = normalize(matchedRK || '');
+      const isRkUnchanged = unchangedRKs.has(rk);
+
+      const matchingOldEntry = existingEntries.find((e: any) =>
+        normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
+        normalize(e.rencana_kinerja || '') === normalize(matchedRK || '')
+      );
+
+      return {
+        upload_id: uploadData.id,
+        row_number: entry.row_number || 0,
+        tanggal_mulai: entry.tanggal_mulai || null,
+        tanggal_selesai: entry.tanggal_selesai || null,
+        jam_mulai: entry.jam_mulai || null,
+        jam_selesai: entry.jam_selesai || null,
+        rencana_kinerja: matchedRK || null,
+        kegiatan: entry.kegiatan || null,
+        progres: Number(entry.progres) || 0,
+        capaian: entry.capaian || null,
+        data_dukung: entry.data_dukung || null,
+        extra_columns: entry.extra_columns || {},
+        nilai: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.nilai : null,
+        dinilai_oleh: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.dinilai_oleh : null,
+        catatan_koreksi: null,
+      };
+    });
+
+    // 7. Batch insert entries (chunk of 200)
+    const CHUNK_SIZE = 200;
+    for (let i = 0; i < entriesToInsert.length; i += CHUNK_SIZE) {
+      const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
+      const { error: chunkErr } = await supabaseAdmin.from('ckp_entries').insert(chunk);
+      if (chunkErr) {
+        console.error('[submitCkpUploadAction] Insert chunk error:', chunkErr);
+        throw chunkErr;
+      }
+    }
+
+    // 8. Non-critical tasks (mappings, RK assignment, audit)
+    try {
+      if (Object.keys(rkTeamMapping).length > 0) {
+        const newMappings = Object.keys(rkTeamMapping).map(rk => ({
+          user_id: userId,
+          rk_id: rkTeamMapping[rk]?.rk_id || null,
+          kegiatan_nama: rk,
+        })).filter(m => m.rk_id !== null && m.rk_id !== '');
+        if (newMappings.length > 0) {
+          await supabaseAdmin.from('master_kegiatan_anggota').insert(newMappings);
+        }
+      }
+
+      if (validRKsToAssign.length > 0) {
+        const { data: masterRKs } = await supabaseAdmin.from('rk_ketua_tim_mapping').select('id, rencana_kinerja');
+        if (masterRKs) {
+          const assignmentsToInsert: any[] = [];
+          for (const rkStr of validRKsToAssign) {
+            const rkObj = masterRKs.find((r: any) => r.rencana_kinerja === rkStr);
+            if (rkObj) {
+              assignmentsToInsert.push({ rk_id: rkObj.id, user_id: userId, assigned_by: userId });
+            }
+          }
+          if (assignmentsToInsert.length > 0) {
+            await supabaseAdmin.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
+          }
+        }
+      }
+
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id: userId,
+        action: 'upload_ckp',
+        entity_type: 'ckp_uploads',
+        entity_id: uploadData.id,
+        new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
+      });
+    } catch (bgErr) {
+      console.warn('[submitCkpUploadAction] Background task warning:', bgErr);
+    }
+
+    return { success: true, uploadId: uploadData.id };
+  } catch (error: any) {
+    console.error('[submitCkpUploadAction] Error:', error);
+    return { success: false, error: error.message || 'Terjadi kesalahan saat memproses upload' };
+  }
+}
+

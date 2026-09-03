@@ -4,7 +4,6 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { createFreshClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseExcelFile } from '@/lib/excel/parser';
 import type { ParseResult } from '@/lib/excel/parser';
@@ -18,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
-import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, getUploadMasterData, checkPeriodStatusAction } from '@/app/actions/ckp';
+import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, getUploadMasterData, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -387,135 +386,26 @@ export default function UploadPage() {
 
     setUploading(true);
     setUploadStep(0);
-    setUploadProgress(10);
+    setUploadProgress(15);
     setShowTeamModal(false);
 
-    // ══════════════════════════════════════════════════════════════════
-    // CRITICAL FIX: Create a FRESH Supabase client for each upload.
-    // After idle/tab-suspension, the singleton client's internal
-    // connections become stale/zombie — all operations hang indefinitely.
-    // A fresh client creates new connections, bypassing the hang.
-    // ══════════════════════════════════════════════════════════════════
-    const freshSupa = createFreshClient();
-    console.log('[Upload] Created fresh Supabase client for this upload session');
-
-    // Create AbortController for this upload session
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
 
-    // Helper to check if upload was cancelled
     const checkAborted = () => {
       if (abortController.signal.aborted) {
         throw new Error('Upload dibatalkan oleh pengguna.');
       }
     };
 
-    // Helper to detect auth errors and redirect to login
-    const isAuthError = (err: any): boolean => {
-      const msg = (err?.message || '').toLowerCase();
-      return msg.includes('jwt') || msg.includes('token') || msg.includes('auth') 
-        || msg.includes('not authenticated') || msg.includes('unauthorized')
-        || err?.status === 401 || err?.code === 'PGRST301';
-    };
-
     try {
-      // ── STEP 0: Fetch existing entries (NO session validation) ──
-      // Session validation is the #1 cause of stuck uploads after idle.
-      // Instead, we skip it entirely and let operations fail fast with
-      // auth errors, which we catch and redirect to login.
-      let newVersion = 1;
-      let previousUploadId: string | null = null;
-      let existingEntries: any[] = [];
-
-      if (existingUpload) {
-        newVersion = existingUpload.version + 1;
-        previousUploadId = existingUpload.id;
-        try {
-          const { data: entries } = await withTimeout(
-            freshSupa
-              .from('ckp_entries')
-              .select('*')
-              .eq('upload_id', existingUpload.id),
-            6_000,
-            'Fetch existing entries'
-          );
-          if (entries) existingEntries = entries;
-        } catch (err) {
-          // Non-critical — proceed without existing entries (scores won't carry over)
-          console.warn('[Upload] Failed to fetch existing entries, proceeding without score preservation');
-        }
-      }
-      checkAborted();
-
-      setUploadStep(1);
-      setUploadProgress(25);
-
-      const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-      const storagePath = `${user.id}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
-
-      // ── STEP 1: Storage upload (no animated progress — reduces re-renders) ──
-      const { error: storageError } = await withTimeout(
-        freshSupa.storage
-          .from('ckp-files')
-          .upload(storagePath, file, { upsert: true }),
-        60_000, // 1 minute for files up to 5MB is generous
-        'Upload file ke storage'
-      );
-      checkAborted();
-
-      if (storageError) throw new Error(storageError.message);
-
-      const totalEntries = parseResult.entries.length;
-      const avgProgres = totalEntries > 0
-        ? parseResult.entries.reduce((s, e) => s + (Number(e.progres) || 0), 0) / totalEntries
-        : 0;
-
-      setUploadStep(2);
-      setUploadProgress(50);
-      
-      // ── STEP 2: Mark previous as superseded + Create new upload (PARALLEL) ──
-      const supersedeProm = previousUploadId
-        ? withTimeout(
-            freshSupa
-              .from('ckp_uploads')
-              .update({ status: 'superseded' })
-              .eq('id', previousUploadId),
-            8_000,
-            'Update status upload lama'
-          ).catch(err => console.warn('[Upload] Supersede failed (non-critical):', err))
-        : Promise.resolve();
-
-      const { data: uploadData, error } = await withTimeout(
-        freshSupa
-          .from('ckp_uploads')
-          .insert({
-            user_id: user.id,
-            bulan,
-            tahun,
-            version: newVersion,
-            file_name: file.name,
-            storage_path: storagePath,
-            status: 'submitted',
-            total_entries: totalEntries,
-            avg_progres: avgProgres,
-          })
-          .select()
-          .single(),
-        8_000,
-        'Simpan data upload'
-      );
-        
-      if (error) throw error;
-      await supersedeProm; // Ensure supersede is done before we proceed
-      checkAborted();
-
       const masterDict = latestMasterRKs || [...masterRKs];
       const mKegiatan = latestMasterKegiatan || masterKegiatan;
       const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
       const distinctMatchedRKs = new Set<string>();
 
-      setUploadStep(3);
-      setUploadProgress(65);
+      setUploadStep(1);
+      setUploadProgress(30);
 
       const v2EntriesResolved = parseResult.entries.map((entry) => {
         let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
@@ -558,165 +448,61 @@ export default function UploadPage() {
         return { entry, matchedRK };
       });
 
-      // Bandingkan struktur RK antara V1 (existingEntries) dan V2 (v2EntriesResolved)
-      const oldRkActivities = new Map<string, Set<string>>();
-      existingEntries.forEach((e: any) => {
-        const rk = normalize(e.rencana_kinerja || '');
-        if (!oldRkActivities.has(rk)) oldRkActivities.set(rk, new Set());
-        oldRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
-      });
-
-      const newRkActivities = new Map<string, Set<string>>();
-      v2EntriesResolved.forEach(({ entry, matchedRK }) => {
-        const rk = normalize(matchedRK || '');
-        if (!newRkActivities.has(rk)) newRkActivities.set(rk, new Set());
-        newRkActivities.get(rk)!.add(normalize(entry.kegiatan || ''));
-      });
-
-      const unchangedRKs = new Set<string>();
-      newRkActivities.forEach((newActivities, rk) => {
-         const oldActivities = oldRkActivities.get(rk);
-         if (oldActivities && oldActivities.size === newActivities.size) {
-            let isSame = true;
-            for (const act of newActivities) {
-               if (!oldActivities.has(act)) {
-                  isSame = false;
-                  break;
-               }
-            }
-            if (isSame) unchangedRKs.add(rk);
-         }
-      });
-
-      const entriesToInsert = v2EntriesResolved.map(({ entry, matchedRK }) => {
-        const rk = normalize(matchedRK || '');
-        const isRkUnchanged = unchangedRKs.has(rk);
-
-        const matchingOldEntry = existingEntries.find((e: any) => 
-          normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
-          normalize(e.rencana_kinerja || '') === normalize(matchedRK || '')
-        );
-
-        return {
-          upload_id: uploadData.id,
-          row_number: entry.row_number || 0,
-          tanggal_mulai: entry.tanggal_mulai || null,
-          tanggal_selesai: entry.tanggal_selesai || null,
-          jam_mulai: entry.jam_mulai || null,
-          jam_selesai: entry.jam_selesai || null,
-          rencana_kinerja: matchedRK || null,
-          kegiatan: entry.kegiatan || null,
-          progres: Number(entry.progres) || 0,
-          capaian: entry.capaian || null,
-          data_dukung: entry.data_dukung || null,
-          extra_columns: entry.extra_columns || {},
-          nilai: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.nilai : null,
-          dinilai_oleh: (isRkUnchanged && matchingOldEntry) ? matchingOldEntry.dinilai_oleh : null,
-          catatan_koreksi: null, // Always start clean on new upload
-        }
-      });
-      checkAborted();
-
-      setUploadStep(4);
-      setUploadProgress(80);
-
-      // ── STEP 4: Batch insert entries (200 per chunk — larger = fewer roundtrips) ──
-      const CHUNK_SIZE = 200;
-      for (let i = 0; i < entriesToInsert.length; i += CHUNK_SIZE) {
-        checkAborted();
-        const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
-        const { error: chunkErr } = await withTimeout(
-          freshSupa.from('ckp_entries').insert(chunk),
-          15_000,
-          `Insert entries batch ${Math.floor(i / CHUNK_SIZE) + 1}`
-        );
-        if (chunkErr) throw chunkErr;
-        // Update progress proportionally
-        const batchProgress = 80 + (15 * Math.min((i + CHUNK_SIZE) / entriesToInsert.length, 1));
-        setUploadProgress(Math.round(batchProgress));
+      const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk =>
+        masterNames.some(m => m.toLowerCase() === rk.toLowerCase())
+      );
+      if (Object.keys(rkTeamMapping).length > 0) {
+        Object.keys(rkTeamMapping).forEach(rk => {
+          const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
+          if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
+            validRKsToAssign.push(mappedObj.rencana_kinerja);
+          }
+        });
       }
 
-      // ── Non-critical operations: fire-and-forget (don't await) ──
-      // These run in the background — upload is already successful at this point
-      const fireAndForget = async () => {
-        try {
-          // RK assignment & mapping
-          if (distinctMatchedRKs.size > 0) {
-            const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk => masterNames.some(m => m.toLowerCase() === rk.toLowerCase()));
-            
-            if (Object.keys(rkTeamMapping).length > 0) {
-              const newMappings = Object.keys(rkTeamMapping).map(rk => {
-                const mapping = rkTeamMapping[rk];
-                return { user_id: user.id, rk_id: mapping?.rk_id || null, kegiatan_nama: rk };
-              }).filter(m => m.rk_id !== null && m.rk_id !== '');
-              
-              if (newMappings.length > 0) {
-                saveKegiatanAnggotaMapping(newMappings).catch(e => console.warn('[Upload] Mapping save failed:', e));
-              }
-              
-              Object.keys(rkTeamMapping).forEach(rk => {
-                const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
-                if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
-                  validRKsToAssign.push(mappedObj.rencana_kinerja);
-                }
-              });
-            }
+      checkAborted();
 
-            if (validRKsToAssign.length > 0) {
-              const assignmentsToInsert: any[] = [];
-              for (const rkStr of validRKsToAssign) {
-                const rkObj = masterDict.find((r: any) => r.rencana_kinerja === rkStr);
-                if (rkObj) {
-                  assignmentsToInsert.push({ rk_id: rkObj.id, user_id: user.id, assigned_by: user.id });
-                }
-              }
-              if (assignmentsToInsert.length > 0) {
-                freshSupa.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }).then(() => {}, (e: any) => console.warn('[Upload] RK assign failed:', e));
-              }
-            }
-          }
+      setUploadStep(2);
+      setUploadProgress(50);
 
-          // Audit log
-          freshSupa.from('audit_logs').insert({
-            user_id: user.id,
-            action: 'upload_ckp',
-            entity_type: 'ckp_uploads',
-            entity_id: uploadData.id,
-            new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
-          }).then(() => {}, () => console.warn('[Upload] Audit log failed (non-critical)'));
-        } catch {
-          console.warn('[Upload] Background tasks failed (non-critical)');
-        }
-      };
-      // Fire and forget — don't await
-      void fireAndForget();
+      // Package everything into FormData to upload via Server Action
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', user.id);
+      formData.append('bulan', String(bulan));
+      formData.append('tahun', String(tahun));
+      formData.append('entries', JSON.stringify(v2EntriesResolved));
+      formData.append('rkTeamMapping', JSON.stringify(rkTeamMapping));
+      formData.append('validRKsToAssign', JSON.stringify(validRKsToAssign));
+
+      setUploadStep(3);
+      setUploadProgress(75);
+
+      const result = await submitCkpUploadAction(formData);
+      checkAborted();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Gagal memproses upload.');
+      }
 
       // ── SUCCESS ─────────────────────────────────────────────────
       uploadAbortRef.current = null;
+      setUploadStep(4);
       setUploadProgress(100);
       toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
       
-      // Invalidate dashboard query cache so new data appears without manual refresh
       queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
-      // Invalidate master data query cache so newly mapped RKs are immediately recognized in next upload
       queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
       
       setTimeout(() => {
         setUploading(false);
-        router.push(`/pegawai/ckp/${uploadData.id}`);
-      }, 300); // Snappy redirect — no need to linger on 100%
+        router.push(`/pegawai/ckp/${result.uploadId}`);
+      }, 300);
 
     } catch (error: any) {
       uploadAbortRef.current = null;
-      
-      // Don't show error toast if user cancelled
       if (error.message?.includes('dibatalkan')) {
         console.log('[Upload] Upload cancelled by user');
-      } else if (isAuthError(error)) {
-        // Auth error after idle — redirect to login
-        console.error('[Upload] Auth error during upload:', error);
-        toast.error('Sesi login sudah kadaluarsa. Silakan login ulang.', { duration: 5000 });
-        setTimeout(() => router.push('/login'), 1500);
       } else {
         console.error('[Upload] Upload error:', error);
         toast.error(error.message || 'Terjadi kesalahan saat upload data', { duration: 8000 });
