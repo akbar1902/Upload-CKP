@@ -105,11 +105,11 @@ export function generateEvaluationPdf({
       textColor: [30, 30, 30],
     },
     headStyles: {
-      fillColor: [240, 244, 248],
-      textColor: [20, 20, 20],
+      fillColor: [15, 118, 110], // #0F766E (Hijau Tema SIKAP)
+      textColor: [255, 255, 255],
       fontStyle: 'bold',
       lineWidth: 0.2,
-      lineColor: [180, 180, 180],
+      lineColor: [15, 118, 110],
     },
     columnStyles: {
       0: { cellWidth: 7, halign: 'center' },
@@ -157,12 +157,12 @@ export function generateEvaluationPdf({
       overflow: 'linebreak',
     },
     headStyles: {
-      fillColor: [240, 244, 248],
-      textColor: [20, 20, 20],
+      fillColor: [15, 118, 110], // #0F766E (Hijau Tema SIKAP)
+      textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'center',
       lineWidth: 0.2,
-      lineColor: [180, 180, 180],
+      lineColor: [15, 118, 110],
     },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },

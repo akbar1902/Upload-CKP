@@ -323,12 +323,12 @@ export default function ExportPenilaianClient({
           {/* Tabel Profil Pegawai & Pejabat Penilai Kinerja */}
           <div className="overflow-x-auto mb-6">
             <table className="w-full text-[11px] sm:text-[12px] border-collapse border border-slate-400">
-              <thead>
-                <tr className="bg-slate-100/80 font-bold text-slate-900 border-b border-slate-400">
-                  <th className="border border-slate-400 p-1.5 w-8 text-center">No</th>
-                  <th className="border border-slate-400 p-1.5 text-left" colSpan={2}>Pegawai yang Dinilai</th>
-                  <th className="border border-slate-400 p-1.5 w-8 text-center">No</th>
-                  <th className="border border-slate-400 p-1.5 text-left" colSpan={2}>Pejabat Penilai Kinerja</th>
+              <thead className="bg-[#0F766E] text-white">
+                <tr className="bg-[#0F766E] font-bold text-white border-b border-[#0F766E]">
+                  <th className="border border-slate-400 p-1.5 w-8 text-center bg-[#0F766E] text-white">No</th>
+                  <th className="border border-slate-400 p-1.5 text-left bg-[#0F766E] text-white" colSpan={2}>Pegawai yang Dinilai</th>
+                  <th className="border border-slate-400 p-1.5 w-8 text-center bg-[#0F766E] text-white">No</th>
+                  <th className="border border-slate-400 p-1.5 text-left bg-[#0F766E] text-white" colSpan={2}>Pejabat Penilai Kinerja</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-300 text-slate-800">
@@ -378,23 +378,23 @@ export default function ExportPenilaianClient({
 
           {/* Section: Hasil Kerja (3 Kolom: RK, Kegiatan, Bukti Dukung) */}
           <div className="mb-4">
-            <h4 className="text-[12px] sm:text-[13px] font-bold text-slate-900 mb-2">
+            <h4 className="text-[12px] sm:text-[13px] font-bold text-[#0F766E] mb-2">
               Hasil Kerja dan Bukti Dukung:
             </h4>
 
             {loadingEntries ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2 text-slate-500">
-                <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
+                <Loader2 className="w-6 h-6 animate-spin text-[#0F766E]" />
                 <span className="text-xs">Memuat detail kegiatan...</span>
               </div>
             ) : (
               <table className="w-full text-[11px] sm:text-[12px] border-collapse border border-slate-400">
-                <thead>
-                  <tr className="bg-slate-100/80 font-bold text-slate-900 border-b border-slate-400">
-                    <th className="border border-slate-400 p-2 w-8 text-center">No</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3">Rencana Kinerja (RK)</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3">Kegiatan</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3">Bukti Dukung</th>
+                <thead className="bg-[#0F766E] text-white">
+                  <tr className="bg-[#0F766E] font-bold text-white border-b border-[#0F766E]">
+                    <th className="border border-slate-400 p-2 w-8 text-center bg-[#0F766E] text-white">No</th>
+                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Rencana Kinerja (RK)</th>
+                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Kegiatan</th>
+                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Bukti Dukung</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-300 text-slate-800">
@@ -464,6 +464,10 @@ export default function ExportPenilaianClient({
       {/* Embedded print styles */}
       <style jsx global>{`
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
           body {
             background: white !important;
             color: black !important;
