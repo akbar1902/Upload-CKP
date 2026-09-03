@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { createClient, createFreshClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseExcelFile } from '@/lib/excel/parser';
 import type { ParseResult } from '@/lib/excel/parser';
@@ -142,29 +142,29 @@ export default function UploadPage() {
   }, [bulan, tahun, checkExistingUpload]);
 
   // ══════════════════════════════════════════════════════════════════
-  // PRE-WARM SESSION: Refresh session saat halaman pertama dibuka
-  // Ini memastikan token sudah valid SEBELUM user klik Submit,
-  // sehingga mengurangi kemungkinan stuck saat upload dimulai.
+  // TAB VISIBILITY RECOVERY: When user returns from idle, warm up
+  // the connection so that upload doesn't hang on stale client.
   // ══════════════════════════════════════════════════════════════════
   useEffect(() => {
-    if (!user || authLoading) return;
-    // Fire-and-forget — just warm up the session
-    ensureSession().catch(() => {
-      console.warn('[Upload] Pre-warm session failed, will retry on submit');
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]); // Only run once when user is loaded
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible' && user && !uploading) {
+        // Fire-and-forget: warm session on tab return
+        ensureSession().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [user, uploading, ensureSession]);
 
   // ══════════════════════════════════════════════════════════════════
-  // SAFETY AUTO-RESET: Jika uploading stuck > 3 menit, auto-reset
-  // Ini adalah jaring pengaman terakhir — seharusnya tidak pernah
-  // tercapai jika semua timeout per-operation bekerja dengan benar.
+  // SAFETY AUTO-RESET: Jika uploading stuck > 30 detik, auto-reset
+  // Dengan fresh client + tanpa session validation, upload seharusnya
+  // selesai dalam <10 detik. 30s adalah batas aman yang sangat longgar.
   // ══════════════════════════════════════════════════════════════════
   useEffect(() => {
     if (!uploading) return;
     const safetyTimer = setTimeout(() => {
       console.error('[Upload] Safety timeout reached — forcing upload reset');
-      // Abort any ongoing request
       if (uploadAbortRef.current) {
         uploadAbortRef.current.abort();
         uploadAbortRef.current = null;
@@ -172,8 +172,8 @@ export default function UploadPage() {
       setUploading(false);
       setUploadStep(-1);
       setUploadProgress(0);
-      toast.error('Upload timeout: proses melebihi batas waktu. Silakan coba lagi.', { duration: 8000 });
-    }, 90_000); // 90 seconds — much tighter now that upload is optimized
+      toast.error('Upload timeout: proses terlalu lama. Silakan refresh halaman dan coba lagi.', { duration: 8000 });
+    }, 30_000); // 30 seconds — aggressive timeout
     return () => clearTimeout(safetyTimer);
   }, [uploading]);
 
@@ -425,45 +425,6 @@ export default function UploadPage() {
     });
   };
 
-  // ══════════════════════════════════════════════════════════════════
-  // HELPER: Fast session check — single attempt, no retry loop
-  // The pre-warm on page load already refreshed the session.
-  // This is just a quick sanity check, not a full retry loop.
-  // ══════════════════════════════════════════════════════════════════
-  const ensureValidSession = async (): Promise<boolean> => {
-    try {
-      // Fast path: check cached session first (no network call)
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const expiresAt = session.expires_at;
-        const now = Math.floor(Date.now() / 1000);
-        // If token has >30s left, it's good enough — proceed immediately
-        if (expiresAt && (expiresAt - now) > 30) {
-          return true;
-        }
-        // Token expiring soon — single quick refresh (3s timeout)
-        try {
-          const refreshResult = await Promise.race([
-            supabase.auth.refreshSession(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Quick refresh timeout')), 3_000)
-            ),
-          ]);
-          if (!refreshResult.error && refreshResult.data?.session) {
-            return true;
-          }
-        } catch {
-          // Refresh failed — but token might still be valid for the requests ahead
-          console.warn('[Upload] Quick session refresh failed, proceeding with existing token');
-        }
-        return true; // Proceed anyway — better to try and fail than block
-      }
-      return false;
-    } catch {
-      return false;
-    }
-  };
-
   const processUpload = async (latestMasterRKs?: any[], latestMasterKegiatan?: any[]) => {
     if (!user || !file || !parseResult || !parseResult.success) {
       return;
@@ -473,6 +434,15 @@ export default function UploadPage() {
     setUploadStep(0);
     setUploadProgress(10);
     setShowTeamModal(false);
+
+    // ══════════════════════════════════════════════════════════════════
+    // CRITICAL FIX: Create a FRESH Supabase client for each upload.
+    // After idle/tab-suspension, the singleton client's internal
+    // connections become stale/zombie — all operations hang indefinitely.
+    // A fresh client creates new connections, bypassing the hang.
+    // ══════════════════════════════════════════════════════════════════
+    const freshSupa = createFreshClient();
+    console.log('[Upload] Created fresh Supabase client for this upload session');
 
     // Create AbortController for this upload session
     const abortController = new AbortController();
@@ -485,39 +455,39 @@ export default function UploadPage() {
       }
     };
 
+    // Helper to detect auth errors and redirect to login
+    const isAuthError = (err: any): boolean => {
+      const msg = (err?.message || '').toLowerCase();
+      return msg.includes('jwt') || msg.includes('token') || msg.includes('auth') 
+        || msg.includes('not authenticated') || msg.includes('unauthorized')
+        || err?.status === 401 || err?.code === 'PGRST301';
+    };
+
     try {
-      // ── STEP 0: Quick session check + fetch existing entries (PARALLEL) ──
+      // ── STEP 0: Fetch existing entries (NO session validation) ──
+      // Session validation is the #1 cause of stuck uploads after idle.
+      // Instead, we skip it entirely and let operations fail fast with
+      // auth errors, which we catch and redirect to login.
       let newVersion = 1;
       let previousUploadId: string | null = null;
       let existingEntries: any[] = [];
 
-      // Run session check and existing entries fetch in parallel
-      const sessionPromise = ensureValidSession();
-      const existingEntriesPromise = existingUpload
-        ? withTimeout(
-            supabase
-              .from('ckp_entries')
-              .select('*')
-              .eq('upload_id', existingUpload.id),
-            8_000,
-            'Fetch existing entries'
-          ).catch(() => ({ data: null }))
-        : Promise.resolve({ data: null });
-
-      const [sessionValid, entriesResult] = await Promise.all([
-        sessionPromise,
-        existingEntriesPromise,
-      ]);
-
-      if (!sessionValid) {
-        console.warn('[Upload] Session check failed, proceeding with existing token');
-      }
-
       if (existingUpload) {
         newVersion = existingUpload.version + 1;
         previousUploadId = existingUpload.id;
-        if ((entriesResult as any)?.data) {
-          existingEntries = (entriesResult as any).data;
+        try {
+          const { data: entries } = await withTimeout(
+            freshSupa
+              .from('ckp_entries')
+              .select('*')
+              .eq('upload_id', existingUpload.id),
+            6_000,
+            'Fetch existing entries'
+          );
+          if (entries) existingEntries = entries;
+        } catch (err) {
+          // Non-critical — proceed without existing entries (scores won't carry over)
+          console.warn('[Upload] Failed to fetch existing entries, proceeding without score preservation');
         }
       }
       checkAborted();
@@ -530,7 +500,7 @@ export default function UploadPage() {
 
       // ── STEP 1: Storage upload (no animated progress — reduces re-renders) ──
       const { error: storageError } = await withTimeout(
-        supabase.storage
+        freshSupa.storage
           .from('ckp-files')
           .upload(storagePath, file, { upsert: true }),
         60_000, // 1 minute for files up to 5MB is generous
@@ -551,7 +521,7 @@ export default function UploadPage() {
       // ── STEP 2: Mark previous as superseded + Create new upload (PARALLEL) ──
       const supersedeProm = previousUploadId
         ? withTimeout(
-            supabase
+            freshSupa
               .from('ckp_uploads')
               .update({ status: 'superseded' })
               .eq('id', previousUploadId),
@@ -561,7 +531,7 @@ export default function UploadPage() {
         : Promise.resolve();
 
       const { data: uploadData, error } = await withTimeout(
-        supabase
+        freshSupa
           .from('ckp_uploads')
           .insert({
             user_id: user.id,
@@ -701,7 +671,7 @@ export default function UploadPage() {
         checkAborted();
         const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
         const { error: chunkErr } = await withTimeout(
-          supabase.from('ckp_entries').insert(chunk),
+          freshSupa.from('ckp_entries').insert(chunk),
           15_000,
           `Insert entries batch ${Math.floor(i / CHUNK_SIZE) + 1}`
         );
@@ -746,13 +716,13 @@ export default function UploadPage() {
                 }
               }
               if (assignmentsToInsert.length > 0) {
-                supabase.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }).then(() => {}, (e: any) => console.warn('[Upload] RK assign failed:', e));
+                freshSupa.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' }).then(() => {}, (e: any) => console.warn('[Upload] RK assign failed:', e));
               }
             }
           }
 
           // Audit log
-          supabase.from('audit_logs').insert({
+          freshSupa.from('audit_logs').insert({
             user_id: user.id,
             action: 'upload_ckp',
             entity_type: 'ckp_uploads',
@@ -787,6 +757,11 @@ export default function UploadPage() {
       // Don't show error toast if user cancelled
       if (error.message?.includes('dibatalkan')) {
         console.log('[Upload] Upload cancelled by user');
+      } else if (isAuthError(error)) {
+        // Auth error after idle — redirect to login
+        console.error('[Upload] Auth error during upload:', error);
+        toast.error('Sesi login sudah kadaluarsa. Silakan login ulang.', { duration: 5000 });
+        setTimeout(() => router.push('/login'), 1500);
       } else {
         console.error('[Upload] Upload error:', error);
         toast.error(error.message || 'Terjadi kesalahan saat upload data', { duration: 8000 });
