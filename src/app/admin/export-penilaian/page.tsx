@@ -15,7 +15,18 @@ export default async function AdminExportPenilaianPage({
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
 
-  if (!user || user.role !== 'admin') {
+  if (!user) {
+    redirect('/login');
+  }
+
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const role = dbUser?.role || user.user_metadata?.role;
+  if (!role || (role !== 'admin' && role !== 'pimpinan')) {
     redirect('/login');
   }
 

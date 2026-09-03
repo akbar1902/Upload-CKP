@@ -113,6 +113,7 @@ export function Sidebar() {
     navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
   } else if (isPimpinan) {
     navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
+    navItems.push({ href: '/admin/export-penilaian', label: 'Export Penilaian', icon: FileDown });
   }
   
   if (!isAdmin) {

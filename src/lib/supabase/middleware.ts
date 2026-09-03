@@ -132,10 +132,14 @@ export async function updateSession(request: NextRequest) {
     }
 
     // Protect admin routes
-    if (pathname.startsWith('/admin') && role !== 'admin') {
-      const url = request.nextUrl.clone();
-      url.pathname = isPimpinan ? '/pimpinan' : (role === 'ketua_tim' ? '/ketua_tim' : '/pegawai');
-      return NextResponse.redirect(url);
+    if (pathname.startsWith('/admin')) {
+      const isExportRoute = pathname.startsWith('/admin/export-penilaian');
+      const isAllowed = role === 'admin' || (isExportRoute && role === 'pimpinan');
+      if (!isAllowed) {
+        const url = request.nextUrl.clone();
+        url.pathname = isPimpinan ? '/pimpinan' : (role === 'ketua_tim' ? '/ketua_tim' : '/pegawai');
+        return NextResponse.redirect(url);
+      }
     }
 
     // Protect pimpinan routes
