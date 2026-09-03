@@ -493,6 +493,7 @@ export default function UploadPage() {
       
       queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
       queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
+      router.refresh();
       
       setTimeout(() => {
         setUploading(false);

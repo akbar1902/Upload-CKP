@@ -182,7 +182,8 @@ export default function PegawaiDashboard() {
     },
     enabled: !!user && !authLoading,
     networkMode: 'always',
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0,
+    refetchOnMount: 'always',
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
   });

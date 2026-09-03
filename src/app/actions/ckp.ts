@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 
 export async function saveKegiatanAnggotaMapping(mappings: any[]) {
   try {
@@ -133,6 +134,9 @@ export async function deleteCkpUploadAction(uploadId: string) {
         console.error('Failed to remove file from storage:', err);
       });
     }
+
+    revalidatePath('/pegawai');
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: any) {
@@ -459,6 +463,10 @@ export async function submitCkpUploadAction(formData: FormData) {
     } catch (bgErr) {
       console.warn('[submitCkpUploadAction] Background task warning:', bgErr);
     }
+
+    revalidatePath('/pegawai');
+    revalidatePath(`/pegawai/ckp/${uploadData.id}`);
+    revalidatePath('/', 'layout');
 
     return { success: true, uploadId: uploadData.id };
   } catch (error: any) {

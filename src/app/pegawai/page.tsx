@@ -5,6 +5,9 @@ import type { CKPUpload } from '@/types/database';
 import { getDefaultPeriod } from '@/lib/utils';
 import PegawaiDashboardClient from './_client';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function PegawaiPage({
   searchParams,
 }: {
@@ -25,7 +28,7 @@ export default async function PegawaiPage({
   const tahun = qTahun || defaultPeriod.tahun;
 
   const queryClient = new QueryClient({
-    defaultOptions: { queries: { staleTime: 1000 * 60 * 2 } },
+    defaultOptions: { queries: { staleTime: 0 } },
   });
 
   // queryKey must match exactly: ['pegawai-uploads', user.id]
@@ -43,7 +46,7 @@ export default async function PegawaiPage({
       if (error) throw error;
       return (data as CKPUpload[]) ?? [];
     },
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
   });
 
   return (
