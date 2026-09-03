@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient, createFreshClient } from '@/lib/supabase/client';
+import { createFreshClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { parseExcelFile } from '@/lib/excel/parser';
 import type { ParseResult } from '@/lib/excel/parser';
@@ -18,17 +18,16 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
-import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota } from '@/app/actions/ckp';
+import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, getUploadMasterData, checkPeriodStatusAction } from '@/app/actions/ckp';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import masterMappingDataRaw from '@/data/master_mapping.json';
 
 export default function UploadPage() {
-  const { user, loading: authLoading, ensureSession } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const supabase = useMemo(() => createClient(), []);
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -54,18 +53,20 @@ export default function UploadPage() {
   const [parsing, setParsing] = useState(false);
   const uploadAbortRef = useRef<AbortController | null>(null);
 
-  const { data: masterData, isLoading: isMasterLoading, refetch: refetchMasterData } = useQuery({
+  const { data: masterData } = useQuery({
     queryKey: ['upload-master-data'],
     queryFn: async () => {
-      const [{ data: rks }, { data: ketuas }, kegiatan] = await Promise.all([
-        supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
-        supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
-        getMasterKegiatanAnggota(),
+      // Server action with 6s timeout, returns fallback on error
+      return Promise.race([
+        getUploadMasterData(),
+        new Promise<{ masterRKs: any[]; ketuaTims: any[]; masterKegiatan: any[] }>((resolve) =>
+          setTimeout(() => resolve({ masterRKs: [], ketuaTims: [], masterKegiatan: [] }), 6000)
+        ),
       ]);
-      return { masterRKs: rks || [], ketuaTims: ketuas || [], masterKegiatan: kegiatan || [] };
     },
-    staleTime: 1000 * 60 * 10, // 10 menit — data RK master jarang berubah
-    refetchOnWindowFocus: false, // Jangan refetch saat window focus (bisa bersaing dengan upload)
+    staleTime: 1000 * 60 * 60, // 1 hour — master data rarely changes
+    refetchOnWindowFocus: false,
+    retry: 0,
   });
 
   const masterRKs = useMemo(() => masterData?.masterRKs || [], [masterData]);
@@ -104,57 +105,18 @@ export default function UploadPage() {
 
   const checkExistingUpload = useCallback(async (b: number, t: number) => {
     if (!user) return;
-    
-    // Check lock status first
-    const { data: lockData, error: lockError } = await supabase
-      .from('periode_ckp')
-      .select('is_locked')
-      .eq('bulan', b)
-      .eq('tahun', t)
-      .maybeSingle();
-      
-    if (!lockError && lockData) {
-      setIsLocked(!!lockData.is_locked);
-    } else {
-      setIsLocked(false);
+    try {
+      const result = await checkPeriodStatusAction(user.id, b, t);
+      setIsLocked(result.isLocked);
+      setExistingUpload(result.existingUpload);
+    } catch (err) {
+      console.warn('[Upload] checkPeriodStatus error:', err);
     }
-
-    const { data, error } = await supabase
-      .from('ckp_uploads')
-      .select('id, version, status')
-      .eq('user_id', user.id)
-      .eq('bulan', b)
-      .eq('tahun', t)
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (!error) {
-      setExistingUpload(data);
-    } else {
-      console.warn('[Upload] checkExistingUpload error:', error.message);
-      setExistingUpload(null);
-    }
-  }, [user, supabase]);
+  }, [user]);
 
   React.useEffect(() => {
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
-
-  // ══════════════════════════════════════════════════════════════════
-  // TAB VISIBILITY RECOVERY: When user returns from idle, warm up
-  // the connection so that upload doesn't hang on stale client.
-  // ══════════════════════════════════════════════════════════════════
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && user && !uploading) {
-        // Fire-and-forget: warm session on tab return
-        ensureSession().catch(() => {});
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [user, uploading, ensureSession]);
 
   // ══════════════════════════════════════════════════════════════════
   // SAFETY AUTO-RESET: Jika uploading stuck > 30 detik, auto-reset
@@ -306,13 +268,6 @@ export default function UploadPage() {
 
   const handlePreSubmit = async () => {
     try {
-      // ── ALL GUARDS BEFORE setUploading(true) ─────────────────────
-      // Prevents UI flicker: modal only shows when we're truly ready
-      if (authLoading || isMasterLoading) {
-        toast.info('Sedang memuat data sistem, mohon tunggu sebentar...');
-        return;
-      }
-      
       if (!user) {
         toast.error('Sesi login tidak ditemukan. Silakan login ulang.');
         router.push('/login');

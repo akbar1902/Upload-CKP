@@ -41,6 +41,52 @@ export async function getMasterKegiatanAnggota() {
   }
 }
 
+export async function getUploadMasterData() {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const [rksRes, ketuasRes, kegiatanRes] = await Promise.all([
+      supabaseAdmin.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
+      supabaseAdmin.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
+      supabaseAdmin.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping(rencana_kinerja)').limit(10000),
+    ]);
+
+    return {
+      masterRKs: rksRes.data || [],
+      ketuaTims: ketuasRes.data || [],
+      masterKegiatan: kegiatanRes.data || [],
+    };
+  } catch (error: any) {
+    console.error('[getUploadMasterData] Error:', error);
+    return { masterRKs: [], ketuaTims: [], masterKegiatan: [] };
+  }
+}
+
+export async function checkPeriodStatusAction(userId: string, bulan: number, tahun: number) {
+  try {
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const [lockRes, uploadRes] = await Promise.all([
+      supabaseAdmin.from('periode_ckp').select('is_locked').eq('bulan', bulan).eq('tahun', tahun).maybeSingle(),
+      supabaseAdmin.from('ckp_uploads').select('id, version, status').eq('user_id', userId).eq('bulan', bulan).eq('tahun', tahun).order('version', { ascending: false }).limit(1).maybeSingle(),
+    ]);
+
+    return {
+      isLocked: !!lockRes.data?.is_locked,
+      existingUpload: uploadRes.data || null,
+    };
+  } catch (error: any) {
+    console.error('[checkPeriodStatusAction] Error:', error);
+    return { isLocked: false, existingUpload: null };
+  }
+}
+
 export async function deleteCkpUploadAction(uploadId: string) {
   try {
     const supabase = await createServerSupabaseClient();
