@@ -12,7 +12,8 @@ import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { 
   FileDown, Printer, FileSpreadsheet, ExternalLink, Calendar, 
-  Users, CheckCircle2, AlertCircle, Loader2, Sparkles, Archive
+  Users, CheckCircle2, AlertCircle, Loader2, Sparkles, Archive,
+  Smile, Frown, Info
 } from 'lucide-react';
 import { 
   getExportPenilaianData, 
@@ -22,6 +23,7 @@ import {
   type ExportPegawaiUpload 
 } from '@/app/actions/export';
 import { generateEvaluationPdf } from '@/lib/export/pdf-generator';
+import { groupEntriesByRK, type GroupedRK } from '@/lib/export/evaluasi-helper';
 
 interface ExportPenilaianClientProps {
   initialBulan: number;
@@ -126,6 +128,11 @@ export default function ExportPenilaianClient({
       setLoadingEntries(false);
     }
   }, [currentUpload]);
+
+  // Group entries by Rencana Kinerja (RK)
+  const groupedEntries: GroupedRK[] = useMemo(() => {
+    return groupEntriesByRK(entries);
+  }, [entries]);
 
   // Handle period change
   const handlePeriodChange = (newBulan: number, newTahun: number) => {
@@ -379,15 +386,15 @@ export default function ExportPenilaianClient({
               </div>
             )}
             {currentUpload && (
-              <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+              <div className="mt-4 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
                   <span>
-                    Ditemukan CKP versi {currentUpload.version} ({entries.length} kegiatan) - Status: <strong>{currentUpload.status}</strong>
+                    Ditemukan CKP versi {currentUpload.version} ({entries.length} kegiatan, {groupedEntries.length} Rencana Kinerja) - Status: <strong>{currentUpload.status}</strong>
                   </span>
                 </div>
                 {currentUpload.approved_at && (
-                  <span className="text-[11px] opacity-80">
+                  <span className="text-[11px] opacity-80 font-medium">
                     Disetujui: {new Date(currentUpload.approved_at).toLocaleDateString('id-ID')}
                   </span>
                 )}
@@ -476,11 +483,13 @@ export default function ExportPenilaianClient({
             </table>
           </div>
 
-          {/* Section: Hasil Kerja (3 Kolom: RK, Kegiatan, Bukti Dukung) */}
+          {/* Section: Hasil Kerja (4 Kolom Sesuai Foto 1 & Foto 2) */}
           <div className="mb-4">
-            <h4 className="text-[12px] sm:text-[13px] font-bold text-[#0F766E] mb-2">
-              Hasil Kerja dan Bukti Dukung:
-            </h4>
+            <div className="mb-2">
+              <h4 className="text-[12px] sm:text-[13px] font-bold text-[#0F766E]">
+                Hasil Kerja dan Umpan Balik Berkelanjutan:
+              </h4>
+            </div>
 
             {loadingEntries ? (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2 text-slate-500">
@@ -492,55 +501,84 @@ export default function ExportPenilaianClient({
                 <thead className="bg-[#0F766E] text-white">
                   <tr className="bg-[#0F766E] font-bold text-white border-b border-[#0F766E]">
                     <th className="border border-slate-400 p-2 w-8 text-center bg-[#0F766E] text-white">No</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Rencana Kinerja (RK)</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Kegiatan</th>
-                    <th className="border border-slate-400 p-2 text-left w-1/3 bg-[#0F766E] text-white">Bukti Dukung</th>
+                    <th className="border border-slate-400 p-2 text-center w-[28%] bg-[#0F766E] text-white">Rencana Kinerja</th>
+                    <th className="border border-slate-400 p-2 text-center w-[47%] bg-[#0F766E] text-white">Kegiatan</th>
+                    <th className="border border-slate-400 p-2 text-center w-[25%] bg-[#0F766E] text-white">
+                      Umpan Balik Berkelanjutan<br />Berdasarkan Bukti Dukung
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-300 text-slate-800">
-                  {entries.length === 0 ? (
+                  {groupedEntries.length === 0 ? (
                     <tr>
                       <td colSpan={4} className="border border-slate-400 p-6 text-center text-slate-400 italic">
                         Tidak ada entri kegiatan pada CKP periode ini.
                       </td>
                     </tr>
                   ) : (
-                    entries.map((entry, idx) => {
-                      const hasLink = entry.data_dukung && (entry.data_dukung.startsWith('http://') || entry.data_dukung.startsWith('https://'));
-                      return (
-                        <tr key={entry.id || idx} className="hover:bg-slate-50/50">
-                          <td className="border border-slate-400 p-2 text-center align-top font-medium text-slate-600">
-                            {idx + 1}
-                          </td>
-                          <td className="border border-slate-400 p-2 align-top font-medium leading-relaxed">
-                            {entry.rencana_kinerja || '-'}
-                          </td>
-                          <td className="border border-slate-400 p-2 align-top leading-relaxed">
-                            {entry.kegiatan || '-'}
-                            {entry.progres !== null && entry.progres !== undefined && (
-                              <div className="text-[10px] text-slate-500 mt-1 font-semibold">
-                                Progres: {entry.progres}%
-                              </div>
+                    groupedEntries.map((group, idx) => (
+                      <tr key={group.rencana_kinerja || idx} className="hover:bg-slate-50/50">
+                        <td className="border border-slate-400 p-2.5 text-center align-top font-medium text-slate-600">
+                          {idx + 1}
+                        </td>
+                        <td className="border border-slate-400 p-2.5 align-top font-semibold text-slate-900 leading-relaxed">
+                          {group.rencana_kinerja}
+                        </td>
+                        <td className="border border-slate-400 p-2.5 align-top leading-relaxed">
+                          <div className="space-y-3">
+                            {group.items.map((item, itemIdx) => {
+                              const hasLink = item.data_dukung && (item.data_dukung.startsWith('http://') || item.data_dukung.startsWith('https://'));
+                              return (
+                                <div key={item.id || itemIdx} className={itemIdx > 0 ? "pt-2.5 border-t border-slate-200" : ""}>
+                                  <div className="font-medium text-slate-900 leading-snug">
+                                    {group.items.length > 1 && (
+                                      <span className="font-semibold text-slate-500 mr-1.5">{itemIdx + 1}.</span>
+                                    )}
+                                    {item.kegiatan || '-'}
+                                    {item.progres !== null && item.progres !== undefined && (
+                                      <span className="ml-1.5 text-[10.5px] font-semibold text-slate-500">
+                                        ({item.progres}%)
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="mt-1 text-[11px] text-slate-600 break-all leading-relaxed">
+                                    <span className="text-slate-500 font-medium mr-1">Bukti dukung:</span>
+                                    {hasLink ? (
+                                      <a
+                                        href={item.data_dukung!}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-700 underline font-medium hover:text-blue-900 inline-flex items-center gap-1"
+                                      >
+                                        {item.data_dukung}
+                                        <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 print:hidden" />
+                                      </a>
+                                    ) : (
+                                      <span>{item.data_dukung || '-'}</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </td>
+                        <td className="border border-slate-400 p-2.5 align-top text-center">
+                          <div className="flex flex-col items-center justify-center gap-1.5 pt-1">
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold shadow-sm ${group.umpanBalik.bgClass}`}>
+                              {group.umpanBalik.color === 'green' && <Smile className="w-3.5 h-3.5" />}
+                              {group.umpanBalik.color === 'blue' && <Smile className="w-3.5 h-3.5" />}
+                              {group.umpanBalik.color === 'red' && <Frown className="w-3.5 h-3.5" />}
+                              <span>{group.umpanBalik.label}</span>
+                            </span>
+                            {group.score !== null && (
+                              <span className="text-[10.5px] font-semibold text-slate-500 print:text-slate-700">
+                                Nilai: {group.score}
+                              </span>
                             )}
-                          </td>
-                          <td className="border border-slate-400 p-2 align-top text-[10.5px] leading-relaxed break-all">
-                            {hasLink ? (
-                              <a
-                                href={entry.data_dukung}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-700 underline font-medium hover:text-blue-900 inline-flex items-center gap-1"
-                              >
-                                {entry.data_dukung}
-                                <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 print:hidden" />
-                              </a>
-                            ) : (
-                              <span>{entry.data_dukung || '-'}</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })
+                          </div>
+                        </td>
+                      </tr>
+                    ))
                   )}
                 </tbody>
               </table>
@@ -556,6 +594,43 @@ export default function ExportPenilaianClient({
 
               <p className="font-bold underline text-[12px] sm:text-[13px]">{data.pimpinan.nama}</p>
               <p className="text-[11px] text-slate-700">NIP. {data.pimpinan.nip}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── KETERANGAN BATAS NILAI (DI BAWAH PREVIEW DOKUMEN) ── */}
+        <div className="print:hidden max-w-4xl mx-auto p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Info className="w-4 h-4 text-[#0F766E] dark:text-teal-400" />
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                Keterangan Batas Nilai
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">99 - 100 :</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#16a34a] text-white font-semibold text-xs shadow-xs">
+                  <Smile className="w-3.5 h-3.5" />
+                  <span>Diatas Ekspektasi</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">80 - 98 :</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0284c7] text-white font-semibold text-xs shadow-xs">
+                  <Smile className="w-3.5 h-3.5" />
+                  <span>Sesuai Ekspektasi</span>
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">0 - 79 :</span>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dc2626] text-white font-semibold text-xs shadow-xs">
+                  <Frown className="w-3.5 h-3.5" />
+                  <span>Dibawah Ekspektasi</span>
+                </span>
+              </div>
             </div>
           </div>
         </div>

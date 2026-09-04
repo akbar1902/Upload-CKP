@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { getBulanName, getFormattedPenilaianPeriod } from '@/lib/utils';
 import type { PimpinanInfo } from '@/app/actions/export';
+import { groupEntriesByRK } from '@/lib/export/evaluasi-helper';
 
 export interface ExportPdfParams {
   pegawai: {
@@ -20,6 +21,7 @@ export interface ExportPdfParams {
     kegiatan: string | null;
     data_dukung: string | null;
     progres?: number | null;
+    nilai?: number | null;
   }[];
 }
 
@@ -123,28 +125,44 @@ export function generateEvaluationPdf({
     margin: { left: 14, right: 14 },
   });
 
-  // ── 3. TABEL DETAIL KEGIATAN (3 KOLOM UTAMA) ───────────────────────
-  const entriesTableData = entries.map((entry, index) => [
-    String(index + 1),
-    entry.rencana_kinerja || '-',
-    entry.kegiatan || '-',
-    entry.data_dukung ? entry.data_dukung.trim() : '-',
-  ]);
+  // ── 3. TABEL DETAIL HASIL KERJA & UMPAN BALIK (4 KOLOM) ───────────
+  const groupedData = groupEntriesByRK(entries);
+
+  const entriesTableData = groupedData.map((group, index) => {
+    const kegiatanText = group.items
+      .map((item, i) => {
+        const prefix = group.items.length > 1 ? `${i + 1}. ` : '';
+        const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
+        const buktiText = item.data_dukung ? `\n   Bukti dukung: ${item.data_dukung}` : '\n   Bukti dukung: -';
+        return `${prefix}${item.kegiatan}${progresText}${buktiText}`;
+      })
+      .join('\n\n');
+
+    const scoreText = group.score !== null ? `\n(Nilai: ${group.score})` : '';
+    const feedbackText = `${group.umpanBalik.label}${scoreText}`;
+
+    return [
+      String(index + 1),
+      group.rencana_kinerja || '-',
+      kegiatanText || '-',
+      feedbackText,
+    ];
+  });
 
   const afterProfileY = (doc as any).lastAutoTable.finalY + 4;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
-  doc.text('Hasil Kerja dan Bukti Dukung:', 14, afterProfileY);
+  doc.text('Hasil Kerja dan Umpan Balik Berkelanjutan:', 14, afterProfileY);
 
   (autoTable as any)(doc, {
     startY: afterProfileY + 2,
     head: [
       [
         { content: 'No', styles: { halign: 'center', cellWidth: 8 } },
-        { content: 'Rencana Kinerja (RK)', styles: { halign: 'left', cellWidth: 62 } },
-        { content: 'Kegiatan', styles: { halign: 'left', cellWidth: 62 } },
-        { content: 'Bukti Dukung', styles: { halign: 'left', cellWidth: 50 } },
+        { content: 'Rencana Kinerja', styles: { halign: 'center', cellWidth: 48 } },
+        { content: 'Kegiatan', styles: { halign: 'center', cellWidth: 84 } },
+        { content: 'Umpan Balik Berkelanjutan Berdasarkan Bukti Dukung', styles: { halign: 'center', cellWidth: 42 } },
       ],
     ],
     body: entriesTableData.length > 0 ? entriesTableData : [['-', 'Tidak ada kegiatan tercatat pada periode ini', '-', '-']],
@@ -167,17 +185,25 @@ export function generateEvaluationPdf({
     },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 62 },
-      2: { cellWidth: 62 },
-      3: { cellWidth: 50 },
+      1: { cellWidth: 48, fontStyle: 'bold' },
+      2: { cellWidth: 84 },
+      3: { cellWidth: 42, halign: 'center' },
     },
     margin: { left: 14, right: 14 },
-    didDrawCell: (data: any) => {
-      // If it's the Bukti Dukung column and contains a URL, add a hyperlink!
-      if (data.section === 'body' && data.column.index === 3 && data.cell.raw) {
-        const text = String(data.cell.raw);
-        if (text.startsWith('http://') || text.startsWith('https://')) {
-          doc.link(data.cell.x, data.cell.y, data.cell.width, data.cell.height, { url: text });
+    didParseCell: (data: any) => {
+      // Style Umpan Balik column text
+      if (data.section === 'body' && data.column.index === 3) {
+        data.cell.styles.halign = 'center';
+        data.cell.styles.fontStyle = 'bold';
+        const raw = String(data.cell.raw || '');
+        if (raw.includes('Diatas Ekspektasi')) {
+          data.cell.styles.textColor = [22, 163, 74]; // #16A34A (Green)
+        } else if (raw.includes('Sesuai Ekspektasi')) {
+          data.cell.styles.textColor = [2, 132, 199]; // #0284C7 (Blue)
+        } else if (raw.includes('Dibawah Ekspektasi')) {
+          data.cell.styles.textColor = [220, 38, 38]; // #DC2626 (Red)
+        } else {
+          data.cell.styles.textColor = [100, 116, 139]; // #64748B (Gray)
         }
       }
     },
