@@ -35,7 +35,7 @@ export interface ExportPegawaiUpload {
   } | null;
 }
 
-export async function getExportPenilaianData(bulan: number, tahun: number) {
+export async function getExportPenilaianData(bulan: number, tahun: number, targetUserId?: string) {
   try {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,8 +65,8 @@ export async function getExportPenilaianData(bulan: number, tahun: number) {
       unitKerja: pimpinanUser?.unit_kerja || 'BPS Kabupaten Belitung',
     };
 
-    // 2. Get all uploads in this period
-    const { data: uploads, error: uploadsErr } = await supabaseAdmin
+    // 2. Get uploads in this period
+    let uploadsQuery = supabaseAdmin
       .from('ckp_uploads')
       .select(`
         id,
@@ -87,6 +87,12 @@ export async function getExportPenilaianData(bulan: number, tahun: number) {
       .neq('status', 'superseded')
       .order('uploaded_at', { ascending: false });
 
+    if (targetUserId) {
+      uploadsQuery = uploadsQuery.eq('user_id', targetUserId);
+    }
+
+    const { data: uploads, error: uploadsErr } = await uploadsQuery;
+
     if (uploadsErr) throw uploadsErr;
 
     // Filter to only the latest version per user
@@ -99,23 +105,36 @@ export async function getExportPenilaianData(bulan: number, tahun: number) {
 
     const activeUploads = Array.from(latestUploadsMap.values());
 
-    // 3. Fetch all employee profiles
-    const { data: allProfiles } = await supabaseAdmin
+    // 3. Fetch employee profiles
+    let profilesQuery = supabaseAdmin
       .from('employee_profiles')
       .select('user_id, jabatan, golongan');
+
+    if (targetUserId) {
+      profilesQuery = profilesQuery.eq('user_id', targetUserId);
+    }
+
+    const { data: allProfiles } = await profilesQuery;
 
     const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
     (allProfiles || []).forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
-    // 4. Also fetch all active employees list
-    const { data: allUsers } = await supabaseAdmin
+    // 4. Fetch employees list
+    let usersQuery = supabaseAdmin
       .from('users')
       .select('id, full_name, nip, unit_kerja, role')
-      .in('role', ['anggota', 'ketua_tim'])
       .eq('is_active', true)
       .order('full_name');
+
+    if (targetUserId) {
+      usersQuery = usersQuery.eq('id', targetUserId);
+    } else {
+      usersQuery = usersQuery.in('role', ['anggota', 'ketua_tim']);
+    }
+
+    const { data: allUsers } = await usersQuery;
 
     const mappedUploads: ExportPegawaiUpload[] = activeUploads.map((u: any) => ({
       ...u,

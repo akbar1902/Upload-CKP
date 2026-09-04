@@ -119,6 +119,7 @@ export function Sidebar() {
   if (!isAdmin) {
     if (!isPimpinan) {
       navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
+      navItems.push({ href: '/pegawai/evaluasi-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     }
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }

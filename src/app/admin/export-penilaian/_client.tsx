@@ -40,6 +40,7 @@ interface ExportPenilaianClientProps {
       profile?: { jabatan: string | null; golongan: string | null } | null;
     }[];
   };
+  isEmployeeView?: boolean;
 }
 
 function getIndonesianDate(d: Date = new Date()): string {
@@ -54,6 +55,7 @@ export default function ExportPenilaianClient({
   initialBulan,
   initialTahun,
   initialData,
+  isEmployeeView = false,
 }: ExportPenilaianClientProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -140,7 +142,8 @@ export default function ExportPenilaianClient({
     setTahun(newTahun);
     startTransition(async () => {
       try {
-        const newData = await getExportPenilaianData(newBulan, newTahun);
+        const targetId = isEmployeeView ? (selectedUserId || data.allUsers[0]?.id) : undefined;
+        const newData = await getExportPenilaianData(newBulan, newTahun, targetId);
         setData(newData);
         if (newData.uploads.length > 0) {
           setSelectedUserId(newData.uploads[0].user_id);
@@ -255,33 +258,37 @@ export default function ExportPenilaianClient({
         <div className="print:hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Evaluasi Penilaian Bulanan
+              {isEmployeeView ? 'Evaluasi Penilaian Saya' : 'Evaluasi Penilaian Bulanan'}
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Rekap evaluasi kinerja bulanan pegawai resmi pejabat penilai kinerja
+              {isEmployeeView 
+                ? 'Rekap hasil evaluasi kinerja bulanan resmi pejabat penilai kinerja'
+                : 'Rekap evaluasi kinerja bulanan pegawai resmi pejabat penilai kinerja'}
             </p>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            {/* Download All Button */}
-            <Button
-              onClick={handleDownloadAllZip}
-              disabled={downloadingAllZip || data.uploads.length === 0}
-              variant="outline"
-              className="gap-1.5 sm:gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
-            >
-              {downloadingAllZip ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
-                  <span className="text-xs">{bulkProgress || 'Memproses...'}</span>
-                </>
-              ) : (
-                <>
-                  <Archive className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                  <span>Download Semua ({data.uploads.length} ZIP)</span>
-                </>
-              )}
-            </Button>
+            {/* Download All Button (Only for Admin/Pimpinan) */}
+            {!isEmployeeView && (
+              <Button
+                onClick={handleDownloadAllZip}
+                disabled={downloadingAllZip || data.uploads.length === 0}
+                variant="outline"
+                className="gap-1.5 sm:gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
+              >
+                {downloadingAllZip ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                    <span className="text-xs">{bulkProgress || 'Memproses...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Archive className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                    <span>Download Semua ({data.uploads.length} ZIP)</span>
+                  </>
+                )}
+              </Button>
+            )}
 
             {/* Download Single PDF Button */}
             <Button
@@ -312,7 +319,7 @@ export default function ExportPenilaianClient({
         {/* Filter Panel (Hidden during print) */}
         <Card className="print:hidden border shadow-sm" style={{ background: 'var(--bg-card)' }}>
           <CardContent className="p-4 sm:p-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 ${isEmployeeView ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4 items-end`}>
               {/* Filter Bulan */}
               <div>
                 <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
@@ -337,28 +344,30 @@ export default function ExportPenilaianClient({
                 />
               </div>
 
-              {/* Pilih Pegawai */}
-              <div>
-                <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
-                  Pilih Pegawai
-                </label>
-                <select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                  className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  {data.allUsers.map((u) => {
-                    const hasUpload = data.uploads.some(up => up.user_id === u.id);
-                    const jabatanText = u.profile?.jabatan ? ` — ${u.profile.jabatan}` : '';
-                    return (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name}{jabatanText} {hasUpload ? '✓ (Ada CKP)' : '(Belum ada CKP)'}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
+              {/* Pilih Pegawai (Only for Admin/Pimpinan) */}
+              {!isEmployeeView && (
+                <div>
+                  <label className="text-xs font-semibold block mb-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Pilih Pegawai
+                  </label>
+                  <select
+                    value={selectedUserId}
+                    onChange={(e) => setSelectedUserId(e.target.value)}
+                    className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    {data.allUsers.map((u) => {
+                      const hasUpload = data.uploads.some(up => up.user_id === u.id);
+                      const jabatanText = u.profile?.jabatan ? ` — ${u.profile.jabatan}` : '';
+                      return (
+                        <option key={u.id} value={u.id}>
+                          {u.full_name}{jabatanText} {hasUpload ? '✓ (Ada CKP)' : '(Belum ada CKP)'}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              )}
 
               {/* Tanggal Cetak */}
               <div>

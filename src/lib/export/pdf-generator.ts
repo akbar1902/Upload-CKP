@@ -40,29 +40,33 @@ export function generateEvaluationPdf({
   });
 
   const bulanName = getBulanName(bulan);
-  const lastDay = new Date(tahun, bulan, 0).getDate();
 
   // ── 1. HEADER DOKUMEN ──────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.text('EVALUASI KINERJA PEGAWAI', 105, 15, { align: 'center' });
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.text('EVALUASI KINERJA PEGAWAI', 105, 14, { align: 'center' });
   doc.setFontSize(10);
-  doc.text('PENDEKATAN HASIL KERJA KUALITATIF', 105, 20, { align: 'center' });
+  doc.text('PENDEKATAN HASIL KERJA KUALITATIF', 105, 19, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.text(`Periode: Bulan ${bulanName}`, 105, 25, { align: 'center' });
+  doc.setFontSize(8.5);
+  doc.setTextColor(51, 65, 85); // slate-700
+  doc.text(`Periode: Bulan ${bulanName} ${tahun}`, 105, 24, { align: 'center' });
 
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.3);
-  doc.line(14, 27, 196, 27);
+  // Divider tebal header
+  doc.setDrawColor(30, 41, 59); // slate-800
+  doc.setLineWidth(0.4);
+  doc.line(14, 26.5, 196, 26.5);
 
   const periodeText = getFormattedPenilaianPeriod(bulan, tahun);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('Badan Pusat Statistik', 14, 31);
+  doc.setTextColor(15, 23, 42);
+  doc.text('Badan Pusat Statistik', 14, 30.5);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Periode Penilaian: ${periodeText}`, 196, 31, { align: 'right' });
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Periode Penilaian: ${periodeText}`, 196, 30.5, { align: 'right' });
 
   // ── 2. TABEL PROFIL PEGAWAI & PEJABAT PENILAI ──────────────────────
   const profileTableData = [
@@ -89,7 +93,7 @@ export function generateEvaluationPdf({
   ];
 
   (autoTable as any)(doc, {
-    startY: 33,
+    startY: 32.5,
     head: [
       [
         { content: 'No', styles: { halign: 'center', cellWidth: 8 } },
@@ -101,11 +105,11 @@ export function generateEvaluationPdf({
     body: profileTableData,
     theme: 'grid',
     styles: {
-      fontSize: 8,
-      cellPadding: 1.5,
-      lineColor: [180, 180, 180],
+      fontSize: 7.5,
+      cellPadding: 1.6,
+      lineColor: [148, 163, 184], // border-slate-400
       lineWidth: 0.2,
-      textColor: [30, 30, 30],
+      textColor: [30, 41, 59],
     },
     headStyles: {
       fillColor: [15, 118, 110], // #0F766E (Hijau Tema SIKAP)
@@ -115,12 +119,12 @@ export function generateEvaluationPdf({
       lineColor: [15, 118, 110],
     },
     columnStyles: {
-      0: { cellWidth: 7, halign: 'center' },
+      0: { cellWidth: 8, halign: 'center' },
       1: { cellWidth: 32, fontStyle: 'bold' },
-      2: { cellWidth: 52 },
-      3: { cellWidth: 7, halign: 'center' },
+      2: { cellWidth: 51 },
+      3: { cellWidth: 8, halign: 'center' },
       4: { cellWidth: 34, fontStyle: 'bold' },
-      5: { cellWidth: 50 },
+      5: { cellWidth: 49 },
     },
     margin: { left: 14, right: 14 },
   });
@@ -128,55 +132,60 @@ export function generateEvaluationPdf({
   // ── 3. TABEL DETAIL HASIL KERJA & UMPAN BALIK (4 KOLOM) ───────────
   const groupedData = groupEntriesByRK(entries);
 
-  const entriesTableData = groupedData.map((group, index) => {
-    const kegiatanText = group.items
-      .map((item, i) => {
-        const prefix = group.items.length > 1 ? `${i + 1}. ` : '';
-        const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
-        const buktiText = item.data_dukung ? `\n   Bukti dukung: ${item.data_dukung}` : '\n   Bukti dukung: -';
-        return `${prefix}${item.kegiatan}${progresText}${buktiText}`;
+  // Siapkan teks representasi untuk perhitungan tinggi baris yang akurat oleh autoTable
+  const entriesTableData = groupedData.length > 0
+    ? groupedData.map((group, index) => {
+        const kegiatanRaw = group.items
+          .map((item, i) => {
+            const prefix = group.items.length > 1 ? `${i + 1}. ` : '';
+            const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
+            const buktiText = item.data_dukung ? `\nBukti dukung:\n${item.data_dukung}` : '\nBukti dukung: -';
+            return `${prefix}${item.kegiatan || '-'}${progresText}${buktiText}`;
+          })
+          .join('\n\n');
+
+        const scoreText = group.score !== null ? `\nNilai: ${group.score}` : '';
+        const feedbackRaw = `${group.umpanBalik.label}${scoreText}\n\n`;
+
+        return [
+          String(index + 1),
+          group.rencana_kinerja || '-',
+          kegiatanRaw,
+          feedbackRaw,
+        ];
       })
-      .join('\n\n');
+    : [['-', 'Tidak ada kegiatan tercatat pada periode ini', '-', '-']];
 
-    const scoreText = group.score !== null ? `\n(Nilai: ${group.score})` : '';
-    const feedbackText = `${group.umpanBalik.label}${scoreText}`;
-
-    return [
-      String(index + 1),
-      group.rencana_kinerja || '-',
-      kegiatanText || '-',
-      feedbackText,
-    ];
-  });
-
-  const afterProfileY = (doc as any).lastAutoTable.finalY + 4;
+  const afterProfileY = (doc as any).lastAutoTable.finalY + 4.5;
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8.5);
+  doc.setTextColor(15, 118, 110); // #0F766E (Hijau Tema SIKAP, persis seperti web)
   doc.text('Hasil Kerja dan Umpan Balik Berkelanjutan:', 14, afterProfileY);
 
   (autoTable as any)(doc, {
     startY: afterProfileY + 2,
     head: [
       [
-        { content: 'No', styles: { halign: 'center', cellWidth: 8 } },
-        { content: 'Rencana Kinerja', styles: { halign: 'center', cellWidth: 48 } },
+        { content: 'No', styles: { halign: 'center', cellWidth: 9 } },
+        { content: 'Rencana Kinerja', styles: { halign: 'center', cellWidth: 46 } },
         { content: 'Kegiatan', styles: { halign: 'center', cellWidth: 84 } },
-        { content: 'Umpan Balik Berkelanjutan Berdasarkan Bukti Dukung', styles: { halign: 'center', cellWidth: 42 } },
+        { content: 'Umpan Balik Berkelanjutan\nBerdasarkan Bukti Dukung', styles: { halign: 'center', cellWidth: 43 } },
       ],
     ],
-    body: entriesTableData.length > 0 ? entriesTableData : [['-', 'Tidak ada kegiatan tercatat pada periode ini', '-', '-']],
+    body: entriesTableData,
     theme: 'grid',
     styles: {
       fontSize: 7.5,
-      cellPadding: 2,
-      lineColor: [180, 180, 180],
+      cellPadding: 2.5,
+      lineColor: [148, 163, 184], // border-slate-400
       lineWidth: 0.2,
-      textColor: [30, 30, 30],
+      textColor: [30, 41, 59],
       overflow: 'linebreak',
+      minCellHeight: 14,
     },
     headStyles: {
-      fillColor: [15, 118, 110], // #0F766E (Hijau Tema SIKAP)
+      fillColor: [15, 118, 110], // #0F766E
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       halign: 'center',
@@ -184,26 +193,119 @@ export function generateEvaluationPdf({
       lineColor: [15, 118, 110],
     },
     columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 48, fontStyle: 'bold' },
+      0: { cellWidth: 9, halign: 'center' },
+      1: { cellWidth: 46, fontStyle: 'bold' },
       2: { cellWidth: 84 },
-      3: { cellWidth: 42, halign: 'center' },
+      3: { cellWidth: 43, halign: 'center' },
     },
     margin: { left: 14, right: 14 },
-    didParseCell: (data: any) => {
-      // Style Umpan Balik column text
-      if (data.section === 'body' && data.column.index === 3) {
-        data.cell.styles.halign = 'center';
-        data.cell.styles.fontStyle = 'bold';
-        const raw = String(data.cell.raw || '');
-        if (raw.includes('Diatas Ekspektasi')) {
-          data.cell.styles.textColor = [22, 163, 74]; // #16A34A (Green)
-        } else if (raw.includes('Sesuai Ekspektasi')) {
-          data.cell.styles.textColor = [2, 132, 199]; // #0284C7 (Blue)
-        } else if (raw.includes('Dibawah Ekspektasi')) {
-          data.cell.styles.textColor = [220, 38, 38]; // #DC2626 (Red)
-        } else {
-          data.cell.styles.textColor = [100, 116, 139]; // #64748B (Gray)
+    rowPageBreak: 'avoid',
+    willDrawCell: (data: any) => {
+      // Hilangkan default rendering teks autoTable pada Kolom 2 & 3 agar kita gambar custom badge & link
+      if (data.section === 'body' && (data.column.index === 2 || data.column.index === 3)) {
+        if (groupedData.length > 0) {
+          data.cell.text = [];
+        }
+      }
+    },
+    didDrawCell: (data: any) => {
+      if (data.section !== 'body' || groupedData.length === 0) return;
+      const group = groupedData[data.row.index];
+      if (!group) return;
+
+      // ── RENDER KOLOM 2: KEGIATAN BERFORMAT LENGKAP & LINK AKTIF ─────
+      if (data.column.index === 2) {
+        const { x, y, width } = data.cell;
+        const padX = 2.5;
+        const textW = width - (padX * 2);
+        let curY = y + 3;
+
+        group.items.forEach((item, itemIdx) => {
+          if (itemIdx > 0) {
+            // Garis pemisah halus antar kegiatan dalam RK yang sama
+            doc.setDrawColor(226, 232, 240); // slate-200
+            doc.setLineWidth(0.15);
+            doc.line(x + padX, curY - 1, x + width - padX, curY - 1);
+            curY += 1.8;
+          }
+
+          // 1. Judul kegiatan (Tebal) + Progres (%)
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(7.5);
+          doc.setTextColor(15, 23, 42); // slate-900
+          const prefix = group.items.length > 1 ? `${itemIdx + 1}. ` : '';
+          const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
+          const title = `${prefix}${item.kegiatan || '-'}${progresText}`;
+          const titleLines = doc.splitTextToSize(title, textW);
+          doc.text(titleLines, x + padX, curY);
+          curY += (titleLines.length * 3.3);
+
+          // 2. Label 'Bukti dukung:' (Abu-abu Slate)
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(6.5);
+          doc.setTextColor(100, 116, 139); // slate-500
+          doc.text('Bukti dukung:', x + padX, curY);
+          curY += 2.8;
+
+          // 3. Link Bukti Dukung (Warna Biru, Digarisbawahi, dan Bisa Diklik)
+          const url = item.data_dukung || '-';
+          const isLink = url.startsWith('http://') || url.startsWith('https://');
+          if (isLink) {
+            doc.setTextColor(29, 78, 216); // #1D4ED8 (blue-700)
+            const urlLines = doc.splitTextToSize(url, textW);
+            urlLines.forEach((line: string) => {
+              doc.text(line, x + padX, curY);
+              const lineW = doc.getTextWidth(line);
+              doc.setDrawColor(29, 78, 216);
+              doc.setLineWidth(0.15);
+              doc.line(x + padX, curY + 0.3, x + padX + lineW, curY + 0.3);
+              doc.link(x + padX, curY - 2.5, lineW, 3.2, { url });
+              curY += 3;
+            });
+          } else {
+            doc.setTextColor(71, 85, 105);
+            doc.text(url, x + padX, curY);
+            curY += 3;
+          }
+
+          curY += 1.2;
+        });
+      }
+
+      // ── RENDER KOLOM 3: BADGE PILL UMPAN BALIK PERSIS SEPERTI WEB ──
+      if (data.column.index === 3) {
+        const { x, y, width } = data.cell;
+        const pillW = 34;
+        const pillH = 5.8;
+        const pillX = x + (width - pillW) / 2;
+        const pillY = y + 3.2;
+
+        // Warna badge solid persis seperti tampilan website
+        let fillColor: [number, number, number] = [100, 116, 139]; // slate-500
+        if (group.umpanBalik.color === 'green') {
+          fillColor = [22, 163, 74]; // #16A34A (Diatas Ekspektasi - Hijau)
+        } else if (group.umpanBalik.color === 'blue') {
+          fillColor = [2, 132, 199]; // #0284C7 (Sesuai Ekspektasi - Biru)
+        } else if (group.umpanBalik.color === 'red') {
+          fillColor = [220, 38, 38]; // #DC2626 (Dibawah Ekspektasi - Merah)
+        }
+
+        // Gambar badge kapsul rounded-pill
+        doc.setFillColor(fillColor[0], fillColor[1], fillColor[2]);
+        doc.roundedRect(pillX, pillY, pillW, pillH, 2.5, 2.5, 'F');
+
+        // Teks label putih tebal di dalam pill
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7.2);
+        doc.text(group.umpanBalik.label, x + width / 2, pillY + 4.0, { align: 'center' });
+
+        // Teks nilai di bawah badge
+        if (group.score !== null && group.score !== undefined) {
+          doc.setTextColor(100, 116, 139); // slate-500
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(7);
+          doc.text(`Nilai: ${group.score}`, x + width / 2, pillY + pillH + 4.0, { align: 'center' });
         }
       }
     },
@@ -213,28 +315,40 @@ export function generateEvaluationPdf({
   let currentY = (doc as any).lastAutoTable.finalY + 8;
   const pageHeight = doc.internal.pageSize.getHeight();
 
-  // If there's not enough room for the signature block on current page, add new page
+  // Bila ruang tidak mencukupi untuk blok tanda tangan, pindah ke halaman baru
   if (currentY + 45 > pageHeight - 15) {
     doc.addPage();
     currentY = 20;
   }
 
-  const signX = 130; // Position on the right side
+  const signX = 130;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
+  doc.setFontSize(8);
+  doc.setTextColor(30, 41, 59);
   doc.text(`Belitung, ${tanggalCetak}`, signX, currentY);
   currentY += 4.5;
+  doc.setFont('helvetica', 'bold');
   doc.text('Pejabat Penilai Kinerja,', signX, currentY);
   currentY += 4;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
   doc.text(pimpinan.jabatan || 'Kepala BPS Kabupaten Belitung', signX, currentY);
 
-  // Space for signature
-  currentY += 22;
+  // Ruang tanda tangan
+  currentY += 20;
 
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
   doc.text(pimpinan.nama || 'Baiq Kurniawati, SST, M.Ak', signX, currentY);
-  currentY += 4;
+  // Garis bawah nama pejabat
+  const nameW = doc.getTextWidth(pimpinan.nama || 'Baiq Kurniawati, SST, M.Ak');
+  doc.setLineWidth(0.2);
+  doc.setDrawColor(15, 23, 42);
+  doc.line(signX, currentY + 0.5, signX + nameW, currentY + 0.5);
+
+  currentY += 4.5;
   doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
   doc.text(`NIP. ${pimpinan.nip || '197805052000122001'}`, signX, currentY);
 
   // ── 5. FOOTER SETIAP HALAMAN ───────────────────────────────────────
@@ -254,3 +368,4 @@ export function generateEvaluationPdf({
 
   return doc;
 }
+

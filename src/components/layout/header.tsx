@@ -70,7 +70,7 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Rencana Kinerja',
     };
   }
-  if (pathname.includes('/export-penilaian')) {
+  if (pathname.includes('/export-penilaian') || pathname.includes('/evaluasi-penilaian')) {
     return {
       crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/admin' : '/pegawai' }, { label: 'Evaluasi Penilaian' }],
       title: 'Evaluasi Penilaian',
