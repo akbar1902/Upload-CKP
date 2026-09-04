@@ -229,8 +229,8 @@ export function generateEvaluationPdf({
             curY += 1.8;
           }
 
-          // 1. Judul kegiatan (Tebal) + Progres (%)
-          doc.setFont('helvetica', 'bold');
+          // 1. Judul kegiatan (Normal, tidak di-bold) + Progres (%)
+          doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.5);
           doc.setTextColor(15, 23, 42); // slate-900
           const prefix = group.items.length > 1 ? `${itemIdx + 1}. ` : '';

@@ -539,25 +539,25 @@ export default function ExportPenilaianClient({
                               const hasLink = item.data_dukung && (item.data_dukung.startsWith('http://') || item.data_dukung.startsWith('https://'));
                               return (
                                 <div key={item.id || itemIdx} className={itemIdx > 0 ? "pt-2.5 border-t border-slate-200" : ""}>
-                                  <div className="font-medium text-slate-900 leading-snug">
+                                  <div className="font-normal text-slate-800 leading-snug">
                                     {group.items.length > 1 && (
-                                      <span className="font-semibold text-slate-500 mr-1.5">{itemIdx + 1}.</span>
+                                      <span className="text-slate-500 mr-1.5">{itemIdx + 1}.</span>
                                     )}
                                     {item.kegiatan || '-'}
                                     {item.progres !== null && item.progres !== undefined && (
-                                      <span className="ml-1.5 text-[10.5px] font-semibold text-slate-500">
+                                      <span className="ml-1.5 text-[10.5px] text-slate-500">
                                         ({item.progres}%)
                                       </span>
                                     )}
                                   </div>
                                   <div className="mt-1 text-[11px] text-slate-600 break-all leading-relaxed">
-                                    <span className="text-slate-500 font-medium mr-1">Bukti dukung:</span>
+                                    <span className="text-slate-500 mr-1">Bukti dukung:</span>
                                     {hasLink ? (
                                       <a
                                         href={item.data_dukung!}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="text-blue-700 underline font-medium hover:text-blue-900 inline-flex items-center gap-1"
+                                        className="text-blue-700 underline hover:text-blue-900 inline-flex items-center gap-1 font-normal"
                                       >
                                         {item.data_dukung}
                                         <ExternalLink className="w-2.5 h-2.5 flex-shrink-0 print:hidden" />
