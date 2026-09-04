@@ -140,9 +140,9 @@ export function generateEvaluationPdf({
             const prefix = group.items.length > 1 ? `${i + 1}. ` : '';
             const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
             const buktiText = item.data_dukung ? `\nBukti dukung:\n${item.data_dukung}` : '\nBukti dukung: -';
-            return `${prefix}${item.kegiatan || '-'}${progresText}${buktiText}`;
+            return `${prefix}${item.kegiatan || '-'}${progresText}${buktiText}\n`;
           })
-          .join('\n\n');
+          .join('\n');
 
         const scoreText = group.score !== null ? `\nNilai: ${group.score}` : '';
         const feedbackRaw = `${group.umpanBalik.label}${scoreText}\n\n`;
@@ -177,12 +177,12 @@ export function generateEvaluationPdf({
     theme: 'grid',
     styles: {
       fontSize: 7.5,
-      cellPadding: 2.5,
+      cellPadding: 2.8,
       lineColor: [148, 163, 184], // border-slate-400
       lineWidth: 0.2,
       textColor: [30, 41, 59],
       overflow: 'linebreak',
-      minCellHeight: 14,
+      minCellHeight: 16,
     },
     headStyles: {
       fillColor: [15, 118, 110], // #0F766E
@@ -213,45 +213,55 @@ export function generateEvaluationPdf({
       const group = groupedData[data.row.index];
       if (!group) return;
 
-      // ── RENDER KOLOM 2: KEGIATAN BERFORMAT LENGKAP & LINK AKTIF ─────
+      // ── RENDER KOLOM 2: KEGIATAN DENGAN SPASI SEIMBANG & SEJAJAR ─────
       if (data.column.index === 2) {
         const { x, y, width } = data.cell;
-        const padX = 2.5;
+        const padX = data.cell.padding('left') || 2.8;
+        const padTop = data.cell.padding('top') || 2.8;
         const textW = width - (padX * 2);
-        let curY = y + 3;
+
+        // Baseline offset presisi menyamakan baris pertama Kolom 1 (Rencana Kinerja)
+        const baseLineOffset = (7.5 * 25.4 / 72) * 0.85;
+        const lineHeight = (7.5 * 25.4 / 72) * 1.15; // 3.0427mm
+
+        let curY = y + padTop + baseLineOffset;
 
         group.items.forEach((item, itemIdx) => {
           if (itemIdx > 0) {
-            // Garis pemisah halus antar kegiatan dalam RK yang sama
+            // Garis pemisah halus antar kegiatan dengan margin atas & bawah seimbang
+            const divY = curY - (lineHeight * 0.6);
             doc.setDrawColor(226, 232, 240); // slate-200
             doc.setLineWidth(0.15);
-            doc.line(x + padX, curY - 1, x + width - padX, curY - 1);
-            curY += 1.8;
+            doc.line(x + padX, divY, x + width - padX, divY);
+            curY += (lineHeight * 0.3);
           }
 
           // 1. Judul kegiatan (Normal, tidak di-bold) + Progres (%)
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.5);
-          doc.setTextColor(15, 23, 42); // slate-900
+          doc.setTextColor(30, 41, 59); // slate-800
           const prefix = group.items.length > 1 ? `${itemIdx + 1}. ` : '';
           const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
           const title = `${prefix}${item.kegiatan || '-'}${progresText}`;
           const titleLines = doc.splitTextToSize(title, textW);
-          doc.text(titleLines, x + padX, curY);
-          curY += (titleLines.length * 3.3);
+          titleLines.forEach((line: string) => {
+            doc.text(line, x + padX, curY);
+            curY += lineHeight;
+          });
 
           // 2. Label 'Bukti dukung:' (Abu-abu Slate)
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(6.5);
+          doc.setFontSize(7.0);
           doc.setTextColor(100, 116, 139); // slate-500
           doc.text('Bukti dukung:', x + padX, curY);
-          curY += 2.8;
+          curY += lineHeight;
 
           // 3. Link Bukti Dukung (Warna Biru, Digarisbawahi, dan Bisa Diklik)
           const url = item.data_dukung || '-';
           const isLink = url.startsWith('http://') || url.startsWith('https://');
           if (isLink) {
             doc.setTextColor(29, 78, 216); // #1D4ED8 (blue-700)
+            doc.setFontSize(7.0);
             const urlLines = doc.splitTextToSize(url, textW);
             urlLines.forEach((line: string) => {
               doc.text(line, x + padX, curY);
@@ -260,25 +270,27 @@ export function generateEvaluationPdf({
               doc.setLineWidth(0.15);
               doc.line(x + padX, curY + 0.3, x + padX + lineW, curY + 0.3);
               doc.link(x + padX, curY - 2.5, lineW, 3.2, { url });
-              curY += 3;
+              curY += lineHeight;
             });
           } else {
             doc.setTextColor(71, 85, 105);
+            doc.setFontSize(7.0);
             doc.text(url, x + padX, curY);
-            curY += 3;
+            curY += lineHeight;
           }
 
-          curY += 1.2;
+          curY += (lineHeight * 0.3);
         });
       }
 
       // ── RENDER KOLOM 3: BADGE PILL UMPAN BALIK PERSIS SEPERTI WEB ──
       if (data.column.index === 3) {
         const { x, y, width } = data.cell;
+        const padTop = data.cell.padding('top') || 2.8;
         const pillW = 34;
         const pillH = 5.8;
         const pillX = x + (width - pillW) / 2;
-        const pillY = y + 3.2;
+        const pillY = y + padTop;
 
         // Warna badge solid persis seperti tampilan website
         let fillColor: [number, number, number] = [100, 116, 139]; // slate-500
@@ -304,7 +316,7 @@ export function generateEvaluationPdf({
         if (group.score !== null && group.score !== undefined) {
           doc.setTextColor(100, 116, 139); // slate-500
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(7);
+          doc.setFontSize(7.0);
           doc.text(`Nilai: ${group.score}`, x + width / 2, pillY + pillH + 4.0, { align: 'center' });
         }
       }
