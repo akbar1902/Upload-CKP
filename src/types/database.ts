@@ -16,6 +16,9 @@ export interface User {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  jabatan?: string | null;
+  golongan?: string | null;
+  profile?: EmployeeProfile | null;
 }
 
 export interface EmployeeProfile {

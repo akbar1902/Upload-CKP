@@ -73,8 +73,16 @@ export function generateEvaluationPdf({
       '2', 'NIP', pimpinan.nip || '197805052000122001',
     ],
     [
-      '3', 'Unit Kerja', pegawai.unit_kerja || 'BPS Kabupaten Belitung',
-      '3', 'Unit Kerja', pimpinan.unitKerja || 'BPS Kabupaten Belitung',
+      '3', 'Pangkat / Golongan', pegawai.golongan || '-',
+      '3', 'Pangkat / Golongan', pimpinan.pangkatGolongan || 'Pembina Tk.I, IV/b',
+    ],
+    [
+      '4', 'Jabatan', pegawai.jabatan || '-',
+      '4', 'Jabatan', pimpinan.jabatan || 'Kepala BPS Kabupaten Belitung',
+    ],
+    [
+      '5', 'Unit Kerja', pegawai.unit_kerja || 'BPS Kabupaten Belitung',
+      '5', 'Unit Kerja', pimpinan.unitKerja || 'BPS Kabupaten Belitung',
     ],
   ];
 

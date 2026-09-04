@@ -99,17 +99,13 @@ export async function getExportPenilaianData(bulan: number, tahun: number) {
 
     const activeUploads = Array.from(latestUploadsMap.values());
 
-    // 3. For all users with uploads, fetch their employee profiles
-    const userIds = activeUploads.map((u: any) => u.user_id);
-    const { data: profiles } = userIds.length > 0
-      ? await supabaseAdmin
-          .from('employee_profiles')
-          .select('user_id, jabatan, golongan')
-          .in('user_id', userIds)
-      : { data: [] };
+    // 3. Fetch all employee profiles
+    const { data: allProfiles } = await supabaseAdmin
+      .from('employee_profiles')
+      .select('user_id, jabatan, golongan');
 
     const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
-    (profiles || []).forEach((p: any) => {
+    (allProfiles || []).forEach((p: any) => {
       profileMap.set(p.user_id, p);
     });
 
@@ -126,10 +122,15 @@ export async function getExportPenilaianData(bulan: number, tahun: number) {
       profile: profileMap.get(u.user_id) || null,
     }));
 
+    const mappedAllUsers = (allUsers || []).map((u: any) => ({
+      ...u,
+      profile: profileMap.get(u.id) || null,
+    }));
+
     return {
       pimpinan,
       uploads: mappedUploads,
-      allUsers: allUsers || [],
+      allUsers: mappedAllUsers,
     };
   } catch (error: any) {
     console.error('[getExportPenilaianData] Error:', error);

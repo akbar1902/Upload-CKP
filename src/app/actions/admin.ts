@@ -53,9 +53,85 @@ export async function createEmployee(data: any) {
       return { success: false, error: dbError.message };
     }
 
+    // 3. Upsert into employee_profiles if jabatan or golongan provided
+    if (data.jabatan || data.golongan) {
+      await supabaseAdmin.from('employee_profiles').upsert({
+        user_id: userId,
+        jabatan: data.jabatan ? data.jabatan.trim() : null,
+        golongan: data.golongan ? data.golongan.trim() : null,
+      }, { onConflict: 'user_id' });
+    }
+
     revalidatePath('/admin/pegawai');
+    revalidatePath('/admin/export-penilaian');
+    revalidatePath('/pimpinan/pegawai');
     return { success: true };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateEmployeeProfile(data: {
+  id: string;
+  full_name: string;
+  nip?: string | null;
+  unit_kerja?: string | null;
+  role?: string;
+  jabatan?: string | null;
+  golongan?: string | null;
+}) {
+  try {
+    // 1. Update public.users
+    const userUpdate: any = {
+      full_name: data.full_name.trim(),
+      updated_at: new Date().toISOString(),
+    };
+    if (data.nip !== undefined) userUpdate.nip = data.nip ? data.nip.trim() : null;
+    if (data.unit_kerja !== undefined) userUpdate.unit_kerja = data.unit_kerja ? data.unit_kerja.trim() : null;
+    if (data.role !== undefined) userUpdate.role = data.role;
+
+    const { error: userError } = await supabaseAdmin
+      .from('users')
+      .update(userUpdate)
+      .eq('id', data.id);
+
+    if (userError) {
+      console.error('[updateEmployeeProfile] User error:', userError);
+      return { success: false, error: userError.message };
+    }
+
+    // 2. Sync to auth.users user_metadata
+    await supabaseAdmin.auth.admin.updateUserById(data.id, {
+      user_metadata: {
+        full_name: data.full_name.trim(),
+        nip: data.nip ? data.nip.trim() : null,
+        unit_kerja: data.unit_kerja ? data.unit_kerja.trim() : null,
+        role: data.role || undefined,
+      }
+    }).catch((err) => console.warn('Could not sync auth metadata:', err?.message));
+
+    // 3. Upsert into public.employee_profiles
+    const { error: profileError } = await supabaseAdmin
+      .from('employee_profiles')
+      .upsert({
+        user_id: data.id,
+        jabatan: data.jabatan ? data.jabatan.trim() : null,
+        golongan: data.golongan ? data.golongan.trim() : null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' });
+
+    if (profileError) {
+      console.error('[updateEmployeeProfile] Profile error:', profileError);
+      return { success: false, error: profileError.message };
+    }
+
+    revalidatePath('/admin/pegawai');
+    revalidatePath('/admin/export-penilaian');
+    revalidatePath('/pimpinan/pegawai');
+
+    return { success: true };
+  } catch (error: any) {
+    console.error('[updateEmployeeProfile] Catch error:', error);
     return { success: false, error: error.message };
   }
 }

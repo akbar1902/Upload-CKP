@@ -56,6 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       nip: authUser.user_metadata?.nip ?? null,
       unit_kerja: authUser.user_metadata?.unit_kerja ?? null,
       is_active: true,
+      jabatan: (authUser.user_metadata?.jabatan as string) ?? null,
+      golongan: (authUser.user_metadata?.golongan as string) ?? null,
+      profile: null,
       created_at: authUser.created_at,
       updated_at: authUser.updated_at ?? authUser.created_at,
     };
@@ -63,11 +66,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = useCallback(async (authUser: SupabaseUser) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authUser.id)
-        .maybeSingle();
+      const [{ data, error }, { data: profileData }] = await Promise.all([
+        supabase
+          .from('users')
+          .select('*')
+          .eq('id', authUser.id)
+          .maybeSingle(),
+        supabase
+          .from('employee_profiles')
+          .select('id, user_id, jabatan, golongan, photo_url, created_at, updated_at')
+          .eq('user_id', authUser.id)
+          .maybeSingle(),
+      ]);
 
       if (!mountedRef.current) return;
 
@@ -79,8 +89,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      currentUserRef.current = data as User;
-      setUser(data as User);
+      const fullUser: User = {
+        ...(data as User),
+        jabatan: profileData?.jabatan || null,
+        golongan: profileData?.golongan || null,
+        profile: profileData || null,
+      };
+
+      currentUserRef.current = fullUser;
+      setUser(fullUser);
     } catch {
       if (mountedRef.current) {
         const fallback = buildFallbackUser(authUser);

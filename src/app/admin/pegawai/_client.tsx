@@ -6,8 +6,8 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
-import { Search, Plus, Trash2, Key, RefreshCw, ShieldCheck, Briefcase, Mail, XCircle, CheckCircle, ArrowRightLeft } from 'lucide-react';
-import { createEmployee, deleteEmployee, resetPassword, toggleEmployeeStatus, replaceKetuaTim } from '@/app/actions/admin';
+import { Search, Plus, Trash2, Key, RefreshCw, ShieldCheck, Briefcase, Mail, XCircle, CheckCircle, ArrowRightLeft, Pencil } from 'lucide-react';
+import { createEmployee, deleteEmployee, resetPassword, toggleEmployeeStatus, replaceKetuaTim, updateEmployeeProfile } from '@/app/actions/admin';
 import { toast } from 'sonner';
 
 export default function AdminPegawaiClient({ initialUsers }: { initialUsers: User[] }) {
@@ -42,40 +42,62 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
     onConfirm: () => {},
   });
   const [isReplacing, setIsReplacing] = useState(false);
+
+  // Edit Pegawai Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    id: '',
+    full_name: '',
+    nip: '',
+    email: '',
+    unit_kerja: '',
+    role: 'anggota',
+    jabatan: '',
+    golongan: '',
+  });
+
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     full_name: '',
     nip: '',
-    unit_kerja: '',
-    role: 'anggota'
+    unit_kerja: 'BPS Kabupaten Belitung',
+    role: 'anggota',
+    jabatan: '',
+    golongan: '',
   });
 
   const { data: usersData, isPending, refetch } = useQuery({
     queryKey: ['admin-pegawai'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('full_name');
+      const [{ data, error }, { data: profiles }, { data: mappings }] = await Promise.all([
+        supabase.from('users').select('*').order('full_name'),
+        supabase.from('employee_profiles').select('user_id, jabatan, golongan'),
+        supabase.from('rk_ketua_tim_mapping').select('ketua_tim_id, tim_kerja').not('ketua_tim_id', 'is', null),
+      ]);
 
       if (error) throw error;
       
       const users = (data as (User & { managed_teams?: string })[]) ?? [];
-      
-      // Ambil mapping tim_kerja untuk memastikan nama timnya benar-benar diambil dari data penugasan
-      const { data: mappings } = await supabase.from('rk_ketua_tim_mapping').select('ketua_tim_id, tim_kerja').not('ketua_tim_id', 'is', null);
-      
-      if (mappings) {
-        users.forEach(u => {
-          if (u.role === 'ketua_tim') {
-            const tims = mappings.filter((m: any) => m.ketua_tim_id === u.id).map((m: any) => m.tim_kerja).filter(Boolean);
-            if (tims.length > 0) {
-              u.managed_teams = [...new Set(tims)].join(', ');
-            }
+      const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
+      (profiles || []).forEach((p: any) => {
+        profileMap.set(p.user_id, p);
+      });
+
+      users.forEach(u => {
+        const p = profileMap.get(u.id);
+        if (p) {
+          u.jabatan = p.jabatan;
+          u.golongan = p.golongan;
+        }
+        if (mappings && u.role === 'ketua_tim') {
+          const tims = mappings.filter((m: any) => m.ketua_tim_id === u.id).map((m: any) => m.tim_kerja).filter(Boolean);
+          if (tims.length > 0) {
+            u.managed_teams = [...new Set(tims)].join(', ');
           }
-        });
-      }
+        }
+      });
 
       return users;
     },
@@ -89,7 +111,9 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
     return users.filter(u => 
       u.full_name.toLowerCase().includes(q) ||
       (u.nip && u.nip.toLowerCase().includes(q)) ||
-      (u.email && u.email.toLowerCase().includes(q))
+      (u.email && u.email.toLowerCase().includes(q)) ||
+      (u.jabatan && u.jabatan.toLowerCase().includes(q)) ||
+      (u.golongan && u.golongan.toLowerCase().includes(q))
     );
   }, [users, search]);
 
@@ -101,13 +125,55 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       if (res.success) {
         toast.success("Pegawai berhasil ditambahkan");
         setShowAddModal(false);
-        setFormData({ email: '', password: '', full_name: '', nip: '', unit_kerja: '', role: 'anggota' });
+        setFormData({ email: '', password: '', full_name: '', nip: '', unit_kerja: 'BPS Kabupaten Belitung', role: 'anggota', jabatan: '', golongan: '' });
         refetch();
       } else {
         toast.error("Gagal menambahkan pegawai: " + res.error);
       }
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (u: User) => {
+    setEditFormData({
+      id: u.id,
+      full_name: u.full_name || '',
+      nip: u.nip || '',
+      email: u.email || '',
+      unit_kerja: u.unit_kerja || 'BPS Kabupaten Belitung',
+      role: u.role || 'anggota',
+      jabatan: u.jabatan || '',
+      golongan: u.golongan || '',
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditEmployee = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsEditing(true);
+    try {
+      const res = await updateEmployeeProfile({
+        id: editFormData.id,
+        full_name: editFormData.full_name,
+        nip: editFormData.nip,
+        unit_kerja: editFormData.unit_kerja,
+        role: editFormData.role,
+        jabatan: editFormData.jabatan,
+        golongan: editFormData.golongan,
+      });
+
+      if (res.success) {
+        toast.success("Profil dan jabatan pegawai berhasil diperbarui!");
+        setShowEditModal(false);
+        refetch();
+      } else {
+        toast.error("Gagal memperbarui profil: " + res.error);
+      }
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan: " + err.message);
+    } finally {
+      setIsEditing(false);
     }
   };
 
@@ -257,6 +323,13 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                       <td className="px-5 py-3.5">
                         <div className="font-semibold text-slate-800 dark:text-slate-200 text-[14px]">{u.full_name}</div>
                         <div className="text-[12px] text-slate-500 mt-0.5">{u.nip} &bull; {u.email}</div>
+                        {u.jabatan && (
+                          <div className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400 mt-1 flex items-center gap-1.5">
+                            <Briefcase size={11} className="opacity-70 flex-shrink-0" />
+                            <span>{u.jabatan}</span>
+                            {u.golongan && <span className="text-slate-400 dark:text-slate-500 font-normal">({u.golongan})</span>}
+                          </div>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium bg-blue-50 text-blue-700 dark:bg-blue-500/10 dark:text-blue-400">
@@ -271,6 +344,9 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 sm:-translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
+                          <button onClick={() => handleOpenEdit(u)} title="Edit Profil & Jabatan" className="p-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
+                            <Pencil size={16} strokeWidth={2.5} />
+                          </button>
                           {u.role === 'ketua_tim' && u.is_active && (
                             <button onClick={() => { setReplaceOldUserId(u.id); setShowReplaceModal(true); }} title="Ganti Ketua Tim" className="p-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
                               <ArrowRightLeft size={16} strokeWidth={2.5} />
@@ -331,6 +407,16 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Unit Kerja</label>
                 <input type="text" value={formData.unit_kerja} onChange={e => setFormData({...formData, unit_kerja: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Jabatan</label>
+                  <input list="jabatan-list" type="text" placeholder="Contoh: Statistisi Ahli Muda" value={formData.jabatan} onChange={e => setFormData({...formData, jabatan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                </div>
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pangkat / Golongan</label>
+                  <input list="golongan-list" type="text" placeholder="Contoh: Penata Tk.I, III/d" value={formData.golongan} onChange={e => setFormData({...formData, golongan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                </div>
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Peran (Role)</label>
@@ -412,6 +498,163 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
           </div>
         </div>
       )}
+
+      {/* Edit Pegawai Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Edit Profil Pegawai</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Ubah nama, NIP, jabatan, golongan, atau peran pegawai</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="p-1.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <XCircle size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditEmployee} className="space-y-4 text-[13px]">
+              <div>
+                <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Nama Lengkap</label>
+                <input
+                  required
+                  type="text"
+                  value={editFormData.full_name}
+                  onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
+                  className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">NIP</label>
+                  <input
+                    type="text"
+                    value={editFormData.nip}
+                    onChange={e => setEditFormData({ ...editFormData, nip: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Email (Hanya Baca)</label>
+                  <input
+                    type="email"
+                    disabled
+                    value={editFormData.email}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/20 text-slate-400 rounded-xl px-4 py-2.5 cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Jabatan</label>
+                  <input
+                    list="jabatan-list"
+                    type="text"
+                    placeholder="Contoh: Statistisi Ahli Muda"
+                    value={editFormData.jabatan}
+                    onChange={e => setEditFormData({ ...editFormData, jabatan: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pangkat / Golongan</label>
+                  <input
+                    list="golongan-list"
+                    type="text"
+                    placeholder="Contoh: Penata Tk.I, III/d"
+                    value={editFormData.golongan}
+                    onChange={e => setEditFormData({ ...editFormData, golongan: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Unit Kerja</label>
+                  <input
+                    type="text"
+                    value={editFormData.unit_kerja}
+                    onChange={e => setEditFormData({ ...editFormData, unit_kerja: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Peran (Role)</label>
+                  <select
+                    value={editFormData.role}
+                    onChange={e => setEditFormData({ ...editFormData, role: e.target.value })}
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#3A6D5B]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  >
+                    <option value="anggota">Pegawai</option>
+                    <option value="ketua_tim">Ketua Tim</option>
+                    <option value="pimpinan">Pimpinan</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end mt-8 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-5 py-2.5 rounded-xl font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isEditing}
+                  className="px-5 py-2.5 rounded-xl font-medium bg-[#3A6D5B] hover:bg-[#2c5345] text-white transition-colors shadow-md shadow-[#3A6D5B]/20 disabled:opacity-50"
+                >
+                  {isEditing ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Datalist Master References */}
+      <datalist id="jabatan-list">
+        <option value="Kepala BPS Kabupaten Belitung" />
+        <option value="Kepala Subbagian Umum" />
+        <option value="Statistisi Ahli Madya" />
+        <option value="Statistisi Ahli Muda" />
+        <option value="Statistisi Ahli Pertama" />
+        <option value="Statistisi Penyelia" />
+        <option value="Statistisi Mahir" />
+        <option value="Statistisi Terampil" />
+        <option value="Pranata Komputer Ahli Pertama" />
+        <option value="Pranata Komputer Mahir" />
+        <option value="Pranata SDM Aparatur Terampil" />
+        <option value="Analis Pengelolaan Keuangan APBN Ahli Muda" />
+        <option value="Operator Layanan Operasional" />
+        <option value="Pengelola Umum Operasional" />
+        <option value="Pelaksana" />
+      </datalist>
+
+      <datalist id="golongan-list">
+        <option value="Pembina Tk.I, IV/b" />
+        <option value="Pembina, IV/a" />
+        <option value="Penata Tk.I, III/d" />
+        <option value="Penata, III/c" />
+        <option value="Penata Muda Tk.I, III/b" />
+        <option value="Penata Muda, III/a" />
+        <option value="Pengatur Tk.I, II/d" />
+        <option value="Pengatur, II/c" />
+        <option value="Pengatur Muda Tk.I, II/b" />
+        <option value="Pengatur Muda, II/a" />
+        <option value="VII" />
+        <option value="V" />
+        <option value="III" />
+      </datalist>
     </>
   );
 }

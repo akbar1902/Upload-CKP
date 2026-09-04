@@ -61,6 +61,18 @@ function StaffCard({ u, index }: { u: User; index: number }) {
               </span>
             )}
           </div>
+          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+            {u.jabatan && (
+              <span className="text-[12px] font-semibold text-teal-700 dark:text-teal-400">
+                {u.jabatan}
+              </span>
+            )}
+            {u.golongan && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+                {u.golongan}
+              </span>
+            )}
+          </div>
           <p className="text-[12px] mt-0.5 font-mono" style={{ color: 'var(--text-secondary)' }}>
             {u.nip || 'NIP belum diisi'}
           </p>
@@ -140,21 +152,39 @@ export default function PimpinanPegawaiPage() {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
-        const queryPromise = supabase
-          .from('users')
-          .select('*')
-          .in('role', ['anggota', 'ketua_tim'])
-          .eq('is_active', true)
-          .order('full_name')
-          .abortSignal(controller.signal);
+        const queryPromise = Promise.all([
+          supabase
+            .from('users')
+            .select('*')
+            .in('role', ['anggota', 'ketua_tim'])
+            .eq('is_active', true)
+            .order('full_name')
+            .abortSignal(controller.signal),
+          supabase
+            .from('employee_profiles')
+            .select('user_id, jabatan, golongan')
+            .abortSignal(controller.signal),
+        ]);
 
-        const { data, error } = await Promise.race([
+        const [usersRes, profilesRes] = await Promise.race([
           queryPromise,
           new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
         ]);
 
-        if (error) throw new Error(error.message);
-        return data as User[] || [];
+        if (usersRes.error) throw new Error(usersRes.error.message);
+
+        const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
+        (profilesRes?.data || []).forEach((p: any) => {
+          profileMap.set(p.user_id, p);
+        });
+
+        const data = (usersRes.data || []).map((u: any) => ({
+          ...u,
+          jabatan: profileMap.get(u.id)?.jabatan || null,
+          golongan: profileMap.get(u.id)?.golongan || null,
+        }));
+
+        return data as User[];
       } finally {
         clearTimeout(timeoutId);
       }

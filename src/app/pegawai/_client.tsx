@@ -11,7 +11,7 @@ import type { CKPUpload } from '@/types/database';
 import {
   FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
-  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2, Info
+  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2, Info, Briefcase
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -302,14 +302,28 @@ export default function PegawaiDashboard() {
       <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
 
         {/* ── Page hero ─────────────────────────────── */}
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-[28px] font-semibold tracking-tight"
-                style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              Halo, {user?.full_name?.split(' ')[0] || 'Pegawai'}
-            </h2>
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-[28px] font-semibold tracking-tight"
+                  style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                Halo, {user?.full_name || 'Pegawai'}
+              </h2>
+              {user?.jabatan && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60 shadow-sm">
+                  <Briefcase size={12} className="mr-1.5 opacity-80" />
+                  {user.jabatan}
+                </span>
+              )}
+              {user?.golongan && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                  {user.golongan}
+                </span>
+              )}
+            </div>
             <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
               {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              {user?.nip ? ` • NIP: ${user.nip}` : ''}
             </p>
           </div>
           <Link href="/pegawai/upload" prefetch={true}>

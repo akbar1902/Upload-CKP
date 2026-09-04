@@ -108,12 +108,12 @@ export function Sidebar() {
     navItems.push({ href: '/admin', label: 'Monitoring CKP', icon: LayoutDashboard });
     navItems.push({ href: '/admin/pegawai', label: 'Kepegawaian', icon: Users });
     navItems.push({ href: '/admin/rk', label: 'Rencana Kinerja', icon: Users });
-    navItems.push({ href: '/admin/export-penilaian', label: 'Export Penilaian', icon: FileDown });
+    navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     navItems.push({ href: '/admin/periode', label: 'Pengaturan Periode', icon: Lock });
     navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
   } else if (isPimpinan) {
     navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
-    navItems.push({ href: '/admin/export-penilaian', label: 'Export Penilaian', icon: FileDown });
+    navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
   }
   
   if (!isAdmin) {
@@ -179,12 +179,14 @@ export function Sidebar() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[13px] font-medium truncate"
-               style={{ color: 'var(--text-primary)' }}>
+               style={{ color: 'var(--text-primary)' }}
+               title={user.full_name || 'User'}>
               {user.full_name || 'User'}
             </p>
             <p className="text-[11px] truncate mt-0.5"
-               style={{ color: 'var(--text-secondary)' }}>
-              {roleLabel}
+               style={{ color: 'var(--text-secondary)' }}
+               title={user.jabatan ? `${user.jabatan} (${roleLabel})` : roleLabel}>
+              {user.jabatan || roleLabel}
             </p>
           </div>
           {/* Online indicator */}

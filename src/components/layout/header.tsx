@@ -70,6 +70,30 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Rencana Kinerja',
     };
   }
+  if (pathname.includes('/export-penilaian')) {
+    return {
+      crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/admin' : '/pegawai' }, { label: 'Evaluasi Penilaian' }],
+      title: 'Evaluasi Penilaian',
+    };
+  }
+  if (pathname === '/admin/pegawai') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/admin' }, { label: 'Kepegawaian' }],
+      title: 'Manajemen Kepegawaian',
+    };
+  }
+  if (pathname === '/admin/periode') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/admin' }, { label: 'Pengaturan Periode' }],
+      title: 'Pengaturan Periode CKP',
+    };
+  }
+  if (pathname === '/admin/logs') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/admin' }, { label: 'Log Aktivitas' }],
+      title: 'Log Aktivitas Sistem',
+    };
+  }
   return {
     crumbs: [{ label: 'SIKAP' }],
     title: 'SIKAP',
@@ -219,8 +243,11 @@ export function Header({
                  style={{ color: 'var(--text-primary)' }}>
                 {user?.full_name || 'User'}
               </p>
-              <p className="text-[11px] leading-tight"
-                 style={{ color: 'var(--text-tertiary)' }}>{roleLabel}</p>
+              <p className="text-[11px] leading-tight truncate max-w-[180px]"
+                 style={{ color: 'var(--text-tertiary)' }}
+                 title={user?.jabatan ? `${user.jabatan} (${roleLabel})` : roleLabel}>
+                {user?.jabatan || roleLabel}
+              </p>
             </div>
           </div>
         </div>

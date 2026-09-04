@@ -29,7 +29,14 @@ interface ExportPenilaianClientProps {
   initialData: {
     pimpinan: PimpinanInfo;
     uploads: ExportPegawaiUpload[];
-    allUsers: { id: string; full_name: string; nip: string | null; unit_kerja: string | null; role: string }[];
+    allUsers: {
+      id: string;
+      full_name: string;
+      nip: string | null;
+      unit_kerja: string | null;
+      role: string;
+      profile?: { jabatan: string | null; golongan: string | null } | null;
+    }[];
   };
 }
 
@@ -90,6 +97,15 @@ export default function ExportPenilaianClient({
     );
   }, [data.allUsers, currentUpload, selectedUserId]);
 
+  // Find current selected profile (from upload or from allUsers)
+  const currentSelectedProfile = useMemo(() => {
+    return (
+      currentUpload?.profile ||
+      data.allUsers.find(u => u.id === selectedUserId)?.profile ||
+      null
+    );
+  }, [currentUpload, data.allUsers, selectedUserId]);
+
   // Load entries when selectedUpload changes
   useEffect(() => {
     if (currentUpload) {
@@ -137,6 +153,8 @@ export default function ExportPenilaianClient({
           full_name: currentSelectedUser.full_name,
           nip: currentSelectedUser.nip,
           unit_kerja: currentSelectedUser.unit_kerja || 'BPS Kabupaten Belitung',
+          jabatan: currentSelectedProfile?.jabatan || null,
+          golongan: currentSelectedProfile?.golongan || null,
         },
         pimpinan: data.pimpinan,
         bulan,
@@ -184,6 +202,8 @@ export default function ExportPenilaianClient({
             full_name: upload.user?.full_name || 'Pegawai',
             nip: upload.user?.nip || null,
             unit_kerja: upload.user?.unit_kerja || 'BPS Kabupaten Belitung',
+            jabatan: upload.profile?.jabatan || null,
+            golongan: upload.profile?.golongan || null,
           },
           pimpinan: data.pimpinan,
           bulan,
@@ -225,23 +245,23 @@ export default function ExportPenilaianClient({
 
       <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
         {/* Top Header Controls (Hidden during print) */}
-        <div className="print:hidden flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div className="print:hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Export Penilaian Bulanan
+              Evaluasi Penilaian Bulanan
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
               Rekap evaluasi kinerja bulanan pegawai resmi pejabat penilai kinerja
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             {/* Download All Button */}
             <Button
               onClick={handleDownloadAllZip}
               disabled={downloadingAllZip || data.uploads.length === 0}
               variant="outline"
-              className="gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold"
+              className="gap-1.5 sm:gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
             >
               {downloadingAllZip ? (
                 <>
@@ -251,7 +271,7 @@ export default function ExportPenilaianClient({
               ) : (
                 <>
                   <Archive className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
-                  <span>Download Semua Pegawai ({data.uploads.length} File ZIP)</span>
+                  <span>Download Semua ({data.uploads.length} ZIP)</span>
                 </>
               )}
             </Button>
@@ -260,24 +280,24 @@ export default function ExportPenilaianClient({
             <Button
               onClick={handleDownloadPdf}
               disabled={downloadingPdf || loadingEntries}
-              className="gap-2 shadow-sm font-semibold"
+              className="gap-1.5 sm:gap-2 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
             >
               {downloadingPdf ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <FileDown className="w-4 h-4" />
               )}
-              Download PDF
+              <span>Download PDF</span>
             </Button>
 
             {/* Print Button */}
             <Button
               onClick={handlePrint}
               variant="outline"
-              className="gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 shadow-sm font-semibold"
+              className="gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
             >
               <Printer className="w-4 h-4" />
-              Cetak / Print
+              <span>Cetak / Print</span>
             </Button>
           </div>
         </div>
@@ -323,9 +343,10 @@ export default function ExportPenilaianClient({
                 >
                   {data.allUsers.map((u) => {
                     const hasUpload = data.uploads.some(up => up.user_id === u.id);
+                    const jabatanText = u.profile?.jabatan ? ` — ${u.profile.jabatan}` : '';
                     return (
                       <option key={u.id} value={u.id}>
-                        {u.full_name} {hasUpload ? '✓ (Ada CKP)' : '(Belum ada CKP)'}
+                        {u.full_name}{jabatanText} {hasUpload ? '✓ (Ada CKP)' : '(Belum ada CKP)'}
                       </option>
                     );
                   })}
@@ -429,11 +450,27 @@ export default function ExportPenilaianClient({
                 </tr>
                 <tr>
                   <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
+                  <td className="border border-slate-400 p-1.5 font-semibold">Pangkat / Golongan</td>
+                  <td className="border border-slate-400 p-1.5 font-medium">{currentSelectedProfile?.golongan || '-'}</td>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
+                  <td className="border border-slate-400 p-1.5 font-semibold">Pangkat / Golongan</td>
+                  <td className="border border-slate-400 p-1.5 font-medium">{data.pimpinan.pangkatGolongan || 'Pembina Tk.I, IV/b'}</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">4</td>
+                  <td className="border border-slate-400 p-1.5 font-semibold">Jabatan</td>
+                  <td className="border border-slate-400 p-1.5 font-medium">{currentSelectedProfile?.jabatan || '-'}</td>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">4</td>
+                  <td className="border border-slate-400 p-1.5 font-semibold">Jabatan</td>
+                  <td className="border border-slate-400 p-1.5 font-medium">{data.pimpinan.jabatan || 'Kepala BPS Kabupaten Belitung'}</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">5</td>
                   <td className="border border-slate-400 p-1.5 font-semibold">Unit Kerja</td>
                   <td className="border border-slate-400 p-1.5">{currentSelectedUser.unit_kerja || 'BPS Kabupaten Belitung'}</td>
-                  <td className="border border-slate-400 p-1.5 text-center font-medium">3</td>
+                  <td className="border border-slate-400 p-1.5 text-center font-medium">5</td>
                   <td className="border border-slate-400 p-1.5 font-semibold">Unit Kerja</td>
-                  <td className="border border-slate-400 p-1.5">{data.pimpinan.unitKerja}</td>
+                  <td className="border border-slate-400 p-1.5">{data.pimpinan.unitKerja || 'BPS Kabupaten Belitung'}</td>
                 </tr>
               </tbody>
             </table>

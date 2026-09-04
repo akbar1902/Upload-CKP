@@ -41,18 +41,26 @@ export default function PimpinanPegawaiDetailPage() {
       try {
         const queryPromise = Promise.all([
           supabase.from('users').select('*').eq('id', userId).single().abortSignal(controller.signal),
+          supabase.from('employee_profiles').select('*').eq('user_id', userId).maybeSingle().abortSignal(controller.signal),
           supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).abortSignal(controller.signal),
         ]);
 
-        const [userRes, uploadsRes] = await Promise.race([
+        const [userRes, profileRes, uploadsRes] = await Promise.race([
           queryPromise,
           new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
         ]);
 
         if (userRes.error) throw userRes.error;
 
+        const employee: User = {
+          ...(userRes.data as User),
+          jabatan: profileRes?.data?.jabatan || null,
+          golongan: profileRes?.data?.golongan || null,
+          profile: profileRes?.data || null,
+        };
+
         return {
-          employee: userRes.data as User,
+          employee,
           uploads: (uploadsRes.data as CKPUpload[]) || [],
         };
       } finally {
@@ -155,7 +163,19 @@ export default function PimpinanPegawaiDetailPage() {
                 {employee.full_name.charAt(0)}
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold">{employee.full_name}</h3>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-xl font-bold">{employee.full_name}</h3>
+                  {employee.jabatan && (
+                    <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                      {employee.jabatan}
+                    </span>
+                  )}
+                  {employee.golongan && (
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/10 text-white border border-white/20">
+                      Gol. {employee.golongan}
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-teal-100">
                   <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> NIP: {employee.nip || '-'}</span>
                   <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {employee.unit_kerja || '-'}</span>
