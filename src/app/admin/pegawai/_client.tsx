@@ -99,6 +99,16 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
         }
       });
 
+      // Urutkan: Pegawai aktif di atas, pegawai nonaktif di paling bawah
+      users.sort((a, b) => {
+        const aActive = a.is_active !== false ? 1 : 0;
+        const bActive = b.is_active !== false ? 1 : 0;
+        if (aActive !== bActive) {
+          return bActive - aActive;
+        }
+        return (a.full_name || '').localeCompare(b.full_name || '', 'id');
+      });
+
       return users;
     },
     initialData: initialUsers as (User & { managed_teams?: string })[],
@@ -106,15 +116,27 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
 
   const users = usersData || [];
   const filteredUsers = useMemo(() => {
-    if (!search.trim()) return users;
-    const q = search.toLowerCase();
-    return users.filter(u => 
-      u.full_name.toLowerCase().includes(q) ||
-      (u.nip && u.nip.toLowerCase().includes(q)) ||
-      (u.email && u.email.toLowerCase().includes(q)) ||
-      (u.jabatan && u.jabatan.toLowerCase().includes(q)) ||
-      (u.golongan && u.golongan.toLowerCase().includes(q))
-    );
+    let result = users;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      result = users.filter(u => 
+        u.full_name.toLowerCase().includes(q) ||
+        (u.nip && u.nip.toLowerCase().includes(q)) ||
+        (u.email && u.email.toLowerCase().includes(q)) ||
+        (u.jabatan && u.jabatan.toLowerCase().includes(q)) ||
+        (u.golongan && u.golongan.toLowerCase().includes(q))
+      );
+    }
+
+    // Pastikan urutan selalu: aktif di atas, nonaktif di paling bawah
+    return [...result].sort((a, b) => {
+      const aActive = a.is_active !== false ? 1 : 0;
+      const bActive = b.is_active !== false ? 1 : 0;
+      if (aActive !== bActive) {
+        return bActive - aActive;
+      }
+      return (a.full_name || '').localeCompare(b.full_name || '', 'id');
+    });
   }, [users, search]);
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -319,7 +341,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {filteredUsers.map(u => (
-                    <tr key={u.id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors group">
+                    <tr key={u.id} className={`transition-colors group ${u.is_active ? 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30' : 'bg-slate-50/40 dark:bg-slate-900/30 opacity-75 hover:opacity-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/40'}`}>
                       <td className="px-5 py-3.5">
                         <div className="font-semibold text-slate-800 dark:text-slate-200 text-[14px]">{u.full_name}</div>
                         <div className="text-[12px] text-slate-500 mt-0.5">{u.nip} &bull; {u.email}</div>

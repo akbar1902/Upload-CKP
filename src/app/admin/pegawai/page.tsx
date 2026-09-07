@@ -58,6 +58,16 @@ export default async function AdminPegawaiPage() {
         }
       }
     });
+
+    // Urutkan: Pegawai aktif terlebih dahulu (A-Z), pegawai nonaktif di paling bawah (A-Z)
+    initialUsers.sort((a, b) => {
+      const aActive = a.is_active !== false ? 1 : 0;
+      const bActive = b.is_active !== false ? 1 : 0;
+      if (aActive !== bActive) {
+        return bActive - aActive;
+      }
+      return (a.full_name || '').localeCompare(b.full_name || '', 'id');
+    });
   }
 
   return <AdminPegawaiClient initialUsers={initialUsers as User[]} />;
