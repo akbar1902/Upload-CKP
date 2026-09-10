@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
+import { revalidatePath } from 'next/cache';
 
 export async function gradeRencanaKinerjaAction(uploadIds: string | string[], rencanaKinerja: string, score: number | null) {
   try {
@@ -28,8 +29,11 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
       return { success: false, error: error.message };
     }
 
-    // Auto-update status to 'scored' if all entries have a score
-    const { data: uploads } = await supabase
+    // Auto-update status to 'scored' if all entries across ALL RKs have a score.
+    // MUST use adminClient here to bypass RLS, otherwise a Ketua Tim only sees entries
+    // for their assigned RK and allScored will erroneously evaluate to true when only 1 RK is graded!
+    const adminClient = createAdminClient();
+    const { data: uploads } = await adminClient
       .from('ckp_uploads')
       .select('id, status')
       .in('id', ids);
@@ -37,7 +41,7 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
     for (const upload of uploads || []) {
       if (upload.status !== 'submitted' && upload.status !== 'scored') continue;
 
-      const { data: entries } = await supabase
+      const { data: entries } = await adminClient
         .from('ckp_entries')
         .select('nilai')
         .eq('upload_id', upload.id);
@@ -46,13 +50,17 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
       const newStatus = allScored ? 'scored' : 'submitted';
 
       if (upload.status !== newStatus) {
-        const adminClient = createAdminClient();
         await adminClient
           .from('ckp_uploads')
           .update({ status: newStatus })
           .eq('id', upload.id);
       }
     }
+
+    revalidatePath('/pegawai');
+    revalidatePath('/ketua_tim');
+    revalidatePath('/pimpinan');
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (err: any) {

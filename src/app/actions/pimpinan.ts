@@ -1,35 +1,11 @@
 "use server";
 
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { gradeRencanaKinerjaAction as gradeRencanaKinerjaActionMain } from '@/app/actions/penilaian';
 
 // This function grades ALL entries under a specific Rencana Kinerja for a given upload
 export async function gradeRencanaKinerjaAction(uploadId: string, rencanaKinerja: string, score: number | null) {
-  try {
-    const supabase = await createServerSupabaseClient();
-    
-    // Auth validation on the server
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      return { success: false, error: 'Sesi berakhir' };
-    }
-
-    const { error } = await supabase
-      .from('ckp_entries')
-      .update({ 
-        nilai: score,
-        dinilai_oleh: score !== null ? user.id : null
-      })
-      .eq('upload_id', uploadId)
-      .eq('rencana_kinerja', rencanaKinerja);
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message || 'Server error' };
-  }
+  return gradeRencanaKinerjaActionMain(uploadId, rencanaKinerja, score);
 }
 
 export async function approveAction(uploadId: string, action: string, catatan: string) {

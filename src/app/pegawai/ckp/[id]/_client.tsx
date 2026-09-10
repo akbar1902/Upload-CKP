@@ -498,6 +498,14 @@ export default function CKPDetailPage() {
   const canReupload = upload.status === 'draft' || upload.status === 'revision_required';
   const bulanNama = getBulanName(upload.bulan);
 
+  // Status efektif untuk memastikan jika belum dinilai semua tidak berstatus 'Sudah Dinilai'
+  const isFullyScored = entries.length > 0 && entries.every(e => e.nilai !== null);
+  const effectiveStatus = (upload.status === 'scored' && !isFullyScored)
+    ? 'submitted'
+    : (upload.status === 'submitted' && isFullyScored)
+    ? 'scored'
+    : upload.status;
+
   return (
     <>
       <Header />
@@ -528,7 +536,7 @@ export default function CKPDetailPage() {
               <h2 className="text-4xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 CKP {bulanNama} {upload.tahun}
               </h2>
-              <UploadBadge status={upload.status} />
+              <UploadBadge status={effectiveStatus} />
               {upload.version > 1 && (
                 <span className="badge-pill badge-draft">v{upload.version}</span>
               )}

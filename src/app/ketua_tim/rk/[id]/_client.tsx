@@ -415,6 +415,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       // Invalidate both this page and the dashboard so both show updated scores
       void queryClient.invalidateQueries({ queryKey: ['rk-detail'] });
       void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['ckp-detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
     } catch (error: any) {
       // Roll back optimistic update on failure
       queryClient.setQueryData(rkDetailKey, previousData);

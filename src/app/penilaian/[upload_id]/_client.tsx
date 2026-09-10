@@ -378,6 +378,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       if (!result.success) throw new Error(result.error);
       // Validasi ulang secara asinkron (tidak memblokir UI)
       void queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
+      void queryClient.invalidateQueries({ queryKey: ['ckp-detail', uploadId] });
+      void queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
     } catch (error: any) {
       await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
       toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
@@ -483,6 +487,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   
   // All RKs must have a score before approval
   const allScored = rkGroups.every(g => g.defaultScore !== null);
+  const effectiveStatus = (upload.status === 'scored' && !allScored) 
+    ? 'submitted' 
+    : upload.status;
 
   return (
     <>
@@ -505,7 +512,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 Review CKP {bulanNama} {upload.tahun}
               </h2>
-              <UploadBadge status={upload.status} />
+              <UploadBadge status={effectiveStatus} />
             </div>
 
             <div className="flex items-center gap-4 mt-3 flex-wrap py-2 px-4 rounded-xl shadow-sm w-fit"
