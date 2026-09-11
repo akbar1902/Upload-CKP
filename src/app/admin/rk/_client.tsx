@@ -1,16 +1,21 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { ChevronDown, ChevronUp, ChevronRight, Plus, Trash2, Search, Filter, AlertTriangle, X, FileSpreadsheet, RefreshCw, ArrowRightLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { 
+  getAdminRkDataAction, 
+  addRkMasterAction, 
+  addSubRkAction, 
+  moveSubRkAction, 
+  deleteRkOrSubAction 
+} from '@/app/actions/admin';
 
 export default function AdminRencanaKinerjaClient({ initialData }: { initialData: any }) {
-  const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -34,26 +39,9 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
   const { data, isPending, refetch } = useQuery({
     queryKey: ['admin-rk-data'],
     queryFn: async () => {
-      const [rksRes, subsRes, usersRes] = await Promise.all([
-        supabase.from('rk_ketua_tim_mapping').select('*, ketua_tim:users!ketua_tim_id(full_name)').order('rencana_kinerja'),
-        supabase.from('master_kegiatan_anggota').select('*').order('kegiatan_nama'),
-        supabase.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin'])
-      ]);
-
-      if (rksRes.error) throw rksRes.error;
-      
-      const rks = rksRes.data || [];
-      const subs = subsRes.data || [];
-      const ketuaTims = usersRes.data || [];
-
-      // Group Sub-RKs by rk_id
-      const subsByRk = subs.reduce((acc: any, sub: any) => {
-        if (!acc[sub.rk_id]) acc[sub.rk_id] = [];
-        acc[sub.rk_id].push(sub);
-        return acc;
-      }, {});
-
-      return { rks, subsByRk, ketuaTims };
+      const res = await getAdminRkDataAction();
+      if (!res.success) throw new Error(res.error || 'Gagal memuat data');
+      return { rks: res.rks, subsByRk: res.subsByRk, ketuaTims: res.ketuaTims };
     },
     initialData: initialData,
   });
@@ -100,15 +88,9 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     if (!deleteConfirm) return;
     setIsSubmitting(true);
     try {
-      if (deleteConfirm.type === 'master') {
-        const { error } = await supabase.from('rk_ketua_tim_mapping').delete().eq('id', deleteConfirm.id);
-        if (error) throw error;
-        toast.success("RK berhasil dihapus");
-      } else {
-        const { error } = await supabase.from('master_kegiatan_anggota').delete().eq('id', deleteConfirm.id);
-        if (error) throw error;
-        toast.success("Sub-RK berhasil dihapus");
-      }
+      const res = await deleteRkOrSubAction(deleteConfirm.id, deleteConfirm.type);
+      if (!res.success) throw new Error(res.error);
+      toast.success(deleteConfirm.type === 'master' ? "RK berhasil dihapus" : "Sub-RK berhasil dihapus");
       refetch();
     } catch (e: any) {
       toast.error("Gagal menghapus: " + e.message);
@@ -124,7 +106,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       return;
     }
     setIsSubmitting(true);
-    const { error } = await supabase.from('rk_ketua_tim_mapping').insert({
+    const res = await addRkMasterAction({
       rencana_kinerja: newMasterRk.rencana_kinerja,
       tim_kerja: newMasterRk.tim_kerja,
       ketua_tim_id: newMasterRk.ketua_tim_id,
@@ -132,8 +114,8 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     });
     setIsSubmitting(false);
     
-    if (error) {
-      toast.error("Gagal menambah RK: " + error.message);
+    if (!res.success) {
+      toast.error("Gagal menambah RK: " + res.error);
     } else {
       toast.success("RK berhasil ditambahkan");
       setShowAddMasterModal(false);
@@ -148,15 +130,15 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       return;
     }
     setIsSubmitting(true);
-    const { error } = await supabase.from('master_kegiatan_anggota').insert({
+    const res = await addSubRkAction({
       rk_id: selectedRkForSub.id,
       kegiatan_nama: newSubRk.kegiatan_nama,
       user_id: user?.id
     });
     setIsSubmitting(false);
     
-    if (error) {
-      toast.error("Gagal menambah Sub-RK: " + error.message);
+    if (!res.success) {
+      toast.error("Gagal menambah Sub-RK: " + res.error);
     } else {
       toast.success("Sub-RK berhasil ditambahkan");
       setShowAddSubModal(false);
@@ -169,15 +151,11 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     if (!targetRkId || !selectedSubForMove) return;
     
     setIsSubmitting(true);
-    const { error } = await supabase
-      .from('master_kegiatan_anggota')
-      .update({ rk_id: targetRkId })
-      .eq('id', selectedSubForMove.id);
-      
+    const res = await moveSubRkAction(selectedSubForMove.id, targetRkId);
     setIsSubmitting(false);
     
-    if (error) {
-      toast.error("Gagal memindahkan Sub-RK: " + error.message);
+    if (!res.success) {
+      toast.error("Gagal memindahkan Sub-RK: " + res.error);
     } else {
       toast.success("Sub-RK berhasil dipindahkan ke RK baru");
       setShowMoveSubModal(false);

@@ -3,6 +3,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import { createServerSupabaseClient } from '@/lib/supabase/server';
+import masterMappingDataRaw from "@/data/master_mapping.json";
 
 // We use the service role key to bypass RLS and perform admin actions
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -390,3 +391,120 @@ export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
     return { success: false, error: error.message };
   }
 }
+
+export async function getAdminRkDataAction() {
+  try {
+    const [rksRes, subsRes, usersRes] = await Promise.all([
+      supabaseAdmin.from('rk_ketua_tim_mapping').select('*, ketua_tim:users!ketua_tim_id(full_name)').order('rencana_kinerja'),
+      supabaseAdmin.from('master_kegiatan_anggota').select('*').order('kegiatan_nama'),
+      supabaseAdmin.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin'])
+    ]);
+
+    if (rksRes.error) throw rksRes.error;
+    if (subsRes.error) throw subsRes.error;
+
+    const rks = rksRes.data || [];
+    const subs = subsRes.data || [];
+    const ketuaTims = usersRes.data || [];
+
+    // Group Sub-RKs by rk_id with case-insensitive deduplication
+    const subsByRk: Record<string, any[]> = {};
+    for (const sub of subs) {
+      if (!subsByRk[sub.rk_id]) subsByRk[sub.rk_id] = [];
+      const isDuplicate = subsByRk[sub.rk_id].some(
+        (existing: any) => existing.kegiatan_nama.trim().toLowerCase() === sub.kegiatan_nama.trim().toLowerCase()
+      );
+      if (!isDuplicate) {
+        subsByRk[sub.rk_id].push(sub);
+      }
+    }
+
+    // Defensive fallback: if an RK in DB has 0 subs, load defaults from master_mapping.json
+    const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const mmMap = new Map<string, string[]>();
+    (masterMappingDataRaw as Array<{ rk_ketua: string; sub_rk: string[] }>).forEach(item => {
+      mmMap.set(normalize(item.rk_ketua), item.sub_rk || []);
+    });
+
+    for (const rk of rks) {
+      if (!subsByRk[rk.id] || subsByRk[rk.id].length === 0) {
+        const fallbackSubs = mmMap.get(normalize(rk.rencana_kinerja));
+        if (fallbackSubs && fallbackSubs.length > 0) {
+          subsByRk[rk.id] = fallbackSubs.map((name, idx) => ({
+            id: `fallback-${rk.id}-${idx}`,
+            rk_id: rk.id,
+            kegiatan_nama: name,
+            is_fallback: true
+          }));
+        }
+      }
+    }
+
+    return { success: true, rks, subsByRk, ketuaTims };
+  } catch (error: any) {
+    console.error('[getAdminRkDataAction] Error:', error);
+    return { success: false, error: error.message, rks: [], subsByRk: {}, ketuaTims: [] };
+  }
+}
+
+export async function addRkMasterAction(payload: { rencana_kinerja: string; tim_kerja: string; ketua_tim_id: string; created_by?: string }) {
+  try {
+    const { error } = await supabaseAdmin.from('rk_ketua_tim_mapping').insert({
+      rencana_kinerja: payload.rencana_kinerja.trim(),
+      tim_kerja: payload.tim_kerja.trim(),
+      ketua_tim_id: payload.ketua_tim_id,
+      created_by: payload.created_by || null,
+    });
+    if (error) throw error;
+    revalidatePath('/admin/rk');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function addSubRkAction(payload: { rk_id: string; kegiatan_nama: string; user_id?: string }) {
+  try {
+    const { error } = await supabaseAdmin.from('master_kegiatan_anggota').insert({
+      rk_id: payload.rk_id,
+      kegiatan_nama: payload.kegiatan_nama.trim(),
+      user_id: payload.user_id || null,
+    });
+    if (error) throw error;
+    revalidatePath('/admin/rk');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function moveSubRkAction(subId: string, targetRkId: string) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('master_kegiatan_anggota')
+      .update({ rk_id: targetRkId })
+      .eq('id', subId);
+    if (error) throw error;
+    revalidatePath('/admin/rk');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteRkOrSubAction(id: string, type: 'master' | 'sub') {
+  try {
+    if (type === 'master') {
+      const { error } = await supabaseAdmin.from('rk_ketua_tim_mapping').delete().eq('id', id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabaseAdmin.from('master_kegiatan_anggota').delete().eq('id', id);
+      if (error) throw error;
+    }
+    revalidatePath('/admin/rk');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
