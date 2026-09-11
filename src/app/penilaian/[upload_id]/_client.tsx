@@ -18,7 +18,7 @@ import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/type
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
-  RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock,
+  RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock, Calendar,
   Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle
 } from 'lucide-react';
 
@@ -502,65 +502,83 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           <ArrowLeft size={14} /> Kembali
         </button>
 
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+        {/* ── Page Header (Title on Left, Action Buttons on Right) ── */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <p className="text-[12px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-[12px] mb-1.5" style={{ color: 'var(--text-secondary)' }}>
               Dashboard &rsaquo; Review CKP &rsaquo; {bulanNama} {upload.tahun}
             </p>
 
             <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>
                 Review CKP {bulanNama} {upload.tahun}
               </h2>
               <UploadBadge status={effectiveStatus} />
-            </div>
-
-            <div className="flex items-center gap-4 mt-3 flex-wrap py-2 px-4 rounded-xl shadow-sm w-fit"
-                 style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-              <div className="flex items-center gap-2">
-                <UserIcon size={14} style={{ color: 'var(--text-tertiary)' }} />
-                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{employee.full_name}</span>
-              </div>
-              <div className="w-px h-4" style={{ background: 'var(--border)' }}></div>
-              {employee.nip && <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>NIP: {employee.nip}</span>}
-              
-              {employee.unit_kerja && (
-                <>
-                  <div className="w-px h-4" style={{ background: 'var(--border)' }}></div>
-                  <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{employee.unit_kerja}</span>
-                </>
+              {upload.version > 1 && (
+                <span className="badge-pill badge-draft">v{upload.version}</span>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap pt-2">
-            <button onClick={handleExport} className="btn-secondary">
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
+            <button onClick={handleExport} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm">
               <Download size={14} /> Export
             </button>
-            <div className="flex gap-2">
-              {isAdmin ? (
-                <button
-                  disabled
-                  className="btn-primary opacity-50 cursor-not-allowed"
-                >
-                  <Lock size={14} className="mr-1" /> View Only (Admin)
-                </button>
-              ) : isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') ? (
-                <button
-                  onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
-                  className={`btn-primary ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  disabled={!allScored}
-                  title={!allScored ? 'Semua RK harus dinilai sebelum disetujui' : ''}
-                >
-                  <CheckCircle2 size={14} /> Approval Pimpinan
-                </button>
-              ) : null}
-            </div>
+            {isAdmin ? (
+              <button
+                disabled
+                className="btn-primary opacity-50 cursor-not-allowed h-10 px-4 text-[13px] flex items-center gap-1.5"
+              >
+                <Lock size={14} className="mr-1" /> View Only (Admin)
+              </button>
+            ) : isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') ? (
+              <button
+                onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
+                className={`btn-primary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
+                disabled={!allScored}
+                title={!allScored ? 'Semua RK harus dinilai sebelum disetujui' : ''}
+              >
+                <CheckCircle2 size={14} /> Approval Pimpinan
+              </button>
+            ) : null}
             {canReopen && (
-              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary" style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm" style={{ color: '#D97706', borderColor: '#FDE68A' }}>
                 <Unlock size={14} /> Buka Kembali
               </button>
             )}
+          </div>
+        </div>
+
+        {/* ── Full-Width Employee Identity Card (Simetris sejajar dengan Card KPI di bawahnya) ── */}
+        <div className="w-full rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
+             style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-white font-bold text-sm shadow-sm"
+                 style={{ background: 'var(--primary)' }}>
+              {employee.full_name?.split(' ').slice(0, 2).map((n: string) => n[0]).join('').toUpperCase() || 'P'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="font-bold text-[15px] sm:text-[16px] truncate" style={{ color: 'var(--text-primary)' }}>
+                {employee.full_name}
+              </h3>
+              <div className="flex items-center gap-x-3 gap-y-1 mt-1 text-[12px] sm:text-[13px] flex-wrap" style={{ color: 'var(--text-secondary)' }}>
+                {employee.nip && <span>NIP: {employee.nip}</span>}
+                {employee.nip && employee.unit_kerja && <span className="opacity-40">•</span>}
+                {employee.unit_kerja && <span>{employee.unit_kerja}</span>}
+                {employee.jabatan && (
+                  <>
+                    <span className="opacity-40">•</span>
+                    <span>{employee.jabatan}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 text-[12px] self-start sm:self-auto px-3 py-1.5 rounded-lg flex-shrink-0"
+               style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+            <Calendar size={13} className="text-slate-400" />
+            <span>Periode: <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{bulanNama} {upload.tahun}</strong></span>
           </div>
         </div>
 
