@@ -506,7 +506,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   return (
     <>
       <Header />
-      <div className={`p-5 lg:p-8 ${viewMode === 'calendar' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto space-y-6 animate-fade-in transition-all duration-300`}>
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
         <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}

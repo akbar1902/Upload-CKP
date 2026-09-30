@@ -512,7 +512,7 @@ export default function CKPDetailPage() {
   return (
     <>
       <Header />
-      <div className={`p-5 lg:p-8 ${viewMode === 'calendar' ? 'max-w-7xl' : 'max-w-6xl'} mx-auto space-y-6 animate-fade-in transition-all duration-300`}>
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
 
         {/* ── Back ──────────────────────────────────── */}
         <Link
