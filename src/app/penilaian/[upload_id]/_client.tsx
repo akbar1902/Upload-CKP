@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
+import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
@@ -19,7 +20,8 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
   RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock, Calendar,
-  Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle
+  Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle,
+  CalendarDays,
 } from 'lucide-react';
 
 const STATUS_CFG = {
@@ -243,6 +245,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const [entryToMove, setEntryToMove] = useState<CKPEntry | null>(null);
   const [targetMoveRk, setTargetMoveRk] = useState<string>('');
   const [isMovingEntry, setIsMovingEntry] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   
   useEffect(() => {
     if (!authLoading && !currentUser) {
@@ -600,33 +603,91 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         </div>
 
         <div>
-          <div className="mb-4">
-            <h3 className="text-[20px] font-bold" style={{ color: 'var(--text-primary)' }}>Penilaian Berdasarkan Rencana Kinerja</h3>
-            <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.</p>
+          {/* ── Section header + view toggle ── */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <h3 className="text-[20px] font-bold" style={{ color: 'var(--text-primary)' }}>Daftar Kegiatan</h3>
+                {/* View mode toggle */}
+                <div
+                  className="flex items-center rounded-lg overflow-hidden"
+                  style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+                  role="group"
+                  aria-label="Pilih tampilan"
+                >
+                  <button
+                    id="view-toggle-list-penilaian"
+                    onClick={() => setViewMode('list')}
+                    aria-pressed={viewMode === 'list'}
+                    title="Tampilan List"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                    style={{
+                      background: viewMode === 'list' ? 'var(--primary)' : 'transparent',
+                      color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <LayoutList size={13} />
+                    <span>List</span>
+                  </button>
+                  <button
+                    id="view-toggle-calendar-penilaian"
+                    onClick={() => setViewMode('calendar')}
+                    aria-pressed={viewMode === 'calendar'}
+                    title="Tampilan Kalender"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                    style={{
+                      background: viewMode === 'calendar' ? 'var(--primary)' : 'transparent',
+                      color: viewMode === 'calendar' ? '#fff' : 'var(--text-secondary)',
+                    }}
+                  >
+                    <CalendarDays size={13} />
+                    <span>Kalender</span>
+                  </button>
+                </div>
+              </div>
+              {viewMode === 'list' && (
+                <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.</p>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {rkGroups.map(group => (
-              <RencanaKinerjaGroup
-                key={group.rk}
-                rkName={group.rk}
-                entries={group.entries}
-                canReview={canReview}
-                onSaveScore={handleSaveScore}
-                defaultScore={group.defaultScore}
-                onMoveEntryClick={(entry) => {
-                  setEntryToMove(entry);
-                  setTargetMoveRk('');
-                }}
+          {/* ── Calendar View ── */}
+          {viewMode === 'calendar' ? (
+            <div
+              className="rounded-2xl p-5"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
+            >
+              <CalendarPreview
+                bulan={upload.bulan}
+                tahun={upload.tahun}
+                entries={entries}
               />
-            ))}
-            
-            {rkGroups.length === 0 && (
-              <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
-                <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
-              </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            /* ── List View (Penilaian per RK) ── */
+            <div className="space-y-4">
+              {rkGroups.map(group => (
+                <RencanaKinerjaGroup
+                  key={group.rk}
+                  rkName={group.rk}
+                  entries={group.entries}
+                  canReview={canReview}
+                  onSaveScore={handleSaveScore}
+                  defaultScore={group.defaultScore}
+                  onMoveEntryClick={(entry) => {
+                    setEntryToMove(entry);
+                    setTargetMoveRk('');
+                  }}
+                />
+              ))}
+              
+              {rkGroups.length === 0 && (
+                <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                  <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {approvals.length > 0 && (
