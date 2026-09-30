@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import { buildHeaderMapping } from './column-mapping';
 import type { CKPEntry } from '@/types/database';
 import { getBulanName } from '@/lib/utils';
+import { parseIndonesianDateOrRange } from '@/lib/ckp-calendar-utils';
 
 export interface ParseResult {
   success: boolean;
@@ -122,6 +123,20 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
         }
       }
 
+      // Check if any date cell contains a range string (e.g. "1 - 3 September 2026" or "01/09/2026 s/d 03/09/2026")
+      // and ensure both tanggal_mulai and tanggal_selesai are populated accordingly
+      for (let colIdx = 0; colIdx < cells.length; colIdx++) {
+        const mapping = headerMapping[colIdx];
+        if (mapping && (mapping.dbField === 'tanggal_mulai' || mapping.dbField === 'tanggal_selesai')) {
+          const parsedRange = parseIndonesianDateOrRange(cells[colIdx]);
+          if (parsedRange.start && parsedRange.end) {
+            entry.tanggal_mulai = parsedRange.start;
+            entry.tanggal_selesai = parsedRange.end;
+            break;
+          }
+        }
+      }
+
       // Validate required fields
       if (!entry.kegiatan || String(entry.kegiatan).trim().length === 0) {
         result.warnings.push(`Baris ${rowNumber}: Kolom "Kegiatan" kosong, baris tetap disimpan.`);
@@ -218,7 +233,7 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
  * - Bulan Kedua (Feb, Mei, Agu, Nov): Tgl 26 bulan lalu - 25 bulan tersebut
  * - Bulan Ketiga (Mar, Jun, Sep, Des): Tgl 26 bulan lalu - Akhir bulan tersebut
  */
-function getPeriodRange(bulan: number, tahun: number): { start: Date, end: Date } {
+export function getPeriodRange(bulan: number, tahun: number): { start: Date, end: Date } {
   let start: Date;
   let end: Date;
 
@@ -262,11 +277,10 @@ function processCellValue(value: unknown, type: string): unknown {
         if (!isNaN(d.getTime())) return formatDateForDB(d);
         return null;
       }
-      const dateStr = String(value).trim();
-      const parsed = parseIndonesianDate(dateStr);
-      // Only return if parsed result is a valid ISO date
-      if (parsed && isValidDateForDB(parsed)) return parsed;
-      // If not parseable, return null (better than crashing the DB insert)
+      const parsedRange = parseIndonesianDateOrRange(value);
+      if (parsedRange.start && isValidDateForDB(parsedRange.start)) {
+        return parsedRange.start;
+      }
       return null;
     }
     case 'time': {

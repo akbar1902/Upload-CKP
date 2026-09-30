@@ -16,12 +16,14 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
 import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, getUploadMasterData, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import masterMappingDataRaw from '@/data/master_mapping.json';
+import { CalendarPreview } from '@/components/ckp/calendar-preview';
+import { calculateCalendarCoverage } from '@/lib/ckp-calendar-utils';
 
 export default function UploadPage() {
   const { user } = useAuth();
@@ -51,6 +53,11 @@ export default function UploadPage() {
   const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
   const uploadAbortRef = useRef<AbortController | null>(null);
+
+  const calendarCoverage = useMemo(() => {
+    if (!parseResult || !parseResult.success) return null;
+    return calculateCalendarCoverage(bulan, tahun, parseResult.entries);
+  }, [bulan, tahun, parseResult]);
 
   const { data: masterData } = useQuery({
     queryKey: ['upload-master-data'],
@@ -620,31 +627,37 @@ export default function UploadPage() {
         )}
 
         {parseResult && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
-                3. Preview Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!parseResult.success && parseResult.errors.length > 0 && (
-                <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h4 className="text-[14px] font-semibold text-red-800 dark:text-red-300">Gagal Membaca File Excel</h4>
-                      <ul className="mt-1 space-y-1">
-                        {parseResult.errors.map((err, i) => (
-                          <li key={i} className="text-[13px] text-red-700 dark:text-red-400 leading-relaxed">{err}</li>
-                        ))}
-                      </ul>
+          <>
+            {/* ─── 3. Preview Data Tabel ─────────────────────────────── */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
+                  3. Preview Data Tabel
+                </CardTitle>
+                <CardDescription>
+                  Data kegiatan yang berhasil dibaca dari file Excel ({parseResult.entries.length} baris)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {!parseResult.success && parseResult.errors.length > 0 && (
+                  <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="text-[14px] font-semibold text-red-800 dark:text-red-300">Gagal Membaca File Excel</h4>
+                        <ul className="mt-1 space-y-1">
+                          {parseResult.errors.map((err, i) => (
+                            <li key={i} className="text-[13px] text-red-700 dark:text-red-400 leading-relaxed">{err}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
-              {parseResult.success && parseResult.entries.length > 0 && (
-                  <div className="overflow-x-auto rounded-xl shadow-sm mt-4" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                )}
+
+                {parseResult.success && parseResult.entries.length > 0 && (
+                  <div className="overflow-x-auto rounded-xl shadow-xs" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <table className="w-full text-sm">
                       <thead>
                         <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
@@ -705,17 +718,50 @@ export default function UploadPage() {
                       </div>
                     )}
                   </div>
-              )}
-              {parseResult.success && (
-                <div className="flex justify-end pt-2">
-                  <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg">
-                    <Send className="h-4 w-4 mr-2" />
-                    {uploading ? 'Memproses Data...' : `Submit CKP ${getBulanName(bulan)} ${tahun}`}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* ─── 4. Preview Kalender Kerja Periode ─────────────────── */}
+            {parseResult.success && parseResult.entries.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    4. Preview Kalender Kerja Periode
+                  </CardTitle>
+                  <CardDescription>
+                    Periksa kalender kerja untuk memastikan tidak ada kegiatan harian yang terlewat
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <CalendarPreview
+                    bulan={bulan}
+                    tahun={tahun}
+                    entries={parseResult.entries}
+                  />
+
+                  {/* ─── Tombol Submit di Bawah Kalender ────────────── */}
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                    {calendarCoverage && calendarCoverage.emptyWorkDays.length > 0 ? (
+                      <span className="text-xs text-amber-700 dark:text-amber-400">
+                        * Terdapat <strong>{calendarCoverage.emptyWorkDays.length} hari kerja belum terisi</strong> (tetap dapat disubmit jika merupakan tanggal merah/hari libur).
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        Seluruh hari kerja telah terisi kegiatan.
+                      </span>
+                    )}
+
+                    <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg" className="w-full sm:w-auto">
+                      <Send className="h-4 w-4 mr-2" />
+                      {uploading ? 'Memproses Data...' : `Submit CKP ${getBulanName(bulan)} ${tahun}`}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </>
         )}
       </div>
 
