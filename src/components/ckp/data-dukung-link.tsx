@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { isValidUrl, isGoogleDriveLink } from '@/lib/utils';
-import { ExternalLink, FileText, Maximize2 } from 'lucide-react';
+import { ExternalLink, FileText, Maximize2, RotateCw, AlertCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface DataDukungLinkProps {
@@ -11,6 +11,7 @@ interface DataDukungLinkProps {
 
 export function DataDukungLink({ value }: DataDukungLinkProps) {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   if (!value || value.trim().length === 0) {
     return <span className="text-[14px]" style={{ color: 'var(--text-tertiary)' }}>-</span>;
@@ -32,8 +33,33 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
   };
 
   const getDrivePreviewUrl = (url: string) => {
-    // Convert view/edit links to preview links
-    return url.replace(/\/(view|edit).*$/, '/preview');
+    try {
+      // 1. Google Drive file link: /file/d/{id}/...
+      const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (fileMatch) {
+        return `https://drive.google.com/file/d/${fileMatch[1]}/preview`;
+      }
+
+      // 2. Google Docs / Sheets / Slides link
+      const docsMatch = url.match(/docs\.google\.com\/(document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/);
+      if (docsMatch) {
+        return `https://docs.google.com/${docsMatch[1]}/d/${docsMatch[2]}/preview`;
+      }
+
+      // 3. Google Drive ID query param: /open?id={id} or /uc?id={id}
+      if (url.includes('drive.google.com')) {
+        const urlObj = new URL(url);
+        const idParam = urlObj.searchParams.get('id');
+        if (idParam) {
+          return `https://drive.google.com/file/d/${idParam}/preview`;
+        }
+      }
+
+      // 4. Default fallback: replace /view or /edit with /preview
+      return url.replace(/\/(view|edit).*$/, '/preview');
+    } catch {
+      return url.replace(/\/(view|edit).*$/, '/preview');
+    }
   };
 
   return (
@@ -70,28 +96,49 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
 
       {isGDrive && (
         <Dialog open={isPreviewOpen} onClose={() => setIsPreviewOpen(false)}>
-          <DialogContent className="max-w-5xl w-[95vw] h-[85vh] p-0 flex flex-col overflow-hidden bg-[var(--bg-base)]">
+          <DialogContent className="max-w-5xl w-[95vw] h-[88vh] p-0 flex flex-col overflow-hidden bg-[var(--bg-base)]">
             <DialogHeader className="px-4 py-3 border-b border-[var(--border)] flex flex-row items-center justify-between m-0">
-              <DialogTitle className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Preview Bukti Dukung</DialogTitle>
-              <div className="flex items-center gap-4 mr-6">
+              <DialogTitle className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+                Preview Bukti Dukung
+              </DialogTitle>
+              <div className="flex items-center gap-2 mr-6">
+                <button
+                  type="button"
+                  onClick={() => setRefreshKey((prev) => prev + 1)}
+                  className="text-[13px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+                  style={{ color: 'var(--text-secondary)', fontWeight: 500 }}
+                  title="Muat ulang preview jika izin Drive baru saja diubah"
+                >
+                  <RotateCw className="h-3.5 w-3.5" /> Muat Ulang
+                </button>
                 <a 
                   href={trimmed} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="text-[13px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
-                  style={{ color: 'var(--primary)', fontWeight: 500 }}
+                  className="text-[13px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white hover:opacity-90 transition-opacity"
+                  style={{ fontWeight: 500 }}
+                  title="Buka langsung di Google Drive tab baru untuk beralih akun jika diperlukan"
                 >
                   <ExternalLink className="h-3.5 w-3.5" /> Buka di Tab Baru
                 </a>
               </div>
             </DialogHeader>
-            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900/50">
+            <div className="flex-1 w-full bg-slate-100 dark:bg-slate-900/50 relative">
               <iframe
+                key={refreshKey}
                 src={getDrivePreviewUrl(trimmed)}
                 className="w-full h-full border-0"
                 allow="autoplay"
                 title="Google Drive Preview"
               />
+            </div>
+            <div className="px-4 py-2.5 bg-amber-50/80 dark:bg-amber-950/30 border-t border-amber-200/80 dark:border-amber-800/40 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+              <div className="flex-1 leading-relaxed">
+                <span>
+                  Jika muncul <strong>&quot;Anda memerlukan akses&quot;</strong>: Di Google Drive, pastikan <strong>Akses Umum (General Access)</strong> diatur ke <strong>&quot;Siapa saja yang memiliki link&quot;</strong> (bukan Dibatasi/Restricted), lalu klik <strong>Muat Ulang</strong> di atas. Jika link berada di akun lain (misal akun BPS), gunakan <strong>Buka di Tab Baru</strong>.
+                </span>
+              </div>
             </div>
           </DialogContent>
         </Dialog>
