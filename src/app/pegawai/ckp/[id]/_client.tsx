@@ -8,13 +8,15 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
+import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2, AlertTriangle
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2, AlertTriangle,
+  LayoutList, CalendarDays,
 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
@@ -316,6 +318,7 @@ export default function CKPDetailPage() {
   const { user, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -633,43 +636,99 @@ export default function CKPDetailPage() {
         <div>
           {/* Section header */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
-            <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
-              Daftar Kegiatan
-            </h3>
-            <div className="filter-bar">
-              <div className="search-input">
-                <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
-                <input
-                  type="search"
-                  placeholder="Cari kegiatan..."
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); }}
-                  aria-label="Cari kegiatan"
-                />
+            <div className="flex items-center gap-3">
+              <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                Daftar Kegiatan
+              </h3>
+              {/* ── View mode toggle ── */}
+              <div
+                className="flex items-center rounded-lg overflow-hidden"
+                style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+                role="group"
+                aria-label="Pilih tampilan"
+              >
+                <button
+                  id="view-toggle-list"
+                  onClick={() => setViewMode('list')}
+                  aria-pressed={viewMode === 'list'}
+                  title="Tampilan List"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                  style={{
+                    background: viewMode === 'list' ? 'var(--primary)' : 'transparent',
+                    color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
+                  }}
+                >
+                  <LayoutList size={13} />
+                  <span>List</span>
+                </button>
+                <button
+                  id="view-toggle-calendar"
+                  onClick={() => setViewMode('calendar')}
+                  aria-pressed={viewMode === 'calendar'}
+                  title="Tampilan Kalender"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                  style={{
+                    background: viewMode === 'calendar' ? 'var(--primary)' : 'transparent',
+                    color: viewMode === 'calendar' ? '#fff' : 'var(--text-secondary)',
+                  }}
+                >
+                  <CalendarDays size={13} />
+                  <span>Kalender</span>
+                </button>
               </div>
-              <button className="filter-btn" aria-label="Filter">
-                <SlidersHorizontal size={13} /> Filter
-              </button>
             </div>
+
+            {/* Search & filter — only shown in list mode */}
+            {viewMode === 'list' && (
+              <div className="filter-bar">
+                <div className="search-input">
+                  <Search size={14} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
+                  <input
+                    type="search"
+                    placeholder="Cari kegiatan..."
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); }}
+                    aria-label="Cari kegiatan"
+                  />
+                </div>
+                <button className="filter-btn" aria-label="Filter">
+                  <SlidersHorizontal size={13} /> Filter
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Entry cards */}
-          {pagedEntries.length === 0 ? (
+          {/* ── Calendar View ─────────────────────── */}
+          {viewMode === 'calendar' ? (
             <div
-              className="flex flex-col items-center justify-center py-16 text-center rounded-2xl"
-              style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
+              className="rounded-2xl p-5"
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
             >
-              <div className="text-3xl mb-3">📂</div>
-              <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {searchQuery ? 'Tidak ada kegiatan ditemukan' : 'Belum ada kegiatan'}
-              </p>
+              <CalendarPreview
+                bulan={upload.bulan}
+                tahun={upload.tahun}
+                entries={entries}
+              />
             </div>
           ) : (
-            <div className="space-y-3 card-list">
-              {pagedEntries.map((entry, i) => (
-                <EntryCard key={entry.id} entry={entry} index={i} />
-              ))}
-            </div>
+            /* ── List View ─────────────────────────── */
+            pagedEntries.length === 0 ? (
+              <div
+                className="flex flex-col items-center justify-center py-16 text-center rounded-2xl"
+                style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
+              >
+                <div className="text-3xl mb-3">📂</div>
+                <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+                  {searchQuery ? 'Tidak ada kegiatan ditemukan' : 'Belum ada kegiatan'}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 card-list">
+                {pagedEntries.map((entry, i) => (
+                  <EntryCard key={entry.id} entry={entry} index={i} />
+                ))}
+              </div>
+            )
           )}
 
         </div>
