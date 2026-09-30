@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { isValidUrl, isGoogleDriveLink } from '@/lib/utils';
-import { ExternalLink, FileText, Maximize2, RotateCw, AlertCircle } from 'lucide-react';
+import { ExternalLink, FileText, Maximize2, RotateCw } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface DataDukungLinkProps {
@@ -131,14 +131,6 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
                 allow="autoplay"
                 title="Google Drive Preview"
               />
-            </div>
-            <div className="px-4 py-2.5 bg-amber-50/80 dark:bg-amber-950/30 border-t border-amber-200/80 dark:border-amber-800/40 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-300">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
-              <div className="flex-1 leading-relaxed">
-                <span>
-                  Jika muncul <strong>&quot;Anda memerlukan akses&quot;</strong>: Di Google Drive, pastikan <strong>Akses Umum (General Access)</strong> diatur ke <strong>&quot;Siapa saja yang memiliki link&quot;</strong> (bukan Dibatasi/Restricted), lalu klik <strong>Muat Ulang</strong> di atas. Jika link berada di akun lain (misal akun BPS), gunakan <strong>Buka di Tab Baru</strong>.
-                </span>
-              </div>
             </div>
           </DialogContent>
         </Dialog>
