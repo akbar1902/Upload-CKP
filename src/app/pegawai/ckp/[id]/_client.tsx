@@ -118,34 +118,115 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
   return (
     <div className={`activity-card ${entry.catatan_koreksi ? '!border-amber-400 !bg-amber-50' : ''}`} aria-expanded={expanded}>
       {/* ── Main row ─────────────────────────────── */}
-      <div className="flex items-start gap-4 p-5">
+      <div className="flex items-start gap-4 p-3.5 sm:p-5">
 
-        {/* Date block */}
+        {/* Date block (Desktop / tablet only) */}
         <div className="hidden sm:flex flex-col items-center justify-center rounded-xl w-16 h-16 flex-shrink-0 text-center shadow-sm"
              style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
           <span className="text-xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>{day}</span>
           <span className="text-[10px] font-semibold uppercase mt-1 tracking-widest" style={{ color: 'var(--text-secondary)' }}>{monthAbbr}</span>
         </div>
 
-        {/* Content */}
-        <div className="flex flex-col flex-1 min-w-0 justify-center">
-          <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-x-4 gap-y-2 mb-2">
-            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
+        {/* ─── Mobile Compact Layout (< md screen) ─── */}
+        <div className="flex flex-col flex-1 min-w-0 md:hidden space-y-2">
+          {/* Baris 1: Rencana Kinerja (Chip) + Tanggal & Expand Toggle */}
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <span className="inline-block text-[11px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md border border-teal-200/60 dark:border-teal-800/60 truncate max-w-full" title={entry.rencana_kinerja || ''}>
+                {entry.rencana_kinerja || 'Tanpa RK'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                {formatDate(entry.tanggal_mulai)}
+                {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
+                  <>–{formatDate(entry.tanggal_selesai)}</>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setExpanded(e => !e)}
+                className="p-1 rounded text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
+              >
+                {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Baris 2: Kegiatan Utama & Capaian */}
+          <div>
+            <h4 className="text-[13px] font-bold text-slate-900 dark:text-slate-100 leading-snug">
+              {entry.kegiatan || '—'}
+            </h4>
+            {entry.capaian && (
+              <p className="text-[12px] text-slate-600 dark:text-slate-300 leading-snug mt-0.5">
+                <span className="text-slate-400 dark:text-slate-500 font-medium">Capaian: </span>
+                {entry.capaian}
+              </p>
+            )}
+            {entry.jam_mulai && (
+              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Waktu: {formatTime(entry.jam_mulai)}–{formatTime(entry.jam_selesai)}
+              </p>
+            )}
+          </div>
+
+          {/* Baris 3: Footer Status (Bukti Dukung, Nilai SKP & Progres) */}
+          <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[11px]">
+            {/* Bukti Dukung */}
+            <div className="flex items-center gap-1">
+              {entry.data_dukung ? (
+                <DataDukungLink value={entry.data_dukung} />
+              ) : (
+                <span className="text-[11px] text-slate-400">Bukti: -</span>
+              )}
+            </div>
+
+            {/* Nilai SKP & Progres */}
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 dark:text-slate-400 font-medium">
+                SKP: <strong className={entry.nilai !== null ? 'text-emerald-600 font-bold' : 'text-slate-400 font-medium'}>
+                  {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
+                </strong>
+              </span>
+              <span className="px-1.5 py-0.2 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                {pct}%
+              </span>
+            </div>
+          </div>
+
+          {/* Catatan Koreksi jika ada */}
+          {entry.catatan_koreksi && (
+            <div className="p-2.5 rounded-lg border border-amber-200 bg-amber-50 text-amber-900 text-xs flex items-start gap-2">
+              <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-600" />
+              <div>
+                <span className="font-semibold block text-[11px] text-amber-800">Catatan Perbaikan:</span>
+                {entry.catatan_koreksi}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ─── Desktop Content (>= md screen - TETAP SAMA PERSIS SEPERTI SEBELUMNYA) ─── */}
+        <div className="hidden md:flex flex-col flex-1 min-w-0 justify-center">
+          <div className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 mb-2">
+            <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
             <p className="text-[14px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
               {entry.rencana_kinerja || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
             <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
               {entry.kegiatan || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5" style={{ color: 'var(--text-secondary)' }}>Capaian</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5" style={{ color: 'var(--text-secondary)' }}>Capaian</p>
             <p className="text-[13px] whitespace-pre-wrap" style={{ color: 'var(--text-primary)' }}>
               {entry.capaian || '—'}
             </p>
 
-            <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5 mt-1" style={{ color: 'var(--text-secondary)' }}>Nilai SKP</p>
+            <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5 mt-1" style={{ color: 'var(--text-secondary)' }}>Nilai SKP</p>
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[14px] font-bold" style={{ color: entry.nilai !== null ? '#059669' : '#94A3B8' }}>
                 {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
@@ -154,8 +235,8 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
 
             {entry.catatan_koreksi && (
               <>
-                <p className="text-[12px] font-semibold uppercase tracking-wider md:pt-0.5 mt-2" style={{ color: 'var(--amber-700)' }}>Catatan Perbaikan</p>
-                <div className="mt-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[13px] flex items-start gap-2 col-span-1 md:col-span-2">
+                <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5 mt-2" style={{ color: 'var(--amber-700)' }}>Catatan Perbaikan</p>
+                <div className="mt-2 p-3 rounded-lg border border-amber-200 bg-amber-50 text-amber-800 text-[13px] flex items-start gap-2 col-span-2">
                   <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-600" />
                   <div>
                     {entry.catatan_koreksi}
@@ -164,28 +245,10 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               </>
             )}
           </div>
-
-          {/* Mobile date */}
-          <p className="text-[11px] mt-2 sm:hidden font-medium" style={{ color: 'var(--text-secondary)' }}>
-            {formatDate(entry.tanggal_mulai)}
-            {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
-              <> - {formatDate(entry.tanggal_selesai)}</>
-            )}
-            {entry.jam_mulai && ` · ${formatTime(entry.jam_mulai)}–${formatTime(entry.jam_selesai)}`}
-          </p>
-
-          {/* Mobile Bukti Dukung */}
-          {entry.data_dukung && (
-            <div className="md:hidden mt-3 pt-3" style={{ borderTop: '1px solid var(--border-soft)' }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider mb-1"
-                style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
-              <DataDukungLink value={entry.data_dukung} />
-            </div>
-          )}
         </div>
 
-        {/* Progress */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0 hidden md:flex" style={{ minWidth: 120 }}>
+        {/* Progress (Desktop only) */}
+        <div className="flex-col items-end gap-2 flex-shrink-0 hidden md:flex" style={{ minWidth: 120 }}>
           <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
             Progres
           </p>
@@ -206,18 +269,16 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           </div>
         </div>
 
-        {/* Bukti Dukung + expand */}
-        <div className="flex flex-col items-end gap-2 flex-shrink-0">
-          {/* Bukti dukung (Desktop only) */}
+        {/* Bukti Dukung + expand (Desktop only) */}
+        <div className="hidden md:flex flex-col items-end gap-2 flex-shrink-0">
           {entry.data_dukung && (
-            <div className="text-right hidden md:block">
+            <div className="text-right">
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
                 style={{ color: 'var(--text-secondary)' }}>Bukti Dukung</p>
               <DataDukungLink value={entry.data_dukung} />
             </div>
           )}
 
-          {/* Expand toggle */}
           <button
             onClick={() => setExpanded(e => !e)}
             className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
