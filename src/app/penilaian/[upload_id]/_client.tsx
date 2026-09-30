@@ -128,54 +128,63 @@ function RencanaKinerjaGroup({
 
   return (
     <div className="activity-card mb-4" aria-expanded={expanded}>
-      {/* Header */}
-      <div className="p-4 sm:p-5 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-        <div className="flex-1 min-w-0">
+      {/* Header — klik area kiri (nama RK) untuk expand/collapse */}
+      <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        {/* Left: nama RK — seluruhnya bisa diklik */}
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 min-w-0 text-left p-4 sm:p-5 cursor-pointer"
+          aria-label={expanded ? 'Tutup detail kegiatan' : 'Lihat detail kegiatan'}
+        >
           <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
           <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{rkName || 'Tidak ada nama Rencana Kinerja'}</h4>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} Kegiatan</span>
             {dinilaiOleh && <span className="badge-pill bg-green-50 text-green-700 text-[10px]">Telah dinilai</span>}
           </div>
-        </div>
+        </button>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        {/* Right: nilai + chevron — tidak ikut trigger expand pada input */}
+        <div className="flex items-center gap-3 pr-4 sm:pr-5 pb-4 sm:pb-0 w-full sm:w-auto justify-end sm:justify-start">
           <div className="flex flex-col items-end">
-             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
-             {canReview ? (
-                <div className="relative w-24">
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={score}
-                    onChange={e => setScore(e.target.value)}
-                    onBlur={handleBlur}
-                    onKeyDown={handleKeyDown}
-                    disabled={saving}
-                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
-                    placeholder="-"
-                    title="Tekan Enter atau klik di luar untuk menyimpan"
-                  />
-                  {saving && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <span className="text-[16px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
-                  {hasScore ? defaultScore : '-'}
-                </span>
-              )}
+            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
+            {canReview ? (
+              <div className="relative w-24">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={score}
+                  onChange={e => setScore(e.target.value)}
+                  onBlur={handleBlur}
+                  onKeyDown={handleKeyDown}
+                  disabled={saving}
+                  className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                  placeholder="-"
+                  title="Tekan Enter atau klik di luar untuk menyimpan"
+                />
+                {saving && (
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                    <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <span className="text-[16px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
+                {hasScore ? defaultScore : '-'}
+              </span>
+            )}
           </div>
-          
+
           <button
+            type="button"
             onClick={() => setExpanded(!expanded)}
-            className="p-2 rounded-lg transition-colors ml-2 self-end"
+            className="p-2 rounded-lg transition-colors"
             style={{ color: 'var(--text-secondary)' }}
             onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            aria-label={expanded ? 'Tutup' : 'Buka'}
           >
             {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </button>
