@@ -420,38 +420,46 @@ export default function UploadPage() {
            rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
         }
         let matchedRK = '';
-        
-        const normRawRK = normalize(rawRK);
-        if (localSubRkMap.has(normRawRK)) {
-            matchedRK = localSubRkMap.get(normRawRK)!;
-            if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-               entry.kegiatan = rawRK;
-            }
+
+        // ── PRIO 0: Jika Phase 1 (getUnmatched) sudah me-resolve RK ini ke nama
+        //    master yang valid, langsung pakai tanpa melewati fuzzy match lagi.
+        //    Ini mencegah nama master RK yang sudah benar di-fuzz ke RK lain.
+        const alreadyMaster = masterNames.find(m => m.toLowerCase() === rawRK.toLowerCase());
+        if (alreadyMaster) {
+          matchedRK = alreadyMaster;
         } else {
-            const kegiatanMatch = fuzzyMatchKegiatan(rawRK, mKegiatan);
-            if (kegiatanMatch) {
-                matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-                if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                   entry.kegiatan = rawRK;
-                }
-            } else {
-                matchedRK = fuzzyMatchRK(rawRK, masterNames);
-                if (!masterNames.some(m => m.toLowerCase() === matchedRK.toLowerCase()) && rkTeamMapping[matchedRK]?.rk_id) {
-                   const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
-                   if (mappedRKObj) {
-                      if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                         entry.kegiatan = rawRK;
-                      }
-                      matchedRK = mappedRKObj.rencana_kinerja;
-                   }
-                }
-            }
+          const normRawRK = normalize(rawRK);
+          if (localSubRkMap.has(normRawRK)) {
+              matchedRK = localSubRkMap.get(normRawRK)!;
+              if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                 entry.kegiatan = rawRK;
+              }
+          } else {
+              const kegiatanMatch = fuzzyMatchKegiatan(rawRK, mKegiatan);
+              if (kegiatanMatch) {
+                  matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+                  if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                     entry.kegiatan = rawRK;
+                  }
+              } else {
+                  matchedRK = fuzzyMatchRK(rawRK, masterNames);
+                  if (!masterNames.some(m => m.toLowerCase() === matchedRK.toLowerCase()) && rkTeamMapping[matchedRK]?.rk_id) {
+                     const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
+                     if (mappedRKObj) {
+                        if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
+                           entry.kegiatan = rawRK;
+                        }
+                        matchedRK = mappedRKObj.rencana_kinerja;
+                     }
+                  }
+              }
+          }
         }
-        
+
         if (matchedRK && matchedRK.trim() !== '') {
           distinctMatchedRKs.add(matchedRK);
         }
-        
+
         return { entry, matchedRK };
       });
 
