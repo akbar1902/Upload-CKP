@@ -506,7 +506,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className={`p-5 lg:p-8 ${viewMode === 'calendar' ? 'max-w-7xl' : 'max-w-5xl'} mx-auto space-y-6 animate-fade-in transition-all duration-300`}>
         <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
@@ -616,7 +616,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
             <div>
               <div className="flex items-center gap-3">
-                <h3 className="text-[20px] font-bold" style={{ color: 'var(--text-primary)' }}>Daftar Kegiatan</h3>
+                <h3 className="text-[20px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {viewMode === 'calendar' ? 'Kalender Kegiatan' : 'Daftar Kegiatan'}
+                </h3>
                 {/* View mode toggle */}
                 <div
                   className="flex items-center rounded-lg overflow-hidden"

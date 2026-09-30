@@ -41,72 +41,145 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
 
   const { period, months, totalWorkDays, filledWorkDays, emptyWorkDays } = coverage;
 
+  // Default to the month with the most workdays (e.g. September), or 'all' if only 1 month
+  const defaultMonthKey = useMemo(() => {
+    if (!months || months.length === 0) return 'all';
+    if (months.length === 1) return `${months[0].year}-${months[0].month}`;
+    const sorted = [...months].sort((a, b) => b.workDaysInPeriod - a.workDaysInPeriod);
+    return sorted[0] ? `${sorted[0].year}-${sorted[0].month}` : 'all';
+  }, [months]);
+
+  const [selectedMonthKey, setSelectedMonthKey] = useState<string>(defaultMonthKey);
+
+  // Sync if coverage changes
+  React.useEffect(() => {
+    if (selectedMonthKey !== 'all' && !months.some(m => `${m.year}-${m.month}` === selectedMonthKey)) {
+      setSelectedMonthKey(defaultMonthKey);
+    }
+  }, [months, defaultMonthKey, selectedMonthKey]);
+
+  const displayedMonths = useMemo(() => {
+    if (selectedMonthKey === 'all' || months.length <= 1) {
+      return months;
+    }
+    const filtered = months.filter(m => `${m.year}-${m.month}` === selectedMonthKey);
+    return filtered.length > 0 ? filtered : months;
+  }, [months, selectedMonthKey]);
+
   return (
-    <div className="space-y-4">
-      {/* ─── Header Info Ringkas & Kalem ──────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-            Kalender Hari Kerja
-          </span>
-          <span className="text-xs text-slate-400 dark:text-slate-500">
-            ({period.periodLabel})
-          </span>
+    <div className="space-y-5">
+      {/* ─── Header Info & Month Tabs ──────────────────────────── */}
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200/60 dark:border-teal-800/60 flex items-center justify-center text-teal-600 dark:text-teal-400 shadow-2xs">
+            <CalendarIcon className="w-4 h-4" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                Kalender Hari Kerja
+              </span>
+              <span className="text-xs text-slate-400 dark:text-slate-500 font-normal">
+                ({period.periodLabel})
+              </span>
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+              <span>{filledWorkDays} dari {totalWorkDays} hari kerja terisi</span>
+              <span>•</span>
+              {emptyWorkDays.length > 0 ? (
+                <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                  {emptyWorkDays.length} belum terisi
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  100% Lengkap
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">
-            {filledWorkDays} dari {totalWorkDays} hari kerja terisi
-          </span>
-          {emptyWorkDays.length > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px] bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-              {emptyWorkDays.length} belum terisi
-            </span>
-          ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              Lengkap
-            </span>
-          )}
-        </div>
+        {/* ── Month Selector Tabs (jika terdapat lintas bulan) ── */}
+        {months.length > 1 && (
+          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/70 rounded-xl border border-slate-200/80 dark:border-slate-700/60 self-start md:self-auto">
+            {months.map((m) => {
+              const key = `${m.year}-${m.month}`;
+              const isActive = selectedMonthKey === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedMonthKey(key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-xs border border-slate-200/60 dark:border-slate-700'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <span>{m.monthName} {m.year}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                    isActive 
+                      ? 'bg-teal-50 dark:bg-teal-950/80 text-teal-700 dark:text-teal-300 border border-teal-200/60 dark:border-teal-800' 
+                      : 'bg-slate-200/60 dark:bg-slate-700 text-slate-500'
+                  }`}>
+                    {m.filledWorkDaysInPeriod}/{m.workDaysInPeriod}
+                  </span>
+                </button>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setSelectedMonthKey('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                selectedMonthKey === 'all'
+                  ? 'bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 shadow-xs border border-slate-200/60 dark:border-slate-700'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              }`}
+            >
+              Semua Bulan
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* ─── Grid Kalender Per Bulan ───────────────────────────────── */}
-      <div className={`grid gap-5 ${months.length > 1 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
-        {months.map((m) => (
+      {/* ─── Tampilan Kalender (Full-Width per Bulan, Lapang & Elegan) ─── */}
+      <div className="space-y-6">
+        {displayedMonths.map((m) => (
           <div
             key={`${m.year}-${m.month}`}
-            className="rounded-xl border border-slate-200/90 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/60 shadow-xs"
+            className="rounded-2xl border border-slate-200/90 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/70 shadow-xs"
           >
             {/* Header Bulan */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900/80">
-              <div>
-                <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+            <div className="px-5 py-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/80 dark:bg-slate-900/90">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-base text-slate-800 dark:text-slate-100">
                   {m.monthName} {m.year}
                 </span>
-                <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
-                  ({m.periodSubtitle.replace('Periode: ', '')})
+                <span className="text-xs text-slate-400 dark:text-slate-500 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50">
+                  {m.periodSubtitle.replace('Periode: ', '')}
                 </span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                {m.filledWorkDaysInPeriod}/{m.workDaysInPeriod} hari kerja
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                  {m.filledWorkDaysInPeriod} dari {m.workDaysInPeriod} hari kerja terisi
+                </span>
+              </div>
             </div>
 
             {/* Header Hari (Sen - Min) */}
-            <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800/80 text-center py-2 bg-slate-50/30 dark:bg-slate-900/40">
+            <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800/80 text-center py-2.5 bg-slate-50/40 dark:bg-slate-900/50 font-semibold text-xs">
               {WEEK_HEADER.map((dayName, idx) => {
                 const isWeekendCol = idx >= 5;
                 return (
                   <span
                     key={dayName}
-                    className={`text-[11px] font-medium ${
+                    className={
                       isWeekendCol
                         ? 'text-slate-400 dark:text-slate-500'
-                        : 'text-slate-600 dark:text-slate-300'
-                    }`}
+                        : 'text-slate-700 dark:text-slate-200'
+                    }
                   >
                     {dayName}
                   </span>
@@ -114,15 +187,15 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
               })}
             </div>
 
-            {/* Kotak Tanggal */}
-            <div className="p-2 grid grid-cols-7 gap-1.5">
+            {/* Kotak Tanggal Lapang & Modern */}
+            <div className="p-3 grid grid-cols-7 gap-2">
               {m.calendarWeeks.flat().map((day, idx) => {
                 // Di Luar Periode
                 if (!day.isInPeriod) {
                   return (
                     <div
                       key={idx}
-                      className="min-h-[68px] rounded-lg p-1.5 flex flex-col justify-start opacity-25 select-none bg-slate-50/40 dark:bg-slate-900/20"
+                      className="min-h-[92px] sm:min-h-[105px] rounded-xl p-2 flex flex-col justify-start opacity-30 select-none bg-slate-50/30 dark:bg-slate-900/20 border border-slate-100/40 dark:border-slate-800/30"
                     >
                       <span className="text-xs text-slate-400 dark:text-slate-600 font-medium">
                         {day.dayOfMonth}
@@ -138,29 +211,40 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className={`min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-colors border ${
+                      className={`min-h-[92px] sm:min-h-[105px] rounded-xl p-2.5 text-left flex flex-col justify-between transition-all border cursor-pointer ${
                         day.hasActivities
-                          ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
-                          : 'bg-slate-50/40 dark:bg-slate-900/30 border-dashed border-slate-200/70 dark:border-slate-800/60'
+                          ? 'bg-blue-50/40 dark:bg-blue-950/20 border-blue-200/80 dark:border-blue-800/50 hover:border-blue-300 shadow-2xs'
+                          : 'bg-slate-50/50 dark:bg-slate-900/40 border-dashed border-slate-200/80 dark:border-slate-800 hover:bg-slate-50'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                        <span className="text-xs sm:text-sm font-semibold text-slate-400 dark:text-slate-500">
                           {day.dayOfMonth}
                         </span>
-                        {day.hasActivities && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                        {day.hasActivities ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            {day.activities.length} keg
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-300 dark:text-slate-600 font-medium">
+                            Libur
+                          </span>
                         )}
                       </div>
 
-                      {day.hasActivities ? (
-                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate">
-                          {day.activities.length} keg (weekend)
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-300 dark:text-slate-600">
-                          Libur
-                        </span>
+                      {day.hasActivities && (
+                        <div className="space-y-1 mt-1.5">
+                          {day.activities.slice(0, 2).map((act, i) => (
+                            <div
+                              key={i}
+                              className="text-[11px] leading-tight text-blue-800 dark:text-blue-200 bg-white/80 dark:bg-blue-900/40 px-1.5 py-1 rounded border border-blue-200/60 dark:border-blue-800/40 truncate font-normal"
+                              title={String(act.kegiatan || '')}
+                            >
+                              {String(act.kegiatan || '—')}
+                            </div>
+                          ))}
+                        </div>
                       )}
                     </button>
                   );
@@ -173,24 +257,27 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer shadow-2xs"
+                      className="min-h-[92px] sm:min-h-[105px] rounded-xl p-2.5 text-left flex flex-col justify-between transition-all bg-amber-50/50 dark:bg-amber-950/20 border border-amber-300/90 dark:border-amber-700/70 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer shadow-2xs group"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                        <span className="text-xs sm:text-sm font-bold text-amber-900 dark:text-amber-200">
                           {day.dayOfMonth}
                         </span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                      </div>
-
-                      <div className="space-y-0.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.2 rounded bg-amber-100/90 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300/80 dark:bg-amber-900/50 dark:text-amber-300 dark:border-amber-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
                           Kosong
                         </span>
-                        {day.holidayName ? (
-                          <span className="block text-[9px] text-amber-700 dark:text-amber-400 truncate" title={day.holidayName}>
-                            {day.holidayName}
+                      </div>
+
+                      <div className="mt-1 space-y-1">
+                        <span className="block text-[11px] text-amber-700/90 dark:text-amber-400 font-medium">
+                          Belum ada entri
+                        </span>
+                        {day.holidayName && (
+                          <span className="block text-[10px] font-semibold text-rose-700 dark:text-rose-400 truncate" title={day.holidayName}>
+                            ★ {day.holidayName}
                           </span>
-                        ) : null}
+                        )}
                       </div>
                     </button>
                   );
@@ -202,23 +289,32 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                     key={idx}
                     type="button"
                     onClick={() => setSelectedDay(day)}
-                    className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-600 hover:shadow-2xs cursor-pointer group"
+                    className="min-h-[92px] sm:min-h-[105px] rounded-xl p-2.5 text-left flex flex-col justify-between transition-all bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-600 hover:shadow-xs cursor-pointer group"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-400">
+                      <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-teal-700 dark:group-hover:text-teal-400">
                         {day.dayOfMonth}
                       </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400" />
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200/80 dark:bg-teal-950/60 dark:text-teal-300 dark:border-teal-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400" />
+                        {day.activities.length} keg
+                      </span>
                     </div>
 
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] text-teal-700 dark:text-teal-400 font-medium block">
-                        {day.activities.length} kegiatan
-                      </span>
-                      {day.activities[0]?.kegiatan && (
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-normal leading-tight">
-                          {String(day.activities[0].kegiatan)}
-                        </p>
+                    <div className="space-y-1 mt-1.5">
+                      {day.activities.slice(0, 2).map((act, i) => (
+                        <div
+                          key={i}
+                          className="text-[11px] leading-tight text-slate-700 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/80 group-hover:bg-teal-50/40 dark:group-hover:bg-slate-800 px-1.5 py-1 rounded border border-slate-200/60 dark:border-slate-700/60 truncate transition-colors font-normal"
+                          title={String(act.kegiatan || '')}
+                        >
+                          {String(act.kegiatan || '—')}
+                        </div>
+                      ))}
+                      {day.activities.length > 2 && (
+                        <span className="text-[10px] text-teal-600 dark:text-teal-400 font-semibold pl-0.5 block">
+                          +{day.activities.length - 2} kegiatan lainnya
+                        </span>
                       )}
                     </div>
                   </button>

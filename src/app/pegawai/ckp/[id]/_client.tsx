@@ -512,7 +512,7 @@ export default function CKPDetailPage() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className={`p-5 lg:p-8 ${viewMode === 'calendar' ? 'max-w-7xl' : 'max-w-6xl'} mx-auto space-y-6 animate-fade-in transition-all duration-300`}>
 
         {/* ── Back ──────────────────────────────────── */}
         <Link
@@ -638,7 +638,7 @@ export default function CKPDetailPage() {
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
             <div className="flex items-center gap-3">
               <h3 className="text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                Daftar Kegiatan
+                {viewMode === 'calendar' ? 'Kalender Kegiatan' : 'Daftar Kegiatan'}
               </h3>
               {/* ── View mode toggle ── */}
               <div
