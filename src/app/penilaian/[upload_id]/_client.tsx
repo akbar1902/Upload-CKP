@@ -339,10 +339,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       ]);
 
       const uploadMonthMap = new Map(targetUploads.map((u: any) => [u.id, u.bulan]));
-      let entriesData = ((entriesRes.data as CKPEntry[]) || []).map((e: any) => ({
+      const rawEntries = ((entriesRes.data as CKPEntry[]) || []).map((e: any) => ({
         ...e,
         bulan: uploadMonthMap.get(e.upload_id) ?? uploadData.bulan,
       }));
+      let entriesData = rawEntries;
       const employeeData = employeeRes.data as User;
       const reviewerRole = currentUser?.role;
 
@@ -396,6 +397,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         upload: finalUpload,
         employee: employeeData,
         entries: entriesData,
+        calendarEntries: rawEntries,
         approvals: (approvalsRes.data || []).map((a: any) => ({ ...a })) as Approval[],
         masterRks: masterRkRes.data || [],
         targetUploadIds,
@@ -412,6 +414,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const upload = data?.upload || null;
   const employee = data?.employee || null;
   const entries: CKPEntry[] = data?.entries || [];
+  const calendarEntries: CKPEntry[] = (data as any)?.calendarEntries || entries;
   const approvals: Approval[] = data?.approvals || [];
   const masterRks: any[] = data?.masterRks || [];
 
@@ -833,7 +836,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               <CalendarPreview
                 bulan={upload.bulan}
                 tahun={upload.tahun}
-                entries={entries}
+                entries={calendarEntries}
               />
             </div>
           ) : (

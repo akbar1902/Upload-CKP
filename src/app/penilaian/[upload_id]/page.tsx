@@ -81,10 +81,11 @@ export default async function PenilaianCKPDetailPage({
       ]);
 
       const uploadMonthMap = new Map(targetUploads.map(u => [u.id, u.bulan]));
-      let entriesData = ((entriesRes.data as CKPEntry[]) ?? []).map(e => ({
+      const rawEntries = ((entriesRes.data as CKPEntry[]) ?? []).map(e => ({
         ...e,
         bulan: uploadMonthMap.get(e.upload_id) ?? uploadData.bulan,
       }));
+      let entriesData = rawEntries;
       const employeeData = employeeRes.data as User;
       const currentUserData = currentUserRes.data;
 
@@ -138,6 +139,7 @@ export default async function PenilaianCKPDetailPage({
         upload: finalUpload,
         employee: employeeData,
         entries: entriesData,
+        calendarEntries: rawEntries,
         approvals: (approvalsRes.data ?? []).map((a: Record<string, unknown>) => ({
           ...a,
           reviewer: a.reviewer as User | undefined,
