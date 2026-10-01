@@ -216,13 +216,26 @@ export async function getAllEntriesForPeriodAction(bulan: number, tahun: number)
 
     if (latestUploadIds.length === 0) return {};
 
-    const { data: entries, error: entriesErr } = await supabaseAdmin
-      .from('ckp_entries')
-      .select('*')
-      .in('upload_id', latestUploadIds)
-      .order('row_number', { ascending: true });
+    let entries: any[] = [];
+    const batchSize = 50;
+    for (let i = 0; i < latestUploadIds.length; i += batchSize) {
+      const batchIds = latestUploadIds.slice(i, i + batchSize);
+      let from = 0;
+      const limit = 999;
+      while (true) {
+        const { data: chunk, error: entriesErr } = await supabaseAdmin
+          .from('ckp_entries')
+          .select('*')
+          .in('upload_id', batchIds)
+          .range(from, from + limit)
+          .order('row_number', { ascending: true });
 
-    if (entriesErr) throw entriesErr;
+        if (entriesErr) throw entriesErr;
+        if (chunk) entries.push(...chunk);
+        if (!chunk || chunk.length <= limit) break;
+        from += limit + 1;
+      }
+    }
 
     const entriesByUploadId: Record<string, any[]> = {};
     (entries || []).forEach((entry: any) => {

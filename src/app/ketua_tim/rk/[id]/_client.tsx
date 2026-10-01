@@ -131,14 +131,18 @@ function PegawaiRKGroup({
     };
     const months = triwulanMap[String(bulan)] || [];
     return months.map(m => {
-      const monthUpload = uploads.find((u: any) => u.bulan === m);
-      const monthEntries = monthUpload ? entries.filter(e => e.upload_id === monthUpload.id) : [];
-      const scoredEntry = monthEntries.find(e => e.nilai !== null);
+      const monthUploads = uploads.filter((u: any) => u.bulan === m);
+      const monthUploadIds = new Set(monthUploads.map(u => u.id));
+      const monthEntries = entries.filter(e => monthUploadIds.has(e.upload_id));
+      const scoredEntries = monthEntries.filter(e => e.nilai !== null);
+      const avgScore = scoredEntries.length > 0
+        ? Math.round(scoredEntries.reduce((s, e) => s + e.nilai!, 0) / scoredEntries.length)
+        : null;
       return {
         bulan: m,
         bulanNama: getBulanName(m),
         count: monthEntries.length,
-        score: scoredEntry?.nilai ?? null,
+        score: avgScore,
       };
     }).filter(m => m.count > 0);
   }, [isTriwulan, bulan, uploads, entries]);
@@ -367,14 +371,27 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         return { rk: mappingData, entries: [], uploads: [] };
       }
 
-      // 3. Fetch entries matching this RK
-      const { data: entriesData, error: entriesError } = await supabase
-        .from('ckp_entries')
-        .select('*')
-        .in('upload_id', uploadIds)
-        .eq('rencana_kinerja', rkName);
-        
-      if (entriesError) throw entriesError;
+      // 3. Fetch entries matching this RK (chunked to bypass 1000 row limit and avoid URL length overflow)
+      let entriesData: any[] = [];
+      const batchSize = 50;
+      for (let i = 0; i < uploadIds.length; i += batchSize) {
+        const batchIds = uploadIds.slice(i, i + batchSize);
+        let from = 0;
+        const limit = 999;
+        while (true) {
+          const { data: chunk, error: entriesError } = await supabase
+            .from('ckp_entries')
+            .select('*')
+            .in('upload_id', batchIds)
+            .eq('rencana_kinerja', rkName)
+            .range(from, from + limit);
+
+          if (entriesError) throw entriesError;
+          if (chunk) entriesData.push(...chunk);
+          if (!chunk || chunk.length <= limit) break;
+          from += limit + 1;
+        }
+      }
       // Find ALL ketua_tim_ids for this rencana_kinerja across all teams
       const { data: allMappingsForRK } = await supabase
         .from('rk_ketua_tim_mapping')
@@ -406,9 +423,12 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         user: u.user as User | undefined,
       })) as (CKPUpload & { user?: User })[];
 
+      const finalUploadIds = new Set(newUploads.map(u => u.id));
+      const finalEntries = (entriesData || []).filter(e => finalUploadIds.has(e.upload_id));
+
       return {
         rk: mappingData,
-        entries: entriesData || [],
+        entries: finalEntries,
         uploads: newUploads,
       };
     },
@@ -507,7 +527,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
        userEntries.sort((a, b) => {
           const aUpload = group.uploads.find(u => u.id === a.upload_id);
           const bUpload = group.uploads.find(u => u.id === b.upload_id);
-          return (aUpload?.bulan || 0) - (bUpload?.bulan || 0);
+          const monthDiff = (aUpload?.bulan || 0) - (bUpload?.bulan || 0);
+          if (monthDiff !== 0) return monthDiff;
+          return (a.row_number || 0) - (b.row_number || 0);
        });
        
        if (!q) {
@@ -526,7 +548,17 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
        }
        
        return { ...group, entries: filteredEntries, matches: userMatches || filteredEntries.length > 0 };
-    }).filter(g => g.matches && g.entries.length > 0);
+    }).filter((g): g is NonNullable<typeof g> => !!g && g.matches && g.entries.length > 0);
+    
+    // Urutkan: yang belum dinilai ditaruh di atas, kemudian urutkan alfabetis
+    finalGroups.sort((a, b) => {
+       const aEvaluated = a.entries.length > 0 && a.entries.every(e => e.nilai !== null);
+       const bEvaluated = b.entries.length > 0 && b.entries.every(e => e.nilai !== null);
+       if (aEvaluated !== bEvaluated) {
+          return aEvaluated ? 1 : -1; // belum dinilai (false) di posisi pertama
+       }
+       return (a.user.full_name || '').localeCompare(b.user.full_name || '', 'id');
+    });
     
     return { 
        filteredUserGroups: finalGroups, 

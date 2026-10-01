@@ -79,12 +79,25 @@ export default function PimpinanQuickApprovalClient() {
       // We only need to check if there are any unscored entries per upload.
       // But because entries are grouped by rencana_kinerja, we can just fetch distinct rk with their nilais.
       // Fetching all entries' nilais for these uploads is safer than a huge join if done separately.
-      const { data: entriesData, error: entriesErr } = await supabase
-        .from('ckp_entries')
-        .select('upload_id, rencana_kinerja, nilai')
-        .in('upload_id', uploadIds);
-        
-      if (entriesErr) throw new Error(entriesErr.message);
+      let entriesData: any[] = [];
+      const batchSize = 50;
+      for (let i = 0; i < uploadIds.length; i += batchSize) {
+        const batchIds = uploadIds.slice(i, i + batchSize);
+        let from = 0;
+        const limit = 999;
+        while (true) {
+          const { data: chunk, error: entriesErr } = await supabase
+            .from('ckp_entries')
+            .select('upload_id, rencana_kinerja, nilai')
+            .in('upload_id', batchIds)
+            .range(from, from + limit);
+
+          if (entriesErr) throw new Error(entriesErr.message);
+          if (chunk) entriesData.push(...chunk);
+          if (!chunk || chunk.length <= limit) break;
+          from += limit + 1;
+        }
+      }
 
       const entriesByUpload = new Map<string, any[]>();
       if (entriesData) {
