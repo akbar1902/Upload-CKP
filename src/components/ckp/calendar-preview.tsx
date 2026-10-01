@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/dialog';
 
 interface CalendarPreviewProps {
-  bulan: number;
+  bulan: number | string;
   tahun: number;
   entries: Partial<CKPEntry>[];
 }
@@ -33,16 +33,55 @@ interface CalendarPreviewProps {
 const WEEK_HEADER = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
 export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps) {
+  const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
+  const triwulanMonths: Record<string, number[]> = {
+    'T1': [1, 2, 3],
+    'T2': [4, 5, 6],
+    'T3': [7, 8, 9],
+    'T4': [10, 11, 12],
+  };
+  const monthsInTriwulan = isTriwulan ? (triwulanMonths[bulan as string] || [1, 2, 3]) : [];
+  
+  const [selectedBulan, setSelectedBulan] = useState<number>(
+    isTriwulan ? monthsInTriwulan[monthsInTriwulan.length - 1] : Number(bulan)
+  );
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
 
+  const effectiveBulan = isTriwulan ? selectedBulan : Number(bulan);
+
   const coverage = useMemo(() => {
-    return calculateCalendarCoverage(bulan, tahun, entries);
-  }, [bulan, tahun, entries]);
+    return calculateCalendarCoverage(effectiveBulan, tahun, entries);
+  }, [effectiveBulan, tahun, entries]);
 
   const { period, months, totalWorkDays, filledWorkDays, emptyWorkDays } = coverage;
 
   return (
     <div className="space-y-4">
+      {/* ─── Triwulan Month Tabs (if Triwulan) ─── */}
+      {isTriwulan && (
+        <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+          <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Bulan:</span>
+          {monthsInTriwulan.map(m => {
+            const mName = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][m];
+            const isActive = selectedBulan === m;
+            return (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setSelectedBulan(m)}
+                className={`px-3 py-1 text-[12px] rounded-lg font-medium transition-all ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                {mName}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* ─── Header Info Ringkas & Kalem ──────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">

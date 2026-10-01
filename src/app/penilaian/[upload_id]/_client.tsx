@@ -66,7 +66,9 @@ function RencanaKinerjaGroup({
   canReview,
   onSaveScore,
   defaultScore,
-  onMoveEntryClick
+  onMoveEntryClick,
+  isTriwulan,
+  monthlyScores,
 }: {
   rkName: string;
   entries: CKPEntry[];
@@ -74,6 +76,8 @@ function RencanaKinerjaGroup({
   onSaveScore: (rk: string, score: number | null) => Promise<void>;
   defaultScore: number | null;
   onMoveEntryClick?: (entry: CKPEntry) => void;
+  isTriwulan?: boolean;
+  monthlyScores?: { bulan: number; bulanNama: string; score: number | null; count: number }[];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
@@ -121,9 +125,6 @@ function RencanaKinerjaGroup({
   };
 
   const hasScore = defaultScore !== null;
-
-  // The scorer's role info could be embedded in the UI if needed
-  // For now, if dinilai_oleh is set, it means it has been graded.
   const dinilaiOleh = entries[0]?.dinilai_oleh && entries[0]?.nilai !== null;
 
   return (
@@ -139,17 +140,28 @@ function RencanaKinerjaGroup({
         >
           <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
           <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{rkName || 'Tidak ada nama Rencana Kinerja'}</h4>
-          <div className="flex items-center gap-2 mt-2">
-            <span className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} Kegiatan</span>
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+              {entries.length} Kegiatan
+            </span>
             {dinilaiOleh && <span className="badge-pill bg-green-50 text-green-700 text-[10px]">Telah dinilai</span>}
           </div>
         </button>
 
-        {/* Right: nilai + chevron — tidak ikut trigger expand pada input */}
+        {/* Right: nilai + chevron */}
         <div className="flex items-center gap-3 pr-4 sm:pr-5 pb-4 sm:pb-0 w-full sm:w-auto justify-end sm:justify-start">
           <div className="flex flex-col items-end">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
-            {canReview ? (
+            {isTriwulan ? (
+              <div className="flex flex-col items-end">
+                <span className="text-[17px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
+                  {hasScore ? Math.round(defaultScore!) : '-'}
+                </span>
+                <span className="text-[10px] font-medium text-slate-400">
+                  Rata-rata triwulan
+                </span>
+              </div>
+            ) : canReview ? (
               <div className="relative w-24">
                 <input
                   type="number"
@@ -194,6 +206,22 @@ function RencanaKinerjaGroup({
       {/* Expanded details */}
       {expanded && (
         <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+          {isTriwulan && monthlyScores && monthlyScores.length > 0 && (
+            <div className="flex items-stretch gap-2.5">
+              {monthlyScores.map(m => (
+                <div key={m.bulan} className="flex-1 flex items-center gap-3 py-2.5 px-3.5 rounded-xl transition-shadow hover:shadow-md" style={{ background: 'var(--primary-soft)', borderLeft: '3px solid var(--primary)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{m.bulanNama}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{m.count} kegiatan</p>
+                  </div>
+                  <span className="text-[18px] font-extrabold leading-none" style={{ color: m.score !== null ? 'var(--primary)' : 'var(--text-tertiary)' }}>
+                    {m.score !== null ? m.score : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <h5 className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Daftar Kegiatan</h5>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {entries.map((entry) => (
@@ -204,8 +232,11 @@ function RencanaKinerjaGroup({
                     <p className="text-[12px] mt-1 whitespace-pre-wrap" style={{ color: 'var(--text-secondary)' }}>{entry.capaian || '—'}</p>
                   </div>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>Baris #{entry.row_number}</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] px-2 py-0.5 rounded" style={{ color: 'var(--text-tertiary)', background: 'var(--bg-secondary)' }}>
+                        Baris #{entry.row_number}
+                        {(entry as any).bulan && ` • ${getBulanName((entry as any).bulan).slice(0, 3)}`}
+                      </span>
                       <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                         {formatDate(entry.tanggal_mulai)}
                         {entry.tanggal_selesai && entry.tanggal_selesai !== entry.tanggal_mulai && (
@@ -245,6 +276,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const router = useRouter();
   const searchParams = useSearchParams();
   const source = searchParams.get('source');
+  const paramBulan = searchParams.get('bulan');
+  const paramTahun = searchParams.get('tahun');
+  const isTriwulan = typeof paramBulan === 'string' && paramBulan.startsWith('T');
+
   const { user: currentUser, loading: authLoading } = useAuth();
   const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
@@ -263,20 +298,51 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   }, [currentUser, authLoading, router]);
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
-    queryKey: ['penilaian-ckp-detail', uploadId],
+    queryKey: ['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''],
     queryFn: async () => {
       const { data: uploadData, error: uploadError } = await supabase
         .from('ckp_uploads').select('*').eq('id', uploadId).single();
       if (uploadError) throw new Error(uploadError.message);
 
+      let targetUploads = [uploadData];
+      let targetUploadIds = [uploadId];
+      const targetYear = paramTahun ? parseInt(paramTahun, 10) : uploadData.tahun;
+
+      if (isTriwulan) {
+        const triwulanMap: Record<string, number[]> = {
+          'T1': [1, 2, 3],
+          'T2': [4, 5, 6],
+          'T3': [7, 8, 9],
+          'T4': [10, 11, 12],
+        };
+        const targetMonths = triwulanMap[paramBulan!] || [];
+
+        const { data: qUploads } = await supabase
+          .from('ckp_uploads')
+          .select('*')
+          .eq('user_id', uploadData.user_id)
+          .eq('tahun', targetYear)
+          .in('bulan', targetMonths)
+          .order('bulan', { ascending: true });
+
+        if (qUploads && qUploads.length > 0) {
+          targetUploads = qUploads;
+          targetUploadIds = qUploads.map((u: any) => u.id);
+        }
+      }
+
       const [employeeRes, entriesRes, approvalsRes, masterRkRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
-        supabase.from('ckp_entries').select('*').eq('upload_id', uploadId).order('row_number'),
-        supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').eq('upload_id', uploadId).order('created_at', { ascending: false }),
+        supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number'),
+        supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }),
         supabase.from('rk_ketua_tim_mapping').select('rencana_kinerja, tim_kerja').order('rencana_kinerja'),
       ]);
 
-      let entriesData = (entriesRes.data as CKPEntry[]) || [];
+      const uploadMonthMap = new Map(targetUploads.map((u: any) => [u.id, u.bulan]));
+      let entriesData = ((entriesRes.data as CKPEntry[]) || []).map((e: any) => ({
+        ...e,
+        bulan: uploadMonthMap.get(e.upload_id) ?? uploadData.bulan,
+      }));
       const employeeData = employeeRes.data as User;
       const reviewerRole = currentUser?.role;
 
@@ -294,12 +360,45 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         }
       }
 
+      let finalUpload = uploadData as CKPUpload;
+      if (isTriwulan) {
+        const totalEntries = entriesData.length;
+        const avgProgres = targetUploads.reduce((sum: number, u: any) => sum + (u.avg_progres || 0), 0) / targetUploads.length;
+        const scoredUploads = targetUploads.filter((u: any) => u.rata_rata_nilai !== null && u.rata_rata_nilai !== undefined);
+        const avgScore = scoredUploads.length > 0
+          ? scoredUploads.reduce((sum: number, u: any) => sum + (u.rata_rata_nilai || 0), 0) / scoredUploads.length
+          : null;
+
+        let aggregatedStatus = targetUploads[targetUploads.length - 1].status;
+        if (targetUploads.some(u => u.status === 'revision_required')) {
+          aggregatedStatus = 'revision_required';
+        } else if (targetUploads.some(u => u.status === 'submitted')) {
+          aggregatedStatus = 'submitted';
+        } else if (targetUploads.some(u => u.status === 'scored')) {
+          aggregatedStatus = 'scored';
+        } else if (targetUploads.every(u => u.status === 'approved')) {
+          aggregatedStatus = 'approved';
+        }
+
+        finalUpload = {
+          ...targetUploads[targetUploads.length - 1],
+          id: uploadId,
+          bulan: paramBulan as any,
+          tahun: targetYear,
+          total_entries: totalEntries,
+          avg_progres: avgProgres,
+          rata_rata_nilai: avgScore,
+          status: aggregatedStatus,
+        };
+      }
+
       return {
-        upload: uploadData as CKPUpload,
+        upload: finalUpload,
         employee: employeeData,
         entries: entriesData,
         approvals: (approvalsRes.data || []).map((a: any) => ({ ...a })) as Approval[],
         masterRks: masterRkRes.data || [],
+        targetUploadIds,
       };
     },
     enabled: !!uploadId && !authLoading,
@@ -324,20 +423,68 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       if (!map.has(rk)) map.set(rk, []);
       map.get(rk)!.push(e);
     });
-    return Array.from(map.entries()).map(([rk, entries]) => {
-      const allScored = entries.every(e => e.nilai !== null);
-      return {
-        rk,
-        entries,
-        defaultScore: allScored ? (entries[0]?.nilai ?? null) : null
-      };
+
+    return Array.from(map.entries()).map(([rk, groupEntries]) => {
+      if (isTriwulan) {
+        const triwulanMonths: Record<string, number[]> = {
+          'T1': [1, 2, 3],
+          'T2': [4, 5, 6],
+          'T3': [7, 8, 9],
+          'T4': [10, 11, 12],
+        };
+        const monthsInQ = triwulanMonths[String(paramBulan)] || [1, 2, 3];
+
+        const monthlyScores: { bulan: number; bulanNama: string; score: number | null; count: number }[] = [];
+        const scoredValues: number[] = [];
+
+        monthsInQ.forEach(m => {
+          const entriesInMonth = groupEntries.filter(e => (e as any).bulan === m);
+          if (entriesInMonth.length > 0) {
+            const scoredEntry = entriesInMonth.find(e => e.nilai !== null);
+            const score = scoredEntry?.nilai ?? null;
+            monthlyScores.push({
+              bulan: m,
+              bulanNama: getBulanName(m),
+              score,
+              count: entriesInMonth.length,
+            });
+            if (score !== null) {
+              scoredValues.push(score);
+            }
+          }
+        });
+
+        // Rata-rata nilai dari 3 bulan (nilai RK adalah rata-rata nilai bulanan RK tersebut) - dibulatkan
+        const avgScore = scoredValues.length > 0
+          ? Math.round(scoredValues.reduce((sum, s) => sum + s, 0) / scoredValues.length)
+          : null;
+
+        return {
+          rk,
+          entries: groupEntries,
+          defaultScore: avgScore,
+          monthlyScores,
+          isTriwulan: true,
+        };
+      } else {
+        const allScored = groupEntries.every(e => e.nilai !== null);
+        return {
+          rk,
+          entries: groupEntries,
+          defaultScore: allScored ? (groupEntries[0]?.nilai ?? null) : null,
+          monthlyScores: [],
+          isTriwulan: false,
+        };
+      }
     });
-  }, [entries]);
+  }, [entries, isTriwulan, paramBulan]);
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
     
-    queryClient.setQueryData(['penilaian-ckp-detail', uploadId], (old: any) => {
+    const idsToApprove = (isTriwulan && data?.targetUploadIds) ? data.targetUploadIds : [upload.id];
+
+    queryClient.setQueryData(['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''], (old: any) => {
       if (!old) return old;
       const isApproved = action === 'approved';
       const newStatus = action === 'reopened' ? 'draft' : action;
@@ -354,24 +501,28 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     });
 
     try {
-      const result = await approveAction(upload.id, action, catatan || '');
-      if (!result.success) throw new Error(result.error);
+      for (const id of idsToApprove) {
+        const result = await approveAction(id, action, catatan || '');
+        if (!result.success) throw new Error(result.error);
+      }
       toast.success(`Berhasil! CKP diperbarui.`);
-      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
+      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
       
       const timeoutId = setTimeout(() => {
-        router.push(currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim');
+        const backUrl = (currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
+          `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`;
+        router.push(backUrl);
       }, 1000);
       return () => clearTimeout(timeoutId);
     } catch (error: any) {
-      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
+      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
       toast.error(`Gagal memproses persetujuan: ${error.message || 'Error server'}`);
     }
   };
 
   const handleSaveScore = async (rkName: string, score: number | null) => {
     // Optimistic update
-    queryClient.setQueryData(['penilaian-ckp-detail', uploadId], (old: any) => {
+    queryClient.setQueryData(['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''], (old: any) => {
       if (!old) return old;
       const newEntries = old.entries.map((e: any) => 
         (e.rencana_kinerja || 'Tidak Diketahui') === rkName 
@@ -386,16 +537,17 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     });
 
     try {
-      const result = await gradeRencanaKinerjaAction(uploadId, rkName === 'Tidak Diketahui' ? '' : rkName, score);
+      const targetIds = (isTriwulan && data?.targetUploadIds) ? data.targetUploadIds : uploadId;
+      const result = await gradeRencanaKinerjaAction(targetIds, rkName === 'Tidak Diketahui' ? '' : rkName, score);
       if (!result.success) throw new Error(result.error);
       // Validasi ulang secara asinkron (tidak memblokir UI)
-      void queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
-      void queryClient.invalidateQueries({ queryKey: ['ckp-detail', uploadId] });
+      void queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['ckp-detail'] });
       void queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
       void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
       void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
     } catch (error: any) {
-      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail', uploadId] });
+      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
       toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
     }
   };
@@ -503,6 +655,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     ? 'submitted' 
     : upload.status;
 
+  const scoredRks = rkGroups.filter(g => g.defaultScore !== null);
+  const avgRkScore = scoredRks.length > 0 ? (scoredRks.reduce((acc, g) => acc + g.defaultScore!, 0) / scoredRks.length) : null;
+  const displayRataRataNilai = isTriwulan
+    ? (avgRkScore !== null ? Math.round(avgRkScore).toString() : (upload.rata_rata_nilai ? Math.round(upload.rata_rata_nilai).toString() : '-'))
+    : (upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-');
+
   return (
     <>
       <Header />
@@ -608,7 +766,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={rkGroups.length} label="Total Rencana Kinerja" iconBg="var(--primary-soft)" />
           <KPICard icon={<LayoutList size={18} style={{ color: 'var(--primary)' }} />} value={entries.length} label="Total Kegiatan" iconBg="var(--primary-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres" iconBg="var(--primary-soft)" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={displayRataRataNilai} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
         </div>
 
         <div>
@@ -657,7 +815,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 </div>
               </div>
               {viewMode === 'list' && (
-                <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.</p>
+                <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                  {isTriwulan
+                    ? 'Menampilkan akumulasi kegiatan dan rata-rata nilai pada level Rencana Kinerja selama triwulan ini.'
+                    : 'Berikan nilai pada level Rencana Kinerja. Nilai ini akan berlaku untuk seluruh kegiatan di bawahnya.'}
+                </p>
               )}
             </div>
           </div>
@@ -682,9 +844,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                   key={group.rk}
                   rkName={group.rk}
                   entries={group.entries}
-                  canReview={canReview}
+                  canReview={isTriwulan ? false : canReview}
                   onSaveScore={handleSaveScore}
                   defaultScore={group.defaultScore}
+                  isTriwulan={isTriwulan}
+                  monthlyScores={group.monthlyScores}
                   onMoveEntryClick={(entry) => {
                     setEntryToMove(entry);
                     setTargetMoveRk('');

@@ -166,14 +166,59 @@ export default function PimpinanDashboard() {
     };
   }, [supabase, bulan, tahun, refetch]);
 
+  const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
+
   // Build rows
-  const pegawaiRows = useMemo((): PegawaiRow[] =>
-    allUsers.map(user => ({
-      user,
-      upload: uploads.find(u => u.user_id === user.id) ?? null,
-    })),
-    [allUsers, uploads]
-  );
+  const pegawaiRows = useMemo((): PegawaiRow[] => {
+    return allUsers.map(user => {
+      const userUploads = uploads.filter(u => u.user_id === user.id);
+      if (userUploads.length === 0) {
+        return { user, upload: null };
+      }
+
+      if (!isTriwulan) {
+        return {
+          user,
+          upload: userUploads[0] ?? null,
+        };
+      }
+
+      // Triwulan aggregation
+      const totalEntries = userUploads.reduce((sum, u) => sum + (u.total_entries || 0), 0);
+      const avgProgres = userUploads.length > 0
+        ? userUploads.reduce((sum, u) => sum + (u.avg_progres || 0), 0) / userUploads.length
+        : 0;
+
+      const scoredUploads = userUploads.filter(u => u.rata_rata_nilai !== null && u.rata_rata_nilai !== undefined);
+      const avgScore = scoredUploads.length > 0
+        ? scoredUploads.reduce((sum, u) => sum + (u.rata_rata_nilai || 0), 0) / scoredUploads.length
+        : null;
+
+      let aggregatedStatus = userUploads[0].status;
+      if (userUploads.some(u => u.status === 'revision_required')) {
+        aggregatedStatus = 'revision_required';
+      } else if (userUploads.some(u => u.status === 'submitted')) {
+        aggregatedStatus = 'submitted';
+      } else if (userUploads.some(u => u.status === 'scored')) {
+        aggregatedStatus = 'scored';
+      } else if (userUploads.every(u => u.status === 'approved')) {
+        aggregatedStatus = 'approved';
+      }
+
+      const aggregatedUpload: CKPUpload & { user?: User } = {
+        ...userUploads[0],
+        total_entries: totalEntries,
+        avg_progres: avgProgres,
+        rata_rata_nilai: avgScore,
+        status: aggregatedStatus,
+      };
+
+      return {
+        user,
+        upload: aggregatedUpload,
+      };
+    });
+  }, [allUsers, uploads, isTriwulan]);
 
   // Filter and sort by search and status
   const filteredRows = useMemo(() => {
@@ -262,7 +307,7 @@ export default function PimpinanDashboard() {
   };
 
   const handleExportRekap = () => {
-    exportRekapToExcel(uploads, bulan, tahun);
+    exportRekapToExcel(isTriwulan ? uniqueUploads : uploads, bulan, tahun);
     toast.success('Rekap Excel berhasil diunduh');
   };
 
@@ -456,7 +501,7 @@ export default function PimpinanDashboard() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => (
-                <PegawaiCard key={row.user.id} row={row} />
+                <PegawaiCard key={row.user.id} row={row} bulan={bulan} tahun={tahun} />
               ))}
             </div>
           )}

@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, FileText, TrendingUp, CheckCircle2,
   RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon,
-  XCircle, CheckSquare, AlertTriangle
+  XCircle, CheckSquare, AlertTriangle, CalendarDays
 } from 'lucide-react';
 
 function KPICard({ icon, value, label, sub, iconBg }: {
@@ -46,7 +46,9 @@ function PegawaiRKGroup({
   onSaveScore,
   defaultScore,
   onMarkEntryClick,
-  forceExpanded
+  forceExpanded,
+  isTriwulan,
+  bulan,
 }: {
   uploads: CKPUpload[];
   user: User;
@@ -57,6 +59,8 @@ function PegawaiRKGroup({
   defaultScore: number | null;
   onMarkEntryClick?: (entry: CKPEntry) => void;
   forceExpanded?: boolean;
+  isTriwulan?: boolean;
+  bulan?: string | number;
 }) {
   const [expandedState, setExpandedState] = useState(false);
   const expanded = forceExpanded || expandedState;
@@ -118,6 +122,26 @@ function PegawaiRKGroup({
   const hasScore = defaultScore !== null;
   const avgProgress = entries.length > 0 ? entries.reduce((s, e) => s + (e.progres || 0), 0) / entries.length : 0;
   const dinilaiOleh = entries[0]?.dinilai_oleh && entries[0]?.nilai !== null;
+
+  // Compute monthly breakdown for triwulan mode
+  const monthlyScores = useMemo(() => {
+    if (!isTriwulan || !bulan) return [];
+    const triwulanMap: Record<string, number[]> = {
+      'T1': [1, 2, 3], 'T2': [4, 5, 6], 'T3': [7, 8, 9], 'T4': [10, 11, 12],
+    };
+    const months = triwulanMap[String(bulan)] || [];
+    return months.map(m => {
+      const monthUpload = uploads.find((u: any) => u.bulan === m);
+      const monthEntries = monthUpload ? entries.filter(e => e.upload_id === monthUpload.id) : [];
+      const scoredEntry = monthEntries.find(e => e.nilai !== null);
+      return {
+        bulan: m,
+        bulanNama: getBulanName(m),
+        count: monthEntries.length,
+        score: scoredEntry?.nilai ?? null,
+      };
+    }).filter(m => m.count > 0);
+  }, [isTriwulan, bulan, uploads, entries]);
 
   return (
     <div className="activity-card mb-4 bg-white border rounded-2xl shadow-sm hover:shadow transition-shadow" aria-expanded={expanded} style={{ borderColor: 'var(--border)' }}>
@@ -186,6 +210,21 @@ function PegawaiRKGroup({
       {/* Expanded details */}
       {expanded && (
         <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+          {isTriwulan && monthlyScores.length > 0 && (
+            <div className="flex items-stretch gap-2.5">
+              {monthlyScores.map(m => (
+                <div key={m.bulan} className="flex-1 flex items-center gap-3 py-2.5 px-3.5 rounded-xl transition-shadow hover:shadow-md" style={{ background: 'var(--primary-soft)', borderLeft: '3px solid var(--primary)' }}>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{m.bulanNama}</p>
+                    <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{m.count} kegiatan</p>
+                  </div>
+                  <span className="text-[18px] font-extrabold leading-none" style={{ color: m.score !== null ? 'var(--primary)' : 'var(--text-tertiary)' }}>
+                    {m.score !== null ? m.score : '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           <h5 className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>Detail Kegiatan</h5>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {entries.map((entry) => (
@@ -691,6 +730,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                       setCatatanKoreksi(entry.catatan_koreksi || '');
                     }}
                     forceExpanded={!!searchQuery.trim()}
+                    isTriwulan={isTriwulan}
+                    bulan={bulan}
                   />
                 );
               })

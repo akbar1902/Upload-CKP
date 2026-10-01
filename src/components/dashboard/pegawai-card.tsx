@@ -10,7 +10,14 @@ export interface PegawaiRow {
   upload: (CKPUpload & { user?: User }) | null;
 }
 
-export function PegawaiCard({ row, source }: { row: PegawaiRow, source?: string }) {
+export interface PegawaiCardProps {
+  row: PegawaiRow;
+  source?: string;
+  bulan?: string | number;
+  tahun?: number;
+}
+
+export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
   const { user, upload } = row;
   const initials = user.full_name
     .split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -102,7 +109,14 @@ export function PegawaiCard({ row, source }: { row: PegawaiRow, source?: string 
       <div className="mt-auto pt-1">
         {hasUpload ? (
           <Link
-            href={`/penilaian/${upload!.id}${source ? `?source=${source}` : ''}`}
+            href={`/penilaian/${upload!.id}${(() => {
+              const q = new URLSearchParams();
+              if (source) q.set('source', source);
+              if (bulan !== undefined && bulan !== null) q.set('bulan', String(bulan));
+              if (tahun) q.set('tahun', String(tahun));
+              const s = q.toString();
+              return s ? `?${s}` : '';
+            })()}`}
             prefetch={true}
             className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
             style={{

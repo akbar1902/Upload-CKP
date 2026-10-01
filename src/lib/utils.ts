@@ -10,8 +10,18 @@ export const BULAN_NAMES = [
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
 ] as const;
 
-export function getBulanName(bulan: number): string {
-  return BULAN_NAMES[bulan - 1] || '';
+export function getBulanName(bulan: number | string): string {
+  if (typeof bulan === 'string' && bulan.startsWith('T')) {
+    const tMap: Record<string, string> = {
+      'T1': 'Triwulan I (Jan-Mar)',
+      'T2': 'Triwulan II (Apr-Jun)',
+      'T3': 'Triwulan III (Jul-Sep)',
+      'T4': 'Triwulan IV (Okt-Des)',
+    };
+    return tMap[bulan] || bulan;
+  }
+  const b = typeof bulan === 'string' ? parseInt(bulan, 10) : bulan;
+  return BULAN_NAMES[b - 1] || '';
 }
 
 export function getFormattedPenilaianPeriod(bulan: number, tahun: number): string {
