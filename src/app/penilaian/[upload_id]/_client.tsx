@@ -486,11 +486,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     if (!upload || !currentUser) return;
     
     const idsToApprove = (isTriwulan && data?.targetUploadIds) ? data.targetUploadIds : [upload.id];
+    const isApproved = action === 'approved';
+    const isReopened = action === 'reopened';
+    const newStatus = isReopened ? (allScored ? 'scored' : 'submitted') : action;
 
     queryClient.setQueryData(['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''], (old: any) => {
       if (!old) return old;
-      const isApproved = action === 'approved';
-      const newStatus = action === 'reopened' ? 'draft' : action;
       return {
         ...old,
         upload: {
@@ -508,15 +509,23 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const result = await approveAction(id, action, catatan || '');
         if (!result.success) throw new Error(result.error);
       }
-      toast.success(`Berhasil! CKP diperbarui.`);
+      toast.success(isReopened ? 'CKP berhasil dibuka kembali. Anda sekarang dapat mengubah nilai.' : 'Berhasil! CKP diperbarui.');
       await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
+      await queryClient.invalidateQueries({ queryKey: ['ckp-detail'] });
+      await queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
+      await queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
+      await queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
       
-      const timeoutId = setTimeout(() => {
-        const backUrl = (currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
-          `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`;
-        router.push(backUrl);
-      }, 1000);
-      return () => clearTimeout(timeoutId);
+      // Jika disetujui, kembali ke daftar dashboard setelah 1 detik.
+      // Jika dibuka kembali, tetap di halaman ini agar pimpinan bisa langsung mengubah nilai.
+      if (isApproved) {
+        const timeoutId = setTimeout(() => {
+          const backUrl = (currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
+            `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`;
+          router.push(backUrl);
+        }, 1000);
+        return () => clearTimeout(timeoutId);
+      }
     } catch (error: any) {
       await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
       toast.error(`Gagal memproses persetujuan: ${error.message || 'Error server'}`);
@@ -643,10 +652,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const isPimpinan = currentUser?.role === 'pimpinan';
   const isKetuaTim = currentUser?.role === 'ketua_tim' || isPimpinan;
   
-  const canReview = isKetuaTim && (upload.status === 'submitted' || upload.status === 'scored' || (isPimpinan && upload.status === 'approved')); 
-  // Pimpinan can always override if needed, but typically they change status first. 
-  // The user said: "jika bu baiq melakukan penilaian sebelum dinilai oleh ketua tim tidak masalah." and "pimpinan bisa membatalkan approval lalu menilai ulang"
-  // So canReview is true if status is submitted or if it's pimpinan modifying an approved one (we can just allow it if status is submitted, and let pimpinan reopen first if it's approved).
+  // Nilai hanya bisa diubah ketika status CKP adalah 'submitted' atau 'scored'.
+  // Ketika status 'approved', nilai TERKUNCI (read-only) untuk semua pihak.
+  // Pimpinan harus menekan tombol 'Buka Kembali' terlebih dahulu untuk membuka kunci nilai dan menilai ulang.
+  const canReview = isKetuaTim && (upload.status === 'submitted' || upload.status === 'scored'); 
   
   const canReopen = isPimpinan && upload.status === 'approved';
   const bulanNama = getBulanName(upload.bulan);

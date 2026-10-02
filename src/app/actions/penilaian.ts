@@ -77,7 +77,21 @@ export async function approveAction(uploadId: string, action: string, catatan: s
       return { success: false, error: 'Sesi berakhir' };
     }
 
-    const newStatus = action === 'reopened' ? 'draft' : action;
+    const adminClient = createAdminClient();
+    let newStatus = action;
+
+    if (action === 'reopened') {
+      // Reopening an approved CKP should allow re-evaluation and re-approval.
+      // If all entries already have scores, status is 'scored', otherwise 'submitted'.
+      const { data: entries } = await adminClient
+        .from('ckp_entries')
+        .select('nilai')
+        .eq('upload_id', uploadId);
+
+      const allScored = entries && entries.length > 0 && entries.every(e => e.nilai !== null);
+      newStatus = allScored ? 'scored' : 'submitted';
+    }
+
     const isApproved = action === 'approved';
 
     const updateData: Record<string, unknown> = {
@@ -93,7 +107,7 @@ export async function approveAction(uploadId: string, action: string, catatan: s
       updateData.approved_by = null;
     }
 
-    const { error: updateError } = await supabase
+    const { error: updateError } = await adminClient
       .from('ckp_uploads')
       .update(updateData)
       .eq('id', uploadId);
@@ -103,7 +117,7 @@ export async function approveAction(uploadId: string, action: string, catatan: s
     }
 
     // Insert approval history
-    await supabase.from('approvals').insert({ 
+    await adminClient.from('approvals').insert({ 
       upload_id: uploadId, 
       reviewer_id: user.id, 
       action: action as any, 
@@ -111,13 +125,18 @@ export async function approveAction(uploadId: string, action: string, catatan: s
     });
 
     // Insert audit log
-    await supabase.from('audit_logs').insert({
+    await adminClient.from('audit_logs').insert({
       user_id: user.id, 
       action: `${action}_ckp`,
       entity_type: 'ckp_uploads', 
       entity_id: uploadId,
       new_data: { status: newStatus, catatan },
     });
+
+    revalidatePath('/penilaian/[upload_id]', 'page');
+    revalidatePath('/pimpinan');
+    revalidatePath('/ketua_tim');
+    revalidatePath('/pegawai');
 
     return { success: true };
   } catch (err: any) {
