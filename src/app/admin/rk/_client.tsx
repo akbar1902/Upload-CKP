@@ -271,7 +271,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                 <button 
                                   onClick={() => { setSelectedRkForSub(r); setShowAddSubModal(true); }} 
                                   title="Tambah Sub-RK" 
-                                  className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 text-emerald-600 transition-colors border border-emerald-200 dark:border-emerald-800"
+                                  className="p-1.5 rounded-lg bg-[var(--primary-soft)] hover:brightness-95 text-[var(--primary)] transition-colors border border-[var(--primary-ring)]"
                                 >
                                   <Plus size={14} />
                                 </button>

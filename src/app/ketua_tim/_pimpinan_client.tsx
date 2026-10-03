@@ -429,7 +429,7 @@ export default function PimpinanKetuaTimDashboardClient() {
                   onClick={() => setStatusFilter(st.id)}
                   className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--bg-secondary)]'}`}
                   style={statusFilter === st.id 
-                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.15)' } 
+                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' } 
                     : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                 >
                   {st.label}

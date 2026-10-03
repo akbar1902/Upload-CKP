@@ -203,7 +203,7 @@ export default function MonitoringPenilaianClient() {
         ) : data.length === 0 ? (
           <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
             <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={32} className="text-emerald-600 dark:text-emerald-400" />
+              <CheckCircle2 size={32} className="text-[var(--success)]" />
             </div>
             <h3 className="text-[18px] font-bold text-slate-900 dark:text-slate-100 mb-2">Semua Penilaian Selesai!</h3>
             <p className="text-[14px] text-slate-500 max-w-md mx-auto">

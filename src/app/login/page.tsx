@@ -105,11 +105,11 @@ export default function LoginPage() {
     }
   };
 
-  const primaryColor = '#3A6D5B'; // The green from SIKAP logo
+  const primaryColor = '#0F766E'; // The green from SIKAP logo
 
   return (
     <div
-      className="h-screen overflow-hidden flex font-sans relative bg-slate-50 dark:bg-[#0F172A]"
+      className="h-screen overflow-hidden flex relative bg-[var(--bg-base)] dark:bg-[var(--bg-secondary)]"
     >
       <div 
         className="absolute inset-0 pointer-events-none dark:hidden"
@@ -162,7 +162,7 @@ export default function LoginPage() {
               { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.' },
             ].map((feat, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[#E6F0EA] dark:bg-slate-800/60"
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[var(--primary-soft)] dark:bg-slate-800/60"
                   style={{ color: primaryColor }}>
                   <feat.icon size={18} strokeWidth={2.5} />
                 </div>
@@ -188,7 +188,7 @@ export default function LoginPage() {
             {resetSuccess ? (
               /* ── Success State ──────────────────── */
               <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[#E6F0EA] dark:bg-slate-800/60">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)] dark:bg-slate-800/60">
                   <CheckCircle2 className="h-8 w-8" style={{ color: primaryColor }} />
                 </div>
                 <h3 className="text-xl font-bold tracking-tight mb-2 text-[#1C2520] dark:text-white">
@@ -250,7 +250,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
                       />
                     </div>
                   </div>
@@ -270,7 +270,7 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
                       />
                       <button
                         type="button"
@@ -343,7 +343,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
                       />
                     </div>
                   </div>
@@ -377,7 +377,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#3A6D5B] focus:ring-1 focus:ring-[#3A6D5B] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
                       />
                       <button
                         type="button"
@@ -392,7 +392,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#3A6D5B]/20"
+                    className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#0F766E]/20"
                     style={{ backgroundColor: primaryColor }}
                   >
                     <LogIn className="h-5 w-5" />

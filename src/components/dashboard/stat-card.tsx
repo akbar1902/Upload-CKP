@@ -31,19 +31,19 @@ export function StatCard({ title, value, subtitle, icon: Icon, color, trend, loa
   const colors = colorMap['blue']; // unified primary color
 
   return (
-    <div className="kpi-card p-6">
+    <div className="kpi-card p-6 min-w-0 overflow-hidden">
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2 flex-1 min-w-0">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.06em]"
-             style={{ color: 'var(--text-tertiary)' }}>{title}</p>
+        <div className="space-y-2.5 flex-1 min-w-0">
+          <p className="text-[13px] font-semibold uppercase leading-snug"
+             style={{ color: 'var(--text-tertiary)', letterSpacing: '0.04em', textWrap: 'balance' }}>{title}</p>
           {loading ? (
             <div className="skeleton h-8 w-20 rounded-xl" />
           ) : (
-            <p className="text-2xl font-bold tabular-nums tracking-tight"
-               style={{ color: 'var(--text-primary)' }}>{value}</p>
+            <p className="font-bold tabular-nums tracking-tight leading-none break-words"
+               style={{ color: 'var(--text-primary)', fontSize: 'clamp(24px, 3vw, 28px)' }}>{value}</p>
           )}
           {subtitle && (
-            <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</p>
+            <p className="text-[13.5px] leading-snug" style={{ color: 'var(--text-tertiary)' }}>{subtitle}</p>
           )}
           {trend && !loading && (
             <div className="flex items-center gap-1.5">

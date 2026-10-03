@@ -278,7 +278,7 @@ export default function ExportPenilaianClient({
               >
                 {downloadingAllZip ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                    <Loader2 className="w-4 h-4 animate-spin text-[var(--success)]" />
                     <span className="text-xs">{bulkProgress || 'Memproses...'}</span>
                   </>
                 ) : (
@@ -397,7 +397,7 @@ export default function ExportPenilaianClient({
             {currentUpload && (
               <div className="mt-4 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-emerald-600" />
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--success)]" />
                   <span>
                     Ditemukan CKP versi {currentUpload.version} ({entries.length} kegiatan, {groupedEntries.length} Rencana Kinerja) - Status: <strong>{currentUpload.status}</strong>
                   </span>

@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { CalendarPreview } from '@/components/ckp/calendar-preview';
+import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-badge';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
@@ -47,34 +48,20 @@ function getProgressClass(pct: number): string {
 }
 
 // ── Upload status badge ────────────────────────────────────
-const STATUS_CFG = {
-  submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  scored: { label: 'Sudah Dinilai', cls: 'badge-scored', dot: '🟣' },
-  approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
-  rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
-  draft: { label: 'Draft', cls: 'badge-draft', dot: '⚪' },
-} as const;
-
 function UploadBadge({ status }: { status: string }) {
-  const cfg = STATUS_CFG[status as keyof typeof STATUS_CFG] ?? { label: status, cls: 'badge-draft', dot: '⚪' };
-  return (
-    <span className={`badge-pill ${cfg.cls}`} role="status" aria-label={cfg.label}>
-      <span aria-hidden="true">{cfg.dot}</span> {cfg.label}
-    </span>
-  );
+  return <SharedStatusBadge status={status} />;
 }
 
 // Entry-level status badge
 function EntryStatusBadge({ progres }: { progres: number }) {
   if (progres >= 100) return (
-    <span className="badge-pill badge-approved" role="status">● Completed</span>
+    <span className="badge-pill badge-approved" role="status">● Selesai</span>
   );
   if (progres > 0) return (
-    <span className="badge-pill" style={{ background: '#EFF6FF', color: '#1D4ED8' }} role="status">● In Progress</span>
+    <span className="badge-pill" style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }} role="status">● Berjalan</span>
   );
   return (
-    <span className="badge-pill badge-draft" role="status">● Pending</span>
+    <span className="badge-pill badge-draft" role="status">● Belum mulai</span>
   );
 }
 
@@ -83,17 +70,17 @@ function KPICard({ icon, value, label, sub, iconBg }: {
   icon: React.ReactNode; value: string | number; label: string; sub?: string; iconBg: string;
 }) {
   return (
-    <div className="kpi-card p-5 flex items-start gap-4">
+    <div className="kpi-card p-5 flex items-start gap-4 min-w-0 overflow-hidden">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
         style={{ background: iconBg }}>
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>
+      <div className="min-w-0 flex-1">
+        <p className="font-extrabold tracking-tight leading-none tabular-nums break-words" style={{ color: 'var(--text-primary)', fontSize: 'clamp(24px, 3vw, 30px)' }}>
           {value}
         </p>
-        <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
-        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
+        <p className="text-[14px] font-medium mt-1.5 leading-snug" style={{ color: 'var(--text-primary)' }}>{label}</p>
+        {sub && <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -186,7 +173,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             {/* Nilai SKP & Progres */}
             <div className="flex items-center gap-2">
               <span className="text-slate-500 dark:text-slate-400 font-medium">
-                SKP: <strong className={entry.nilai !== null ? 'text-emerald-600 font-bold' : 'text-slate-400 font-medium'}>
+                SKP: <strong className={entry.nilai !== null ? 'text-[var(--success)] font-bold' : 'text-slate-400 font-medium'}>
                   {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
                 </strong>
               </span>

@@ -4,7 +4,7 @@
       <div className="relative mb-8">
         <div 
           className="absolute inset-0 blur-xl opacity-30 animate-pulse rounded-full"
-          style={{ backgroundColor: 'var(--primary, #0071E3)', transform: 'scale(1.2)' }}
+          style={{ backgroundColor: 'var(--primary, #0F766E)', transform: 'scale(1.2)' }}
         />
         <div className="animate-pulse drop-shadow-sm w-64 max-w-[80vw]">
           <img 

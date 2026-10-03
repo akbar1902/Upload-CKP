@@ -730,7 +730,7 @@ export function RencanaKinerjaClient({
                   onClick={() => setHistoryTab("saya")}
                   className={`flex-1 sm:flex-none px-6 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
                     historyTab === "saya" 
-                      ? "bg-white text-blue-600 shadow-sm" 
+                      ? "bg-[var(--card-bg)] text-[var(--primary)] shadow-sm" 
                       : "text-slate-500 hover:text-slate-700 hover:bg-slate-200/50"
                   }`}
                 >

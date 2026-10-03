@@ -23,15 +23,15 @@ function KPICard({ icon, value, label, sub, iconBg }: {
   icon: React.ReactNode; value: string | number; label: string; sub?: string; iconBg: string;
 }) {
   return (
-    <div className="kpi-card p-5 flex items-start gap-4">
+    <div className="kpi-card p-5 flex items-start gap-4 min-w-0 overflow-hidden">
       <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
         style={{ background: iconBg }}>
         {icon}
       </div>
-      <div className="min-w-0">
-        <p className="text-3xl font-extrabold tracking-tight leading-none" style={{ color: 'var(--text-primary)' }}>{value}</p>
-        <p className="text-[13px] font-medium mt-1" style={{ color: 'var(--text-primary)' }}>{label}</p>
-        {sub && <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
+      <div className="min-w-0 flex-1">
+        <p className="font-extrabold tracking-tight leading-none tabular-nums break-words" style={{ color: 'var(--text-primary)', fontSize: 'clamp(24px, 3vw, 30px)' }}>{value}</p>
+        <p className="text-[14px] font-medium mt-1.5 leading-snug" style={{ color: 'var(--text-primary)' }}>{label}</p>
+        {sub && <p className="text-[12.5px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>{sub}</p>}
       </div>
     </div>
   );
@@ -155,8 +155,8 @@ function PegawaiRKGroup({
         onClick={() => setExpandedState(!expandedState)}
       >
         <div className="flex-1 min-w-0 flex items-center gap-4">
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-            <UserIcon className="text-blue-600" size={20} />
+          <div className="w-10 h-10 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
+            <UserIcon className="text-[var(--primary)]" size={20} />
           </div>
           <div>
             <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{user.full_name || 'Pegawai'}</h4>
@@ -686,7 +686,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
         <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
           <div>
-            <p className="text-[12px] mb-2 font-semibold uppercase tracking-wider text-blue-600">
+            <p className="text-[12px] mb-2 font-semibold uppercase tracking-wider text-[var(--primary)]">
               Detail Penilaian RK &bull; {bulanNama} {tahun}
             </p>
             <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight text-slate-800 leading-tight max-w-3xl">

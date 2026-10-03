@@ -127,7 +127,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background = 'var(--primary-soft)';
               (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'rgba(0,113,227,0.15)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary-ring)';
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';

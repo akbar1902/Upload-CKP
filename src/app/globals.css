@@ -1,9 +1,8 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
 @theme {
-  --font-sans: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
 }
 
 /* ─── Deep Ocean & Teal Tokens ───────────────────────────────── */
@@ -114,9 +113,10 @@ html {
 body {
   color: var(--text-primary);
   background-color: var(--bg-base);
-  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+  line-height: 1.55;
+  letter-spacing: 0;
+  font-size: 15px;
 }
 
 /* Ultra-slim scrollbar */
@@ -238,25 +238,25 @@ body {
   gap: 6px;
   padding: 4px 12px;
   border-radius: var(--radius-badge);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
-  line-height: 1.2;
+  line-height: 1.3;
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
 .badge-approved  { background: rgba(52,199,89,0.1);  color: #248A3D; }
-.badge-submitted { background: rgba(255,149,0,0.1);  color: #C93400; }
+.badge-submitted { background: transparent; color: #C93400; border: 1px solid rgba(201,52,0,0.4); }
 .badge-scored { background: rgba(175,82,222,0.1); color: #AF52DE; }
 .badge-rejected  { background: rgba(255,59,48,0.1);  color: #D70015; }
-.badge-revision  { background: rgba(255,149,0,0.1);  color: #A05A00; }
+.badge-revision  { background: #F59E0B; color: #451A03; }
 .badge-draft     { background: var(--bg-secondary);   color: var(--text-secondary); }
 .badge-none      { background: var(--bg-secondary);   color: var(--text-tertiary); }
 
 .dark .badge-approved  { background: rgba(48,209,88,0.15);  color: #30D158; }
-.dark .badge-submitted { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+.dark .badge-submitted { background: transparent; color: #FF9F0A; border: 1px solid rgba(255,159,10,0.45); }
 .dark .badge-scored { background: rgba(191,90,242,0.15); color: #BF5AF2; }
 .dark .badge-rejected  { background: rgba(255,69,58,0.15);  color: #FF453A; }
-.dark .badge-revision  { background: rgba(255,159,10,0.15); color: #FF9F0A; }
+.dark .badge-revision  { background: #F59E0B; color: #451A03; }
 .dark .badge-draft     { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
 .dark .badge-none      { background: rgba(255,255,255,0.04); color: var(--text-tertiary); }
 
@@ -277,7 +277,7 @@ body {
   border: 1px solid var(--border);
   background: var(--card-bg);
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-apple);
@@ -311,7 +311,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 8px 14px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--text-secondary);
   cursor: pointer;
@@ -351,7 +351,7 @@ body {
   border: none;
   outline: none;
   background: transparent;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-primary);
   width: 100%;
   min-width: 180px;
@@ -370,7 +370,7 @@ body {
   padding: 10px 12px;
   border-radius: 16px;
   background: var(--primary-soft);
-  border: 1px solid rgba(0,113,227,0.06);
+  border: 1px solid var(--primary-ring);
   text-align: center;
   flex-shrink: 0;
 }
@@ -405,13 +405,13 @@ body {
   border-radius: var(--radius-badge);
   background: var(--primary);
   color: #fff;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   border: none;
   transition: all var(--duration-fast) var(--ease-apple);
   white-space: nowrap;
-  letter-spacing: -0.01em;
+  letter-spacing: 0;
 }
 .btn-primary:hover {
   background: var(--primary-hover);
@@ -428,7 +428,7 @@ body {
   border-radius: var(--radius-badge);
   background: var(--card-bg);
   color: var(--text-secondary);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   border: 1px solid var(--border);
@@ -450,7 +450,7 @@ body {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 500;
   color: var(--sidebar-text-muted);
   transition: all var(--duration-fast) var(--ease-apple);
@@ -498,7 +498,7 @@ input, textarea, select {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-tertiary);
 }
 .breadcrumb-sep {

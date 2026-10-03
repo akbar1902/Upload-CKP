@@ -39,7 +39,7 @@ export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) 
                 : "hover:bg-[var(--bg-secondary)]"
             )}
             style={isActive
-              ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.15)' }
+              ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' }
               : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }
             }
           >

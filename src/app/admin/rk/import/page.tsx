@@ -146,13 +146,13 @@ export default function ImportRKPage() {
             <div className="flex gap-4 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
               <button 
                 onClick={() => setActiveTab('excel')}
-                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'excel' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'excel' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Upload via Excel
               </button>
               <button 
                 onClick={() => setActiveTab('json')}
-                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'json' ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'json' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Upload via JSON
               </button>
@@ -161,7 +161,7 @@ export default function ImportRKPage() {
             {/* Excel Tab */}
             {activeTab === 'excel' && (
               <div className="flex flex-col items-center justify-center text-center py-8">
-                <div className="w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center mb-4">
                   <FileSpreadsheet size={28} />
                 </div>
                 <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Format Excel</h3>
@@ -173,7 +173,7 @@ export default function ImportRKPage() {
                   <button onClick={handleDownloadTemplate} className="btn-secondary flex items-center gap-2">
                     <Download size={16} /> Download Template
                   </button>
-                  <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="btn-primary flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700">
+                  <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="btn-primary flex items-center gap-2 bg-[var(--primary)] hover:bg-[var(--primary-hover)]">
                     {isUploading ? <><RefreshCw size={16} className="animate-spin" /> Memproses...</> : <><Upload size={16} /> Pilih File Excel</>}
                   </button>
                 </div>

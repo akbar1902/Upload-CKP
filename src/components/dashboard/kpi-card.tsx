@@ -19,14 +19,16 @@ export function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardPro
     : icon;
 
   return (
-    <div className="kpi-card p-7 flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.06em]"
-           style={{ color: 'var(--text-tertiary)' }}>
+    <div className="kpi-card p-6 sm:p-7 flex flex-col gap-4 min-w-0 overflow-hidden">
+      <div className="flex items-start justify-between gap-3">
+        <p
+          className="flex-1 min-w-0 text-[13px] font-semibold uppercase leading-snug"
+          style={{ color: 'var(--text-tertiary)', letterSpacing: '0.04em', textWrap: 'balance' }}
+        >
           {label}
         </p>
         <div
-          className="w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0"
+          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
           style={{ background: unifiedIconBg }}
         >
           {unifiedIcon}
@@ -34,13 +36,15 @@ export function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardPro
       </div>
       {loading
         ? <div className="skeleton h-10 w-20 rounded-xl" />
-        : <div className="text-[36px] font-bold tracking-tight leading-none"
-             style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        : <div
+            className="font-bold tracking-tight leading-none tabular-nums break-words"
+            style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em', fontSize: 'clamp(28px, 4vw, 38px)' }}
+          >
             {value}
           </div>
       }
       {sub && (
-        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>
+        <p className="text-[14px] leading-snug" style={{ color: 'var(--text-tertiary)' }}>{sub}</p>
       )}
     </div>
   );

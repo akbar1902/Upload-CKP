@@ -1,5 +1,6 @@
 import React from "react";
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
@@ -41,6 +42,12 @@ export const viewport: Viewport = {
   ],
 };
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,9 +55,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className={`${poppins.className} antialiased`}>
         <NextTopLoader
-          color="#0071E3"
+          color="#0F766E"
           initialPosition={0.08}
           crawlSpeed={200}
           height={2}
@@ -58,7 +65,7 @@ export default function RootLayout({
           showSpinner={false}
           easing="ease"
           speed={200}
-          shadow="0 0 8px rgba(0,113,227,0.3)"
+          shadow="0 0 8px rgba(15,118,110,0.3)"
         />
         <ErrorBoundary>
           <QueryProvider>
@@ -74,7 +81,7 @@ export default function RootLayout({
                   closeButton
                   toastOptions={{
                     style: {
-                      fontFamily: "-apple-system, 'SF Pro Display', 'Inter', sans-serif",
+                      fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
                       borderRadius: '16px',
                       fontSize: '14px',
                     },

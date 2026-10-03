@@ -45,8 +45,11 @@ export default function UploadPage() {
   const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
-  // States for Team Assignment Prompt
-  const [showTeamModal, setShowTeamModal] = useState(false);
+  // ── Wizard state: 1 = Periode, 2 = File + Preview, 3 = Petakan RK ──
+  // Step 3 hanya muncul bila ada RK tak dikenal; gagal di satu langkah
+  // tidak mengulang dari nol karena semua state (file, hasil parse, mapping)
+  // dipertahankan antar-langkah.
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, rk_id: string }>>({});
   const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
@@ -349,17 +352,17 @@ export default function UploadPage() {
       const { unmatched: newUnmatched } = getUnmatched(currentMasterRKs, currentMasterKegiatan);
 
       if (newUnmatched.size > 0) {
-        setUploading(false); // Reset loading state karena memunculkan modal
+        setUploading(false); // Reset loading state karena lanjut ke langkah pemetaan
         setUploadStep(-1);
         setUnmatchedRKs(Array.from(newUnmatched));
-        
+
         const initialMap: Record<string, { tim_kerja: string, rk_id: string }> = {};
         Array.from(newUnmatched).forEach(rk => {
           initialMap[rk] = { tim_kerja: '', rk_id: '' };
         });
         setRkTeamMapping(initialMap);
-        
-        setShowTeamModal(true);
+
+        setWizardStep(3);
       } else {
         processUpload(currentMasterRKs, currentMasterKegiatan);
       }
@@ -394,7 +397,6 @@ export default function UploadPage() {
     setUploading(true);
     setUploadStep(0);
     setUploadProgress(15);
-    setShowTeamModal(false);
 
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
@@ -549,9 +551,51 @@ export default function UploadPage() {
             <Upload className="h-6 w-6" style={{ color: 'var(--primary)' }} />
             Upload CKP
           </h2>
-          <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>Upload file Excel CKP bulanan Anda</p>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>Upload file Excel CKP bulanan Anda — {wizardStep === 1 ? 'langkah 1 dari 2: pilih periode' : wizardStep === 2 ? 'langkah 2 dari 2: upload & preview' : 'langkah tambahan: petakan RK tak dikenal'}</p>
         </div>
 
+        {/* ── Stepper: Periode → File + Preview (+ Petakan RK bila perlu) ── */}
+        <ol className="flex items-center gap-0" aria-label="Langkah upload">
+          {[
+            { n: 1 as const, label: 'Periode' },
+            { n: 2 as const, label: 'File + Preview' },
+            ...(wizardStep === 3 || unmatchedRKs.length > 0 ? [{ n: 3 as const, label: 'Petakan RK' }] : []),
+          ].map((s, i, arr) => (
+            <React.Fragment key={s.n}>
+              {i > 0 && (
+                <div
+                  className="mx-2 h-0.5 flex-1 rounded-full transition-colors sm:mx-3 sm:flex-none sm:w-16"
+                  style={{ background: wizardStep > s.n - 1 ? 'var(--primary)' : 'var(--border)' }}
+                  aria-hidden="true"
+                />
+              )}
+              <li className="flex items-center gap-2">
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold transition-colors"
+                  style={
+                    wizardStep === s.n
+                      ? { background: 'var(--primary)', color: '#fff' }
+                      : wizardStep > s.n
+                        ? { background: 'var(--success-soft)', color: 'var(--success)' }
+                        : { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }
+                  }
+                  aria-current={wizardStep === s.n ? 'step' : undefined}
+                >
+                  {wizardStep > s.n ? <Check className="h-3.5 w-3.5" /> : s.n}
+                </span>
+                <span
+                  className="hidden text-[13px] font-medium sm:inline"
+                  style={{ color: wizardStep === s.n ? 'var(--text-primary)' : 'var(--text-tertiary)' }}
+                >
+                  {s.label}
+                </span>
+              </li>
+              {i < arr.length - 1 && <span className="sr-only">lalu</span>}
+            </React.Fragment>
+          ))}
+        </ol>
+
+        {wizardStep === 1 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">1. Pilih Periode</CardTitle>
@@ -609,8 +653,27 @@ export default function UploadPage() {
               </div>
             )}
           </CardContent>
+          <div className="flex justify-end px-7 pb-7">
+            <Button
+              onClick={() => setWizardStep(2)}
+              disabled={isLocked || existingUpload?.status === 'approved'}
+              title={isLocked ? 'Periode dikunci admin' : existingUpload?.status === 'approved' ? 'CKP sudah disetujui' : 'Lanjut ke upload file'}
+            >
+              Lanjut ke Upload File <ArrowLeft className="h-4 w-4 rotate-180" />
+            </Button>
+          </div>
         </Card>
+        )}
 
+        {wizardStep === 2 && (
+        <>
+        <button
+          onClick={() => setWizardStep(1)}
+          className="inline-flex items-center gap-1 text-[13px] font-medium transition-colors"
+          style={{ color: 'var(--text-tertiary)' }}
+        >
+          <ArrowLeft className="h-4 w-4" /> Kembali ke Periode ({getBulanName(bulan)} {tahun})
+        </button>
         <Card>
           <CardHeader>
             <CardTitle className="text-base">2. Upload File Excel</CardTitle>
@@ -771,17 +834,18 @@ export default function UploadPage() {
             )}
           </>
         )}
+        </>
+        )}
       </div>
 
-      {showTeamModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]" style={{ background: 'var(--card-bg)' }}>
+      {wizardStep === 3 && unmatchedRKs.length > 0 && (
+        <div className="rounded-2xl shadow-xl w-full overflow-hidden flex flex-col animate-fade-in" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
             <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
                 <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Mapping Tim Kerja</h3>
                 <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Beberapa Rencana Kinerja belum memiliki tim kerja.</p>
               </div>
-              <button onClick={() => setShowTeamModal(false)} className="p-2 rounded-lg transition-colors"
+              <button onClick={() => setWizardStep(2)} className="p-2 rounded-lg transition-colors"
                       style={{ color: 'var(--text-tertiary)' }}
                       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; }}
                       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}>
@@ -842,25 +906,24 @@ export default function UploadPage() {
               </div>
             </div>
             <div className="p-6 flex justify-end gap-3" style={{ background: 'var(--card-bg)', borderTop: '1px solid var(--border)' }}>
-              <Button variant="outline" onClick={() => setShowTeamModal(false)}>Batal</Button>
+              <Button variant="outline" onClick={() => setWizardStep(2)}>Kembali</Button>
               <Button onClick={() => {
                 const invalid = unmatchedRKs.some(rk => !rkTeamMapping[rk]?.tim_kerja || !rkTeamMapping[rk]?.rk_id);
                 if (invalid) { toast.error('Lengkapi semua mapping RK Master'); return; }
                 processUpload();
               }}>Lanjutkan Upload</Button>
             </div>
-          </div>
         </div>
       )}
 
       {/* Progress Modal */}
-      {uploading && !showTeamModal && uploadStep >= 0 && (
+      {uploading && wizardStep !== 3 && uploadStep >= 0 && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
           <div className="rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center" style={{ background: 'var(--card-bg)' }}>
             <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
               {uploadProgress === 100 ? (
                 <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center animate-scale-in">
-                  <CheckCircle2 className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                  <CheckCircle2 className="w-8 h-8 text-[var(--success)]" />
                 </div>
               ) : (
                 <>

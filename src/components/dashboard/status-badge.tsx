@@ -1,28 +1,37 @@
 import React from 'react';
+import { AlertTriangle, Archive, CheckCircle2, Clock, FileText, Sparkles, XCircle } from 'lucide-react';
 import type { UploadStatus } from '@/types/database';
 
+const STATUS_META = {
+  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', Icon: Clock },
+  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    Icon: Sparkles },
+  approved:          { label: 'Disetujui',       cls: 'badge-approved',  Icon: CheckCircle2 },
+  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  Icon: XCircle },
+  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  Icon: AlertTriangle },
+  draft:             { label: 'Draft',           cls: 'badge-draft',     Icon: FileText },
+  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     Icon: Archive },
+};
+
+// Backward-compat untuk modul yang butuh lookup label/kelas.
 export const STATUS_CONFIG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#FF9500' },
+  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#0F766E' },
   scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: '#AF52DE' },
-  approved:          { label: 'Disetujui',        cls: 'badge-approved',  dot: '#34C759' },
-  rejected:          { label: 'Ditolak',          cls: 'badge-rejected',  dot: '#FF3B30' },
-  revision_required: { label: 'Perlu Revisi',     cls: 'badge-revision',  dot: '#FF9500' },
-  draft:             { label: 'Draft',             cls: 'badge-draft',     dot: '#AEAEB2' },
-  superseded:        { label: 'Diganti (Arsip)',   cls: 'badge-draft',     dot: '#8E8E93' },
+  approved:          { label: 'Disetujui',       cls: 'badge-approved',  dot: '#34C759' },
+  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  dot: '#FF3B30' },
+  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  dot: '#F59E0B' },
+  draft:             { label: 'Draft',           cls: 'badge-draft',     dot: '#AEAEB2' },
+  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     dot: '#8E8E93' },
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
-    ?? { label: status, cls: 'badge-draft', dot: '#AEAEB2' };
-  
+  const meta = STATUS_META[status as keyof typeof STATUS_META]
+    ?? { label: status, cls: 'badge-draft', Icon: FileText };
+  const { Icon } = meta;
+
   return (
-    <span className={`badge-pill ${cfg.cls}`} role="status" aria-label={`Status: ${cfg.label}`}>
-      <span
-        className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-        style={{ background: cfg.dot }}
-        aria-hidden="true"
-      />
-      {cfg.label}
+    <span className={`badge-pill ${meta.cls}`} role="status" aria-label={`Status: ${meta.label}`}>
+      <Icon size={12} strokeWidth={2.5} aria-hidden="true" />
+      {meta.label}
     </span>
   );
 }

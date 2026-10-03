@@ -11,6 +11,7 @@ import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
 import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { Skeleton } from '@/components/ui/skeleton';
+import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-badge';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
@@ -24,22 +25,8 @@ import {
   CalendarDays,
 } from 'lucide-react';
 
-const STATUS_CFG = {
-  submitted: { label: 'Menunggu Review', cls: 'badge-submitted', dot: '🟡' },
-  scored: { label: 'Sudah Dinilai', cls: 'badge-scored', dot: '🟣' },
-  approved: { label: 'Disetujui', cls: 'badge-approved', dot: '🟢' },
-  rejected: { label: 'Ditolak', cls: 'badge-rejected', dot: '🔴' },
-  revision_required: { label: 'Perlu Revisi', cls: 'badge-revision', dot: '🟠' },
-  draft: { label: 'Draft', cls: 'badge-draft', dot: '⚪' },
-} as const;
-
 function UploadBadge({ status }: { status: string }) {
-  const cfg = STATUS_CFG[status as keyof typeof STATUS_CFG] ?? { label: status, cls: 'badge-draft', dot: '⚪' };
-  return (
-    <span className={`badge-pill ${cfg.cls}`} role="status">
-      <span aria-hidden="true">{cfg.dot}</span> {cfg.label}
-    </span>
-  );
+  return <SharedStatusBadge status={status} />;
 }
 
 function KPICard({ icon, value, label, sub, iconBg }: {
@@ -885,6 +872,60 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         )}
       </div>
 
+      {/* ── Sticky grading bar: progres nilai + rata-rata + aksi ──
+          Selalu nempel di bawah layar agar reviewer tidak perlu scroll
+          untuk tahu berapa RK belum dinilai / kenapa Approve disabled. */}
+      {canReview && rkGroups.length > 0 && (
+        <div
+          className="sticky bottom-4 z-30 mt-6 flex flex-col gap-3 rounded-2xl p-4 shadow-lg backdrop-blur-md animate-fade-in sm:flex-row sm:items-center"
+          style={{ background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)', border: '1px solid var(--border)' }}
+          role="status"
+          aria-label={`Progres penilaian: ${scoredRks.length} dari ${rkGroups.length} RK dinilai`}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+              {scoredRks.length}/{rkGroups.length} RK
+            </span>
+            <div
+              className="h-2 flex-1 rounded-full overflow-hidden"
+              style={{ background: 'var(--bg-secondary)' }}
+              role="progressbar"
+              aria-valuenow={scoredRks.length}
+              aria-valuemin={0}
+              aria-valuemax={rkGroups.length}
+            >
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${rkGroups.length > 0 ? (scoredRks.length / rkGroups.length) * 100 : 0}%`,
+                  background: allScored ? 'var(--success)' : 'var(--primary)',
+                }}
+              />
+            </div>
+            <span className="text-[12px] whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+              rata-rata <strong className="font-bold" style={{ color: 'var(--text-primary)' }}>{displayRataRataNilai}</strong>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') && (
+              <button
+                onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
+                className="btn-primary h-10 px-4 text-[13px] flex items-center gap-1.5"
+                disabled={!allScored}
+                title={!allScored ? `${rkGroups.length - scoredRks.length} RK belum dinilai` : 'Setujui CKP'}
+              >
+                <CheckCircle2 size={14} /> {allScored ? 'Approve' : `Approve (${rkGroups.length - scoredRks.length} kurang)`}
+              </button>
+            )}
+            {canReopen && (
+              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5">
+                <Unlock size={14} /> Buka Kembali
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {showApprovalModal && (
         <ApprovalModal
           open={showApprovalModal}
@@ -910,10 +951,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-                <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Kegiatan</p>
+              <div className="p-3 rounded-lg bg-[var(--primary-soft)] border border-[var(--primary-ring)]">
+                <p className="text-[11px] font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">Kegiatan</p>
                 <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entryToMove.kegiatan}</p>
-                <p className="text-[11px] mt-2 font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">RK Awal (Salah)</p>
+                <p className="text-[11px] mt-2 font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">RK Awal (Salah)</p>
                 <p className="text-[13px] font-medium text-red-600 dark:text-red-400">{entryToMove.rencana_kinerja}</p>
               </div>
               

@@ -300,7 +300,7 @@ export default function PimpinanQuickApprovalClient() {
                                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                                  !upload.allScored 
                                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800' 
-                                 : 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm hover:shadow-md'
+                                 : 'bg-[var(--success)] hover:brightness-95 text-white shadow-sm hover:shadow-md'
                                }`}
                                title={!upload.allScored ? "Tidak bisa disetujui, Ketua Tim belum selesai menilai semua RK" : "Proses Persetujuan"}
                             >
@@ -310,7 +310,7 @@ export default function PimpinanQuickApprovalClient() {
                             
                             <button
                                onClick={() => window.open(`/penilaian/${upload.id}`, '_blank')}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:hover:bg-blue-500/20"
+                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-[var(--primary-soft)] text-[var(--primary)] hover:brightness-95"
                                title="Lihat Detail CKP di tab baru"
                             >
                                <Search className="h-3.5 w-3.5" />

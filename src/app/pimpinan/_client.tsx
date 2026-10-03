@@ -358,7 +358,7 @@ export default function PimpinanDashboard() {
             {pendingCount > 0 && (
               <Link
                 href={`/pimpinan/approval?bulan=${bulan}&tahun=${tahun}`}
-                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
               >
                 <Zap className="h-4 w-4" fill="currentColor" />
                 Persetujuan Cepat
@@ -369,7 +369,7 @@ export default function PimpinanDashboard() {
               href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
               className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all duration-200"
             >
-              <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <Users className="h-4 w-4 text-[var(--primary)]" />
               Monitoring Penilaian
             </Link>
             <PeriodFilter
@@ -461,7 +461,7 @@ export default function PimpinanDashboard() {
                   onClick={() => setStatusFilter(st.id)}
                   className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--bg-secondary)]'}`}
                   style={statusFilter === st.id 
-                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.15)' } 
+                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' } 
                     : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                 >
                   {st.label}

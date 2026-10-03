@@ -78,9 +78,9 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         >
           {/* Date block */}
           <div className="date-block hidden sm:flex transition-colors">
-            <span className="day group-hover:text-emerald-600 transition-colors">{day}</span>
-            <span className="month group-hover:text-emerald-600 transition-colors">{monthAbbr}</span>
-            <span className="weekday group-hover:text-emerald-600 transition-colors">{weekday}</span>
+            <span className="day group-hover:text-[var(--primary)] transition-colors">{day}</span>
+            <span className="month group-hover:text-[var(--primary)] transition-colors">{monthAbbr}</span>
+            <span className="weekday group-hover:text-[var(--primary)] transition-colors">{weekday}</span>
           </div>
 
           {/* Period icon + info */}
@@ -96,7 +96,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
 
             <div className="min-w-0 flex-1">
               {/* Period title */}
-              <p className="text-[15px] font-semibold leading-snug truncate group-hover:text-emerald-600 transition-colors"
+              <p className="text-[15px] font-semibold leading-snug truncate group-hover:text-[var(--primary)] transition-colors"
                  style={{ color: 'var(--text-primary)' }}>
                 CKP {MONTH_FULL[upload.bulan]} {upload.tahun}
                 {upload.version > 1 && (
@@ -203,7 +203,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           {/* File attachment */}
           {upload.file_name && (
             <div className="flex items-center gap-2 mb-5 p-3.5 rounded-2xl"
-                 style={{ background: 'var(--primary-soft)', border: '1px solid rgba(0,113,227,0.06)' }}>
+                 style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
               <FileText size={14} style={{ color: 'var(--primary)', flexShrink: 0 }} />
               <span className="text-[12px] font-medium truncate" style={{ color: 'var(--primary)' }}>
                 {upload.file_name}

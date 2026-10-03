@@ -108,7 +108,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           href={`/pegawai/ckp/${upload.id}`}
           prefetch={true}
           className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200"
-          style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(0,113,227,0.08)' }}
+          style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' }}
         >
           Lihat Detail <ArrowRight size={13} />
         </Link>
@@ -310,7 +310,7 @@ export default function PegawaiDashboard() {
                 Halo, {user?.full_name || 'Pegawai'}
               </h2>
               {user?.jabatan && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium bg-emerald-50 text-emerald-800 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/60 shadow-sm">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary-ring)] shadow-sm">
                   <Briefcase size={12} className="mr-1.5 opacity-80" />
                   {user.jabatan}
                 </span>
@@ -338,7 +338,7 @@ export default function PegawaiDashboard() {
         {!isLoading && !currentMonthUpload && (
           <div
             className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
-            style={{ background: 'var(--primary-soft)', border: '1px solid rgba(0,113,227,0.06)' }}
+            style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}
             role="alert"
           >
             <div className="flex-shrink-0 p-2 rounded-xl"
