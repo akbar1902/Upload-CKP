@@ -23,7 +23,7 @@ const colorMap = {
   emerald: { bg: 'var(--success-soft)',  text: 'var(--success-text)' },
   amber:   { bg: 'var(--warning-soft)',  text: 'var(--warning-text)' },
   red:     { bg: 'var(--danger-soft)',   text: 'var(--danger-text)' },
-  purple:  { bg: '#EFE7DD', text: '#6B5A44' },
+  purple:  { bg: 'var(--primary-soft)', text: 'var(--primary)' },
   slate:   { bg: 'var(--bg-secondary)',  text: 'var(--text-secondary)' },
 };
 

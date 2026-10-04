@@ -25,7 +25,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
   const totalEntries = upload?.total_entries ?? 0;
   const hasUpload = upload !== null;
 
-  const barColor = avgProgres >= 80 ? 'var(--success-text)'
+  const barColor = avgProgres >= 80 ? 'var(--primary)'
     : avgProgres >= 50 ? 'var(--accent)'
     : 'var(--primary)';
 
@@ -77,7 +77,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
           </div>
           <div style={{ borderLeft: '1px solid var(--sand-border)', borderRight: '1px solid var(--sand-border)' }}>
             <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
-            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success-text)' : avgProgres >= 50 ? 'var(--accent-strong)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
+            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--primary)' : avgProgres >= 50 ? 'var(--accent-strong)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>

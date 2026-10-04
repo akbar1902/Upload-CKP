@@ -49,7 +49,7 @@ export function StatusLabel({ status }: { status: UploadStatus | null }) {
   const map: Record<UploadStatus, { label: string; bg: string; color: string }> = {
     draft:             { label: 'Draft',          bg: 'var(--sand-subtle)',    color: 'var(--text-secondary)' },
     submitted:         { label: 'Menunggu Review', bg: 'var(--accent-soft)',    color: 'var(--accent-strong)' },
-    scored:            { label: 'Sudah Dinilai',   bg: '#EFE7DD', color: '#6B5A44' },
+    scored:            { label: 'Sudah Dinilai',   bg: '#EFE9DB', color: '#6B5A44' },
     approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success-text)' },
     rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger-text)' },
     revision_required: { label: 'Perlu Revisi',    bg: 'var(--danger-soft)',    color: 'var(--danger-text)' },
