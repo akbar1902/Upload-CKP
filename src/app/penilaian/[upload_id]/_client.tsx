@@ -711,7 +711,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               </button>
             ) : null}
             {canReopen && (
-              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm" style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm" style={{ color: 'var(--warning-text)', borderColor: 'var(--warning-text)' }}>
                 <Unlock size={14} /> Buka Kembali
               </button>
             )}

@@ -63,8 +63,8 @@
   --color-teal-100: #D7E6DD;
   --color-teal-200: #B4CFC2;
   --color-teal-300: #83B3A3;
-  --color-teal-400: #3AA897;
-  --color-teal-500: #14B8A6;
+  --color-teal-400: #83B3A3;   /* dark: ikon/teks terang (6.54 OK di card) */
+  --color-teal-500: #1F8A7D;   /* dark: tombol dalam (putih 4.53 OK) */
   --color-teal-600: #0F766E;
   --color-teal-700: #0F766E;
   --color-teal-800: #115E59;
@@ -276,58 +276,66 @@
 }
 
 .dark {
-  --bg-base:        #201E1A; /* cokelat-hijau sangat gelap */
-  --bg-secondary:   #2A2721;
-  --card-bg:        #2E2B25;
+  /* Malam hangat elegan: bg espresso pekat, card naik 2 tingkat + border terang */
+  --bg-base:        #1B1813;
+  --bg-secondary:   #2A251D;   /* sand-subtle versi dark */
+  --card-bg:        #322C22;   /* card-vs-bg 1.56 OK */
+  --sand-subtle:    #2A251D;
+  --sand-border:    rgba(214, 201, 180, 0.22);
+  --sand-strong:    #4A4234;
 
-  /* Accent - Teal on Dark */
-  --primary:        #3AA897;
-  --primary-hover:  #83B3A3;
-  --primary-soft:   rgba(58, 168, 151, 0.14);
-  --primary-ring:   rgba(58, 168, 151, 0.25);
+  /* Primary dark = DUA teal (hasil ukur kontras):
+     --primary = teal DALAM utk tombol (putih di atasnya 4.53 OK)
+     --primary-bright = teal TERANG utk ikon/teks (di atas card 6.54 OK) */
+  --primary:        #1F8A7D;
+  --primary-hover:  #24967F;
+  --primary-bright: #83B3A3;
+  --primary-soft:   rgba(31, 138, 125, 0.22);
+  --primary-ring:   rgba(31, 138, 125, 0.35);
 
   --secondary:        #8FA883;
-  --secondary-soft:   rgba(143, 168, 131, 0.14);
-  --secondary-ring:   rgba(143, 168, 131, 0.25);
-  --secondary-text:   #201E1A;
+  --secondary-soft:   rgba(169, 194, 154, 0.16);
+  --secondary-ring:   rgba(169, 194, 154, 0.3);
+  --secondary-text:   #DCE5D2;
   --secondary-strong: #A9C29A;
 
   --tertiary:        #D9C9B2;
   --tertiary-soft:   rgba(217, 201, 178, 0.1);
-  --tertiary-text:   #D9C9B2;
+  --tertiary-text:   #D6C9B4;
 
-  --accent:          #D08763;
-  --accent-soft:     rgba(208, 135, 99, 0.14);
-  --accent-ring:     rgba(208, 135, 99, 0.25);
-  --accent-strong:   #D08763;
+  --accent:          #E09A73;
+  --accent-soft:     rgba(224, 154, 115, 0.16);
+  --accent-ring:     rgba(224, 154, 115, 0.32);
+  --accent-strong:   #E09A73;
 
   --success:        #A9C29A;
   --success-text:   #DCE5D2;
-  --success-soft:   rgba(169, 194, 154, 0.12);
+  --success-soft:   rgba(169, 194, 154, 0.14);
   --warning:        #D9B978;
   --warning-text:   #F5E8C8;
-  --warning-soft:   rgba(217, 185, 120, 0.12);
+  --warning-soft:   rgba(217, 185, 120, 0.14);
   --danger:         #D89A82;
   --danger-text:    #F5D9CD;
-  --danger-soft:    rgba(216, 154, 130, 0.12);
+  --danger-soft:    rgba(216, 154, 130, 0.14);
 
   --text-primary:   #EDE6D6;
-  --text-secondary: #C9BCA6;
-  --text-tertiary:  #8A7D68;
+  --text-secondary: #B8AC96;   /* 7.90 OK di bg */
+  --text-tertiary:  #9A8D76;   /* 5.43 OK di bg; hanya label kecil/non-esensial */
 
-  --border:         rgba(217, 201, 178, 0.16);
-  --border-soft:    rgba(217, 201, 178, 0.08);
+  --border:         rgba(214, 201, 180, 0.22);
+  --border-soft:    rgba(214, 201, 180, 0.12);
+  --border-hover:   rgba(214, 201, 180, 0.35);
 
-  --sidebar-bg:     #24211C;
-  --sidebar-hover:  rgba(217, 201, 178, 0.08);
-  --sidebar-active: rgba(58, 168, 151, 0.16);
+  --sidebar-bg:     #14110D;   /* lebih gelap dari bg → sidebar kepisah */
+  --sidebar-hover:  rgba(214, 201, 180, 0.07);
+  --sidebar-active: rgba(31, 138, 125, 0.22);
   --sidebar-text:   #EDE6D6;
-  --sidebar-text-muted: #C9BCA6;
-  --sidebar-border: rgba(217, 201, 178, 0.12);
+  --sidebar-text-muted: #B8AC96;
+  --sidebar-border: rgba(214, 201, 180, 0.14);
 
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
-  --shadow-hover:   0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
-  --shadow-elevated:0 12px 40px rgba(0,0,0,0.5);
+  --shadow-card:    0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(214,201,180,0.06);
+  --shadow-hover:   0 6px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(214,201,180,0.08);
+  --shadow-elevated:0 14px 44px rgba(0,0,0,0.6);
 }
 
 /* ─── Base ───────────────────────────────────────────────── */
@@ -355,8 +363,8 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 100px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
-.dark ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
-.dark ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(214,201,180,0.2); }
+.dark ::-webkit-scrollbar-thumb:hover { background: rgba(214,201,180,0.32); }
 
 /* ─── Keyframe Animations ────────────────────────────────── */
 @keyframes fadeUp {
@@ -802,7 +810,7 @@ input, textarea, select {
   border-radius: 10px;
 }
 .dark .skeleton {
-  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(255,255,255,0.04) 50%, var(--bg-secondary) 75%);
+  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(214,201,180,0.08) 50%, var(--bg-secondary) 75%);
   background-size: 200% 100%;
 }
 
@@ -902,7 +910,7 @@ input, textarea, select {
   color: var(--text-secondary) !important;
 }
 .dark .text-teal-400, .dark .text-teal-300 {
-  color: var(--primary) !important;
+  color: var(--primary-bright) !important;
 }
 .dark .text-emerald-400, .dark .text-emerald-300 {
   color: var(--success) !important;
@@ -911,7 +919,7 @@ input, textarea, select {
   color: var(--warning) !important;
 }
 .dark .text-blue-400, .dark .text-blue-300, .dark .text-blue-200, .dark .text-blue-100 {
-  color: var(--text-secondary) !important;
+  color: var(--primary-bright) !important;
 }
 .dark .text-red-400, .dark .text-red-200 {
   color: var(--danger) !important;
@@ -919,6 +927,8 @@ input, textarea, select {
 .dark .text-green-400 {
   color: var(--success) !important;
 }
+/* text-white di dark = ink terang. Tombol primary dark pakai teal dalam
+   (#1F8A7D, putih di atasnya 4.53 OK) jadi teks tombol tetap putih terbaca. */
 .dark .text-white {
   color: var(--text-primary) !important;
 }
