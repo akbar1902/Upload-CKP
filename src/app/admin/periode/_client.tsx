@@ -89,7 +89,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
 
         {isPending ? (
           <div className="flex items-center justify-center p-12">
-            <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
+            <RefreshCw className="h-6 w-6 animate-spin text-[var(--primary)]" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -109,7 +109,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
                       <Lock size={18} />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-green-600">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-[var(--success-text)]">
                       <Unlock size={18} />
                     </div>
                   )}

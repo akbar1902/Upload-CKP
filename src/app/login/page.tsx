@@ -115,10 +115,10 @@ export default function LoginPage() {
         className="absolute inset-0 pointer-events-none dark:hidden"
         style={{
           background: `
-            radial-gradient(circle at 10% 80%, rgba(16,185,129,.12), transparent 35%),
-            radial-gradient(circle at 25% 20%, rgba(59,130,246,.08), transparent 30%),
-            radial-gradient(circle at 80% 50%, rgba(16,185,129,.10), transparent 45%),
-            linear-gradient(135deg, #ffffff 0%, #f8fafc 40%, #F6F9F7 100%)
+            radial-gradient(circle at 10% 80%, rgba(107,127,91,.16), transparent 35%),
+            radial-gradient(circle at 25% 20%, rgba(217,201,178,.25), transparent 30%),
+            radial-gradient(circle at 80% 50%, rgba(107,127,91,.12), transparent 45%),
+            linear-gradient(135deg, #FFFDF8 0%, #F8F6EE 45%, #F1EBDD 100%)
           `
         }}
       />
@@ -126,7 +126,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 opacity-40 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(#D9C9B2 1px, transparent 1px)',
           backgroundSize: '24px 24px',
           maskImage: 'linear-gradient(to right, black 30%, transparent 80%)',
           WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 80%)'
@@ -144,12 +144,12 @@ export default function LoginPage() {
 
 
           {/* Hero tagline */}
-          <h2 className="text-[44px] font-extrabold text-[#1C2520] dark:text-white leading-[1.15] tracking-tight mb-4">
+          <h2 className="text-[44px] font-extrabold text-[var(--text-primary)] leading-[1.15] tracking-tight mb-4">
             Rekap, Review,<br />
             dan Approval<br />
             <span style={{ color: primaryColor }}>Capaian Kinerja</span>
           </h2>
-          <p className="text-[16px] text-slate-500 dark:text-slate-400 mb-12 font-medium">
+          <p className="text-[16px] text-[var(--text-secondary)] mb-12 font-medium">
             Semua dalam satu platform terintegrasi.
           </p>
 
@@ -162,13 +162,13 @@ export default function LoginPage() {
               { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.' },
             ].map((feat, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[var(--primary-soft)] dark:bg-slate-800/60"
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[var(--primary-soft)] "
                   style={{ color: primaryColor }}>
                   <feat.icon size={18} strokeWidth={2.5} />
                 </div>
                 <div>
                   <h4 className="text-[15px] font-bold text-[#1C2520] dark:text-slate-100 mb-0.5">{feat.title}</h4>
-                  <p className="text-[13px] text-slate-500 dark:text-slate-400">{feat.desc}</p>
+                  <p className="text-[13px] text-[var(--text-secondary)]">{feat.desc}</p>
                 </div>
               </div>
             ))}
@@ -182,20 +182,20 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
 
         {/* Login Card */}
-        <div className="w-full max-w-[440px] bg-white dark:bg-[#1E293B] shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent dark:border-slate-700/50">
+        <div className="w-full max-w-[440px] bg-[var(--card-bg)] shadow-[0_20px_60px_-15px_rgba(58,109,91,0.15)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent border-[var(--border)]">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
               /* ── Success State ──────────────────── */
               <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)] dark:bg-slate-800/60">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)] ">
                   <CheckCircle2 className="h-8 w-8" style={{ color: primaryColor }} />
                 </div>
-                <h3 className="text-xl font-bold tracking-tight mb-2 text-[#1C2520] dark:text-white">
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
                   Password Berhasil Diubah!
                 </h3>
-                <p className="text-[14px] max-w-sm mb-8 text-slate-500 dark:text-slate-400">
-                  Password untuk akun <span className="font-semibold text-slate-700 dark:text-slate-300">{resetEmail}</span> telah berhasil diubah. Silakan masuk menggunakan password baru Anda.
+                <p className="text-[14px] max-w-sm mb-8 text-[var(--text-secondary)]">
+                  Password untuk akun <span className="font-semibold text-[var(--text-primary)]">{resetEmail}</span> telah berhasil diubah. Silakan masuk menggunakan password baru Anda.
                 </p>
                 <Button
                   onClick={() => {
@@ -218,10 +218,10 @@ export default function LoginPage() {
                   <div className="mx-auto flex justify-center mb-4">
                     <Logo size={110} className="drop-shadow-sm dark:brightness-0 dark:invert" />
                   </div>
-                  <h2 className="text-[24px] font-bold text-[#1C2520] dark:text-white tracking-tight mb-2">
+                  <h2 className="text-[24px] font-bold text-[var(--text-primary)] tracking-tight mb-2">
                     Lupa Password?
                   </h2>
-                  <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[14px] text-[var(--text-secondary)]">
                     Masukkan email Anda untuk mereset password.
                   </p>
                 </div>
@@ -235,11 +235,11 @@ export default function LoginPage() {
 
                 <form onSubmit={handleForgotPassword} className="space-y-5">
                   <div>
-                    <label htmlFor="reset-email" className="block text-[13px] font-bold mb-2 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="reset-email" className="block text-[13px] font-bold mb-2 text-[var(--text-primary)]">
                       Email
                     </label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
                         <Mail className="h-5 w-5" />
                       </div>
                       <Input
@@ -250,17 +250,17 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="new-password" className="block text-[13px] font-bold mb-2 text-slate-700 dark:text-slate-300">
+                    <label htmlFor="new-password" className="block text-[13px] font-bold mb-2 text-[var(--text-primary)]">
                       Password Baru
                     </label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
                         <Lock className="h-5 w-5" />
                       </div>
                       <Input
@@ -270,12 +270,12 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
                       >
                         {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -295,7 +295,7 @@ export default function LoginPage() {
                       type="button"
                       variant="ghost"
                       onClick={() => setIsForgotPassword(false)}
-                      className="w-full h-12 text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl font-medium"
+                      className="w-full h-12 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded-xl font-medium"
                     >
                       <ArrowLeft className="h-4 w-4 mr-2" />
                       Kembali ke Login
@@ -311,10 +311,10 @@ export default function LoginPage() {
                   <div className="mx-auto flex justify-center mb-4">
                     <Logo size={110} className="drop-shadow-sm dark:brightness-0 dark:invert" />
                   </div>
-                  <h2 className="text-[26px] font-extrabold text-[#1C2520] dark:text-white tracking-tight mb-2">
+                  <h2 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight mb-2">
                     Selamat Datang
                   </h2>
-                  <p className="text-[14px] text-slate-500 dark:text-slate-400">
+                  <p className="text-[14px] text-[var(--text-secondary)]">
                     Masuk ke akun Anda untuk melanjutkan
                   </p>
                 </div>
@@ -328,11 +328,11 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div>
-                    <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[#1C2520] dark:text-slate-300">
+                    <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[#1C2520] text-[var(--text-secondary)]">
                       Email
                     </label>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
                         <Mail className="h-5 w-5" />
                       </div>
                       <Input
@@ -343,14 +343,14 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="password" className="block text-[13px] font-bold text-[#1C2520] dark:text-slate-300">
+                      <label htmlFor="password" className="block text-[13px] font-bold text-[#1C2520] text-[var(--text-secondary)]">
                         Password
                       </label>
                       <button
@@ -367,7 +367,7 @@ export default function LoginPage() {
                       </button>
                     </div>
                     <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
                         <Lock className="h-5 w-5" />
                       </div>
                       <Input
@@ -377,12 +377,12 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-gray-400 dark:text-white transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-gray-600 transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -392,7 +392,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     loading={loading}
-                    className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[#0F766E]/20"
+                    className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[var(--primary-ring)]"
                     style={{ backgroundColor: primaryColor }}
                   >
                     <LogIn className="h-5 w-5" />
@@ -404,11 +404,11 @@ export default function LoginPage() {
           </div>
 
           {/* Footer inside the card */}
-          <div className="mt-6 text-center border-t border-gray-100 dark:border-slate-800 pt-6">
-            <p className="text-[11px] text-gray-400 dark:text-slate-500 font-medium">
+          <div className="mt-6 text-center border-t border-[var(--border)] pt-6">
+            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-slate-500 font-medium">
               © {new Date().getFullYear()} BPS Kabupaten Belitung
             </p>
-            <p className="text-[11px] mt-1 text-gray-400 dark:text-slate-500 font-medium">
+            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-slate-500 font-medium">
               Sistem Informasi Capaian Kinerja Pegawai
             </p>
           </div>

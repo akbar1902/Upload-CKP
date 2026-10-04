@@ -37,7 +37,7 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
       bgClass: 'bg-slate-200 text-slate-700',
       textClass: 'text-slate-600 dark:text-slate-400',
       borderClass: 'border-slate-300',
-      badgeBgHex: '#64748B',
+      badgeBgHex: '#6E6759',
       textColorHex: '#FFFFFF',
     };
   }
@@ -49,10 +49,10 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
     return {
       label: 'Diatas Ekspektasi',
       color: 'green',
-      bgClass: 'bg-[#16a34a] text-white',
-      textClass: 'text-[#16a34a]',
+      bgClass: 'bg-[#46583E] text-white',
+      textClass: 'text-[#3A4A34]',
       borderClass: 'border-green-600',
-      badgeBgHex: '#16A34A',
+      badgeBgHex: '#46583E',
       textColorHex: '#FFFFFF',
     };
   }
@@ -61,10 +61,10 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
     return {
       label: 'Sesuai Ekspektasi',
       color: 'blue',
-      bgClass: 'bg-[#0284c7] text-white',
-      textClass: 'text-[#0284c7]',
+      bgClass: 'bg-[#0F766E] text-white',
+      textClass: 'text-[#0F766E]',
       borderClass: 'border-sky-600',
-      badgeBgHex: '#0284C7',
+      badgeBgHex: '#0F766E',
       textColorHex: '#FFFFFF',
     };
   }
@@ -72,10 +72,10 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
   return {
     label: 'Dibawah Ekspektasi',
     color: 'red',
-    bgClass: 'bg-[#dc2626] text-white',
-    textClass: 'text-[#dc2626]',
+    bgClass: 'bg-[#A8442F] text-white',
+    textClass: 'text-[#A8442F]',
     borderClass: 'border-red-600',
-    badgeBgHex: '#DC2626',
+    badgeBgHex: '#A8442F',
     textColorHex: '#FFFFFF',
   };
 }

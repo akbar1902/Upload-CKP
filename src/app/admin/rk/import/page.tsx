@@ -140,7 +140,7 @@ export default function ImportRKPage() {
         </div>
 
         {!previewData.length && (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border p-6 shadow-sm" style={{ borderColor: 'var(--border)' }}>
+          <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border p-6 shadow-sm" style={{ borderColor: 'var(--border)' }}>
             
             {/* Tabs */}
             <div className="flex gap-4 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -184,7 +184,7 @@ export default function ImportRKPage() {
             {/* JSON Tab */}
             {activeTab === 'json' && (
               <div className="flex flex-col items-center justify-center text-center py-8">
-                <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center mb-4">
+                <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[var(--primary)] flex items-center justify-center mb-4">
                   <FileJson size={28} />
                 </div>
                 <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Format JSON</h3>
@@ -220,7 +220,7 @@ export default function ImportRKPage() {
                 </div>
                 <div>
                   <h4 className="font-medium text-sm text-blue-900 dark:text-blue-100">Preview Data Siap Disimpan</h4>
-                  <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">{previewData.length} baris data berhasil terbaca.</p>
+                  <p className="text-xs text-[var(--primary)] mt-0.5">{previewData.length} baris data berhasil terbaca.</p>
                 </div>
               </div>
               <div className="flex gap-2 w-full sm:w-auto">
@@ -245,7 +245,7 @@ export default function ImportRKPage() {
                 <tbody>
                   {previewData.map((r) => (
                     <tr key={r._id} className="border-b last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors" style={{ borderColor: 'var(--border)' }}>
-                      <td className="px-4 py-3 font-medium text-blue-600 dark:text-blue-400">{r.tim_kerja}</td>
+                      <td className="px-4 py-3 font-medium text-[var(--primary)]">{r.tim_kerja}</td>
                       <td className="px-4 py-3">
                         <div className="font-semibold line-clamp-2" style={{ color: 'var(--text-primary)' }} title={r.rk_utama}>
                           {r.rk_utama}

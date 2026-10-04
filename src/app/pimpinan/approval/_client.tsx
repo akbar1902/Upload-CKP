@@ -211,7 +211,7 @@ export default function PimpinanQuickApprovalClient() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-[22px] font-semibold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-              <CheckCircle2 className="h-6 w-6 text-emerald-500" />
+              <CheckCircle2 className="h-6 w-6 text-[var(--success-text)]" />
               Persetujuan Cepat CKP
             </h2>
             <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
@@ -279,7 +279,7 @@ export default function PimpinanQuickApprovalClient() {
                       <td className="py-3 px-4 text-center">
                         <div className="inline-flex items-center gap-2">
                            <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
-                             <div className="h-full bg-emerald-500" style={{ width: `${Math.min(upload.avg_progres || 0, 100)}%` }} />
+                             <div className="h-full bg-[var(--success-text)]" style={{ width: `${Math.min(upload.avg_progres || 0, 100)}%` }} />
                            </div>
                            <span className="font-semibold">{Math.round(upload.avg_progres || 0)}%</span>
                         </div>

@@ -3,50 +3,254 @@
 @custom-variant dark (&:where(.dark, .dark *));
 @theme {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Earthy Minimal: alias skala Tailwind → earthy (terpusat di sini) ── */
+  --color-white: #FFFDF8;
+  --color-black: #000000;
+
+  /* Netral hangat (ganti slate/biru-abu dingin) */
+  --color-slate-50: #F8F6EE;
+  --color-slate-100: #EFE7D6;
+  --color-slate-200: #E7DCC8;
+  --color-slate-300: #D9C9B2;
+  --color-slate-400: #A89C86;
+  --color-slate-500: #6E6759;
+  --color-slate-600: #57503F;
+  --color-slate-700: #3F3A30;
+  --color-slate-800: #2E2B25;
+  --color-slate-900: #1E1B16;
+  --color-slate-950: #171410;
+
+  --color-gray-50: #F8F6EE;
+  --color-gray-100: #EFE7D6;
+  --color-gray-200: #E7DCC8;
+  --color-gray-300: #D9C9B2;
+  --color-gray-400: #A89C86;
+  --color-gray-500: #6E6759;
+  --color-gray-600: #57503F;
+  --color-gray-700: #3F3A30;
+  --color-gray-800: #2E2B25;
+  --color-gray-900: #1E1B16;
+  --color-gray-950: #171410;
+
+  /* Sage / sukses (ganti emerald & green) */
+  --color-emerald-50: #E9EFE3;
+  --color-emerald-100: #DCE5D2;
+  --color-emerald-200: #C6D3B4;
+  --color-emerald-300: #A9C29A;
+  --color-emerald-400: #82A88F;
+  --color-emerald-500: #6B7F5B;
+  --color-emerald-600: #46583E;
+  --color-emerald-700: #3A4A34;
+  --color-emerald-800: #2F3D2A;
+  --color-emerald-900: #22301F;
+  --color-emerald-950: #1A2418;
+
+  --color-green-50: #E9EFE3;
+  --color-green-100: #DCE5D2;
+  --color-green-200: #C6D3B4;
+  --color-green-300: #A9C29A;
+  --color-green-400: #82A88F;
+  --color-green-500: #6B7F5B;
+  --color-green-600: #46583E;
+  --color-green-700: #3A4A34;
+  --color-green-800: #2F3D2A;
+  --color-green-900: #22301F;
+  --color-green-950: #1A2418;
+
+  /* Teal primer (dipertahankan, versi hangat) */
+  --color-teal-50: #E9F2ED;
+  --color-teal-100: #D7E6DD;
+  --color-teal-200: #B4CFC2;
+  --color-teal-300: #83B3A3;
+  --color-teal-400: #3AA897;
+  --color-teal-500: #14B8A6;
+  --color-teal-600: #0F766E;
+  --color-teal-700: #0F766E;
+  --color-teal-800: #115E59;
+  --color-teal-900: #0B3B37;
+  --color-teal-950: #052E2B;
+
+  /* Info dingin → primer/pasir (ganti blue & sky) */
+  --color-blue-50: #F1EBDD;
+  --color-blue-100: #E7DCC8;
+  --color-blue-200: #D9C9B2;
+  --color-blue-300: #83B3A3;
+  --color-blue-400: #3AA897;
+  --color-blue-500: #0F766E;
+  --color-blue-600: #0F766E;
+  --color-blue-700: #0B5B55;
+  --color-blue-800: #2E3B36;
+  --color-blue-900: #232D2A;
+  --color-blue-950: #171E1C;
+
+  --color-sky-50: #F1EBDD;
+  --color-sky-100: #E7DCC8;
+  --color-sky-200: #D9C9B2;
+  --color-sky-300: #83B3A3;
+  --color-sky-400: #3AA897;
+  --color-sky-500: #0F766E;
+  --color-sky-600: #0F766E;
+  --color-sky-700: #0B5B55;
+  --color-sky-800: #2E3B36;
+  --color-sky-900: #232D2A;
+  --color-sky-950: #171E1C;
+
+  --color-cyan-50: #F1EBDD;
+  --color-cyan-100: #E7DCC8;
+  --color-cyan-500: #0F766E;
+  --color-cyan-600: #0F766E;
+
+  /* Kuning peringatan hangat (ganti amber & yellow) */
+  --color-amber-50: #FAF3E3;
+  --color-amber-100: #F5E8C8;
+  --color-amber-200: #EAD9B8;
+  --color-amber-300: #D9B978;
+  --color-amber-400: #C99B3F;
+  --color-amber-500: #B97A1A;
+  --color-amber-600: #7A5A2E;
+  --color-amber-700: #7A5A2E;
+  --color-amber-800: #5F4527;
+  --color-amber-900: #3A2E1A;
+  --color-amber-950: #241C10;
+
+  --color-yellow-50: #FAF3E3;
+  --color-yellow-100: #F5E8C8;
+  --color-yellow-400: #C99B3F;
+  --color-yellow-500: #B97A1A;
+
+  --color-orange-50: #FAECE6;
+  --color-orange-100: #F5D9CD;
+  --color-orange-500: #C96F4F;
+  --color-orange-600: #9E4E2C;
+
+  /* Merah bata (ganti red & rose; beda dari aksen) */
+  --color-red-50: #FAECE6;
+  --color-red-100: #F5D9CD;
+  --color-red-200: #EAC4B5;
+  --color-red-300: #D89A82;
+  --color-red-400: #C97B5E;
+  --color-red-500: #B85C3F;
+  --color-red-600: #A8442F;
+  --color-red-700: #86341F;
+  --color-red-800: #5F2A1A;
+  --color-red-900: #3A1F16;
+  --color-red-950: #241310;
+
+  --color-rose-50: #FAECE6;
+  --color-rose-100: #F5D9CD;
+  --color-rose-200: #EAC4B5;
+  --color-rose-400: #C97B5E;
+  --color-rose-500: #B85C3F;
+  --color-rose-600: #A8442F;
+  --color-rose-700: #86341F;
+
+  /* Taupe skor (ganti purple & violet) */
+  --color-purple-50: #EFE7DD;
+  --color-purple-100: #E3D9C6;
+  --color-purple-200: #D9C9B2;
+  --color-purple-500: #7A6A52;
+  --color-purple-700: #6B5A44;
+
+  --color-violet-50: #EFE7DD;
+  --color-violet-100: #E3D9C6;
+  --color-violet-500: #6B5A44;
+
+  /* Indigo → primer */
+  --color-indigo-50: #E7F0EC;
+  --color-indigo-100: #D7E6DD;
+  --color-indigo-400: #3AA897;
+  --color-indigo-500: #0F766E;
+  --color-indigo-600: #0F766E;
+  --color-indigo-700: #115E59;
 }
 
-/* ─── Deep Ocean & Teal Tokens ───────────────────────────────── */
+/* Token semantik (shadcn-style) → merujuk variabel tema, ikut adaptasi dark */
+@theme inline {
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--card-bg);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--card-bg);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--primary);
+  --color-primary-foreground: #FFFDF8;
+  --color-secondary: var(--secondary-soft);
+  --color-secondary-foreground: var(--success-text);
+  --color-muted: var(--bg-secondary);
+  --color-muted-foreground: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-accent-foreground: #FFFDF8;
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: #FFFDF8;
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--primary);
+}
+
+/* ─── Earthy Minimal Tokens ──────────────────────────────── */
 :root {
   /* Surface */
-  --bg-base:        #F8FAFC; /* Slate 50 */
-  --bg-secondary:   #F1F5F9; /* Slate 100 */
-  --card-bg:        #FFFFFF;
+  --bg-base:        #F8F6EE; /* off-white hangat */
+  --bg-secondary:   #EFE7D6; /* sand-100 */
+  --card-bg:        #FFFDF8; /* putih hangat (layering di atas bg) */
 
-  /* Accent - Teal */
+  /* Primary — DIPERTAHANKAN (Teal SIKAP) */
   --primary:        #0F766E; /* Teal 700 */
   --primary-hover:  #115E59; /* Teal 800 */
   --primary-soft:   rgba(15, 118, 110, 0.08);
   --primary-ring:   rgba(15, 118, 110, 0.15);
 
-  /* Semantic */
-  --success:        #10B981; /* Emerald 500 */
-  --success-soft:   rgba(16, 185, 129, 0.08);
-  --warning:        #F59E0B; /* Amber 500 */
-  --warning-soft:   rgba(245, 158, 11, 0.08);
-  --danger:         #EF4444; /* Red 500 */
-  --danger-soft:    rgba(239, 68, 68, 0.08);
+  /* Secondary — sage */
+  --secondary:        #6B7F5B;
+  --secondary-soft:   rgba(107, 127, 91, 0.12);
+  --secondary-ring:   rgba(107, 127, 91, 0.2);
+  --secondary-text:   #FFFFFF;                 /* teks di atas tombol sage-gelap */
+  --secondary-strong: #4A5A3E;                /* sage gelap utk tombol (putih di atasnya 7.44 OK) */
+
+  /* Tertiary — beige / sand */
+  --tertiary:        #D9C9B2;
+  --tertiary-soft:   rgba(217, 201, 178, 0.35);
+  --tertiary-text:   #5F4527;                 /* teks di atas sand (5.47 OK) */
+
+  /* Accent — terracotta (hemat) */
+  --accent:          #C96F4F;
+  --accent-soft:     rgba(201, 111, 79, 0.12);
+  --accent-ring:     rgba(201, 111, 79, 0.2);
+  --accent-strong:   #9E4E2C;                 /* terracotta gelap utk tombol (putih di atasnya 5.87 OK) */
+
+  /* Semantic (earthy) */
+  --success:        #46583E; /* sage gelap */
+  --success-text:   #3A4A34; /* teks sukses */
+  --success-soft:   #E9EFE3;
+  --warning:        #7A5A2E; /* amber hangat tua */
+  --warning-text:   #7A5A2E;
+  --warning-soft:   #FAF3E3;
+  --danger:         #A8442F; /* merah bata (beda dari aksen) */
+  --danger-text:    #86341F;
+  --danger-soft:    #FAECE6;
 
   /* Text */
-  --text-primary:   #0F172A; /* Slate 900 */
-  --text-secondary: #475569; /* Slate 600 */
-  --text-tertiary:  #94A3B8; /* Slate 400 */
+  --text-primary:   #2B2A26; /* hijau-cokelat sangat tua */
+  --text-secondary: #6E6759; /* cokelat keabu-abuan */
+  --text-tertiary:  #A89C86; /* sand tua */
 
-  /* Border */
-  --border:         rgba(15, 23, 42, 0.06); /* Slate 900 */
-  --border-soft:    rgba(15, 23, 42, 0.03);
+  /* Border (turunan tertiary) */
+  --border:         rgba(122, 106, 82, 0.22);
+  --border-soft:    rgba(122, 106, 82, 0.12);
 
   /* Sidebar */
-  --sidebar-bg:     #F1F5F9; /* Slate 100 */
-  --sidebar-hover:  rgba(15, 23, 42, 0.03);
-  --sidebar-active: rgba(15, 118, 110, 0.08);
-  --sidebar-text:   #0F172A;
-  --sidebar-text-muted: #475569;
-  --sidebar-border: rgba(15, 23, 42, 0.06);
+  --sidebar-bg:     #EFE7D6; /* sand-100 */
+  --sidebar-hover:  rgba(122, 106, 82, 0.08);
+  --sidebar-active: rgba(15, 118, 110, 0.1);
+  --sidebar-text:   #2B2A26;
+  --sidebar-text-muted: #6E6759;
+  --sidebar-border: rgba(122, 106, 82, 0.22);
 
-  /* Shadow */
-  --shadow-card:    0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.03);
-  --shadow-hover:   0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03);
-  --shadow-elevated:0 12px 40px rgba(0,0,0,0.12);
+  /* Shadow (hangat, tipis) */
+  --shadow-card:    0 1px 3px rgba(90, 74, 52, 0.06), 0 0 0 1px rgba(90, 74, 52, 0.04);
+  --shadow-hover:   0 4px 16px rgba(90, 74, 52, 0.1), 0 0 0 1px rgba(90, 74, 52, 0.04);
+  --shadow-elevated:0 12px 40px rgba(90, 74, 52, 0.16);
 
   /* Radius */
   --radius-card:    20px;
@@ -63,36 +267,54 @@
 }
 
 .dark {
-  --bg-base:        #020617; /* Slate 950 */
-  --bg-secondary:   #0F172A; /* Slate 900 */
-  --card-bg:        #0F172A;
+  --bg-base:        #201E1A; /* cokelat-hijau sangat gelap */
+  --bg-secondary:   #2A2721;
+  --card-bg:        #2E2B25;
 
   /* Accent - Teal on Dark */
-  --primary:        #14B8A6; /* Teal 500 */
-  --primary-hover:  #2DD4BF; /* Teal 400 */
-  --primary-soft:   rgba(20, 184, 166, 0.1);
-  --primary-ring:   rgba(20, 184, 166, 0.2);
+  --primary:        #3AA897;
+  --primary-hover:  #83B3A3;
+  --primary-soft:   rgba(58, 168, 151, 0.14);
+  --primary-ring:   rgba(58, 168, 151, 0.25);
 
-  --success:        #10B981;
-  --success-soft:   rgba(16, 185, 129, 0.12);
-  --warning:        #F59E0B;
-  --warning-soft:   rgba(245, 158, 11, 0.12);
-  --danger:         #EF4444;
-  --danger-soft:    rgba(239, 68, 68, 0.12);
+  --secondary:        #8FA883;
+  --secondary-soft:   rgba(143, 168, 131, 0.14);
+  --secondary-ring:   rgba(143, 168, 131, 0.25);
+  --secondary-text:   #201E1A;
+  --secondary-strong: #A9C29A;
 
-  --text-primary:   #F8FAFC; /* Slate 50 */
-  --text-secondary: #94A3B8; /* Slate 400 */
-  --text-tertiary:  #475569; /* Slate 600 */
+  --tertiary:        #D9C9B2;
+  --tertiary-soft:   rgba(217, 201, 178, 0.1);
+  --tertiary-text:   #D9C9B2;
 
-  --border:         rgba(248, 250, 252, 0.08); /* Slate 50 */
-  --border-soft:    rgba(248, 250, 252, 0.04);
+  --accent:          #D08763;
+  --accent-soft:     rgba(208, 135, 99, 0.14);
+  --accent-ring:     rgba(208, 135, 99, 0.25);
+  --accent-strong:   #D08763;
 
-  --sidebar-bg:     #020617;
-  --sidebar-hover:  rgba(248, 250, 252, 0.05);
-  --sidebar-active: rgba(20, 184, 166, 0.12);
-  --sidebar-text:   #F8FAFC;
-  --sidebar-text-muted: #94A3B8;
-  --sidebar-border: rgba(248, 250, 252, 0.06);
+  --success:        #A9C29A;
+  --success-text:   #DCE5D2;
+  --success-soft:   rgba(169, 194, 154, 0.12);
+  --warning:        #D9B978;
+  --warning-text:   #F5E8C8;
+  --warning-soft:   rgba(217, 185, 120, 0.12);
+  --danger:         #D89A82;
+  --danger-text:    #F5D9CD;
+  --danger-soft:    rgba(216, 154, 130, 0.12);
+
+  --text-primary:   #EDE6D6;
+  --text-secondary: #C9BCA6;
+  --text-tertiary:  #8A7D68;
+
+  --border:         rgba(217, 201, 178, 0.16);
+  --border-soft:    rgba(217, 201, 178, 0.08);
+
+  --sidebar-bg:     #24211C;
+  --sidebar-hover:  rgba(217, 201, 178, 0.08);
+  --sidebar-active: rgba(58, 168, 151, 0.16);
+  --sidebar-text:   #EDE6D6;
+  --sidebar-text-muted: #C9BCA6;
+  --sidebar-border: rgba(217, 201, 178, 0.12);
 
   --shadow-card:    0 1px 3px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.04);
   --shadow-hover:   0 4px 16px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
@@ -244,19 +466,19 @@ body {
   white-space: nowrap;
   letter-spacing: 0.01em;
 }
-.badge-approved  { background: rgba(52,199,89,0.1);  color: #248A3D; }
-.badge-submitted { background: transparent; color: #C93400; border: 1px solid rgba(201,52,0,0.4); }
-.badge-scored { background: rgba(175,82,222,0.1); color: #AF52DE; }
-.badge-rejected  { background: rgba(255,59,48,0.1);  color: #D70015; }
-.badge-revision  { background: #F59E0B; color: #451A03; }
+.badge-approved  { background: var(--success-soft);  color: var(--success-text); }
+.badge-submitted { background: transparent; color: #0B5B55; border: 1px solid rgba(15,118,110,0.4); }
+.badge-scored { background: #EFE7DD; color: #6B5A44; }
+.badge-rejected  { background: var(--danger-soft);  color: var(--danger-text); }
+.badge-revision  { background: #C99B3F; color: #241C10; }
 .badge-draft     { background: var(--bg-secondary);   color: var(--text-secondary); }
 .badge-none      { background: var(--bg-secondary);   color: var(--text-tertiary); }
 
-.dark .badge-approved  { background: rgba(48,209,88,0.15);  color: #30D158; }
-.dark .badge-submitted { background: transparent; color: #FF9F0A; border: 1px solid rgba(255,159,10,0.45); }
-.dark .badge-scored { background: rgba(191,90,242,0.15); color: #BF5AF2; }
-.dark .badge-rejected  { background: rgba(255,69,58,0.15);  color: #FF453A; }
-.dark .badge-revision  { background: #F59E0B; color: #451A03; }
+.dark .badge-approved  { background: var(--success-soft);  color: var(--success-text); }
+.dark .badge-submitted { background: transparent; color: var(--primary); border: 1px solid var(--primary-ring); }
+.dark .badge-scored { background: rgba(217,201,178,0.12); color: #D9C9B2; }
+.dark .badge-rejected  { background: var(--danger-soft);  color: var(--danger-text); }
+.dark .badge-revision  { background: #C99B3F; color: #241C10; }
 .dark .badge-draft     { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
 .dark .badge-none      { background: rgba(255,255,255,0.04); color: var(--text-tertiary); }
 
@@ -524,18 +746,18 @@ input, textarea, select {
 }
 @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
   .header-glass {
-    background: rgba(251,251,253,0.97);
+    background: rgba(248,246,238,0.92);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 }
 .dark .header-glass {
   background: var(--bg-base);
-  border-bottom: 1px solid rgba(255,255,255,0.06);
+  border-bottom: 1px solid rgba(217,201,178,0.12);
 }
 @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
   .dark .header-glass {
-    background: rgba(15,23,42,0.97);
+    background: rgba(32,30,26,0.92);
   }
 }
 
@@ -585,21 +807,108 @@ input, textarea, select {
   min-width: 0;
 }
 
-/* ─── Global Tailwind Overrides for Dark Mode ────────────── */
+/* ─── Global Tailwind Overrides for Dark Mode (tetap: paksa utility dingin → token earthy) ────────────── */
 .dark .bg-white {
   background-color: var(--card-bg) !important;
 }
 .dark .bg-slate-50, .dark .bg-slate-100 {
   background-color: var(--bg-base) !important;
 }
-.dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700 {
+.dark .bg-slate-800 {
+  background-color: var(--bg-secondary) !important;
+}
+.dark .bg-slate-900 {
+  background-color: var(--bg-base) !important;
+}
+.dark .bg-gray-100, .dark .bg-gray-800 {
+  background-color: var(--bg-secondary) !important;
+}
+.dark .bg-teal-950\/40, .dark .bg-teal-950\/50, .dark .bg-teal-950\/60 {
+  background-color: var(--primary-soft) !important;
+}
+.dark .bg-teal-900\/10, .dark .bg-teal-900\/50 {
+  background-color: var(--primary-soft) !important;
+}
+.dark .bg-emerald-950\/30, .dark .bg-emerald-950\/40, .dark .bg-emerald-950\/20 {
+  background-color: var(--success-soft) !important;
+}
+.dark .bg-emerald-900\/30, .dark .bg-emerald-900\/20, .dark .bg-emerald-900\/10 {
+  background-color: var(--success-soft) !important;
+}
+.dark .bg-amber-950\/30 {
+  background-color: var(--warning-soft) !important;
+}
+.dark .bg-amber-900\/40, .dark .bg-amber-900\/20 {
+  background-color: var(--warning-soft) !important;
+}
+.dark .bg-blue-900\/10, .dark .bg-blue-900\/20, .dark .bg-blue-900\/30 {
+  background-color: var(--bg-secondary) !important;
+}
+.dark .bg-teal-950\/20, .dark .bg-teal-950\/30 {
+  background-color: var(--primary-soft) !important;
+}
+.dark .bg-emerald-500\/10, .dark .bg-emerald-500\/20 {
+  background-color: var(--success-soft) !important;
+}
+.dark .bg-amber-500\/10, .dark .bg-amber-500\/20 {
+  background-color: var(--warning-soft) !important;
+}
+.dark .bg-red-900\/20, .dark .bg-red-900\/30, .dark .bg-red-900\/50 {
+  background-color: var(--danger-soft) !important;
+}
+.dark .bg-green-900\/30 {
+  background-color: var(--success-soft) !important;
+}
+.dark .text-slate-900, .dark .text-slate-800, .dark .text-slate-700, .dark .text-slate-200, .dark .text-slate-100 {
   color: var(--text-primary) !important;
 }
 .dark .text-slate-600, .dark .text-slate-500, .dark .text-slate-400, .dark .text-slate-300 {
   color: var(--text-secondary) !important;
 }
-.dark .border-slate-100, .dark .border-slate-200 {
+.dark .text-gray-600, .dark .text-gray-400 {
+  color: var(--text-secondary) !important;
+}
+.dark .text-teal-400, .dark .text-teal-300 {
+  color: var(--primary) !important;
+}
+.dark .text-emerald-400, .dark .text-emerald-300 {
+  color: var(--success) !important;
+}
+.dark .text-amber-400, .dark .text-amber-300, .dark .text-amber-200 {
+  color: var(--warning) !important;
+}
+.dark .text-blue-400, .dark .text-blue-300, .dark .text-blue-200, .dark .text-blue-100 {
+  color: var(--text-secondary) !important;
+}
+.dark .text-red-400, .dark .text-red-200 {
+  color: var(--danger) !important;
+}
+.dark .text-green-400 {
+  color: var(--success) !important;
+}
+.dark .text-white {
+  color: var(--text-primary) !important;
+}
+.dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-700, .dark .border-slate-800 {
   border-color: var(--border) !important;
+}
+.dark .border-teal-800, .dark .border-teal-900\/50 {
+  border-color: var(--primary-ring) !important;
+}
+.dark .border-emerald-800\/50, .dark .border-emerald-800\/40, .dark .border-emerald-800, .dark .border-emerald-500\/20 {
+  border-color: var(--success-soft) !important;
+}
+.dark .border-amber-800, .dark .border-amber-800\/40, .dark .border-amber-500\/20 {
+  border-color: var(--warning-soft) !important;
+}
+.dark .border-blue-900\/50, .dark .border-blue-900 {
+  border-color: var(--border) !important;
+}
+.dark .border-red-900, .dark .border-red-900\/50 {
+  border-color: var(--danger-soft) !important;
+}
+.dark .border-green-800, .dark .border-indigo-500\/50 {
+  border-color: var(--primary-ring) !important;
 }
 .dark .ring-slate-100, .dark .ring-slate-200 {
   --tw-ring-color: var(--border) !important;

@@ -634,20 +634,20 @@ export default function UploadPage() {
                 existingUpload.status === 'approved'
                   ? 'bg-red-50 border-red-200'
                   : existingUpload.status === 'submitted'
-                  ? 'bg-blue-50 border-blue-200'
+                  ? 'bg-[var(--primary-soft)] border-[var(--primary-ring)]'
                   : 'bg-amber-50 border-amber-200'
               }`}>
                 {existingUpload.status === 'approved' ? (
                   <AlertTriangle className="h-4 w-4 text-red-500 mt-0.5" />
                 ) : (
-                  <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                  <Info className="h-4 w-4 text-[var(--primary)] mt-0.5" />
                 )}
                 <div className="text-sm">
                   {existingUpload.status === 'approved' && (
                     <p className="text-red-700">CKP periode ini sudah <strong>disetujui</strong>. Tidak dapat mengupload ulang.</p>
                   )}
                   {existingUpload.status === 'submitted' && (
-                    <p className="text-blue-700">CKP periode ini sedang <strong>dalam review</strong> (v{existingUpload.version}).</p>
+                    <p className="text-[var(--primary)]">CKP periode ini sedang <strong>dalam review</strong> (v{existingUpload.version}).</p>
                   )}
                 </div>
               </div>
@@ -768,7 +768,7 @@ export default function UploadPage() {
                             </td>
                             <td className="py-3 px-4">
                               {entry.data_dukung && String(entry.data_dukung).startsWith('http') ? (
-                                <a href={String(entry.data_dukung)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-blue-600 dark:text-blue-400 hover:underline">
+                                <a href={String(entry.data_dukung)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] text-[var(--primary)] hover:underline">
                                   <LinkIcon size={14} />
                                   <span>Lihat Bukti</span>
                                 </a>
@@ -798,7 +798,7 @@ export default function UploadPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2">
-                    <CalendarDays className="h-5 w-5 text-teal-600 dark:text-teal-400" />
+                    <CalendarDays className="h-5 w-5 text-[var(--primary)]" />
                     4. Preview Kalender Kerja Periode
                   </CardTitle>
                   <CardDescription>

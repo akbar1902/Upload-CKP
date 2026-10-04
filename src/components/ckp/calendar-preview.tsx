@@ -71,7 +71,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                 onClick={() => setSelectedBulan(m)}
                 className={`px-3 py-1 text-[12px] rounded-lg font-medium transition-all ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm'
+                    ? 'bg-[var(--primary)] text-white shadow-sm'
                     : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
@@ -85,7 +85,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
       {/* ─── Header Info Ringkas & Kalem ──────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+          <CalendarIcon className="w-4 h-4 text-[var(--primary)]" />
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
             Kalender Hari Kerja
           </span>
@@ -188,12 +188,12 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                           {day.dayOfMonth}
                         </span>
                         {day.hasActivities && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
                         )}
                       </div>
 
                       {day.hasActivities ? (
-                        <span className="text-[10px] text-blue-600 dark:text-blue-400 font-medium truncate">
+                        <span className="text-[10px] text-[var(--primary)] font-medium truncate">
                           {day.activities.length} keg (weekend)
                         </span>
                       ) : (
@@ -247,11 +247,11 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-400">
                         {day.dayOfMonth}
                       </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] text-teal-700 dark:text-teal-400 font-medium block">
+                      <span className="text-[10px] text-[var(--primary)] font-medium block">
                         {day.activities.length} kegiatan
                       </span>
                       {day.activities[0]?.kegiatan && (
@@ -272,7 +272,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1 text-xs text-slate-500 dark:text-slate-400">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-teal-600 dark:bg-teal-400 inline-block" />
+            <span className="w-2 h-2 rounded-full bg-[var(--primary)] inline-block" />
             <span>Terisi</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -312,7 +312,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       Belum Terisi
                     </span>
                   ) : selectedDay.hasActivities ? (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-teal-50 text-teal-700 dark:bg-teal-950/40 dark:text-teal-300 border border-teal-200 dark:border-teal-800">
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary-ring)]">
                       {selectedDay.activities.length} Kegiatan
                     </span>
                   ) : null}
@@ -330,7 +330,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                           className="p-3.5 rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 space-y-2"
                         >
                           {act.rencana_kinerja && (
-                            <span className="inline-block text-[11px] font-medium text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-md border border-teal-200/50 dark:border-teal-900/50">
+                            <span className="inline-block text-[11px] font-medium text-[var(--primary)] bg-teal-50 dark:bg-teal-950/50 px-2 py-0.5 rounded-md border border-[var(--primary-ring)]">
                               {act.rencana_kinerja}
                             </span>
                           )}
@@ -342,7 +342,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500 dark:text-slate-400 pt-0.5">
                             <span>Rentang: {formatEntryDateRange(act)}</span>
                             {isRange && (
-                              <span className="text-[10px] text-teal-600 dark:text-teal-400 font-medium">
+                              <span className="text-[10px] text-[var(--primary)] font-medium">
                                 (kegiatan multi-hari)
                               </span>
                             )}
@@ -357,7 +357,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                                 href={String(act.data_dukung)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+                                className="inline-flex items-center gap-1 text-[var(--primary)] hover:underline"
                               >
                                 <ExternalLink className="w-3 h-3" />
                                 <span>Bukti</span>

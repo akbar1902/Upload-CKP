@@ -413,7 +413,7 @@ export default function PimpinanDashboard() {
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}
-        <div id="export-pegawai-section" className="bg-white dark:bg-[#1a1b1e] rounded-xl p-4 sm:p-5">
+        <div id="export-pegawai-section" className="bg-white dark:bg-[var(--card-bg)] rounded-xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>

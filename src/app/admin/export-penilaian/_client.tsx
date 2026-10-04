@@ -274,7 +274,7 @@ export default function ExportPenilaianClient({
                 onClick={handleDownloadAllZip}
                 disabled={downloadingAllZip || data.uploads.length === 0}
                 variant="outline"
-                className="gap-1.5 sm:gap-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
+                className="gap-1.5 sm:gap-2 bg-[var(--success-soft)] hover:opacity-80 text-[var(--success-text)] border-[var(--border)] shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
               >
                 {downloadingAllZip ? (
                   <>
@@ -283,7 +283,7 @@ export default function ExportPenilaianClient({
                   </>
                 ) : (
                   <>
-                    <Archive className="w-4 h-4 text-emerald-700 dark:text-emerald-400" />
+                    <Archive className="w-4 h-4 text-[var(--success-text)]" />
                     <span>Download Semua ({data.uploads.length} ZIP)</span>
                   </>
                 )}
@@ -308,7 +308,7 @@ export default function ExportPenilaianClient({
             <Button
               onClick={handlePrint}
               variant="outline"
-              className="gap-1.5 sm:gap-2 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-700 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
+              className="gap-1.5 sm:gap-2 bg-white dark:bg-[var(--card-bg)] border-slate-300 dark:border-slate-700 shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
             >
               <Printer className="w-4 h-4" />
               <span>Cetak / Print</span>
@@ -353,7 +353,7 @@ export default function ExportPenilaianClient({
                   <select
                     value={selectedUserId}
                     onChange={(e) => setSelectedUserId(e.target.value)}
-                    className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[var(--card-bg)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     style={{ color: 'var(--text-primary)' }}
                   >
                     {data.allUsers.map((u) => {
@@ -379,7 +379,7 @@ export default function ExportPenilaianClient({
                   value={tanggalCetak}
                   onChange={(e) => setTanggalCetak(e.target.value)}
                   placeholder="Contoh: 3 September 2026"
-                  className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full h-10 px-3 text-sm rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-[var(--card-bg)] focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   style={{ color: 'var(--text-primary)' }}
                 />
               </div>
@@ -395,7 +395,7 @@ export default function ExportPenilaianClient({
               </div>
             )}
             {currentUpload && (
-              <div className="mt-4 p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-lg flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300">
+              <div className="mt-4 p-3 bg-[var(--success-soft)] border border-[var(--border)] rounded-lg flex items-center justify-between text-xs text-[var(--success-text)]">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--success)]" />
                   <span>
@@ -608,10 +608,10 @@ export default function ExportPenilaianClient({
         </div>
 
         {/* ── KETERANGAN BATAS NILAI (DI BAWAH PREVIEW DOKUMEN) ── */}
-        <div className="print:hidden max-w-4xl mx-auto p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+        <div className="print:hidden max-w-4xl mx-auto p-4 sm:p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[var(--card-bg)] shadow-sm">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <Info className="w-4 h-4 text-[#0F766E] dark:text-teal-400" />
+              <Info className="w-4 h-4 text-[#0F766E] dark:text-[var(--primary)]" />
               <span className="text-sm font-bold text-slate-800 dark:text-slate-200">
                 Keterangan Batas Nilai
               </span>
@@ -619,7 +619,7 @@ export default function ExportPenilaianClient({
             <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-xs">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">99 - 100 :</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#16a34a] text-white font-semibold text-xs shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--secondary-strong)] text-white font-semibold text-xs shadow-xs">
                   <Smile className="w-3.5 h-3.5" />
                   <span>Diatas Ekspektasi</span>
                 </span>
@@ -627,7 +627,7 @@ export default function ExportPenilaianClient({
 
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">80 - 98 :</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#0284c7] text-white font-semibold text-xs shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--primary)] text-white font-semibold text-xs shadow-xs">
                   <Smile className="w-3.5 h-3.5" />
                   <span>Sesuai Ekspektasi</span>
                 </span>
@@ -635,7 +635,7 @@ export default function ExportPenilaianClient({
 
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-700 dark:text-slate-300 min-w-[54px]">0 - 79 :</span>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#dc2626] text-white font-semibold text-xs shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[var(--danger)] text-white font-semibold text-xs shadow-xs">
                   <Frown className="w-3.5 h-3.5" />
                   <span>Dibawah Ekspektasi</span>
                 </span>

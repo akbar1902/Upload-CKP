@@ -11,11 +11,11 @@ import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck, WifiOff, Refre
 
 // ── Helpers ────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
-  'linear-gradient(135deg, #0F766E 0%, #14B8A6 100%)',
-  'linear-gradient(135deg, #047857 0%, #10B981 100%)',
-  'linear-gradient(135deg, #065F46 0%, #34D399 100%)',
-  'linear-gradient(135deg, #115E59 0%, #0D9488 100%)',
-  'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
+  'linear-gradient(135deg, #0F766E 0%, #115E59 100%)',
+  'linear-gradient(135deg, #46583E 0%, #6B7F5B 100%)',
+  'linear-gradient(135deg, #3A4A34 0%, #6B7F5B 100%)',
+  'linear-gradient(135deg, #115E59 0%, #0F766E 100%)',
+  'linear-gradient(135deg, #0F766E 0%, #46583E 100%)',
 ];
 function getAvatarGradient(name: string): string {
   const idx = ((name.charCodeAt(0) || 0) + (name.charCodeAt(1) || 0)) % AVATAR_GRADIENTS.length;
@@ -53,7 +53,7 @@ function StaffCard({ u, index }: { u: User; index: number }) {
             {u.is_active && (
               <span
                 className="badge-pill text-[10px] px-2"
-                style={{ background: '#DCFCE7', color: '#15803D', padding: '2px 8px' }}
+                style={{ background: 'var(--success-soft)', color: 'var(--success-text)', padding: '2px 8px' }}
                 aria-label="Status aktif"
               >
                 <ShieldCheck size={10} className="inline mr-1" />
@@ -100,7 +100,7 @@ function StaffCard({ u, index }: { u: User; index: number }) {
           style={{
             background: 'var(--primary-soft)',
             color: 'var(--primary)',
-            border: '1px solid rgba(37,99,235,0.12)',
+            border: '1px solid var(--primary-ring)',
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'var(--primary)';
@@ -313,7 +313,7 @@ export default function PimpinanPegawaiPage() {
             style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
           >
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-3xl"
-                 style={{ background: '#F1F5F9' }}>
+                 style={{ background: 'var(--bg-secondary)' }}>
               🔍
             </div>
             <p className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>

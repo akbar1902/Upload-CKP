@@ -15,13 +15,13 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+    <div className="bg-[var(--card-bg)] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
       <div
         className="p-5 flex items-center justify-between cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-bold text-lg shadow-[0_4px_12px_rgba(16,185,129,0.25)]">
+          <div className="w-12 h-12 rounded-full bg-[var(--secondary-strong)] flex items-center justify-center text-white font-bold text-lg shadow-[var(--shadow-card)]">
             {data.ketuaTim.full_name.substring(0, 2).toUpperCase()}
           </div>
           <div>
@@ -45,8 +45,8 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100 dark:border-slate-800 bg-[#f8faf9] dark:bg-slate-900/40 p-5 space-y-4">
-          <div className="text-[13px] font-bold text-emerald-700 dark:text-emerald-400 mb-3 flex items-center gap-2">
+        <div className="border-t border-slate-100 dark:border-slate-800 bg-[var(--bg-secondary)] p-5 space-y-4">
+          <div className="text-[13px] font-bold text-[var(--success-text)] mb-3 flex items-center gap-2">
             <Users size={16} />
             Daftar Anggota Tim ({data.pegawaiDetails.length})
           </div>
@@ -66,9 +66,9 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white dark:bg-[#25262b] rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden">
+    <div className="bg-white  rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden">
       <div
-        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-emerald-50/50 dark:hover:bg-slate-800 transition-colors"
+        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-[var(--success-soft)] transition-colors"
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex items-center gap-3">
@@ -90,12 +90,12 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
       </div>
 
       {expanded && (
-        <div className="p-3 pt-0 bg-emerald-50/30 dark:bg-slate-800/20">
+        <div className="p-3 pt-0 bg-[var(--success-soft)]">
           <div className="pl-11 pr-2 pt-2">
             <ul className="space-y-1.5">
               {pegawai.rkNames.map((rk, idx) => (
                 <li key={idx} className="text-[12.5px] font-medium text-slate-600 dark:text-slate-400 flex items-start gap-2.5 py-1.5">
-                  <div className="min-w-1.5 h-1.5 rounded-full bg-emerald-400 dark:bg-emerald-500 mt-[6px]" />
+                  <div className="min-w-1.5 h-1.5 rounded-full bg-[var(--success-text)] mt-[6px]" />
                   <span className="leading-snug">{rk}</span>
                 </li>
               ))}
@@ -160,7 +160,7 @@ export default function MonitoringPenilaianClient() {
       <div id="export-monitoring-section" className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
 
         {/* Header & Filter */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#1a1b1e] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--card-bg)] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div>
             <h1 className="text-[22px] font-bold tracking-tight text-slate-900 dark:text-slate-100 flex items-center gap-2">
               Monitoring Penilaian
@@ -201,8 +201,8 @@ export default function MonitoringPenilaianClient() {
             ))}
           </div>
         ) : data.length === 0 ? (
-          <div className="bg-white dark:bg-[#1a1b1e] rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
-            <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="bg-[var(--card-bg)] rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">
+            <div className="w-16 h-16 bg-[var(--success-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 size={32} className="text-[var(--success)]" />
             </div>
             <h3 className="text-[18px] font-bold text-slate-900 dark:text-slate-100 mb-2">Semua Penilaian Selesai!</h3>

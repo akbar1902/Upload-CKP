@@ -550,13 +550,13 @@ export default function KetuaTimDashboardClient() {
                   placeholder="Cari Rencana Kinerja atau Tim Kerja..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 transition-all shadow-sm"
                 />
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
+                className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
               >
                 <option value="semua">Semua Status</option>
                 <option value="perlu_dinilai">Perlu Dinilai</option>
@@ -572,7 +572,7 @@ export default function KetuaTimDashboardClient() {
                     router.push(`/ketua_tim/rk/${e.target.value}?bulan=${bulan}&tahun=${tahun}`);
                   }
                 }}
-                className="w-full h-10 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 shadow-sm"
+                className="w-full h-10 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 text-slate-700 shadow-sm"
               >
                 <option value="">Pilih RK Disini...</option>
                 {allRKStats.map((rk: any) => (

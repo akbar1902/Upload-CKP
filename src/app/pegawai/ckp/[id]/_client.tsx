@@ -29,14 +29,14 @@ const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN',
 const WEEKDAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 const ACTIVITY_COLORS = [
-  { bg: '#EFF6FF', icon: '#2563EB' },
-  { bg: '#F5F3FF', icon: '#7C3AED' },
-  { bg: '#FFF7ED', icon: '#EA580C' },
-  { bg: '#F0FDF4', icon: '#16A34A' },
-  { bg: '#FFF1F2', icon: '#E11D48' },
-  { bg: '#ECFDF5', icon: '#059669' },
-  { bg: '#FFFBEB', icon: '#D97706' },
-  { bg: '#F0F9FF', icon: '#0284C7' },
+  { bg: 'var(--primary-soft)', icon: 'var(--primary)' },
+  { bg: '#EFE7DD', icon: '#6B5A44' },
+  { bg: 'var(--accent-soft)', icon: 'var(--accent-strong)' },
+  { bg: 'var(--success-soft)', icon: 'var(--success-text)' },
+  { bg: 'var(--danger-soft)', icon: 'var(--danger-text)' },
+  { bg: 'var(--success-soft)', icon: 'var(--success-text)' },
+  { bg: 'var(--warning-soft)', icon: 'var(--warning-text)' },
+  { bg: 'var(--primary-soft)', icon: 'var(--primary)' },
 ];
 function getActivityColor(idx: number) {
   return ACTIVITY_COLORS[idx % ACTIVITY_COLORS.length];
@@ -215,7 +215,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
 
             <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5 mt-1" style={{ color: 'var(--text-secondary)' }}>Nilai SKP</p>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[14px] font-bold" style={{ color: entry.nilai !== null ? '#059669' : '#94A3B8' }}>
+              <span className="text-[14px] font-bold" style={{ color: entry.nilai !== null ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
                 {entry.nilai !== null ? entry.nilai : 'Belum dinilai'}
               </span>
             </div>
@@ -240,7 +240,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             Progres
           </p>
           <div className="flex items-center gap-2 w-full justify-end">
-            <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: '#F1F5F9' }}>
+            <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
               <div
                 className={`h-full rounded-full progress-bar ${progressClass}`}
                 style={{ width: `${pct}%` }}
@@ -270,7 +270,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             onClick={() => setExpanded(e => !e)}
             className="flex items-center gap-1 text-[12px] font-medium transition-colors px-2 py-1 rounded-lg"
             style={{ color: 'var(--text-secondary)' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#F1F5F9'; }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)'; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
           >
@@ -283,7 +283,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
       {expanded && (
         <div
           className="card-expanded-content border-t px-5 py-4"
-          style={{ borderColor: 'var(--border)', background: '#FAFBFC' }}
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
@@ -307,7 +307,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: '#F1F5F9', maxWidth: 80 }}>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)', maxWidth: 80 }}>
                   <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
                 </div>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
@@ -615,7 +615,7 @@ export default function CKPDetailPage() {
               <>
                 <Link href="/pegawai/upload" prefetch={true}>
                   <button className="btn-secondary"
-                    style={{ color: '#D97706', borderColor: '#FDE68A' }}>
+                    style={{ color: 'var(--warning-text)', borderColor: 'var(--warning-text)' }}>
                     <RefreshCw size={14} /> Upload Ulang
                   </button>
                 </Link>
@@ -623,7 +623,7 @@ export default function CKPDetailPage() {
                   onClick={handleDelete}
                   disabled={isDeleting}
                   className="btn-secondary flex items-center gap-2"
-                  style={{ color: '#DC2626', borderColor: '#FECACA' }}
+                  style={{ color: 'var(--danger-text)', borderColor: 'var(--danger-text)' }}
                 >
                   <Trash2 size={14} /> {isDeleting ? 'Menghapus...' : 'Hapus CKP'}
                 </button>
@@ -636,13 +636,13 @@ export default function CKPDetailPage() {
         {upload.catatan_pimpinan && (
           <div
             className="flex items-start gap-3 p-4 rounded-2xl"
-            style={{ background: '#EFF6FF', border: '1px solid #BFDBFE' }}
+            style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}
             role="alert"
           >
-            <MessageSquare size={16} style={{ color: '#2563EB', marginTop: 2, flexShrink: 0 }} />
+            <MessageSquare size={16} style={{ color: 'var(--primary)', marginTop: 2, flexShrink: 0 }} />
             <div>
-              <p className="text-[13px] font-semibold" style={{ color: '#1E40AF' }}>Catatan Pimpinan</p>
-              <p className="text-[13px] mt-0.5" style={{ color: '#1D4ED8' }}>{upload.catatan_pimpinan}</p>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--primary)' }}>Catatan Pimpinan</p>
+              <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-primary)' }}>{upload.catatan_pimpinan}</p>
             </div>
           </div>
         )}
@@ -651,19 +651,19 @@ export default function CKPDetailPage() {
         {upload.status === 'rejected' && (
           <div
             className="flex items-start gap-3 p-4 rounded-2xl"
-            style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}
+            style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger-soft)' }}
             role="alert"
           >
             <div className="text-lg" aria-hidden="true">🔴</div>
             <div className="flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: '#991B1B' }}>CKP Ini Ditolak</p>
-              <p className="text-[12px] mt-0.5" style={{ color: '#B91C1C' }}>
+              <p className="text-[13px] font-semibold" style={{ color: 'var(--danger-text)' }}>CKP Ini Ditolak</p>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--danger-text)' }}>
                 CKP Anda telah ditolak. Silakan upload ulang setelah diperbaiki.
               </p>
             </div>
             <Link href="/pegawai/upload" prefetch={true}>
               <button className="btn-primary text-[12px] py-1.5 px-3"
-                style={{ background: '#DC2626' }}>Upload Ulang</button>
+                style={{ background: 'var(--danger)' }}>Upload Ulang</button>
             </Link>
           </div>
         )}

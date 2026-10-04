@@ -44,28 +44,28 @@ export function generateEvaluationPdf({
   // ── 1. HEADER DOKUMEN ──────────────────────────────────────────────
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42); // slate-900
+  doc.setTextColor(43, 42, 38); // earthy ink
   doc.text('EVALUASI KINERJA PEGAWAI', 105, 14, { align: 'center' });
   doc.setFontSize(10);
   doc.text('PENDEKATAN HASIL KERJA KUALITATIF', 105, 19, { align: 'center' });
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
-  doc.setTextColor(51, 65, 85); // slate-700
+  doc.setTextColor(63, 58, 48); // earthy slate-700
   doc.text(`Periode: Bulan ${bulanName} ${tahun}`, 105, 24, { align: 'center' });
 
   // Divider tebal header
-  doc.setDrawColor(30, 41, 59); // slate-800
+  doc.setDrawColor(46, 43, 37); // earthy slate-800
   doc.setLineWidth(0.4);
   doc.line(14, 26.5, 196, 26.5);
 
   const periodeText = getFormattedPenilaianPeriod(bulan, tahun);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(43, 42, 38);
   doc.text('Badan Pusat Statistik', 14, 30.5);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(110, 103, 89); // earthy muted
   doc.text(`Periode Penilaian: ${periodeText}`, 196, 30.5, { align: 'right' });
 
   // ── 2. TABEL PROFIL PEGAWAI & PEJABAT PENILAI ──────────────────────
@@ -107,9 +107,9 @@ export function generateEvaluationPdf({
     styles: {
       fontSize: 7.5,
       cellPadding: 1.6,
-      lineColor: [148, 163, 184], // border-slate-400
+      lineColor: [168, 156, 134], // earthy sand border
       lineWidth: 0.2,
-      textColor: [30, 41, 59],
+      textColor: [43, 42, 38],
     },
     headStyles: {
       fillColor: [15, 118, 110], // #0F766E (Hijau Tema SIKAP)
@@ -178,9 +178,9 @@ export function generateEvaluationPdf({
     styles: {
       fontSize: 7.5,
       cellPadding: 2.8,
-      lineColor: [148, 163, 184], // border-slate-400
+      lineColor: [168, 156, 134], // earthy sand border
       lineWidth: 0.2,
-      textColor: [30, 41, 59],
+      textColor: [43, 42, 38],
       overflow: 'linebreak',
       minCellHeight: 16,
     },
@@ -230,7 +230,7 @@ export function generateEvaluationPdf({
           if (itemIdx > 0) {
             // Garis pemisah halus antar kegiatan dengan margin atas & bawah seimbang
             const divY = curY - (lineHeight * 0.6);
-            doc.setDrawColor(226, 232, 240); // slate-200
+            doc.setDrawColor(231, 220, 200); // earthy sand-200
             doc.setLineWidth(0.15);
             doc.line(x + padX, divY, x + width - padX, divY);
             curY += (lineHeight * 0.3);
@@ -239,7 +239,7 @@ export function generateEvaluationPdf({
           // 1. Judul kegiatan (Normal, tidak di-bold) + Progres (%)
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.5);
-          doc.setTextColor(30, 41, 59); // slate-800
+          doc.setTextColor(46, 43, 37); // earthy slate-800
           const prefix = group.items.length > 1 ? `${itemIdx + 1}. ` : '';
           const progresText = item.progres !== null && item.progres !== undefined ? ` (${item.progres}%)` : '';
           const title = `${prefix}${item.kegiatan || '-'}${progresText}`;
@@ -252,7 +252,7 @@ export function generateEvaluationPdf({
           // 2. Label 'Bukti dukung:' (Abu-abu Slate)
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.0);
-          doc.setTextColor(100, 116, 139); // slate-500
+          doc.setTextColor(110, 103, 89); // earthy muted
           doc.text('Bukti dukung:', x + padX, curY);
           curY += lineHeight;
 
@@ -273,7 +273,7 @@ export function generateEvaluationPdf({
               curY += lineHeight;
             });
           } else {
-            doc.setTextColor(71, 85, 105);
+            doc.setTextColor(110, 103, 89); // earthy muted
             doc.setFontSize(7.0);
             doc.text(url, x + padX, curY);
             curY += lineHeight;
@@ -293,13 +293,13 @@ export function generateEvaluationPdf({
         const pillY = y + padTop;
 
         // Warna badge solid persis seperti tampilan website
-        let fillColor: [number, number, number] = [100, 116, 139]; // slate-500
+        let fillColor: [number, number, number] = [110, 103, 89]; // earthy muted
         if (group.umpanBalik.color === 'green') {
-          fillColor = [22, 163, 74]; // #16A34A (Diatas Ekspektasi - Hijau)
+          fillColor = [70, 88, 62]; // earthy sage (Diatas Ekspektasi)
         } else if (group.umpanBalik.color === 'blue') {
-          fillColor = [2, 132, 199]; // #0284C7 (Sesuai Ekspektasi - Biru)
+          fillColor = [15, 118, 110]; // primary (Sesuai Ekspektasi)
         } else if (group.umpanBalik.color === 'red') {
-          fillColor = [220, 38, 38]; // #DC2626 (Dibawah Ekspektasi - Merah)
+          fillColor = [168, 68, 47]; // earthy brick (Dibawah Ekspektasi)
         }
 
         // Gambar badge kapsul rounded-pill
@@ -314,7 +314,7 @@ export function generateEvaluationPdf({
 
         // Teks nilai di bawah badge
         if (group.score !== null && group.score !== undefined) {
-          doc.setTextColor(100, 116, 139); // slate-500
+          doc.setTextColor(110, 103, 89); // earthy muted
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(7.0);
           doc.text(`Nilai: ${group.score}`, x + width / 2, pillY + pillH + 4.0, { align: 'center' });
@@ -336,21 +336,21 @@ export function generateEvaluationPdf({
   const signX = 130;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(30, 41, 59);
+  doc.setTextColor(43, 42, 38);
   doc.text(`Belitung, ${tanggalCetak}`, signX, currentY);
   currentY += 4.5;
   doc.setFont('helvetica', 'bold');
   doc.text('Pejabat Penilai Kinerja,', signX, currentY);
   currentY += 4;
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
+  doc.setTextColor(110, 103, 89);
   doc.text(pimpinan.jabatan || 'Kepala BPS Kabupaten Belitung', signX, currentY);
 
   // Ruang tanda tangan
   currentY += 20;
 
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(15, 23, 42);
+  doc.setTextColor(43, 42, 38);
   doc.text(pimpinan.nama || 'Baiq Kurniawati, SST, M.Ak', signX, currentY);
   // Garis bawah nama pejabat
   const nameW = doc.getTextWidth(pimpinan.nama || 'Baiq Kurniawati, SST, M.Ak');
@@ -360,7 +360,7 @@ export function generateEvaluationPdf({
 
   currentY += 4.5;
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
+  doc.setTextColor(110, 103, 89); // earthy muted
   doc.text(`NIP. ${pimpinan.nip || '197805052000122001'}`, signX, currentY);
 
   // ── 5. FOOTER SETIAP HALAMAN ───────────────────────────────────────

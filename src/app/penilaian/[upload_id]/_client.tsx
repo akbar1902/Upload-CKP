@@ -131,7 +131,7 @@ function RencanaKinerjaGroup({
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               {entries.length} Kegiatan
             </span>
-            {dinilaiOleh && <span className="badge-pill bg-green-50 text-green-700 text-[10px]">Telah dinilai</span>}
+            {dinilaiOleh && <span className="badge-pill bg-[var(--success-soft)] text-[var(--success-text)] text-[10px]">Telah dinilai</span>}
           </div>
         </button>
 
@@ -141,7 +141,7 @@ function RencanaKinerjaGroup({
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
             {isTriwulan ? (
               <div className="flex flex-col items-end">
-                <span className="text-[17px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
+                <span className="text-[17px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
                   {hasScore ? Math.round(defaultScore!) : '-'}
                 </span>
                 <span className="text-[10px] font-medium text-slate-400">
@@ -159,7 +159,7 @@ function RencanaKinerjaGroup({
                   onBlur={handleBlur}
                   onKeyDown={handleKeyDown}
                   disabled={saving}
-                  className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                  className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                   placeholder="-"
                   title="Tekan Enter atau klik di luar untuk menyimpan"
                 />
@@ -170,7 +170,7 @@ function RencanaKinerjaGroup({
                 )}
               </div>
             ) : (
-              <span className="text-[16px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
+              <span className="text-[16px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
                 {hasScore ? defaultScore : '-'}
               </span>
             )}

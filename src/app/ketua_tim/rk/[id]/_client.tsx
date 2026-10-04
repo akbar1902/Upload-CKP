@@ -166,7 +166,7 @@ function PegawaiRKGroup({
             <div className="flex items-center gap-2 mt-1">
               <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} Kegiatan</span>
               <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>&bull; Rata-rata capaian: {avgProgress.toFixed(0)}%</span>
-              {dinilaiOleh && <span className="badge-pill bg-green-50 text-green-700 text-[10px]">Telah dinilai</span>}
+              {dinilaiOleh && <span className="badge-pill bg-[var(--success-soft)] text-[var(--success-text)] text-[10px]">Telah dinilai</span>}
             </div>
           </div>
         </div>
@@ -185,7 +185,7 @@ function PegawaiRKGroup({
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={saving}
-                    className="score-input border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-blue-500 transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    className="score-input border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                     placeholder="-"
                     title="Tekan Enter atau klik di luar untuk menyimpan"
                   />
@@ -196,7 +196,7 @@ function PegawaiRKGroup({
                   )}
                 </div>
               ) : (
-                <span className="text-[16px] font-bold" style={{ color: hasScore ? '#059669' : '#94A3B8' }}>
+                <span className="text-[16px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
                   {hasScore ? defaultScore : '-'}
                 </span>
               )}
@@ -578,7 +578,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
           <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <button
             onClick={() => refetch()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-blue-600 text-white"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-[var(--primary)] text-white"
           >
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
@@ -723,7 +723,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                   placeholder="Cari pegawai..." 
                   value={searchQuery} 
                   onChange={e => setSearchQuery(e.target.value)} 
-                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20" 
+                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20" 
                 />
               </div>
             </div>

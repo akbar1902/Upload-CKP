@@ -97,9 +97,9 @@ export function isGoogleDriveLink(url: string): boolean {
 export function getStatusColor(status: string): string {
   switch (status) {
     case 'draft': return 'bg-slate-100 text-slate-700 border-slate-200';
-    case 'submitted': return 'bg-teal-50 text-teal-800 border-teal-200';
+    case 'submitted': return 'bg-teal-50 text-teal-700 border-teal-200';
     case 'scored': return 'bg-purple-50 text-purple-700 border-purple-200';
-    case 'approved': return 'bg-teal-50 text-teal-800 border-teal-200';
+    case 'approved': return 'bg-teal-50 text-teal-700 border-teal-200';
     case 'rejected': return 'bg-red-50 text-red-700 border-red-200';
     case 'revision_required': return 'bg-amber-50 text-amber-700 border-amber-200';
     case 'superseded': return 'bg-slate-100 text-slate-500 border-slate-200';
@@ -132,11 +132,11 @@ export function getApprovalActionLabel(action: string): string {
 
 export function getApprovalActionColor(action: string): string {
   switch (action) {
-    case 'approved': return 'text-teal-700';
+    case 'approved': return 'text-teal-600';
     case 'rejected': return 'text-red-600';
     case 'revision_required': return 'text-amber-600';
     case 'reopened': return 'text-teal-600';
-    default: return 'text-gray-600';
+    default: return 'text-slate-500';
   }
 }
 

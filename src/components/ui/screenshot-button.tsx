@@ -38,7 +38,7 @@ export function ScreenshotButton({
       const dataUrl = await htmlToImage.toPng(targetElement, {
         quality: 1,
         pixelRatio: 2, // High resolution
-        backgroundColor: '#f8faf9', // match app bg
+        backgroundColor: '#F8F6EE', // match app bg (earthy)
         style: {
           transform: 'none', // Prevent some glitching
         },

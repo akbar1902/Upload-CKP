@@ -312,11 +312,11 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 placeholder="Cari nama, NIP, email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full sm:w-72 pl-10 h-10 text-[13px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-[#0F766E]/50 outline-none transition-all shadow-sm"
+                className="w-full sm:w-72 pl-10 h-10 text-[13px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--card-bg)] focus:ring-2 focus:ring-[var(--primary-ring)] outline-none transition-all shadow-sm"
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
-            <button onClick={() => setShowAddModal(true)} className="h-10 px-4 rounded-xl font-medium text-[13px] text-white bg-[#0F766E] hover:bg-[#115E59] transition-all shadow-md shadow-[#0F766E]/20 flex items-center justify-center gap-2">
+            <button onClick={() => setShowAddModal(true)} className="h-10 px-4 rounded-xl font-medium text-[13px] text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition-all shadow-md shadow-[var(--primary-ring)] flex items-center justify-center gap-2">
               <Plus size={16} /> Tambah Pegawai
             </button>
           </div>
@@ -328,7 +328,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
             <p className="text-[13px] text-slate-500">Memuat data pegawai...</p>
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900/50 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+          <div className="bg-white dark:bg-[var(--card-bg)]/50 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead className="bg-slate-50/80 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
@@ -341,7 +341,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                   {filteredUsers.map(u => (
-                    <tr key={u.id} className={`transition-colors group ${u.is_active ? 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30' : 'bg-slate-50/40 dark:bg-slate-900/30 opacity-75 hover:opacity-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/40'}`}>
+                    <tr key={u.id} className={`transition-colors group ${u.is_active ? 'hover:bg-slate-50/60 dark:hover:bg-slate-800/30' : 'bg-slate-50/40 dark:bg-[var(--card-bg)]/30 opacity-75 hover:opacity-100 hover:bg-slate-100/60 dark:hover:bg-slate-800/40'}`}>
                       <td className="px-5 py-3.5">
                         <div className="font-semibold text-slate-800 dark:text-slate-200 text-[14px]">{u.full_name}</div>
                         <div className="text-[12px] text-slate-500 mt-0.5">{u.nip} &bull; {u.email}</div>
@@ -359,14 +359,14 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${u.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-slate-50 text-slate-600 border-slate-200/50 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700/50'}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${u.is_active ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-medium border ${u.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200/50 dark:bg-[var(--success-text)]/10 dark:text-emerald-400 dark:border-emerald-500/20' : 'bg-slate-50 text-slate-600 border-slate-200/50 dark:bg-slate-800/50 dark:text-slate-400 dark:border-slate-700/50'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${u.is_active ? 'bg-[var(--success-text)]' : 'bg-slate-400'}`}></span>
                           {u.is_active ? 'Aktif' : 'Non-Aktif'}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1.5 opacity-90 sm:opacity-0 sm:-translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200">
-                          <button onClick={() => handleOpenEdit(u)} title="Edit Profil & Jabatan" className="p-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
+                          <button onClick={() => handleOpenEdit(u)} title="Edit Profil & Jabatan" className="p-2 rounded-xl hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-[var(--success-text)]/10 dark:hover:text-emerald-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
                             <Pencil size={16} strokeWidth={2.5} />
                           </button>
                           {u.role === 'ketua_tim' && u.is_active && (
@@ -374,7 +374,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                               <ArrowRightLeft size={16} strokeWidth={2.5} />
                             </button>
                           )}
-                          <button onClick={() => handleToggleStatus(u.id, u.is_active, u.full_name)} title={u.is_active ? "Nonaktifkan Akun" : "Aktifkan Akun"} className={`p-2 rounded-xl transition-all hover:scale-105 active:scale-95 ${u.is_active ? 'hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-400' : 'hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-500/10 dark:hover:text-emerald-400 text-slate-400'}`}>
+                          <button onClick={() => handleToggleStatus(u.id, u.is_active, u.full_name)} title={u.is_active ? "Nonaktifkan Akun" : "Aktifkan Akun"} className={`p-2 rounded-xl transition-all hover:scale-105 active:scale-95 ${u.is_active ? 'hover:bg-amber-50 hover:text-amber-600 dark:hover:bg-amber-500/10 dark:hover:text-amber-400 text-slate-400' : 'hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-[var(--success-text)]/10 dark:hover:text-emerald-400 text-slate-400'}`}>
                             {u.is_active ? <XCircle size={16} strokeWidth={2.5} /> : <CheckCircle size={16} strokeWidth={2.5} />}
                           </button>
                           <button onClick={() => handleResetPassword(u.id, u.full_name)} title="Reset Password ke Default" className="p-2 rounded-xl hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-500/10 dark:hover:text-blue-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
@@ -407,42 +407,42 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
 
       {showAddModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in">
+          <div className="w-full max-w-md bg-white dark:bg-[var(--card-bg)] rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in">
             <h3 className="text-xl font-bold mb-6 text-slate-800 dark:text-slate-100">Tambah Pegawai Baru</h3>
             <form onSubmit={handleAddEmployee} className="space-y-4 text-[13px]">
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Nama Lengkap</label>
-                <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                <input required type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">NIP</label>
-                <input required type="text" value={formData.nip} onChange={e => setFormData({...formData, nip: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                <input required type="text" value={formData.nip} onChange={e => setFormData({...formData, nip: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Email</label>
-                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                <input required type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Password Default</label>
-                <input required type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                <input required type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Unit Kerja</label>
-                <input type="text" value={formData.unit_kerja} onChange={e => setFormData({...formData, unit_kerja: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                <input type="text" value={formData.unit_kerja} onChange={e => setFormData({...formData, unit_kerja: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Jabatan</label>
-                  <input list="jabatan-list" type="text" placeholder="Contoh: Statistisi Ahli Muda" value={formData.jabatan} onChange={e => setFormData({...formData, jabatan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                  <input list="jabatan-list" type="text" placeholder="Contoh: Statistisi Ahli Muda" value={formData.jabatan} onChange={e => setFormData({...formData, jabatan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
                 </div>
                 <div>
                   <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pangkat / Golongan</label>
-                  <input list="golongan-list" type="text" placeholder="Contoh: Penata Tk.I, III/d" value={formData.golongan} onChange={e => setFormData({...formData, golongan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
+                  <input list="golongan-list" type="text" placeholder="Contoh: Penata Tk.I, III/d" value={formData.golongan} onChange={e => setFormData({...formData, golongan: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200" />
                 </div>
               </div>
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Peran (Role)</label>
-                <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200">
+                <select value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200">
                   <option value="anggota">Pegawai</option>
                   <option value="ketua_tim">Ketua Tim</option>
                   <option value="pimpinan">Pimpinan</option>
@@ -451,7 +451,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
               </div>
               <div className="flex gap-3 justify-end mt-8 pt-2">
                 <button type="button" onClick={() => setShowAddModal(false)} className="px-5 py-2.5 rounded-xl font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors">Batal</button>
-                <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl font-medium bg-[#0F766E] hover:bg-[#115E59] text-white transition-colors shadow-md shadow-[#0F766E]/20 disabled:opacity-50">{isSubmitting ? 'Menyimpan...' : 'Simpan Pegawai'}</button>
+                <button type="submit" disabled={isSubmitting} className="px-5 py-2.5 rounded-xl font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-colors shadow-md shadow-[var(--primary-ring)] disabled:opacity-50">{isSubmitting ? 'Menyimpan...' : 'Simpan Pegawai'}</button>
               </div>
             </form>
           </div>
@@ -463,7 +463,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
         const teamName = oldUserObj?.managed_teams || oldUserObj?.unit_kerja || '';
         return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in">
+          <div className="w-full max-w-md bg-white dark:bg-[var(--card-bg)] rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in">
             <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100 uppercase">
               Ganti Ketua Tim {teamName}
             </h3>
@@ -473,7 +473,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
             <form onSubmit={handleReplaceSubmit} className="space-y-4 text-[13px]">
               <div>
                 <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pilih Pengganti</label>
-                <select value={replaceNewUserId} onChange={e => setReplaceNewUserId(e.target.value)} required className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200">
+                <select value={replaceNewUserId} onChange={e => setReplaceNewUserId(e.target.value)} required className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200">
                   <option value="">-- Pilih Pegawai Aktif --</option>
                   {users.filter(u => u.is_active && u.id !== replaceOldUserId).map(u => (
                     <option key={u.id} value={u.id}>{u.full_name} ({u.unit_kerja || '-'})</option>
@@ -482,7 +482,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
               </div>
               <div className="flex gap-3 justify-end mt-8 pt-2">
                 <button type="button" onClick={() => setShowReplaceModal(false)} className="px-5 py-2.5 rounded-xl font-medium bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition-colors">Batal</button>
-                <button type="submit" disabled={isReplacing} className="px-5 py-2.5 rounded-xl font-medium bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-md shadow-indigo-500/20 disabled:opacity-50">{isReplacing ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
+                <button type="submit" disabled={isReplacing} className="px-5 py-2.5 rounded-xl font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-colors shadow-md disabled:opacity-50">{isReplacing ? 'Menyimpan...' : 'Simpan Perubahan'}</button>
               </div>
             </form>
           </div>
@@ -493,11 +493,11 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       {/* Confirmation Modal */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-sm bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in text-center">
+          <div className="w-full max-w-sm bg-white dark:bg-[var(--card-bg)] rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in text-center">
             <div className={`w-12 h-12 rounded-full mx-auto flex items-center justify-center mb-4 ${
-              confirmModal.confirmStyle === 'danger' ? 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400' :
-              confirmModal.confirmStyle === 'warning' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' :
-              'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400'
+              confirmModal.confirmStyle === 'danger' ? 'bg-[var(--danger-soft)] text-[var(--danger-text)]' :
+              confirmModal.confirmStyle === 'warning' ? 'bg-[var(--warning-soft)] text-[var(--warning-text)]' :
+              'bg-[var(--success-soft)] text-[var(--success-text)]'
             }`}>
               {confirmModal.confirmStyle === 'danger' ? <Trash2 size={24} /> : confirmModal.confirmStyle === 'warning' ? <XCircle size={24} /> : <CheckCircle size={24} />}
             </div>
@@ -510,9 +510,9 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 Batal
               </button>
               <button onClick={confirmModal.onConfirm} className={`px-5 py-2.5 rounded-xl font-medium text-white transition-colors w-full shadow-md ${
-                confirmModal.confirmStyle === 'danger' ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-500/20' :
+                confirmModal.confirmStyle === 'danger' ? 'bg-[var(--danger)] hover:opacity-90' :
                 confirmModal.confirmStyle === 'warning' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-500/20' :
-                'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/20'
+                'bg-[var(--secondary-strong)] hover:opacity-90 text-white'
               }`}>
                 {confirmModal.confirmText}
               </button>
@@ -524,7 +524,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       {/* Edit Pegawai Modal */}
       {showEditModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in max-h-[90vh] overflow-y-auto">
+          <div className="w-full max-w-lg bg-white dark:bg-[var(--card-bg)] rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Edit Profil Pegawai</h3>
@@ -547,7 +547,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                   type="text"
                   value={editFormData.full_name}
                   onChange={e => setEditFormData({ ...editFormData, full_name: e.target.value })}
-                  className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                  className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                 />
               </div>
 
@@ -558,7 +558,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                     type="text"
                     value={editFormData.nip}
                     onChange={e => setEditFormData({ ...editFormData, nip: e.target.value })}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                   />
                 </div>
                 <div>
@@ -581,7 +581,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                     placeholder="Contoh: Statistisi Ahli Muda"
                     value={editFormData.jabatan}
                     onChange={e => setEditFormData({ ...editFormData, jabatan: e.target.value })}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                   />
                 </div>
                 <div>
@@ -592,7 +592,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                     placeholder="Contoh: Penata Tk.I, III/d"
                     value={editFormData.golongan}
                     onChange={e => setEditFormData({ ...editFormData, golongan: e.target.value })}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                   />
                 </div>
               </div>
@@ -604,7 +604,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                     type="text"
                     value={editFormData.unit_kerja}
                     onChange={e => setEditFormData({ ...editFormData, unit_kerja: e.target.value })}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                   />
                 </div>
                 <div>
@@ -612,7 +612,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                   <select
                     value={editFormData.role}
                     onChange={e => setEditFormData({ ...editFormData, role: e.target.value })}
-                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[#0F766E]/50 focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                    className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
                   >
                     <option value="anggota">Pegawai</option>
                     <option value="ketua_tim">Ketua Tim</option>
@@ -633,7 +633,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 <button
                   type="submit"
                   disabled={isEditing}
-                  className="px-5 py-2.5 rounded-xl font-medium bg-[#0F766E] hover:bg-[#115E59] text-white transition-colors shadow-md shadow-[#0F766E]/20 disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-xl font-medium bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white transition-colors shadow-md shadow-[var(--primary-ring)] disabled:opacity-50"
                 >
                   {isEditing ? 'Menyimpan...' : 'Simpan Perubahan'}
                 </button>

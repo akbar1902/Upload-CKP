@@ -15,12 +15,12 @@ const STATUS_META = {
 // Backward-compat untuk modul yang butuh lookup label/kelas.
 export const STATUS_CONFIG = {
   submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#0F766E' },
-  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: '#AF52DE' },
-  approved:          { label: 'Disetujui',       cls: 'badge-approved',  dot: '#34C759' },
-  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  dot: '#FF3B30' },
-  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  dot: '#F59E0B' },
-  draft:             { label: 'Draft',           cls: 'badge-draft',     dot: '#AEAEB2' },
-  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     dot: '#8E8E93' },
+  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: '#6B5A44' },
+  approved:          { label: 'Disetujui',       cls: 'badge-approved',  dot: '#46583E' },
+  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  dot: '#A8442F' },
+  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  dot: '#B97A1A' },
+  draft:             { label: 'Draft',           cls: 'badge-draft',     dot: '#A89C86' },
+  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     dot: '#A89C86' },
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {
@@ -49,11 +49,11 @@ export function StatusLabel({ status }: { status: UploadStatus | null }) {
   const map: Record<UploadStatus, { label: string; bg: string; color: string }> = {
     draft:             { label: 'Draft',          bg: 'var(--bg-secondary)',    color: 'var(--text-secondary)' },
     submitted:         { label: 'Menunggu Review', bg: 'var(--primary-soft)',    color: 'var(--primary)' },
-    scored:            { label: 'Sudah Dinilai',   bg: 'rgba(175, 82, 222, 0.1)', color: '#AF52DE' },
-    approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success)' },
-    rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger)' },
-    revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning)' },
-    superseded:        { label: 'Diganti (Arsip)', bg: 'var(--bg-secondary)',    color: '#8E8E93' },
+    scored:            { label: 'Sudah Dinilai',   bg: '#EFE7DD', color: '#6B5A44' },
+    approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success-text)' },
+    rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger-text)' },
+    revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning-text)' },
+    superseded:        { label: 'Diganti (Arsip)', bg: 'var(--bg-secondary)',    color: 'var(--text-tertiary)' },
   };
   
   const s = map[status] ?? { label: status, bg: 'var(--bg-secondary)', color: 'var(--text-secondary)' };

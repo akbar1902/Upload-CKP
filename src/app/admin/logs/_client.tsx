@@ -93,7 +93,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: any[] })
 
         {isPending ? (
           <div className="flex items-center justify-center p-12">
-            <RefreshCw className="h-6 w-6 animate-spin text-blue-500" />
+            <RefreshCw className="h-6 w-6 animate-spin text-[var(--primary)]" />
           </div>
         ) : (
           <div className="overflow-x-auto rounded-xl border" style={{ borderColor: 'var(--border)' }}>
@@ -128,7 +128,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: any[] })
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                        <Activity size={12} className="text-blue-500" />
+                        <Activity size={12} className="text-[var(--primary)]" />
                         {l.action}
                       </div>
                     </td>

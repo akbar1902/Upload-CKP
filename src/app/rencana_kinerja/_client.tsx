@@ -344,14 +344,14 @@ export function RencanaKinerjaClient({
           <button
             onClick={() => setActiveTab("global")}
             className={`filter-btn ${activeTab === "global" ? "filter-btn-active" : ""}`}
-            style={activeTab === "global" ? { background: 'var(--success-soft)', color: '#16A34A', borderColor: '#16A34A' } : undefined}
+            style={activeTab === "global" ? { background: 'var(--success-soft)', color: 'var(--success-text)', borderColor: 'var(--success-text)' } : undefined}
           >
             <Globe size={14} /> Kamus Global
           </button>
           <button
             onClick={() => setActiveTab("history")}
             className={`filter-btn ${activeTab === "history" ? "filter-btn-active" : ""}`}
-            style={activeTab === "history" ? { background: '#fef3c7', color: '#d97706', borderColor: '#d97706' } : undefined}
+            style={activeTab === "history" ? { background: 'var(--warning-soft)', color: 'var(--warning-text)', borderColor: 'var(--warning-text)' } : undefined}
           >
             <History size={14} /> Histori
           </button>
@@ -779,8 +779,8 @@ export function RencanaKinerjaClient({
                       let roleLabel = log.user?.role === 'ketua_tim' ? 'Ketua Tim' : log.user?.role === 'anggota' ? 'Pegawai' : log.user?.role;
                       
                       let actionText = "";
-                      let iconColor = "#94a3b8"; // slate-400
-                      let iconBg = "#f1f5f9"; // slate-100
+                      let iconColor = "#A89C86"; // earthy sand
+                      let iconBg = "#EFE7D6"; // earthy sand-100
                       let detailText = log.entity_type;
 
                       const rkName = log.new_data?.rencana_kinerja || log.old_data?.rencana_kinerja || log.entity_id;
@@ -788,29 +788,29 @@ export function RencanaKinerjaClient({
 
                       if (log.action === 'rk_created') {
                         actionText = `membuat RK baru`;
-                        iconColor = "#16a34a"; // green-600
-                        iconBg = "#dcfce7"; // green-100
+                        iconColor = "#46583E"; // earthy sage
+                        iconBg = "#E9EFE3"; // earthy sage-soft
                         detailText = `${rkName} (${timName})`;
                       } else if (log.action === 'rk_updated') {
                         actionText = `mengubah RK`;
-                        iconColor = "#0284c7"; // sky-600
-                        iconBg = "#e0f2fe"; // sky-100
+                        iconColor = "#0F766E"; // primary
+                        iconBg = "#E9F2ED"; // primary-soft
                         detailText = `Menjadi: ${rkName}`;
                       } else if (log.action === 'rk_deleted') {
                         actionText = `menghapus RK`;
-                        iconColor = "#dc2626"; // red-600
-                        iconBg = "#fee2e2"; // red-100
+                        iconColor = "#A8442F"; // earthy brick
+                        iconBg = "#FAECE6"; // earthy danger-soft
                         detailText = `${rkName}`;
                       } else if (log.action === 'rk_self_assigned') {
                         actionText = `mengambil RK ke daftarnya`;
-                        iconColor = "#d97706"; // amber-600
-                        iconBg = "#fef3c7"; // amber-100
+                        iconColor = "#7A5A2E"; // earthy amber
+                        iconBg = "#FAF3E3"; // earthy warning-soft
                         detailText = `${rkName}`;
                       } else if (log.action === 'rk_assigned') {
                         const targetName = log.new_data?.assignee_name || "Pegawai";
                         actionText = `menugaskan RK kepada ${targetName}`;
-                        iconColor = "#8b5cf6"; // violet-500
-                        iconBg = "#ede9fe"; // violet-100
+                        iconColor = "#6B5A44"; // earthy taupe
+                        iconBg = "#EFE7DD"; // earthy taupe-soft
                         detailText = `${rkName}`;
                       } else if (log.action === 'rk_unassigned') {
                         const targetName = log.old_data?.assignee_name;
@@ -819,8 +819,8 @@ export function RencanaKinerjaClient({
                         } else {
                           actionText = `menghapus RK dari daftarnya`;
                         }
-                        iconColor = "#64748b"; // slate-500
-                        iconBg = "#f1f5f9"; // slate-100
+                        iconColor = "#6E6759"; // earthy muted
+                        iconBg = "#EFE7D6"; // earthy sand-100
                         detailText = `${rkName}`;
                       } else {
                         actionText = `melakukan aksi ${log.action}`;
@@ -937,7 +937,7 @@ export function RencanaKinerjaClient({
                     <div key={user.id} onClick={() => handleToggleAssignee(user.id)}
                       className="flex items-center gap-2.5 px-3 py-2 rounded-lg cursor-pointer text-[13px] transition-all"
                       style={isSelected
-                        ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.2)' }
+                        ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' }
                         : { border: '1px solid transparent' }
                       }
                     >
@@ -1026,7 +1026,7 @@ export function RencanaKinerjaClient({
                         }}
                           className="flex items-start gap-3 p-3.5 rounded-xl cursor-pointer transition-all hover:shadow-sm"
                           style={isSelected
-                            ? { background: 'var(--primary-soft)', border: '1px solid rgba(37,99,235,0.2)' }
+                            ? { background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }
                             : { border: '1px solid var(--border)', background: 'var(--bg-secondary)' }
                           }
                         >

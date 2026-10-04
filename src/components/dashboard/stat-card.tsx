@@ -20,10 +20,10 @@ interface StatCardProps {
 
 const colorMap = {
   blue:    { bg: 'var(--primary-soft)',  text: 'var(--primary)' },
-  emerald: { bg: 'var(--success-soft)',  text: 'var(--success)' },
-  amber:   { bg: 'var(--warning-soft)',  text: 'var(--warning)' },
-  red:     { bg: 'var(--danger-soft)',   text: 'var(--danger)' },
-  purple:  { bg: 'rgba(175,82,222,0.08)', text: '#AF52DE' },
+  emerald: { bg: 'var(--success-soft)',  text: 'var(--success-text)' },
+  amber:   { bg: 'var(--warning-soft)',  text: 'var(--warning-text)' },
+  red:     { bg: 'var(--danger-soft)',   text: 'var(--danger-text)' },
+  purple:  { bg: '#EFE7DD', text: '#6B5A44' },
   slate:   { bg: 'var(--bg-secondary)',  text: 'var(--text-secondary)' },
 };
 

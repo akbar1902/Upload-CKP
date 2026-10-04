@@ -155,18 +155,18 @@ export default function PimpinanPegawaiDetailPage() {
         </button>
 
         {/* Employee Info */}
-        <Card className="bg-gradient-to-r from-[var(--primary)] to-teal-950 text-white border-0 overflow-hidden relative">
+        <Card className="bg-[var(--primary)] text-white border-0 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
           <CardContent className="p-6 relative">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-400 flex items-center justify-center text-2xl font-bold shadow-lg shadow-teal-500/30">
+              <div className="w-16 h-16 rounded-xl bg-[var(--secondary-strong)] flex items-center justify-center text-2xl font-bold shadow-[var(--shadow-card)]">
                 {employee.full_name.charAt(0)}
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h3 className="text-xl font-bold">{employee.full_name}</h3>
                   {employee.jabatan && (
-                    <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-emerald-400/20 text-emerald-200 border border-emerald-400/30">
+                    <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-white/15 text-white border border-white/30">
                       {employee.jabatan}
                     </span>
                   )}
@@ -176,7 +176,7 @@ export default function PimpinanPegawaiDetailPage() {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-teal-100">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/85">
                   <span className="flex items-center gap-1"><UserIcon className="h-3.5 w-3.5" /> NIP: {employee.nip || '-'}</span>
                   <span className="flex items-center gap-1"><Briefcase className="h-3.5 w-3.5" /> {employee.unit_kerja || '-'}</span>
                   <span className="flex items-center gap-1"><Mail className="h-3.5 w-3.5" /> {employee.email}</span>

@@ -182,7 +182,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
             <Link 
               prefetch={true}
               href="/admin/rk/import"
-              className="btn-secondary flex items-center gap-2 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800 hover:bg-green-50 dark:hover:bg-green-900/30"
+              className="btn-secondary flex items-center gap-2 text-[var(--success-text)] border-[var(--border)] hover:bg-[var(--success-soft)]"
             >
               <FileSpreadsheet size={14} /> 
               Upload Excel
@@ -241,7 +241,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                     {/* Header Tim Kerja */}
                     <tr className="bg-slate-100 dark:bg-slate-800/80">
                       <td colSpan={4} className="px-4 py-2 font-semibold text-xs uppercase tracking-wider" style={{ color: 'var(--text-secondary)' }}>
-                        Tim Kerja: <span className="text-blue-600 dark:text-blue-400">{team}</span>
+                        Tim Kerja: <span className="text-[var(--primary)]">{team}</span>
                       </td>
                     </tr>
                     {/* Render RKs */}
@@ -250,7 +250,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                       const subs = subsByRk[r.id] || [];
                       return (
                         <React.Fragment key={r.id}>
-                          <tr className={`border-b last:border-b-0 transition-colors ${isExpanded ? 'bg-blue-50/30 dark:bg-blue-900/10' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} style={{ borderColor: 'var(--border)' }}>
+                          <tr className={`border-b last:border-b-0 transition-colors ${isExpanded ? 'bg-[var(--primary-soft)]' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} style={{ borderColor: 'var(--border)' }}>
                             <td className="px-4 py-3 text-center">
                               <button 
                                 onClick={() => setExpandedRowId(isExpanded ? null : r.id)}
@@ -396,8 +396,8 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               <button onClick={() => setShowAddSubModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">RK Induk</p>
+              <div className="p-3 rounded-lg bg-[var(--primary-soft)] border border-[var(--primary-ring)]">
+                <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">RK Induk</p>
                 <p className="text-sm font-medium line-clamp-2" style={{ color: 'var(--text-primary)' }}>{selectedRkForSub.rencana_kinerja}</p>
               </div>
               <div>
@@ -447,7 +447,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
             </div>
             <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300" onClick={() => setDeleteConfirm(null)}>Batal</button>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors shadow-sm" onClick={executeDelete} disabled={isSubmitting}>
+              <button className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--danger)] text-white hover:opacity-90 transition-colors shadow-sm" onClick={executeDelete} disabled={isSubmitting}>
                 {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
               </button>
             </div>
@@ -464,8 +464,8 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               <button onClick={() => setShowMoveSubModal(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
-              <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/50">
-                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Sub-RK Saat Ini</p>
+              <div className="p-3 rounded-lg bg-[var(--primary-soft)] border border-[var(--primary-ring)]">
+                <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">Sub-RK Saat Ini</p>
                 <p className="text-sm font-medium line-clamp-2" style={{ color: 'var(--text-primary)' }}>{selectedSubForMove.kegiatan_nama}</p>
               </div>
               <div>
