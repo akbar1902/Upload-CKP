@@ -115,20 +115,8 @@ export default function LoginPage() {
         className="absolute inset-0 pointer-events-none dark:hidden"
         style={{
           background: `
-            radial-gradient(circle at 88% 12%, rgba(201,111,79,.14), transparent 30%),
-            radial-gradient(circle at 10% 85%, rgba(15,118,110,.10), transparent 35%),
-            radial-gradient(circle at 70% 75%, rgba(201,111,79,.07), transparent 32%),
-            linear-gradient(135deg, #FFFFFF 0%, #FCFBF7 50%, #F7F3EA 100%)
-          `
-        }}
-      />
-      {/* Ornamen terracotta: garis aksen kanan atas + bawah kiri */}
-      <div
-        className="absolute inset-0 pointer-events-none dark:hidden"
-        aria-hidden
-        style={{
-          background: `
-            linear-gradient(135deg, transparent 62%, rgba(201,111,79,.10) 78%, rgba(201,111,79,.16) 100%)
+            radial-gradient(circle at 12% 85%, rgba(15,118,110,.08), transparent 35%),
+            linear-gradient(180deg, #FFFFFF 0%, #FCFBF7 60%, #F7F3EA 100%)
           `
         }}
       />
@@ -151,15 +139,6 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
 
-          {/* Badge SIKAP — terracotta hemat */}
-          <div className="mb-6 inline-flex items-center gap-2 self-start rounded-full px-4 py-1.5"
-               style={{ background: 'var(--accent-soft)', border: '1px solid var(--accent-ring)' }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--accent-strong)' }} />
-            <span className="text-[12px] font-bold tracking-wide" style={{ color: 'var(--accent-strong)' }}>
-              SIKAP &middot; BPS Kabupaten Belitung
-            </span>
-          </div>
-
           {/* Hero tagline */}
           <h2 className="text-[44px] font-extrabold text-[var(--text-primary)] leading-[1.15] tracking-tight mb-4">
             Rekap, Review,<br />
@@ -170,19 +149,17 @@ export default function LoginPage() {
             Semua dalam satu platform terintegrasi.
           </p>
 
-          {/* Features — ikon selang-seling primary/terracotta */}
+          {/* Features */}
           <div className="space-y-6">
             {[
-              { icon: CloudUpload, title: 'Upload CKP Bulanan', desc: 'Unggah file Excel CKP dengan mudah dan aman.', accent: false },
-              { icon: BarChart, title: 'Dashboard Real-time', desc: 'Pantau progress capaian kinerja secara real-time.', accent: false },
-              { icon: ShieldCheck, title: 'Workflow Approval', desc: 'Proses review dan approval lebih cepat dan transparan.', accent: true },
-              { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.', accent: false },
+              { icon: CloudUpload, title: 'Upload CKP Bulanan', desc: 'Unggah file Excel CKP dengan mudah dan aman.' },
+              { icon: BarChart, title: 'Dashboard Real-time', desc: 'Pantau progress capaian kinerja secara real-time.' },
+              { icon: ShieldCheck, title: 'Workflow Approval', desc: 'Proses review dan approval lebih cepat dan transparan.' },
+              { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.' },
             ].map((feat, i) => (
               <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1"
-                  style={feat.accent
-                    ? { background: 'var(--accent-soft)', color: 'var(--accent-strong)' }
-                    : { background: 'var(--primary-soft)', color: primaryColor }}>
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[var(--primary-soft)]"
+                  style={{ color: primaryColor }}>
                   <feat.icon size={18} strokeWidth={2.5} />
                 </div>
                 <div>
@@ -200,10 +177,8 @@ export default function LoginPage() {
       {/* ═══════════════════════════════════════════════ */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
 
-        {/* Login Card — garis aksen terracotta di atas */}
-        <div className="w-full max-w-[440px] bg-[var(--card-bg)] shadow-[0_20px_60px_-15px_rgba(90,74,52,0.18)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent border-[var(--sand-border)] overflow-hidden">
-          <div className="absolute top-0 left-10 right-10 h-1 rounded-full"
-               style={{ background: 'linear-gradient(90deg, var(--primary) 0%, var(--accent) 100%)' }} />
+        {/* Login Card */}
+        <div className="w-full max-w-[440px] bg-[var(--card-bg)] shadow-[0_20px_60px_-15px_rgba(90,74,52,0.18)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent border-[var(--sand-border)]">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
