@@ -157,10 +157,15 @@ export function Sidebar() {
         "flex items-center justify-center px-5 py-5 w-full",
         collapsed && "px-3 py-5"
       )}>
-        <img 
-          src="/SIKAP-text-and-tagline.svg" 
-          alt="SIKAP Logo" 
-          className="w-full h-auto object-contain drop-shadow-sm dark:brightness-0 dark:invert"
+        <img
+          src="/SIKAP-text-and-tagline.svg"
+          alt="SIKAP Logo"
+          className="w-full h-auto object-contain drop-shadow-sm dark:hidden"
+        />
+        <img
+          src="/SIKAP-text-and-tagline-beige.svg"
+          alt="SIKAP Logo"
+          className="w-full h-auto object-contain drop-shadow-sm hidden dark:block"
         />
       </div>
 

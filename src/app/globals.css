@@ -276,11 +276,12 @@
 }
 
 .dark {
-  /* Malam hangat elegan: bg espresso pekat, card naik 2 tingkat + border terang */
-  --bg-base:        #1B1813;
-  --bg-secondary:   #2A251D;   /* sand-subtle versi dark */
-  --card-bg:        #322C22;   /* card-vs-bg 1.56 OK */
-  --sand-subtle:    #2A251D;
+  /* Malam netral elegan: bg abu-hangat netral (tanpa hijau), card abu hangat.
+     Sidebar tetap lebih gelap (dipertahankan — sudah oke). */
+  --bg-base:        #1C1A17;
+  --bg-secondary:   #292524;   /* sand-subtle versi dark */
+  --card-bg:        #352F28;   /* card-vs-bg 1.31 OK, netral tanpa hijau */
+  --sand-subtle:    #292524;
   --sand-border:    rgba(214, 201, 180, 0.22);
   --sand-strong:    #4A4234;
 
