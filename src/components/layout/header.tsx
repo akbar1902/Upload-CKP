@@ -4,8 +4,9 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { Bell, Download, ChevronRight } from 'lucide-react';
+import { Download, ChevronRight } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { NotificationBell } from '@/components/layout/notification-bell';
 
 // ── Breadcrumb configuration ───────────────────────────────
 interface BreadcrumbConfig {
@@ -111,12 +112,12 @@ interface HeaderProps {
 
 // ── Component ──────────────────────────────────────────────
 export function Header({
-  pendingCount = 0,
   onExport,
   showExport = false,
 }: HeaderProps) {
   const [mounted, setMounted] = React.useState(false);
-  
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration guard
   React.useEffect(() => {
     setMounted(true);
   }, []);
@@ -204,24 +205,8 @@ export function Header({
             </button>
           )}
 
-          {/* Pending notification bell — terracotta: butuh perhatian */}
-          {pendingCount > 0 && (
-            <button
-              className="relative p-2.5 rounded-full transition-colors"
-              style={{ background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
-              aria-label={`${pendingCount} CKP menunggu review`}
-              title={`${pendingCount} CKP menunggu review`}
-            >
-              <Bell size={16} />
-              <span
-                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
-                style={{ background: 'var(--accent-strong)' }}
-                aria-hidden="true"
-              >
-                {pendingCount > 9 ? '9+' : pendingCount}
-              </span>
-            </button>
-          )}
+          {/* Riwayat notifikasi + realtime */}
+          <NotificationBell />
 
           {/* Theme Toggle */}
           <ThemeToggle />
