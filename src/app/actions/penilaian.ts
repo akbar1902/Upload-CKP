@@ -2,6 +2,14 @@
 
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import { notify, getUploadOwnerId, getUploadPeriodLabel } from '@/lib/notifications';
+
+const APPROVE_COPY: Record<string, { type: 'approved' | 'rejected' | 'revision_required' | 'reopened'; title: string }> = {
+  approved: { type: 'approved', title: 'CKP disetujui' },
+  rejected: { type: 'rejected', title: 'CKP ditolak' },
+  revision_required: { type: 'revision_required', title: 'CKP perlu revisi' },
+  reopened: { type: 'reopened', title: 'CKP dibuka kembali' },
+};
 
 export async function gradeRencanaKinerjaAction(uploadIds: string | string[], rencanaKinerja: string, score: number | null) {
   try {
@@ -54,6 +62,25 @@ export async function gradeRencanaKinerjaAction(uploadIds: string | string[], re
           .from('ckp_uploads')
           .update({ status: newStatus })
           .eq('id', upload.id);
+
+        // Notifikasi 'sudah dinilai' ke pemilik saat semua entri selesai dinilai
+        if (newStatus === 'scored') {
+          const { data: owner } = await adminClient
+            .from('ckp_uploads')
+            .select('user_id')
+            .eq('id', upload.id)
+            .maybeSingle();
+          if (owner?.user_id) {
+            await notify({
+              userId: owner.user_id,
+              type: 'scored',
+              title: 'CKP sudah dinilai',
+              body: 'Semua kegiatan sudah dinilai — menunggu keputusan pimpinan.',
+              uploadId: upload.id,
+              actorId: user.id,
+            });
+          }
+        }
       }
     }
 
@@ -137,6 +164,26 @@ export async function approveAction(uploadId: string, action: string, catatan: s
     revalidatePath('/pimpinan');
     revalidatePath('/ketua_tim');
     revalidatePath('/pegawai');
+
+    // Notifikasi ke pemilik upload (best-effort, tidak menggagalkan aksi)
+    const copy = APPROVE_COPY[action];
+    if (copy) {
+      const ownerId = await getUploadOwnerId(uploadId);
+      if (ownerId) {
+        const period = await getUploadPeriodLabel(uploadId);
+        const body = period
+          ? `CKP periode ${period}${catatan ? ` — catatan: ${catatan}` : ''}`
+          : (catatan || undefined);
+        await notify({
+          userId: ownerId,
+          type: copy.type,
+          title: copy.title,
+          body,
+          uploadId,
+          actorId: user.id,
+        });
+      }
+    }
 
     return { success: true };
   } catch (err: any) {

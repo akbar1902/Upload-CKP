@@ -3,6 +3,8 @@
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { revalidatePath } from 'next/cache';
+import { notify, getReviewerIds } from '@/lib/notifications';
+import { getBulanName } from '@/lib/utils';
 
 export async function saveKegiatanAnggotaMapping(mappings: any[]) {
   try {
@@ -467,6 +469,24 @@ export async function submitCkpUploadAction(formData: FormData) {
     revalidatePath('/pegawai');
     revalidatePath(`/pegawai/ckp/${uploadData.id}`);
     revalidatePath('/', 'layout');
+
+    // Notifikasi ke pimpinan/admin bahwa ada CKP baru menunggu review
+    const reviewers = await getReviewerIds();
+    const periodLabel = `${getBulanName(bulan)} ${tahun}`;
+    await Promise.all(
+      reviewers
+        .filter((rid) => rid !== userId)
+        .map((rid) =>
+          notify({
+            userId: rid,
+            type: 'submitted',
+            title: 'CKP baru menunggu review',
+            body: `Periode ${periodLabel} — versi ${newVersion}.`,
+            uploadId: uploadData.id,
+            actorId: userId,
+          })
+        )
+    );
 
     return { success: true, uploadId: uploadData.id };
   } catch (error: any) {
