@@ -36,7 +36,7 @@ export function ApprovalHistory({ approvals }: ApprovalHistoryProps) {
             {/* Timeline line */}
             <div className="flex flex-col items-center">
               <div className={`p-1.5 rounded-full shadow-sm ${getApprovalActionColor(approval.action)}`}
-                   style={{ border: '2px solid var(--card-bg)', background: 'var(--bg-secondary)' }}>
+                   style={{ border: '2px solid var(--card-bg)', background: 'var(--sand-subtle)' }}>
                 <Icon className="h-4 w-4" />
               </div>
               {!isLast && <div className="w-px h-full min-h-[24px]" style={{ background: 'var(--border)' }} />}
@@ -61,7 +61,7 @@ export function ApprovalHistory({ approvals }: ApprovalHistoryProps) {
                 <p className="text-[14px] mt-1.5 p-3.5 rounded-2xl"
                    style={{
                      color: 'var(--text-primary)',
-                     background: 'var(--bg-secondary)',
+                     background: 'var(--sand-subtle)',
                      border: '1px solid var(--border)',
                    }}>
                   {approval.catatan}

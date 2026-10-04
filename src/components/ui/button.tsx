@@ -9,11 +9,11 @@ const buttonVariants = cva(
       variant: {
         default: "bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)]",
         destructive: "bg-[var(--danger)] text-white rounded-full hover:opacity-90",
-        outline: "border border-[var(--border)] bg-[var(--card-bg)] text-[var(--text-primary)] rounded-full hover:bg-[var(--bg-secondary)]",
-        secondary: "bg-[var(--bg-secondary)] text-[var(--text-secondary)] rounded-full hover:text-[var(--text-primary)]",
-        ghost: "text-[var(--text-secondary)] rounded-xl hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]",
+        outline: "border border-[var(--sand-border)] bg-[var(--card-bg)] text-[var(--primary)] rounded-full hover:bg-[var(--sand-subtle)]",
+        secondary: "bg-[var(--card-bg)] border border-[var(--sand-border)] text-[var(--primary)] rounded-full hover:bg-[var(--sand-subtle)]",
+        ghost: "text-[var(--text-secondary)] rounded-xl hover:bg-[var(--sand-subtle)] hover:text-[var(--text-primary)]",
         link: "text-[var(--primary)] underline-offset-4 hover:underline rounded-xl",
-        success: "bg-[var(--success)] text-white rounded-full hover:opacity-90",
+        success: "bg-[var(--secondary-strong)] text-white rounded-full hover:opacity-90",
         warning: "bg-[var(--warning)] text-white rounded-full hover:opacity-90",
       },
       size: {

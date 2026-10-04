@@ -100,7 +100,7 @@ export default function PimpinanPegawaiDetailPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -204,7 +204,7 @@ export default function PimpinanPegawaiDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                    <tr style={{ background: 'var(--sand-subtle)', borderBottom: '1px solid var(--border)' }}>
                       <th className="text-left py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Periode</th>
                       <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Versi</th>
                       <th className="text-center py-3 px-4 text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>Kegiatan</th>
@@ -226,7 +226,7 @@ export default function PimpinanPegawaiDetailPage() {
                           <td className="py-3 px-4 text-center font-medium" style={{ color: 'var(--text-primary)' }}>{upload.total_entries}</td>
                           <td className="py-3 px-4">
                             <div className="flex items-center justify-center gap-2">
-                              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+                              <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)' }}>
                                 <div className="h-full" style={{ width: `${avgPct}%`, background: 'var(--primary)' }} />
                               </div>
                               <span className="text-xs font-medium" style={{ color: 'var(--text-secondary)' }}>{avgPct.toFixed(0)}%</span>

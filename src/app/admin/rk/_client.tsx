@@ -202,13 +202,13 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 h-10 text-[13px] rounded-xl border focus:ring-2 outline-none transition-colors"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--card-bg)', borderColor: 'var(--sand-border)', color: 'var(--text-primary)' }}
             />
           </div>
           <div className="w-full sm:w-64">
             <select
               className="w-full h-10 text-[13px] px-3 rounded-xl border outline-none transition-colors"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--card-bg)', borderColor: 'var(--sand-border)', color: 'var(--text-primary)' }}
               value={selectedTeam}
               onChange={(e) => setSelectedTeam(e.target.value)}
             >
@@ -227,7 +227,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
         ) : (
           <div className="overflow-x-auto rounded-xl border shadow-sm" style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
             <table className="w-full text-left text-[13px]">
-              <thead style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+              <thead style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}>
                 <tr>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)] w-10"></th>
                   <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Rencana Kinerja Utama</th>
@@ -377,7 +377,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                 </select>
               </div>
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--card-bg)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setShowAddMasterModal(false)}>Batal</button>
               <button className="btn-primary" onClick={handleAddMaster} disabled={isSubmitting}>
                 {isSubmitting ? 'Menyimpan...' : 'Simpan RK Master'}
@@ -411,7 +411,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                 />
               </div>
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--card-bg)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setShowAddSubModal(false)}>Batal</button>
               <button className="btn-primary" onClick={handleAddSub} disabled={isSubmitting}>
                 {isSubmitting ? 'Menyimpan...' : 'Simpan Sub-RK'}
@@ -445,7 +445,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                 </p>
               )}
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--card-bg)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300" onClick={() => setDeleteConfirm(null)}>Batal</button>
               <button className="px-4 py-2 rounded-lg text-sm font-medium bg-[var(--danger)] text-white hover:opacity-90 transition-colors shadow-sm" onClick={executeDelete} disabled={isSubmitting}>
                 {isSubmitting ? 'Menghapus...' : 'Ya, Hapus'}
@@ -485,7 +485,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                 </select>
               </div>
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--card-bg)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setShowMoveSubModal(false)}>Batal</button>
               <button className="btn-primary" onClick={handleMoveSub} disabled={isSubmitting || !targetRkId}>
                 {isSubmitting ? 'Memindahkan...' : 'Pindah RK'}

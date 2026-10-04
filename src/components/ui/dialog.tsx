@@ -76,7 +76,7 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
     >
       <button
         onClick={onClose}
-        className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)] transition-all duration-200 z-10"
+        className="absolute top-5 right-5 w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--sand-subtle)] transition-all duration-200 z-10"
       >
         <X className="h-4 w-4" />
       </button>

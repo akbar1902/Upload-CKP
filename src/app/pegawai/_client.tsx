@@ -99,7 +99,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             {pct.toFixed(0)}%
           </span>
         </div>
-        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)' }}>
           <div className={`h-full rounded-full progress-bar ${progressClass}`} style={{ width: `${pct}%` }} />
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function PegawaiDashboard() {
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
-               style={{ background: 'var(--bg-secondary)' }}>
+               style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -471,7 +471,7 @@ export default function PegawaiDashboard() {
             >
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-                style={{ background: 'var(--bg-secondary)' }}
+                style={{ background: 'var(--sand-subtle)' }}
               >
                 <Folder size={28} style={{ color: 'var(--text-tertiary)' }} />
               </div>

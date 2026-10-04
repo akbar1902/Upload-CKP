@@ -313,7 +313,7 @@ export default function PimpinanKetuaTimDashboardClient() {
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
-               style={{ background: 'var(--bg-secondary)' }}>
+               style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -409,7 +409,7 @@ export default function PimpinanKetuaTimDashboardClient() {
                 aria-label="Cari pegawai"
                 className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
                 style={{
-                  background: 'var(--bg-secondary)',
+                  background: 'var(--sand-subtle)',
                   border: '1px solid var(--border)',
                   color: 'var(--text-primary)',
                 }}
@@ -427,7 +427,7 @@ export default function PimpinanKetuaTimDashboardClient() {
                 <button
                   key={st.id}
                   onClick={() => setStatusFilter(st.id)}
-                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--bg-secondary)]'}`}
+                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--sand-subtle)]'}`}
                   style={statusFilter === st.id 
                     ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' } 
                     : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}

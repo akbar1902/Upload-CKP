@@ -126,7 +126,7 @@ export default function LoginPage() {
       <div
         className="absolute inset-0 opacity-40 pointer-events-none"
         style={{
-          backgroundImage: 'radial-gradient(#D9C9B2 1px, transparent 1px)',
+          backgroundImage: 'radial-gradient(rgba(169,146,118,0.5) 1px, transparent 1px)',
           backgroundSize: '24px 24px',
           maskImage: 'linear-gradient(to right, black 30%, transparent 80%)',
           WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 80%)'

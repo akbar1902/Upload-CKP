@@ -109,7 +109,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
 
         {/* Date block (Desktop / tablet only) */}
         <div className="hidden sm:flex flex-col items-center justify-center rounded-xl w-16 h-16 flex-shrink-0 text-center shadow-sm"
-             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+             style={{ background: 'var(--sand-subtle)', border: '1px solid var(--sand-border)' }}>
           <span className="text-xl font-bold leading-none" style={{ color: 'var(--text-primary)' }}>{day}</span>
           <span className="text-[10px] font-semibold uppercase mt-1 tracking-widest" style={{ color: 'var(--text-secondary)' }}>{monthAbbr}</span>
         </div>
@@ -240,7 +240,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             Progres
           </p>
           <div className="flex items-center gap-2 w-full justify-end">
-            <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+            <div className="w-24 h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)' }}>
               <div
                 className={`h-full rounded-full progress-bar ${progressClass}`}
                 style={{ width: `${pct}%` }}
@@ -307,7 +307,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
               <p className="text-[11px] font-semibold uppercase tracking-wider mb-1"
                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
-                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)', maxWidth: 80 }}>
+                <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)', maxWidth: 80 }}>
                   <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
                 </div>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
@@ -496,7 +496,7 @@ export default function CKPDetailPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -691,7 +691,7 @@ export default function CKPDetailPage() {
               {/* ── View mode toggle ── */}
               <div
                 className="flex items-center rounded-lg overflow-hidden"
-                style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+                style={{ border: '1px solid var(--sand-border)', background: 'var(--sand-subtle)' }}
                 role="group"
                 aria-label="Pilih tampilan"
               >

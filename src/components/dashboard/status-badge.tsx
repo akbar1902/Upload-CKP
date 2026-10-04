@@ -47,13 +47,13 @@ export function StatusLabel({ status }: { status: UploadStatus | null }) {
   }
   
   const map: Record<UploadStatus, { label: string; bg: string; color: string }> = {
-    draft:             { label: 'Draft',          bg: 'var(--bg-secondary)',    color: 'var(--text-secondary)' },
-    submitted:         { label: 'Menunggu Review', bg: 'var(--primary-soft)',    color: 'var(--primary)' },
+    draft:             { label: 'Draft',          bg: 'var(--sand-subtle)',    color: 'var(--text-secondary)' },
+    submitted:         { label: 'Menunggu Review', bg: 'var(--accent-soft)',    color: 'var(--accent-strong)' },
     scored:            { label: 'Sudah Dinilai',   bg: '#EFE7DD', color: '#6B5A44' },
     approved:          { label: 'Disetujui',       bg: 'var(--success-soft)',    color: 'var(--success-text)' },
     rejected:          { label: 'Ditolak',         bg: 'var(--danger-soft)',     color: 'var(--danger-text)' },
-    revision_required: { label: 'Perlu Revisi',    bg: 'var(--warning-soft)',    color: 'var(--warning-text)' },
-    superseded:        { label: 'Diganti (Arsip)', bg: 'var(--bg-secondary)',    color: 'var(--text-tertiary)' },
+    revision_required: { label: 'Perlu Revisi',    bg: 'var(--danger-soft)',    color: 'var(--danger-text)' },
+    superseded:        { label: 'Diganti (Arsip)', bg: 'var(--sand-subtle)',    color: 'var(--text-tertiary)' },
   };
   
   const s = map[status] ?? { label: status, bg: 'var(--bg-secondary)', color: 'var(--text-secondary)' };

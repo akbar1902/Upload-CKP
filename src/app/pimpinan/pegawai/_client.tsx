@@ -237,7 +237,7 @@ export default function PimpinanPegawaiPage() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -313,7 +313,7 @@ export default function PimpinanPegawaiPage() {
             style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
           >
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 text-3xl"
-                 style={{ background: 'var(--bg-secondary)' }}>
+                 style={{ background: 'var(--sand-subtle)' }}>
               🔍
             </div>
             <p className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>

@@ -192,7 +192,7 @@ function RencanaKinerjaGroup({
 
       {/* Expanded details */}
       {expanded && (
-        <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+        <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
           {isTriwulan && monthlyScores && monthlyScores.length > 0 && (
             <div className="flex items-stretch gap-2.5">
               {monthlyScores.map(m => (
@@ -584,7 +584,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-14 h-14 mx-auto mb-4 rounded-xl flex items-center justify-center" style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -745,7 +745,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           </div>
 
           <div className="flex items-center gap-2 text-[12px] self-start sm:self-auto px-3 py-1.5 rounded-lg flex-shrink-0"
-               style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+               style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--sand-border)' }}>
             <Calendar size={13} className="text-slate-400" />
             <span>Periode: <strong className="font-semibold" style={{ color: 'var(--text-primary)' }}>{bulanNama} {upload.tahun}</strong></span>
           </div>
@@ -779,7 +779,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 {/* View mode toggle */}
                 <div
                   className="flex items-center rounded-lg overflow-hidden"
-                  style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)' }}
+                  style={{ border: '1px solid var(--sand-border)', background: 'var(--sand-subtle)' }}
                   role="group"
                   aria-label="Pilih tampilan"
                 >
@@ -856,7 +856,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               ))}
               
               {rkGroups.length === 0 && (
-                <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--sand-subtle)', border: '1px solid var(--sand-border)' }}>
                   <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
                 </div>
               )}
@@ -888,7 +888,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             </span>
             <div
               className="h-2 flex-1 rounded-full overflow-hidden"
-              style={{ background: 'var(--bg-secondary)' }}
+              style={{ background: 'var(--sand-subtle)' }}
               role="progressbar"
               aria-valuenow={scoredRks.length}
               aria-valuemin={0}
@@ -979,7 +979,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 </p>
               </div>
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}>
+            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
               <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setEntryToMove(null)}>
                 Batal
               </button>

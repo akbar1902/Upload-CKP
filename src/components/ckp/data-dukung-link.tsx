@@ -105,7 +105,7 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
                 <button
                   type="button"
                   onClick={() => setRefreshKey((prev) => prev + 1)}
-                  className="text-[13px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--bg-secondary)] transition-colors cursor-pointer"
+                  className="text-[13px] flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] transition-colors cursor-pointer"
                   style={{ color: 'var(--text-secondary)', fontWeight: 500 }}
                   title="Muat ulang preview jika izin Drive baru saja diubah"
                 >

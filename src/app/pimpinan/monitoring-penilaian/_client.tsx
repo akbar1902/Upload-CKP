@@ -45,7 +45,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
       </div>
 
       {expanded && (
-        <div className="border-t border-slate-100 dark:border-slate-800 bg-[var(--bg-secondary)] p-5 space-y-4">
+        <div className="border-t border-[var(--sand-border)] bg-[var(--sand-subtle)] p-5 space-y-4">
           <div className="text-[13px] font-bold text-[var(--success-text)] mb-3 flex items-center gap-2">
             <Users size={16} />
             Daftar Anggota Tim ({data.pegawaiDetails.length})

@@ -7,13 +7,16 @@ export interface KPICardProps {
   sub?: string | React.ReactNode;
   iconBg?: string;
   loading?: boolean;
+  /** 'attention' → ikon terracotta tint (butuh perhatian, mis. Menunggu Review) */
+  tone?: 'default' | 'attention';
 }
 
-export function KPICard({ icon, value, label, sub, iconBg, loading }: KPICardProps) {
-  const unifiedIconBg = 'var(--primary-soft)';
+export function KPICard({ icon, value, label, sub, iconBg, loading, tone = 'default' }: KPICardProps) {
+  const unifiedIconBg = tone === 'attention' ? 'var(--accent-soft)' : 'var(--primary-soft)';
+  const unifiedIconColor = tone === 'attention' ? 'var(--accent-strong)' : 'var(--primary)';
   const unifiedIcon = React.isValidElement(icon)
     ? React.cloneElement(icon as React.ReactElement<any>, {
-        style: { color: 'var(--primary)' },
+        style: { color: unifiedIconColor },
         className: ''
       })
     : icon;

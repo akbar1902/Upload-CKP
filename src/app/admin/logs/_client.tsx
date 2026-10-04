@@ -74,14 +74,14 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: any[] })
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 h-10 text-[13px] rounded-xl border focus:ring-2 outline-none"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--card-bg)', borderColor: 'var(--sand-border)', color: 'var(--text-primary)' }}
             />
           </div>
           <select
             value={filterEntity}
             onChange={(e) => setFilterEntity(e.target.value)}
             className="px-4 py-2 border rounded-xl text-[13px] outline-none h-10"
-            style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+            style={{ background: 'var(--card-bg)', borderColor: 'var(--sand-border)', color: 'var(--text-primary)' }}
           >
             <option value="all">Semua Entitas</option>
             <option value="ckp_uploads">CKP Uploads</option>
@@ -122,7 +122,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: any[] })
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="badge-pill bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 text-[11px]">
+                      <span className="badge-pill bg-[var(--sand-subtle)] text-[var(--text-secondary)] px-2 py-0.5 text-[11px]">
                         {l.entity_type}
                       </span>
                     </td>

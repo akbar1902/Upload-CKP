@@ -78,7 +78,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
               value={selectedYear}
               onChange={(e) => setSelectedYear(parseInt(e.target.value))}
               className="px-4 py-2 border rounded-xl text-[14px] outline-none"
-              style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--card-bg)', borderColor: 'var(--sand-border)', color: 'var(--text-primary)' }}
             >
               {[currentYear - 1, currentYear, currentYear + 1].map(y => (
                 <option key={y} value={y}>{y}</option>

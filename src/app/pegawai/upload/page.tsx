@@ -577,7 +577,7 @@ export default function UploadPage() {
                       ? { background: 'var(--primary)', color: '#fff' }
                       : wizardStep > s.n
                         ? { background: 'var(--success-soft)', color: 'var(--success)' }
-                        : { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)' }
+                        : { background: 'var(--sand-subtle)', color: 'var(--text-tertiary)' }
                   }
                   aria-current={wizardStep === s.n ? 'step' : undefined}
                 >
@@ -731,7 +731,7 @@ export default function UploadPage() {
                   <div className="overflow-x-auto rounded-xl shadow-xs" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
                     <table className="w-full text-sm">
                       <thead>
-                        <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                        <tr style={{ background: 'var(--sand-subtle)', borderBottom: '1px solid var(--border)' }}>
                           <th className="text-center py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-16" style={{ color: 'var(--text-secondary)' }}>No</th>
                           <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-[25%]" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</th>
                           <th className="text-left py-3 px-4 text-[13px] font-semibold whitespace-nowrap w-[30%]" style={{ color: 'var(--text-secondary)' }}>Kegiatan</th>
@@ -784,7 +784,7 @@ export default function UploadPage() {
                     </table>
                     {parseResult.entries.length > 10 && (
                       <div className="py-3 px-4 text-center text-[13px]"
-                           style={{ background: 'var(--bg-secondary)', borderTop: '1px solid var(--border)', color: 'var(--text-tertiary)' }}>
+                           style={{ background: 'var(--sand-subtle)', borderTop: '1px solid var(--border)', color: 'var(--text-tertiary)' }}>
                         Menampilkan 10 dari <span className="font-semibold" style={{ color: 'var(--text-primary)' }}>{parseResult.entries.length}</span> baris (keseluruhan data tetap akan diupload)
                       </div>
                     )}

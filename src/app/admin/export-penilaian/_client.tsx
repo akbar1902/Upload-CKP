@@ -274,7 +274,7 @@ export default function ExportPenilaianClient({
                 onClick={handleDownloadAllZip}
                 disabled={downloadingAllZip || data.uploads.length === 0}
                 variant="outline"
-                className="gap-1.5 sm:gap-2 bg-[var(--success-soft)] hover:opacity-80 text-[var(--success-text)] border-[var(--border)] shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
+                className="gap-1.5 sm:gap-2 bg-[var(--success-soft)] hover:opacity-80 text-[var(--success-text)] border-[var(--sand-border)] shadow-sm font-semibold whitespace-nowrap text-xs sm:text-sm px-3 sm:px-4"
               >
                 {downloadingAllZip ? (
                   <>
@@ -395,7 +395,7 @@ export default function ExportPenilaianClient({
               </div>
             )}
             {currentUpload && (
-              <div className="mt-4 p-3 bg-[var(--success-soft)] border border-[var(--border)] rounded-lg flex items-center justify-between text-xs text-[var(--success-text)]">
+              <div className="mt-4 p-3 bg-[var(--success-soft)] border border-[var(--sand-border)] rounded-lg flex items-center justify-between text-xs text-[var(--success-text)]">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-[var(--success)]" />
                   <span>

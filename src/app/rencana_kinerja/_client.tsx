@@ -373,14 +373,14 @@ export function RencanaKinerjaClient({
                     value={searchManaged}
                     onChange={(e) => setSearchManaged(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl h-[42px]"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--sand-border)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 <div className="w-full sm:w-36">
                   <Select
                     value={sortManaged}
                     onChange={(e) => setSortManaged(e.target.value as any)}
-                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    className="h-[42px] py-0 text-[13px] bg-[var(--card-bg)] border-[var(--sand-border)]"
                     options={[
                       { label: 'Terbaru', value: 'newest' },
                       { label: 'Terlama', value: 'oldest' },
@@ -485,7 +485,7 @@ export function RencanaKinerjaClient({
                     value={searchMyRk}
                     onChange={(e) => setSearchMyRk(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none h-[42px]"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--sand-border)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 {/* Filter Tim */}
@@ -493,7 +493,7 @@ export function RencanaKinerjaClient({
                   <Select
                     value={filterMyRkTeam}
                     onChange={(e) => setFilterMyRkTeam(e.target.value as any)}
-                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    className="h-[42px] py-0 text-[13px] bg-[var(--card-bg)] border-[var(--sand-border)]"
                     options={[
                       { label: 'Semua Tim', value: '' },
                       ...timKerjaList.map((t) => ({ label: t, value: t }))
@@ -505,7 +505,7 @@ export function RencanaKinerjaClient({
                   <Select
                     value={sortMyRk}
                     onChange={(e) => setSortMyRk(e.target.value as any)}
-                    className="h-[42px] py-0 text-[13px] bg-[var(--bg-secondary)]"
+                    className="h-[42px] py-0 text-[13px] bg-[var(--card-bg)] border-[var(--sand-border)]"
                     options={[
                       { label: 'Terbaru', value: 'newest' },
                       { label: 'Terlama', value: 'oldest' },
@@ -596,7 +596,7 @@ export function RencanaKinerjaClient({
                           ) : (
                             <>
                               <div className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                                style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+                                style={{ background: 'var(--sand-subtle)', border: '1px solid var(--sand-border)' }}>
                                 <Globe size={10} style={{ color: 'var(--text-secondary)' }} />
                               </div>
                               <span className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
@@ -632,7 +632,7 @@ export function RencanaKinerjaClient({
                     value={searchGlobal}
                     onChange={(e) => setSearchGlobal(e.target.value)}
                     className="w-full pl-9 pr-4 py-2 text-[13px] rounded-xl focus:outline-none"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--sand-border)', color: 'var(--text-primary)' }}
                   />
                 </div>
                 {/* Filter Tim */}
@@ -641,7 +641,7 @@ export function RencanaKinerjaClient({
                     value={filterGlobalTeam}
                     onChange={(e) => setFilterGlobalTeam(e.target.value)}
                     className="w-full px-3 py-2 text-[13px] rounded-xl focus:outline-none"
-                    style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                    style={{ background: 'var(--card-bg)', border: '1px solid var(--sand-border)', color: 'var(--text-primary)' }}
                   >
                     <option value="">Semua Tim</option>
                     {timKerjaList.map((t, idx) => (
@@ -1004,7 +1004,7 @@ export function RencanaKinerjaClient({
                   <input type="text" placeholder={`Cari RK di ${selectedTeamToAssign}...`}
                     value={searchAssignRk} onChange={(e) => setSearchAssignRk(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 text-[13px] rounded-xl focus:outline-none"
-                    style={{ border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                    style={{ border: '1px solid var(--sand-border)', background: 'var(--card-bg)', color: 'var(--text-primary)' }}
                   />
                 </div>
 
@@ -1027,7 +1027,7 @@ export function RencanaKinerjaClient({
                           className="flex items-start gap-3 p-3.5 rounded-xl cursor-pointer transition-all hover:shadow-sm"
                           style={isSelected
                             ? { background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }
-                            : { border: '1px solid var(--border)', background: 'var(--bg-secondary)' }
+                            : { border: '1px solid var(--sand-border)', background: 'var(--card-bg)' }
                           }
                         >
                           <div className="mt-0.5">
@@ -1050,7 +1050,7 @@ export function RencanaKinerjaClient({
             )}
           </div>
           
-          <DialogFooter className="px-6 py-4 border-t border-[var(--border)] bg-[var(--bg-secondary)] mt-auto">
+          <DialogFooter className="px-6 py-4 border-t border-[var(--sand-border)] bg-[var(--card-bg)] mt-auto">
             <Button type="button" variant="outline" onClick={() => setAssignModalOpen(false)}>Batal</Button>
             <Button type="button" onClick={handleSelfAssign} loading={loading} disabled={selectedRkToAssign.length === 0}>
               {loading ? "Menambahkan..." : selectedRkToAssign.length > 0 ? `Tambahkan ${selectedRkToAssign.length} RK` : "Tambahkan ke RK Saya"}

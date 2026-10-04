@@ -331,7 +331,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
           <div className="bg-white dark:bg-[var(--card-bg)]/50 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
-                <thead className="bg-slate-50/80 dark:bg-slate-800/40 text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                <thead className="bg-[var(--sand-subtle)] text-[var(--text-secondary)] border-b border-[var(--sand-border)]">
                   <tr>
                     <th className="px-5 py-4 font-semibold whitespace-nowrap">Pegawai</th>
                     <th className="px-5 py-4 font-semibold whitespace-nowrap">Peran (Role)</th>

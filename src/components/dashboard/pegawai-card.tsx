@@ -25,9 +25,9 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
   const totalEntries = upload?.total_entries ?? 0;
   const hasUpload = upload !== null;
 
-  const barColor = avgProgres >= 80 ? 'var(--success)'
-    : avgProgres >= 50 ? 'var(--warning)'
-    : 'var(--text-tertiary)';
+  const barColor = avgProgres >= 80 ? 'var(--success-text)'
+    : avgProgres >= 50 ? 'var(--accent)'
+    : 'var(--primary)';
 
   const progressLabel = avgProgres >= 80 ? 'Sangat Baik'
     : avgProgres >= 60 ? 'Baik'
@@ -68,16 +68,16 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
         </div>
       </div>
 
-      {/* Statistik in a unified block */}
-      <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+      {/* Statistik: divider tipis, tanpa kotak beige */}
+      <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5" style={{ background: 'transparent', border: '1px solid var(--sand-border)' }}>
         <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
           <div>
             <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
           </div>
-          <div style={{ borderLeft: '1px solid var(--border)', borderRight: '1px solid var(--border)' }}>
+          <div style={{ borderLeft: '1px solid var(--sand-border)', borderRight: '1px solid var(--sand-border)' }}>
             <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
-            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success)' : avgProgres >= 50 ? 'var(--warning)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
+            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--success-text)' : avgProgres >= 50 ? 'var(--accent-strong)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>
@@ -89,10 +89,10 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
           </div>
         </div>
 
-        {/* Progress bar */}
+        {/* Progress bar: track sand-border, isi primary/sukses/terracotta */}
         {hasUpload && (
           <div className="mt-3.5 flex items-center gap-2">
-            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--border)' }}>
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-border)' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.min(avgProgres, 100)}%`, backgroundColor: barColor }}
@@ -105,7 +105,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
         )}
       </div>
 
-      {/* Tombol detail */}
+      {/* Tombol detail sekunder: card + border sand, teks primary */}
       <div className="mt-auto pt-1">
         {hasUpload ? (
           <Link
@@ -120,19 +120,19 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
             prefetch={true}
             className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
             style={{
-              color: 'var(--text-secondary)',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border)',
+              color: 'var(--primary)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--sand-border)',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--primary-soft)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--sand-subtle)';
               (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
               (e.currentTarget as HTMLElement).style.borderColor = 'var(--primary-ring)';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--text-secondary)';
-              (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)';
+              (e.currentTarget as HTMLElement).style.background = 'var(--card-bg)';
+              (e.currentTarget as HTMLElement).style.color = 'var(--primary)';
+              (e.currentTarget as HTMLElement).style.borderColor = 'var(--sand-border)';
             }}
           >
             Lihat Detail Log <ArrowRight className="h-3.5 w-3.5" />
@@ -143,8 +143,8 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
             className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 cursor-not-allowed w-full"
             style={{
               color: 'var(--text-tertiary)',
-              background: 'var(--bg-secondary)',
-              border: '1px solid var(--border)',
+              background: 'var(--sand-subtle)',
+              border: '1px solid var(--sand-border)',
             }}
             aria-disabled="true"
           >

@@ -235,7 +235,7 @@ export default function ImportRKPage() {
 
             <div className="overflow-x-auto rounded-xl border max-h-[600px] overflow-y-auto" style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}>
               <table className="w-full text-left text-[13px]">
-                <thead className="sticky top-0 z-10" style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}>
+                <thead className="sticky top-0 z-10" style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}>
                   <tr>
                     <th className="px-4 py-3 font-medium border-b border-[var(--border)]">Tim Kerja</th>
                     <th className="px-4 py-3 font-medium border-b border-[var(--border)] w-1/3">RK Utama</th>

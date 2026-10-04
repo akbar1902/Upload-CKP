@@ -183,7 +183,7 @@ export default function PimpinanQuickApprovalClient() {
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center" style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -235,7 +235,7 @@ export default function PimpinanQuickApprovalClient() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
-              style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+              style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
           </div>
         </div>
@@ -244,7 +244,7 @@ export default function PimpinanQuickApprovalClient() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead>
-                <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+                <tr style={{ background: 'var(--sand-subtle)', borderBottom: '1px solid var(--border)' }}>
                   <th className="py-3 px-4 font-semibold text-[12px] uppercase" style={{ color: 'var(--text-tertiary)' }}>Pegawai</th>
                   <th className="py-3 px-4 font-semibold text-[12px] uppercase text-center" style={{ color: 'var(--text-tertiary)' }}>Rata-rata Capaian</th>
                   <th className="py-3 px-4 font-semibold text-[12px] uppercase text-center" style={{ color: 'var(--text-tertiary)' }}>Skor Penilaian</th>
@@ -278,7 +278,7 @@ export default function PimpinanQuickApprovalClient() {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="inline-flex items-center gap-2">
-                           <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+                           <div className="w-16 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)' }}>
                              <div className="h-full bg-[var(--success-text)]" style={{ width: `${Math.min(upload.avg_progres || 0, 100)}%` }} />
                            </div>
                            <span className="font-semibold">{Math.round(upload.avg_progres || 0)}%</span>

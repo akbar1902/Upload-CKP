@@ -36,7 +36,7 @@ export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) 
               "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-200",
               isActive
                 ? "shadow-sm"
-                : "hover:bg-[var(--bg-secondary)]"
+                : "hover:bg-[var(--sand-subtle)]"
             )}
             style={isActive
               ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' }
@@ -49,7 +49,7 @@ export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) 
                 "inline-flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full text-[10px] font-bold",
                 isActive ? "bg-white/60" : ""
               )}
-              style={!isActive ? { background: 'var(--bg-secondary)' } : undefined}>
+              style={!isActive ? { background: 'var(--card-bg)', border: '1px solid var(--sand-border)' } : undefined}>
                 {count}
               </span>
             )}

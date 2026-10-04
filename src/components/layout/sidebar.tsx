@@ -170,7 +170,7 @@ export function Sidebar() {
       {/* ── User Profile Card ─────────────────────────── */}
       {!collapsed && user && (
         <div className="mx-3 mt-4 mb-1 p-3 rounded-2xl flex items-center gap-3"
-             style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}>
+             style={{ background: 'var(--sand-subtle)', border: '1px solid var(--sand-border)' }}>
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0"
             style={{ background: 'var(--primary)' }}
@@ -228,7 +228,7 @@ export function Sidebar() {
                 setIsDashboardOpen(!isDashboardOpen);
               }}
               className={cn(
-                "flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+                "relative flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
                 collapsed && "justify-center px-3"
               )}
               style={
@@ -253,6 +253,10 @@ export function Sidebar() {
                 <LayoutDashboard size={18} className="flex-shrink-0" />
                 {!collapsed && <span>Dashboard</span>}
               </div>
+              {/* Indikator terracotta: menu dashboard aktif */}
+              {isDashboardActive && !collapsed && (
+                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+              )}
               {!collapsed && (
                 <ChevronDown 
                   size={16} 
@@ -272,7 +276,7 @@ export function Sidebar() {
                       href={item.href}
                       prefetch={true}
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
+                      className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
                       style={
                         active
                           ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
@@ -291,6 +295,10 @@ export function Sidebar() {
                         }
                       }}
                     >
+                      {/* Indikator terracotta: sub-item aktif */}
+                      {active && (
+                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+                      )}
                       <span>{item.label}</span>
                     </Link>
                   );
@@ -315,7 +323,7 @@ export function Sidebar() {
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
                 collapsed && "justify-center px-3"
               )}
               style={
@@ -340,6 +348,10 @@ export function Sidebar() {
                 }
               }}
             >
+              {/* Indikator terracotta: item aktif */}
+              {active && !collapsed && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+              )}
               <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
             </Link>

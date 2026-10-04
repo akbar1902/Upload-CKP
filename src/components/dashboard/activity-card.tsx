@@ -125,7 +125,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               {pct.toFixed(0)}%
             </span>
           </div>
-          <div className="w-24 h-1 rounded-full overflow-hidden" style={{ background: 'var(--bg-secondary)' }}>
+          <div className="w-24 h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-border)' }}>
             <div
               className={`h-full rounded-full progress-bar ${progressClass}`}
               style={{ width: `${pct}%` }}
@@ -167,7 +167,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       {expanded && (
         <div
           className="card-expanded-content border-t px-6 py-5"
-          style={{ borderColor: 'var(--border)', background: 'var(--bg-secondary)' }}
+          style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-5">
             <div>
@@ -238,7 +238,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
                   <span className="text-[12px] text-slate-500 hidden sm:inline">Yakin hapus?</span>
                   <button
                     onClick={() => setShowConfirmDelete(false)}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                    className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-[var(--sand-subtle)] text-[var(--text-secondary)] hover:bg-[var(--sand-strong)] hover:text-[var(--tertiary-text)] transition-colors"
                   >
                     Batal
                   </button>

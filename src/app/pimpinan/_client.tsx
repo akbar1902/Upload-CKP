@@ -318,7 +318,7 @@ export default function PimpinanDashboard() {
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
           <div className="w-16 h-16 mx-auto mb-5 rounded-2xl flex items-center justify-center"
-               style={{ background: 'var(--bg-secondary)' }}>
+               style={{ background: 'var(--sand-subtle)' }}>
             <WifiOff className="h-7 w-7" style={{ color: 'var(--text-tertiary)' }} />
           </div>
           <h3 className="text-[17px] font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
@@ -367,7 +367,7 @@ export default function PimpinanDashboard() {
             )}
             <Link
               href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 shadow-sm transition-all duration-200"
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-[var(--primary)] bg-[var(--card-bg)] border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] shadow-sm transition-all duration-200"
             >
               <Users className="h-4 w-4 text-[var(--primary)]" />
               Monitoring Penilaian
@@ -407,8 +407,8 @@ export default function PimpinanDashboard() {
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <CompletionWidget uploaded={uploadedCount} total={totalPegawai} loading={loading} />
-          <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" iconBg="var(--warning-soft)" loading={loading} />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
+          <KPICard icon={<Clock size={18} />} value={pendingCount} label="Menunggu Review" sub="Perlu diproses" loading={loading} tone="attention" />
+          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success-text)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
@@ -422,7 +422,7 @@ export default function PimpinanDashboard() {
             <Link
               href="/pimpinan/pegawai"
               prefetch={true}
-              className="text-[13px] font-medium flex items-center gap-1 transition-colors"
+              className="lihat-tabel-link text-[13px] font-medium flex items-center gap-1 transition-colors"
               style={{ color: 'var(--primary)' }}
             >
               Lihat tabel lengkap <ArrowRight className="h-3 w-3" />
@@ -440,8 +440,8 @@ export default function PimpinanDashboard() {
                 aria-label="Cari pegawai"
                 className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
                 style={{
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--sand-border)',
                   color: 'var(--text-primary)',
                 }}
               />
@@ -459,10 +459,12 @@ export default function PimpinanDashboard() {
                 <button
                   key={st.id}
                   onClick={() => setStatusFilter(st.id)}
-                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--bg-secondary)]'}`}
-                  style={statusFilter === st.id 
-                    ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' } 
-                    : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
+                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--sand-subtle)]'}`}
+                  style={statusFilter === st.id
+                    ? (st.id === 'submitted' || st.id === 'revision_required'
+                        ? { background: 'var(--accent-soft)', color: 'var(--accent-strong)', border: '1px solid var(--accent-ring)' }
+                        : { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' })
+                    : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--sand-border)' }}
                 >
                   {st.label}
                 </button>
