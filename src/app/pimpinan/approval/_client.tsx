@@ -11,6 +11,7 @@ import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import type { CKPUpload, User } from '@/types/database';
 import { toast } from 'sonner';
 import { approveAction } from '@/app/actions/penilaian';
+import { rkGroupKey, isRkGroupScored, formatScore1 } from '@/lib/rk-scoring';
 import {
   ArrowLeft, CheckCircle2, Search,
   RefreshCw, WifiOff, MessageSquare
@@ -88,7 +89,7 @@ export default function PimpinanQuickApprovalClient() {
         while (true) {
           const { data: chunk, error: entriesErr } = await supabase
             .from('ckp_entries')
-            .select('upload_id, rencana_kinerja, nilai')
+            .select('upload_id, rencana_kinerja, rk_ketua_tim_id, nilai')
             .in('upload_id', batchIds)
             .range(from, from + limit);
 
@@ -109,16 +110,15 @@ export default function PimpinanQuickApprovalClient() {
 
       return uploadsList.map((u: any) => {
         const entries = entriesByUpload.get(u.id) || [];
-        const rks = new Set(entries.map((e: any) => e.rencana_kinerja || 'Tidak Diketahui'));
-        
-        let allScored = false;
-        if (rks.size > 0) {
-           const rkGroups = Array.from(rks).map(rk => {
-              const e = entries.find((en: any) => (en.rencana_kinerja || 'Tidak Diketahui') === rk);
-              return e ? e.nilai : null;
-           });
-           allScored = rkGroups.every(score => score !== null);
+        // Kelompokkan per RK-id (rkGroupKey): data baru via rk_ketua_tim_id,
+        // data lama via nama. Satu grup lolos hanya bila SEMUA entry-nya bernilai.
+        const groups = new Map<string, { nilai: number | null }[]>();
+        for (const e of entries) {
+          const k = rkGroupKey(e);
+          if (!groups.has(k)) groups.set(k, []);
+          groups.get(k)!.push({ nilai: e.nilai ?? null });
         }
+        const allScored = groups.size > 0 && Array.from(groups.values()).every(isRkGroupScored);
 
         return {
           ...u,
@@ -285,8 +285,8 @@ export default function PimpinanQuickApprovalClient() {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">
-                         <span className="font-bold text-[15px]" style={{ color: upload.rata_rata_nilai !== null ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
-                           {upload.rata_rata_nilai !== null ? upload.rata_rata_nilai.toFixed(1) : '-'}
+                         <span className="font-bold text-[15px]" style={{ color: upload.rata_rata_nilai != null ? 'var(--text-primary)' : 'var(--text-tertiary)' }}>
+                           {formatScore1(upload.rata_rata_nilai)}
                          </span>
                       </td>
                       <td className="py-3 px-4 text-center">

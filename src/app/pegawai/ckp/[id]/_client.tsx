@@ -12,6 +12,7 @@ import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-badge';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
+import { formatRkLabel } from '@/lib/export/evaluasi-helper';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
@@ -87,8 +88,10 @@ function KPICard({ icon, value, label, sub, iconBg }: {
 }
 
 // ── Entry Activity Card ────────────────────────────────────
-function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
+// NOTE: parentRkName hanya label tampil; tidak memengaruhi nilai/simpan.
+function EntryCard({ entry, index, parentRkName }: { entry: CKPEntry; index: number; parentRkName?: string | null }) {
   const [expanded, setExpanded] = useState(false);
+  const rkLabel = formatRkLabel(entry.rencana_kinerja, parentRkName ?? null);
 
   const dt = entry.tanggal_mulai ? new Date(entry.tanggal_mulai) : null;
   const day = dt ? dt.getDate() : '—';
@@ -119,8 +122,8 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           {/* Baris 1: Rencana Kinerja (Chip) + Tanggal & Expand Toggle */}
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0 flex-1">
-              <span className="inline-block text-[11px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md border border-teal-200/60 dark:border-teal-800/60 truncate max-w-full" title={entry.rencana_kinerja || ''}>
-                {entry.rencana_kinerja || 'Tanpa RK'}
+              <span className="inline-block text-[11px] font-semibold text-teal-700 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-2 py-0.5 rounded-md border border-teal-200/60 dark:border-teal-800/60 truncate max-w-full" title={rkLabel}>
+                {rkLabel}
               </span>
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -200,7 +203,7 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
           <div className="grid grid-cols-[120px_1fr] gap-x-4 gap-y-2 mb-2">
             <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
             <p className="text-[14px] font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
-              {entry.rencana_kinerja || '—'}
+              {rkLabel}
             </p>
 
             <p className="text-[12px] font-semibold uppercase tracking-wider pt-0.5" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
@@ -439,6 +442,42 @@ export default function CKPDetailPage() {
   const upload = data?.upload || null;
   const entries: CKPEntry[] = data?.entries || [];
   const approvals: Approval[] = data?.approvals || [];
+
+  // Map id parent RK -> nama parent (LABEL TAMPIL SAJA; fallback tanpa parent).
+  // Tidak memengaruhi simpan/nilai.
+  const [rkParentMap, setRkParentMap] = useState<Record<string, string>>({});
+  const rkParentIdsKey = useMemo(() => {
+    const ids = new Set<string>();
+    for (const e of entries) {
+      if (e?.rk_ketua_tim_id) ids.add(e.rk_ketua_tim_id);
+    }
+    return Array.from(ids).sort().join(',');
+  }, [entries]);
+  React.useEffect(() => {
+    if (!rkParentIdsKey) {
+      setRkParentMap({});
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from('rk_ketua_tim_mapping')
+      .select('id, rencana_kinerja')
+      .in('id', rkParentIdsKey.split(','))
+      .then(({ data: rows }: any) => {
+        if (cancelled) return;
+        const m: Record<string, string> = {};
+        for (const r of (rows || []) as any[]) {
+          if (r?.id && typeof r?.rencana_kinerja === 'string') m[r.id] = r.rencana_kinerja;
+        }
+        setRkParentMap(m);
+      })
+      .catch(() => {
+        if (!cancelled) setRkParentMap({});
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rkParentIdsKey, supabase]);
 
   const handleExport = () => {
     if (!upload || !user) return;
@@ -773,7 +812,7 @@ export default function CKPDetailPage() {
             ) : (
               <div className="space-y-3 card-list">
                 {pagedEntries.map((entry, i) => (
-                  <EntryCard key={entry.id} entry={entry} index={i} />
+                  <EntryCard key={entry.id} entry={entry} index={i} parentRkName={entry.rk_ketua_tim_id ? (rkParentMap[entry.rk_ketua_tim_id] ?? null) : null} />
                 ))}
               </div>
             )

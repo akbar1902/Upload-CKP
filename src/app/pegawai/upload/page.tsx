@@ -275,6 +275,30 @@ export default function UploadPage() {
     toast.info('Upload dibatalkan.');
   }, []);
 
+  // Resolver MURNI (tanpa efek samping): kembalikan { rawRK, matchedRK, kegiatanBaru }
+  // rawRK = teks sub-RK asli dari Excel; matchedRK = parent RK master; kegiatanBaru = kegiatan bila perlu diisi dari rawRK.
+  // Tidak membaca/menulis (entry as any)._originalRK — kontrak rapuh via mutasi dihapus.
+  const resolveRK = (entry: any, masterNames: string[], mKegiatan: any[]): { rawRK: string; matchedRK: string; kegiatanBaru: string | null } => {
+    // rawRK = teks asli dari Excel: kolom RK dulu, fallback ke kegiatan bila kolom RK kosong (perilaku lama).
+    const rawRK = (entry.rencana_kinerja ? String(entry.rencana_kinerja) : '').trim()
+      || (entry.kegiatan ? String(entry.kegiatan) : '').trim();
+    if (!rawRK) return { rawRK: '', matchedRK: '', kegiatanBaru: null };
+    const normRawRK = normalize(rawRK);
+    const kegiatanKosong = !entry.kegiatan || String(entry.kegiatan).trim() === '';
+
+    if (localSubRkMap.has(normRawRK)) {
+      const trueRK = localSubRkMap.get(normRawRK)!;
+      return { rawRK, matchedRK: trueRK, kegiatanBaru: kegiatanKosong ? rawRK : null };
+    }
+    const kegiatanMatch = fuzzyMatchKegiatan(rawRK, mKegiatan);
+    if (kegiatanMatch) {
+      const trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
+      return { rawRK, matchedRK: trueRK, kegiatanBaru: kegiatanKosong ? rawRK : null };
+    }
+    const trueRK = fuzzyMatchRK(rawRK, masterNames);
+    return { rawRK, matchedRK: trueRK, kegiatanBaru: null };
+  };
+
   const handlePreSubmit = async () => {
     try {
       if (!user) {
@@ -289,9 +313,9 @@ export default function UploadPage() {
         return;
       }
 
-      // Guard: data master kosong (mungkin gagal load) → skip validation, langsung upload
+      // Gagalkan eksplisit bila master kosong — jangan fail-open tanpa validasi RK.
       if (masterRKs.length === 0) {
-        processUpload([], []);
+        toast.error('Data master RK belum termuat. Tunggu sebentar lalu muat ulang halaman.', { duration: 8000 });
         return;
       }
 
@@ -309,43 +333,18 @@ export default function UploadPage() {
         const names = Array.from(new Set(rks.map((r: any) => String(r.rencana_kinerja))));
         const unmatched = new Set<string>();
 
+        // Resolver MURNI: tanpa mutasi entry (entry parseResult tidak boleh diubah di sini).
+        // rawRK = teks asli sub-RK dari Excel; matchedRK = parent RK hasil resolusi.
         parseResult.entries.forEach(entry => {
-          let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
-          if (!rawRK.trim()) {
-             rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
-          }
-          if (!rawRK.trim()) return;
-          
-          let trueRK = '';
-          const normRawRK = normalize(rawRK);
-          
-          if (localSubRkMap.has(normRawRK)) {
-             trueRK = localSubRkMap.get(normRawRK)!;
-             if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                entry.kegiatan = rawRK;
-             }
-             entry.rencana_kinerja = trueRK;
-          } else {
-             const kegiatanMatch = fuzzyMatchKegiatan(rawRK, kegiatan);
-             
-             if (kegiatanMatch) {
-                trueRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-                
-                if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                   entry.kegiatan = rawRK;
-                }
-                entry.rencana_kinerja = trueRK;
-             } else {
-                trueRK = fuzzyMatchRK(rawRK, names);
-                entry.rencana_kinerja = trueRK; 
-             }
-          }
-          
-          if (!names.some(m => m.toLowerCase() === trueRK.toLowerCase())) {
-            unmatched.add(trueRK);
+          const { rawRK, matchedRK } = resolveRK(entry, names, kegiatan);
+
+          if (!matchedRK.trim()) return;
+
+          if (!names.some(m => m.toLowerCase() === matchedRK.toLowerCase())) {
+            unmatched.add(matchedRK);
           }
         });
-        
+
         return { unmatched, names };
       };
 
@@ -411,68 +410,56 @@ export default function UploadPage() {
       const masterDict = latestMasterRKs || [...masterRKs];
       const mKegiatan = latestMasterKegiatan || masterKegiatan;
       const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
-      const distinctMatchedRKs = new Set<string>();
+      // UUID mapping by nama (lower) — untuk matchedRkId yg dikirim ke server.
+      const rkIdByName = new Map<string, string>();
+      masterDict.forEach((r: any) => rkIdByName.set(String(r.rencana_kinerja).toLowerCase(), String(r.id)));
+      const distinctMatchedRkIds = new Set<string>();
 
       setUploadStep(1);
       setUploadProgress(30);
 
       const v2EntriesResolved = parseResult.entries.map((entry) => {
-        let rawRK = entry.rencana_kinerja ? String(entry.rencana_kinerja) : '';
-        if (!rawRK.trim()) {
-           rawRK = entry.kegiatan ? String(entry.kegiatan) : '';
-        }
-        let matchedRK = '';
+        // Resolver murni — tidak mutasi entry; rawRK dibaca langsung dari Excel.
+        // JANGAN isi kegiatan dari teks RK (biarkan null); cuma baca apa adanya.
+        const { rawRK, matchedRK } = resolveRK(entry, masterNames, mKegiatan);
+        let finalMatchedRK = matchedRK || '';
+        let matchedRkId: string | null = finalMatchedRK
+          ? (rkIdByName.get(finalMatchedRK.toLowerCase()) || null)
+          : null;
 
-        // ── PRIO 0: Jika Phase 1 (getUnmatched) sudah me-resolve RK ini ke nama
-        //    master yang valid, langsung pakai tanpa melewati fuzzy match lagi.
-        //    Ini mencegah nama master RK yang sudah benar di-fuzz ke RK lain.
-        const alreadyMaster = masterNames.find(m => m.toLowerCase() === rawRK.toLowerCase());
-        if (alreadyMaster) {
-          matchedRK = alreadyMaster;
-        } else {
-          const normRawRK = normalize(rawRK);
-          if (localSubRkMap.has(normRawRK)) {
-              matchedRK = localSubRkMap.get(normRawRK)!;
-              if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                 entry.kegiatan = rawRK;
-              }
-          } else {
-              const kegiatanMatch = fuzzyMatchKegiatan(rawRK, mKegiatan);
-              if (kegiatanMatch) {
-                  matchedRK = kegiatanMatch.rk_ketua_tim_mapping?.rencana_kinerja || rawRK;
-                  if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                     entry.kegiatan = rawRK;
-                  }
-              } else {
-                  matchedRK = fuzzyMatchRK(rawRK, masterNames);
-                  if (!masterNames.some(m => m.toLowerCase() === matchedRK.toLowerCase()) && rkTeamMapping[matchedRK]?.rk_id) {
-                     const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[matchedRK].rk_id));
-                     if (mappedRKObj) {
-                        if (!entry.kegiatan || String(entry.kegiatan).trim() === '') {
-                           entry.kegiatan = rawRK;
-                        }
-                        matchedRK = mappedRKObj.rencana_kinerja;
-                     }
-                  }
-              }
+        // Mapping manual (langkah "Petakan RK"): rkTeamMapping[teks] = { rk_id UUID }.
+        // Prioritas: bila teks tak dikenal tapi sudah dipetakan manual → pakai UUID mapping tsb.
+        if (!matchedRkId) {
+          const manualKey = Object.keys(rkTeamMapping).find(
+            k => k.toLowerCase() === (finalMatchedRK || rawRK).toLowerCase()
+          );
+          const manualRkId = manualKey ? rkTeamMapping[manualKey]?.rk_id : '';
+          if (manualRkId) {
+            const mappedRKObj = masterDict.find((r: any) => String(r.id) === String(manualRkId));
+            if (mappedRKObj) {
+              finalMatchedRK = mappedRKObj.rencana_kinerja;
+              matchedRkId = String(mappedRKObj.id);
+            }
           }
         }
 
-        if (matchedRK && matchedRK.trim() !== '') {
-          distinctMatchedRKs.add(matchedRK);
+        if (matchedRkId) {
+          distinctMatchedRkIds.add(matchedRkId);
         }
 
-        return { entry, matchedRK };
+        // rawRK  = sub-RK asli dari Excel → akan disimpan di rencana_kinerja (DB)
+        // matchedRK = parent RK Ketua Tim (nama utk fallback), matchedRkId = UUID mapping
+        return { entry, matchedRK: finalMatchedRK, matchedRkId, rawRK };
       });
 
-      const validRKsToAssign = Array.from(distinctMatchedRKs).filter(rk =>
-        masterNames.some(m => m.toLowerCase() === rk.toLowerCase())
-      );
+
+      // FormData validRKsToAssign = daftar UUID mapping (bukan nama).
+      const validRKsToAssign: string[] = Array.from(distinctMatchedRkIds);
       if (Object.keys(rkTeamMapping).length > 0) {
         Object.keys(rkTeamMapping).forEach(rk => {
-          const mappedObj = masterDict.find((r: any) => String(r.id) === String(rkTeamMapping[rk]?.rk_id));
-          if (mappedObj && masterNames.some(m => m.toLowerCase() === mappedObj.rencana_kinerja.toLowerCase())) {
-            validRKsToAssign.push(mappedObj.rencana_kinerja);
+          const rid = String(rkTeamMapping[rk]?.rk_id || '').trim();
+          if (rid && !validRKsToAssign.includes(rid)) {
+            validRKsToAssign.push(rid);
           }
         });
       }

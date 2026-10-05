@@ -93,12 +93,25 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
         <div className="p-3 pt-0 bg-[var(--success-soft)]">
           <div className="pl-11 pr-2 pt-2">
             <ul className="space-y-1.5">
-              {pegawai.rkNames.map((rk, idx) => (
-                <li key={idx} className="text-[12.5px] font-medium text-slate-600 dark:text-slate-400 flex items-start gap-2.5 py-1.5">
-                  <div className="min-w-1.5 h-1.5 rounded-full bg-[var(--success-text)] mt-[6px]" />
-                  <span className="leading-snug">{rk}</span>
-                </li>
-              ))}
+              {pegawai.rkItems.map((rk) => {
+                const parentLine = [
+                  rk.parentRk && rk.parentRk !== rk.subRk ? rk.parentRk : null,
+                  rk.timKerja ? `Tim: ${rk.timKerja}` : null,
+                ].filter(Boolean).join(' • ');
+                return (
+                  <li key={rk.key} className="text-[12.5px] font-medium text-slate-600 dark:text-slate-400 flex items-start gap-2.5 py-1.5">
+                    <div className="min-w-1.5 h-1.5 rounded-full bg-[var(--success-text)] mt-[6px]" />
+                    <span className="leading-snug">
+                      {rk.subRk}
+                      {parentLine && (
+                        <span className="block text-[11px] font-medium text-slate-400 dark:text-slate-500">
+                          {parentLine}
+                        </span>
+                      )}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
@@ -115,12 +128,11 @@ export default function MonitoringPenilaianClient() {
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
 
-  // Karena parameter T1, T2 dsb sulit ditangani di action sederhana ini tanpa map,
-  // Kita fallback ke angka bulan jika berupa string T1. (Bisa diperbaiki nanti jika perlu).
-  const currentBulan = typeof defaultPeriod.bulan === 'string' ? 1 : defaultPeriod.bulan;
-  const rawBulan = paramBulan || currentBulan;
-
-  const bulan = typeof rawBulan === 'string' && rawBulan.startsWith('T') ? 1 : parseInt(String(rawBulan));
+  // Teruskan 'T1'..'T4' apa adanya — server memetakan ke bulan-bulan triwulan.
+  // Jangan fallback T1 -> 1 (itu Januari, bukan Triwulan I).
+  const bulan: string | number = paramBulan
+    ? (paramBulan.startsWith('T') ? paramBulan : parseInt(paramBulan))
+    : defaultPeriod.bulan;
   const tahun = paramTahun ? parseInt(paramTahun) : defaultPeriod.tahun;
 
   const [loading, setLoading] = useState(true);
@@ -149,10 +161,7 @@ export default function MonitoringPenilaianClient() {
   const setBulan = (b: string | number) => router.push(`?bulan=${b}&tahun=${tahun}`);
   const setTahun = (t: number) => router.push(`?bulan=${bulan}&tahun=${t}`);
 
-  const getBulanLabel = () => {
-    if (paramBulan && paramBulan.startsWith('T')) return paramBulan; // fallback
-    return getBulanName(bulan);
-  };
+  const getBulanLabel = () => getBulanName(bulan);
 
   return (
     <>

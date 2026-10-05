@@ -66,16 +66,17 @@ export default function LoginPage() {
             ? 'Email atau password salah. Silakan coba lagi.'
             : (signInError?.message ?? 'Login gagal. Silakan coba lagi.')
         );
+        setLoading(false);
         return;
       }
 
-      // Redirect berdasarkan role dari metadata
-      const role = data.user.user_metadata?.role;
-      router.replace(role === 'pimpinan' || role === 'admin' ? '/pimpinan' : '/pegawai');
+      // Sukses: JANGAN redirect manual di sini — useEffect di atas yang
+      // redirect berdasarkan role dari database (cover admin/pimpinan/
+      // ketua_tim/pegawai). Redirect manual pakai user_metadata bisa salah
+      // role dan bikin loading nyangkut kalau navigasi lambat.
     } catch (err) {
       setError('Terjadi kesalahan yang tidak terduga.');
-    } finally {
-      setTimeout(() => setLoading(false), 2000);
+      setLoading(false);
     }
   };
 

@@ -30,11 +30,18 @@ export default async function KetuaTimPage({
   const isPimpinan = userRole === 'pimpinan' || userRole === 'admin';
 
   const resolvedParams = await searchParams;
-  const qBulan = resolvedParams.bulan ? parseInt(resolvedParams.bulan as string) : undefined;
+  const rawBulan = resolvedParams.bulan as string | undefined;
   const qTahun = resolvedParams.tahun ? parseInt(resolvedParams.tahun as string) : undefined;
 
   const defaultPeriod = getDefaultPeriod(10);
-  const bulan = qBulan || defaultPeriod.bulan;
+  // Dukung mode bulan (number) dan triwulan T1-T4 (string) — nilai bulan masuk ke queryKey ['ketua-tim-uploads', bulan, tahun] agar cocok dengan _client.tsx
+  let bulan: string | number = defaultPeriod.bulan;
+  if (rawBulan && rawBulan.startsWith('T')) {
+    bulan = rawBulan;
+  } else if (rawBulan) {
+    const parsed = parseInt(rawBulan);
+    if (!isNaN(parsed)) bulan = parsed;
+  }
   const tahun = qTahun || defaultPeriod.tahun;
 
   const queryClient = new QueryClient({
@@ -42,16 +49,31 @@ export default async function KetuaTimPage({
   });
 
   if (isPimpinan) {
+    // Dukung mode bulan dan triwulan T1-T4 (kolom bulan numeric)
+    const triwulanMapPimpinan: Record<string, number[]> = {
+      T1: [1, 2, 3],
+      T2: [4, 5, 6],
+      T3: [7, 8, 9],
+      T4: [10, 11, 12],
+    };
+    const pimpinanBulanFilter =
+      typeof bulan === 'string' && bulan.startsWith('T')
+        ? { mode: 'in' as const, values: triwulanMapPimpinan[bulan] || [] }
+        : { mode: 'eq' as const, values: [bulan as number] };
     await queryClient.prefetchQuery({
       queryKey: ['pimpinan-ketua-tim-uploads', bulan, tahun],
       queryFn: async () => {
+        let uploadsQuery = supabase
+          .from('ckp_uploads')
+          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+          .eq('tahun', tahun)
+          .order('uploaded_at', { ascending: false });
+        uploadsQuery =
+          pimpinanBulanFilter.mode === 'in'
+            ? uploadsQuery.in('bulan', pimpinanBulanFilter.values)
+            : uploadsQuery.eq('bulan', pimpinanBulanFilter.values[0]);
         const [uploadsRes, usersRes] = await Promise.all([
-          supabase
-            .from('ckp_uploads')
-            .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-            .eq('bulan', bulan)
-            .eq('tahun', tahun)
-            .order('uploaded_at', { ascending: false }),
+          uploadsQuery,
           supabase
             .from('users')
             .select('*, rk_ketua_tim_mapping!rk_ketua_tim_mapping_ketua_tim_id_fkey(tim_kerja)')
@@ -105,13 +127,25 @@ export default async function KetuaTimPage({
         const rkIds = mappingData.map((m: any) => m.id);
         
         // 2. Fetch uploads + assignments in parallel (independent queries)
+        // Dukung mode bulan dan triwulan T1-T4 (sama seperti _client.tsx)
+        const triwulanMap: Record<string, number[]> = {
+          T1: [1, 2, 3],
+          T2: [4, 5, 6],
+          T3: [7, 8, 9],
+          T4: [10, 11, 12],
+        };
+        let uploadsQuery = supabase
+          .from('ckp_uploads')
+          .select('id, user_id, status, uploaded_at')
+          .eq('tahun', tahun)
+          .in('status', ['submitted', 'scored', 'approved', 'revision_required']);
+        if (typeof bulan === 'string' && bulan.startsWith('T')) {
+          uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
+        } else {
+          uploadsQuery = uploadsQuery.eq('bulan', bulan);
+        }
         const [uploadsRes, assignmentsRes] = await Promise.all([
-          supabase
-            .from('ckp_uploads')
-            .select('id, user_id, status, uploaded_at')
-            .eq('bulan', bulan)
-            .eq('tahun', tahun)
-            .in('status', ['submitted', 'scored', 'approved', 'revision_required']),
+          uploadsQuery,
           supabase
             .from('user_rk_assignments')
             .select('user_id, rk_id')
@@ -125,23 +159,47 @@ export default async function KetuaTimPage({
           return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsRes.data || [] };
         }
         
-        // 3. Get entries for these uploads that match the RKs (chunked to bypass 1000 row limit)
-        let entriesData: any[] = [];
-        let from = 0;
-        const limit = 999;
-        while (true) {
-          const { data: chunk, error: entriesError } = await supabase
-            .from('ckp_entries')
-            .select('*')
-            .in('upload_id', uploadIds)
-            .in('rencana_kinerja', rkNames)
-            .range(from, from + limit);
-            
-          if (entriesError) throw entriesError;
-          if (chunk) entriesData.push(...chunk);
-          if (!chunk || chunk.length <= limit) break;
-          from += limit + 1;
+        // 3. Get entries for these uploads with dual strategy (pola getRkDetailAction di actions/penilaian.ts):
+        // A) Data lama: rencana_kinerja = nama parent RK; B) Data baru: rk_ketua_tim_id = UUID parent RK. Dedupe by id.
+        const rawEntries: any[] = [];
+        const batchSize = 50;
+        for (let i = 0; i < uploadIds.length; i += batchSize) {
+          const batchIds = uploadIds.slice(i, i + batchSize);
+          // A) Data lama: filter by nama parent RK
+          let from = 0;
+          const limit = 999;
+          while (true) {
+            const { data: chunk, error: entriesError } = await supabase
+              .from('ckp_entries')
+              .select('*')
+              .in('upload_id', batchIds)
+              .in('rencana_kinerja', rkNames)
+              .range(from, from + limit);
+
+            if (entriesError) throw entriesError;
+            if (chunk) rawEntries.push(...chunk);
+            if (!chunk || chunk.length <= limit) break;
+            from += limit + 1;
+          }
+          // B) Data baru: filter by UUID parent RK (rencana_kinerja berisi nama Sub-RK)
+          from = 0;
+          while (true) {
+            const { data: chunk, error: entriesError } = await supabase
+              .from('ckp_entries')
+              .select('*')
+              .in('upload_id', batchIds)
+              .in('rk_ketua_tim_id', rkIds)
+              .range(from, from + limit);
+
+            if (entriesError) throw entriesError;
+            if (chunk) rawEntries.push(...chunk);
+            if (!chunk || chunk.length <= limit) break;
+            from += limit + 1;
+          }
         }
+        const entryMap = new Map<string, any>();
+        rawEntries.forEach((e) => entryMap.set(e.id, e));
+        const entriesData = Array.from(entryMap.values());
         
         const relevantUploadIds = new Set((entriesData || []).map((e: any) => e.upload_id));
         const relevantUploads = (uploadsRes.data || []).filter((u: any) => relevantUploadIds.has(u.id) && u.user_id !== user.id);

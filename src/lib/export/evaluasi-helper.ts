@@ -1,3 +1,5 @@
+import { rkGroupKey, rkGroupAvg } from '@/lib/rk-scoring';
+
 export interface RKItem {
   id?: string;
   kegiatan: string;
@@ -17,17 +19,23 @@ export interface UmpanBalikCategory {
 }
 
 export interface GroupedRK {
+  /** Nama tampil: Sub-RK asli (data baru) atau nama parent RK (data lama). */
   rencana_kinerja: string;
+  /** Kunci grup stabil dari kontrak rk-scoring: 'id:<uuid>' / 'legacy:<nama>'. */
+  rkGroupKey: string;
+  /** Nama parent RK dari rk_ketua_tim_mapping; null untuk data lama / tanpa mapping. */
+  parentRkName: string | null;
   items: RKItem[];
   score: number | null;
   umpanBalik: UmpanBalikCategory;
 }
 
 /**
- * Categorize score into feedback status based on thresholds:
- * 99 - 100 : Diatas Ekspektasi (Green)
- * 80 - 98  : Sesuai Ekspektasi (Blue)
- * 0 - 79   : Dibawah Ekspektasi (Red)
+ * Threshold TEGAS pada nilai mentah 1 desimal — TANPA Math.round dulu:
+ * 99 - 100  : Diatas Ekspektasi (Green)
+ * 80 - <99  : Sesuai Ekspektasi (Blue)
+ * 0  - <80  : Dibawah Ekspektasi (Red)
+ * Contoh: 79.5 tetap Dibawah Ekspektasi (tidak naik kelas ke 80).
  */
 export function getUmpanBalikCategory(score: number | null | undefined): UmpanBalikCategory {
   if (score === null || score === undefined || isNaN(score)) {
@@ -42,10 +50,9 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
     };
   }
 
-  // Rounded to handle floats like 98.8 or 79.5 cleanly
-  const rounded = Math.round(score);
+  const v = Number(score);
 
-  if (rounded >= 99) {
+  if (v >= 99) {
     return {
       label: 'Diatas Ekspektasi',
       color: 'green',
@@ -57,7 +64,7 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
     };
   }
 
-  if (rounded >= 80) {
+  if (v >= 80) {
     return {
       label: 'Sesuai Ekspektasi',
       color: 'blue',
@@ -80,23 +87,82 @@ export function getUmpanBalikCategory(score: number | null | undefined): UmpanBa
   };
 }
 
+/** Map id parent RK (uuid) -> nama parent RK. */
+export type RkParentMap = Record<string, string> | Map<string, string>;
+
+function lookupParentName(map: RkParentMap | undefined, id: string | null | undefined): string | null {
+  if (!map || !id) return null;
+  const v = map instanceof Map ? map.get(id) : map[id];
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+}
+
+/** Parent RK yang mungkin sudah ikut ter-join di entry (forward-compat bila layer data menambahkannya). */
+function readInlineParentName(entry: any): string | null {
+  const v =
+    entry?.parentRkName ??
+    entry?.parent_rk_name ??
+    entry?.parent_rk ??
+    entry?.rk_parent_name ??
+    entry?.rk_ketua_tim_nama;
+  return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
+}
+
 /**
- * Groups flat entries by `rencana_kinerja` while preserving original order.
+ * Label tampil RK: 'Sub-RK (Parent RK)' bila parent ada dan beda dari sub;
+ * fallback nama sub apa adanya (data lama / tanpa mapping).
  */
-export function groupEntriesByRK(entries: any[]): GroupedRK[] {
+export function formatRkLabel(
+  subName: string | null | undefined,
+  parentName: string | null | undefined,
+): string {
+  const sub = (subName ?? '').trim() || 'Lainnya / Tidak Ditentukan';
+  const parent = (parentName ?? '').trim();
+  if (!parent) return sub;
+  if (parent.toLowerCase() === sub.toLowerCase()) return sub;
+  return `${sub} (${parent})`;
+}
+
+/** Label tampil untuk satu grup hasil groupEntriesByRK. */
+export function getGroupedRkDisplayName(group: {
+  rencana_kinerja: string;
+  parentRkName?: string | null;
+}): string {
+  return formatRkLabel(group.rencana_kinerja, group.parentRkName ?? null);
+}
+
+/**
+ * Groups flat entries by kontrak rkGroupKey (bukan nama mentah),
+ * sehingga sub-RK senama dari parent berbeda tidak tercampur.
+ * Preserves original order. Skor rata-rata via rkGroupAvg (1 desimal,
+ * null bila belum ada nilai -> kategori Belum Dinilai).
+ */
+export function groupEntriesByRK(entries: any[], parentMap?: RkParentMap): GroupedRK[] {
   if (!entries || entries.length === 0) return [];
 
-  const map = new Map<string, { items: RKItem[]; scores: number[] }>();
+  const map = new Map<string, { displayName: string; parentRkName: string | null; items: RKItem[] }>();
+  const order: string[] = [];
 
   for (const entry of entries) {
-    const rawRk = entry.rencana_kinerja?.trim();
-    const rkKey = rawRk && rawRk.length > 0 ? rawRk : 'Lainnya / Tidak Ditentukan';
+    const key = rkGroupKey(entry ?? {});
+    const rawSub = typeof entry?.rencana_kinerja === 'string' ? entry.rencana_kinerja.trim() : '';
+    const fallbackName = rawSub.length > 0 ? rawSub : 'Lainnya / Tidak Ditentukan';
 
-    if (!map.has(rkKey)) {
-      map.set(rkKey, { items: [], scores: [] });
+    let group = map.get(key);
+    if (!group) {
+      group = { displayName: fallbackName, parentRkName: null, items: [] };
+      map.set(key, group);
+      order.push(key);
     }
 
-    const group = map.get(rkKey)!;
+    if (!group.parentRkName && entry?.rk_ketua_tim_id) {
+      const fromMap = lookupParentName(parentMap, entry.rk_ketua_tim_id);
+      if (fromMap) group.parentRkName = fromMap;
+    }
+    if (!group.parentRkName) {
+      const inline = readInlineParentName(entry);
+      if (inline) group.parentRkName = inline;
+    }
+
     group.items.push({
       id: entry.id,
       kegiatan: entry.kegiatan || '-',
@@ -104,29 +170,18 @@ export function groupEntriesByRK(entries: any[]): GroupedRK[] {
       progres: entry.progres !== undefined && entry.progres !== null ? entry.progres : null,
       nilai: entry.nilai !== undefined && entry.nilai !== null ? entry.nilai : null,
     });
-
-    if (entry.nilai !== undefined && entry.nilai !== null && !isNaN(entry.nilai)) {
-      group.scores.push(Number(entry.nilai));
-    }
   }
 
-  const result: GroupedRK[] = [];
-
-  for (const [rkName, val] of map.entries()) {
-    let finalScore: number | null = null;
-    if (val.scores.length > 0) {
-      // Calculate average score for this RK
-      const sum = val.scores.reduce((a, b) => a + b, 0);
-      finalScore = Math.round((sum / val.scores.length) * 10) / 10;
-    }
-
-    result.push({
-      rencana_kinerja: rkName,
-      items: val.items,
+  return order.map((key) => {
+    const group = map.get(key)!;
+    const finalScore = rkGroupAvg(group.items.map((i) => ({ nilai: i.nilai ?? null })));
+    return {
+      rencana_kinerja: group.displayName,
+      rkGroupKey: key,
+      parentRkName: group.parentRkName,
+      items: group.items,
       score: finalScore,
       umpanBalik: getUmpanBalikCategory(finalScore),
-    });
-  }
-
-  return result;
+    };
+  });
 }

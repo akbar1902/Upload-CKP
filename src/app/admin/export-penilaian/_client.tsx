@@ -23,7 +23,9 @@ import {
   type ExportPegawaiUpload 
 } from '@/app/actions/export';
 import { generateEvaluationPdf } from '@/lib/export/pdf-generator';
-import { groupEntriesByRK, type GroupedRK } from '@/lib/export/evaluasi-helper';
+import { groupEntriesByRK, getGroupedRkDisplayName, type GroupedRK, type RkParentMap } from '@/lib/export/evaluasi-helper';
+import { formatScore1 } from '@/lib/rk-scoring';
+import { createClient } from '@/lib/supabase/client';
 
 interface ExportPenilaianClientProps {
   initialBulan: number;
@@ -131,10 +133,62 @@ export default function ExportPenilaianClient({
     }
   }, [currentUpload]);
 
-  // Group entries by Rencana Kinerja (RK)
+  // Map id parent RK -> nama parent (untuk label 'Sub-RK (Parent RK)' bila beda)
+  const [rkParentMap, setRkParentMap] = useState<RkParentMap>({});
+
+  // Group entries by Rencana Kinerja (RK) — key via kontrak rkGroupKey
   const groupedEntries: GroupedRK[] = useMemo(() => {
-    return groupEntriesByRK(entries);
+    return groupEntriesByRK(entries, rkParentMap);
+  }, [entries, rkParentMap]);
+
+  // Ambil nama parent RK dari rk_ketua_tim_mapping untuk entries yang punya rk_ketua_tim_id
+  useEffect(() => {
+    const ids = Array.from(new Set(
+      (entries || []).map((e: any) => e?.rk_ketua_tim_id).filter((v: any) => typeof v === 'string' && v.length > 0),
+    )) as string[];
+    if (ids.length === 0) {
+      setRkParentMap({});
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    supabase
+      .from('rk_ketua_tim_mapping')
+      .select('id, rencana_kinerja')
+      .in('id', ids)
+      .then(({ data, error }: any) => {
+        if (cancelled) return;
+        if (error || !data) {
+          setRkParentMap({});
+          return;
+        }
+        const m: Record<string, string> = {};
+        for (const row of data as any[]) {
+          if (row?.id && typeof row?.rencana_kinerja === 'string') m[row.id] = row.rencana_kinerja;
+        }
+        setRkParentMap(m);
+      })
+      .catch(() => {
+        if (!cancelled) setRkParentMap({});
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [entries]);
+
+  // Sisipkan nama parent RK ke entries agar PDF (via groupEntriesByRK di
+  // pdf-generator, tanpa ubah file itu) ikut tampil 'Sub-RK (Parent RK)'.
+  const withParentNames = (list: any[], map: RkParentMap = rkParentMap) => {
+    const lookup = (id: string | null | undefined): string | null => {
+      if (!id) return null;
+      const v = map instanceof Map ? map.get(id) : (map as Record<string, string>)[id];
+      return typeof v === 'string' && v.trim().length > 0 ? v : null;
+    };
+    return (list || []).map((e: any) => {
+      const parent = lookup(e?.rk_ketua_tim_id);
+      return parent ? { ...e, parentRkName: parent } : e;
+    });
+  };
 
   // Handle period change
   const handlePeriodChange = (newBulan: number, newTahun: number) => {
@@ -170,7 +224,7 @@ export default function ExportPenilaianClient({
         bulan,
         tahun,
         tanggalCetak,
-        entries,
+        entries: withParentNames(entries),
       });
 
       const safeName = currentSelectedUser.full_name.replace(/[^a-zA-Z0-9]/g, '_');
@@ -196,6 +250,23 @@ export default function ExportPenilaianClient({
       setBulkProgress('Mengambil data kegiatan seluruh pegawai...');
 
       const allEntriesMap = await getAllEntriesForPeriodAction(bulan, tahun);
+      // Map parent RK untuk SEMUA entries periode ini (label PDF bulk ikut 'Sub-RK (Parent RK)')
+      const allFlat: any[] = Object.values(allEntriesMap).flat();
+      const bulkIds = Array.from(new Set(allFlat.map((e: any) => e?.rk_ketua_tim_id).filter((v: any) => typeof v === 'string' && v.length > 0))) as string[];
+      let bulkParentMap: RkParentMap = rkParentMap;
+      if (bulkIds.length > 0) {
+        try {
+          const sb = createClient();
+          const { data: rows } = await sb.from('rk_ketua_tim_mapping').select('id, rencana_kinerja').in('id', bulkIds);
+          const m: Record<string, string> = { ...(rkParentMap as Record<string, string>) };
+          for (const r of (rows || []) as any[]) {
+            if (r?.id && typeof r?.rencana_kinerja === 'string') m[r.id] = r.rencana_kinerja;
+          }
+          bulkParentMap = m;
+        } catch {
+          bulkParentMap = rkParentMap;
+        }
+      }
       const zip = new JSZip();
       const folderName = `Evaluasi_Kinerja_Pegawai_${getBulanName(bulan)}_${tahun}`;
       const folder = zip.folder(folderName);
@@ -219,7 +290,7 @@ export default function ExportPenilaianClient({
           bulan,
           tahun,
           tanggalCetak,
-          entries: empEntries,
+          entries: withParentNames(empEntries, bulkParentMap),
         });
 
         const pdfBlob = pdfDoc.output('blob');
@@ -526,12 +597,12 @@ export default function ExportPenilaianClient({
                     </tr>
                   ) : (
                     groupedEntries.map((group, idx) => (
-                      <tr key={group.rencana_kinerja || idx} className="hover:bg-slate-50/50">
+                      <tr key={group.rkGroupKey || idx} className="hover:bg-slate-50/50">
                         <td className="border border-slate-400 p-2.5 text-center align-top font-medium text-slate-600">
                           {idx + 1}
                         </td>
                         <td className="border border-slate-400 p-2.5 align-top font-semibold text-slate-900 leading-relaxed">
-                          {group.rencana_kinerja}
+                          {getGroupedRkDisplayName(group)}
                         </td>
                         <td className="border border-slate-400 p-2.5 align-top leading-relaxed">
                           <div className="space-y-3">
@@ -581,7 +652,7 @@ export default function ExportPenilaianClient({
                             </span>
                             {group.score !== null && (
                               <span className="text-[10.5px] font-semibold text-slate-500 print:text-slate-700">
-                                Nilai: {group.score}
+                                Nilai: {formatScore1(group.score)}
                               </span>
                             )}
                           </div>

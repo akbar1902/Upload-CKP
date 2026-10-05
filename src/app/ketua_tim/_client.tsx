@@ -145,7 +145,17 @@ export default function KetuaTimDashboardClient() {
         }
         
         const validRkNames = new Set(rkNames);
-        const filteredEntriesData = (entriesData || []).filter((e: any) => validRkNames.has(e.rencana_kinerja));
+        const validRkIds = new Set(rkIds);
+        // Strategi dual (pola getRkDetailAction di actions/penilaian.ts):
+        // data lama cocok by nama parent RK, data baru cocok by UUID parent di rk_ketua_tim_id. Dedupe by id.
+        const seenEntryIds = new Set<string>();
+        const filteredEntriesData = (entriesData || []).filter((e: any) => {
+          const match = validRkNames.has(e.rencana_kinerja) || (e.rk_ketua_tim_id && validRkIds.has(e.rk_ketua_tim_id));
+          if (!match) return false;
+          if (seenEntryIds.has(e.id)) return false;
+          seenEntryIds.add(e.id);
+          return true;
+        });
 
         const relevantUploadIds = new Set(filteredEntriesData.map((e: any) => e.upload_id));
         
@@ -210,7 +220,9 @@ export default function KetuaTimDashboardClient() {
     });
     
     return displayRks.map((rk: any) => {
-      let rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja);
+      // Pencocokan dual (pola getRkDetailAction): data lama cocok by nama parent RK,
+      // data baru cocok by UUID parent di rk_ketua_tim_id (rencana_kinerja berisi nama Sub-RK)
+      let rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja || (e.rk_ketua_tim_id && e.rk_ketua_tim_id === rk.id));
       
       const validKetuaTimIds = new Set(
          rks.filter((r: any) => r.rencana_kinerja === rk.rencana_kinerja).map((r: any) => r.ketua_tim_id).filter(Boolean)

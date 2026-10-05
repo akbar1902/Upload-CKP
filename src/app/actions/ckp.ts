@@ -147,8 +147,18 @@ export async function deleteCkpUploadAction(uploadId: string) {
   }
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function moveEntriesAction(entryIds: string[], targetMoveRk: string) {
   try {
+    if (!Array.isArray(entryIds) || entryIds.length === 0) {
+      throw new Error('Tidak ada kegiatan yang dipilih untuk dipindah.');
+    }
+    const targetRaw = (targetMoveRk || '').trim();
+    if (!targetRaw) {
+      throw new Error('Target RK tidak valid.');
+    }
+
     const supabase = await createServerSupabaseClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -165,21 +175,105 @@ export async function moveEntriesAction(entryIds: string[], targetMoveRk: string
     if (!userData || !['ketua_tim', 'pimpinan', 'admin'].includes(userData.role)) {
       throw new Error('Unauthorized: Hanya pimpinan atau ketua tim yang dapat memindah RK.');
     }
+    const callerRole = userData.role;
 
-    // Bypass RLS using service role to prevent any policy issues when moving across teams
+    // Bypass RLS using service role — otorisasi ditegakkan manual di bawah.
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
-    
+
+    // Resolve target: UUID langsung, atau nama (kompat dialog lama yg kirim string nama).
+    let targetRkId: string;
+    let targetRkName: string;
+    if (UUID_RE.test(targetRaw)) {
+      const { data: m, error: mErr } = await supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('id, rencana_kinerja, ketua_tim_id')
+        .eq('id', targetRaw)
+        .maybeSingle();
+      if (mErr || !m) {
+        throw new Error('Target RK tidak dikenal. Pilih dari daftar yang tersedia.');
+      }
+      targetRkId = m.id;
+      targetRkName = m.rencana_kinerja;
+      if (callerRole === 'ketua_tim' && m.ketua_tim_id !== user.id) {
+        throw new Error('Anda hanya dapat memindah ke RK tim Anda sendiri.');
+      }
+    } else {
+      const { data: matches, error: mErr } = await supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('id, rencana_kinerja, ketua_tim_id')
+        .ilike('rencana_kinerja', targetRaw);
+      if (mErr) {
+        throw new Error(`Gagal memvalidasi RK tujuan: ${mErr.message}`);
+      }
+      const norm = targetRaw.toLowerCase();
+      const exact = (matches || []).filter((m: any) => String(m.rencana_kinerja).toLowerCase() === norm);
+      const cands = exact.length > 0 ? exact : (matches || []);
+      if (cands.length === 0) {
+        throw new Error(`RK "${targetRaw}" tidak dikenal. Pilih dari daftar yang tersedia.`);
+      }
+      if (cands.length > 1) {
+        throw new Error(`Nama RK "${targetRaw}" ambigu (${cands.length} kandidat tim berbeda). Minta pimpinan/admin memindah via UUID.`);
+      }
+      const m = cands[0];
+      targetRkId = m.id;
+      targetRkName = m.rencana_kinerja;
+      if (callerRole === 'ketua_tim' && m.ketua_tim_id !== user.id) {
+        throw new Error('Anda hanya dapat memindah ke RK tim Anda sendiri.');
+      }
+    }
+
+    // Tolak bila ada upload yg sudah approved.
+    const { data: entries, error: eErr } = await supabaseAdmin
+      .from('ckp_entries')
+      .select('id, upload_id')
+      .in('id', entryIds);
+    if (eErr || !entries || entries.length === 0) {
+      throw new Error('Data kegiatan tidak ditemukan.');
+    }
+    if (entries.length !== entryIds.length) {
+      throw new Error('Sebagian kegiatan tidak ditemukan. Muat ulang dan coba lagi.');
+    }
+    const uploadIds = Array.from(new Set(entries.map((e: any) => e.upload_id)));
+    const { data: uploads } = await supabaseAdmin
+      .from('ckp_uploads')
+      .select('id, status, user_id')
+      .in('id', uploadIds);
+    if ((uploads || []).some((u: any) => u.status === 'approved')) {
+      throw new Error('CKP yang sudah disetujui (Approved) tidak dapat dipindah.');
+    }
+    // Ketua tim tidak boleh memindah kegiatan miliknya sendiri (dinilai pimpinan).
+    if (callerRole === 'ketua_tim' && (uploads || []).some((u: any) => u.user_id === user.id)) {
+      throw new Error('Ketua tim tidak dapat memindah kegiatan milik sendiri — harus dinilai pimpinan.');
+    }
+
+    // Update ATOMIK nama + UUID dalam 1 update (hindari split-brain).
     const { error } = await supabaseAdmin
       .from('ckp_entries')
-      .update({ rencana_kinerja: targetMoveRk })
+      .update({ rencana_kinerja: targetRkName, rk_ketua_tim_id: targetRkId })
       .in('id', entryIds);
 
     if (error) {
       throw new Error(`Gagal update DB: ${error.message}`);
     }
+
+    try {
+      await supabaseAdmin.from('audit_logs').insert({
+        user_id: user.id,
+        action: 'move_entries',
+        entity_type: 'ckp_entries',
+        entity_id: entryIds.length === 1 ? entryIds[0] : null,
+        new_data: { entry_ids: entryIds, target_rk_id: targetRkId, target_rk_name: targetRkName },
+      });
+    } catch (auditErr) {
+      console.warn('[moveEntriesAction] Audit log warning:', auditErr);
+    }
+
+    revalidatePath('/ketua_tim');
+    revalidatePath('/pimpinan');
+    revalidatePath('/', 'layout');
 
     return { success: true };
   } catch (error: any) {
@@ -211,6 +305,19 @@ export async function markEntryAction(entryId: string, catatanKoreksi: string | 
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Ketua tim tidak boleh memberi catatan koreksi ke CKP miliknya sendiri.
+    if (userData.role === 'ketua_tim') {
+      const { data: targetEntry } = await supabaseAdmin
+        .from('ckp_entries')
+        .select('upload_id, ckp_uploads!inner(user_id)')
+        .eq('id', entryId)
+        .maybeSingle();
+      const ownerId = (targetEntry?.ckp_uploads as any)?.user_id;
+      if (ownerId === user.id) {
+        throw new Error('Ketua tim tidak dapat memberi catatan ke CKP milik sendiri — harus dinilai pimpinan.');
+      }
+    }
     
     // Update the entry
     const { data: entryData, error: entryError } = await supabaseAdmin
@@ -267,6 +374,24 @@ export async function submitCkpUploadAction(formData: FormData) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+
+    // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id
+    const { data: rkMappingData } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('id, rencana_kinerja')
+      .limit(10000);
+
+    // Gagalkan eksplisit bila master kosong — jangan fail-open (semua rk_ketua_tim_id jadi NULL).
+    if (entries.length > 0 && (!rkMappingData || rkMappingData.length === 0)) {
+      return { success: false, error: 'Data master RK kosong. Muat ulang halaman dan coba lagi.' };
+    }
+
+    const rkNameToId = new Map<string, string>(); // nama (lower) → id
+    const rkIdSet = new Set<string>();            // UUID mapping yg valid
+    (rkMappingData || []).forEach((r: any) => {
+      rkIdSet.add(String(r.id));
+      rkNameToId.set(String(r.rencana_kinerja).toLowerCase(), String(r.id));
+    });
 
     // 1. Check existing upload for versioning
     const { data: existingUpload } = await supabaseAdmin
@@ -387,14 +512,34 @@ export async function submitCkpUploadAction(formData: FormData) {
 
     const entriesToInsert = entries.map((item: any) => {
       const entry = item.entry || item;
+      // matchedRK = nama RK Ketua Tim (parent) hasil resolusi
       const matchedRK = item.matchedRK !== undefined ? item.matchedRK : entry.rencana_kinerja;
+      // rawRK = nama sub-RK asli dari Excel pegawai (sebelum resolusi)
+      // Jika item.rawRK tersedia, gunakan itu; jika tidak, pakai entry.rencana_kinerja
+      const rawRK = item.rawRK !== undefined ? item.rawRK : entry.rencana_kinerja;
       const rk = normalize(matchedRK || '');
       const isRkUnchanged = unchangedRKs.has(rk);
 
       const matchingOldEntry = existingEntries.find((e: any) =>
         normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
-        normalize(e.rencana_kinerja || '') === normalize(matchedRK || '')
+        (normalize(e.rencana_kinerja || '') === normalize(rawRK || '') ||
+         normalize(e.rencana_kinerja || '') === normalize(matchedRK || ''))
       );
+
+      // Resolve rk_ketua_tim_id — prioritaskan item.matchedRkId (UUID tervalidasi dari client).
+      // Error eksplisit bila UUID tak dikenal (jangan silent NULL).
+      let rkKetuaTimId: string | null = null;
+      const candidateUuid = item.matchedRkId ? String(item.matchedRkId).trim() : '';
+      if (candidateUuid) {
+        if (!rkIdSet.has(candidateUuid)) {
+          throw new Error(
+            `RK tujuan "${candidateUuid}" tidak valid — UUID tidak ditemukan di master RK. Muat ulang halaman upload dan coba lagi.`
+          );
+        }
+        rkKetuaTimId = candidateUuid;
+      } else if (matchedRK) {
+        rkKetuaTimId = rkNameToId.get(matchedRK.toLowerCase()) || null;
+      }
 
       return {
         upload_id: uploadData.id,
@@ -403,7 +548,9 @@ export async function submitCkpUploadAction(formData: FormData) {
         tanggal_selesai: entry.tanggal_selesai || null,
         jam_mulai: entry.jam_mulai || null,
         jam_selesai: entry.jam_selesai || null,
-        rencana_kinerja: matchedRK || null,
+        // Simpan sub-RK asli (bukan parent RK) agar bisa dirate per sub-RK
+        rencana_kinerja: rawRK || matchedRK || null,
+        rk_ketua_tim_id: rkKetuaTimId,
         kegiatan: entry.kegiatan || null,
         progres: Number(entry.progres) || 0,
         capaian: entry.capaian || null,
@@ -440,18 +587,25 @@ export async function submitCkpUploadAction(formData: FormData) {
       }
 
       if (validRKsToAssign.length > 0) {
-        const { data: masterRKs } = await supabaseAdmin.from('rk_ketua_tim_mapping').select('id, rencana_kinerja');
-        if (masterRKs) {
-          const assignmentsToInsert: any[] = [];
-          for (const rkStr of validRKsToAssign) {
-            const rkObj = masterRKs.find((r: any) => r.rencana_kinerja === rkStr);
-            if (rkObj) {
-              assignmentsToInsert.push({ rk_id: rkObj.id, user_id: userId, assigned_by: userId });
+        // validRKsToAssign berisi UUID mapping (dikirim client); nama lama tetap didukung utk kompat.
+        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        const assignmentsToInsert: any[] = [];
+        for (const rkItem of validRKsToAssign) {
+          const rkStr = String(rkItem || '').trim();
+          if (!rkStr) continue;
+          if (uuidRe.test(rkStr)) {
+            if (rkIdSet.has(rkStr)) {
+              assignmentsToInsert.push({ rk_id: rkStr, user_id: userId, assigned_by: userId });
+            }
+          } else {
+            const hitId = rkNameToId.get(rkStr.toLowerCase());
+            if (hitId) {
+              assignmentsToInsert.push({ rk_id: hitId, user_id: userId, assigned_by: userId });
             }
           }
-          if (assignmentsToInsert.length > 0) {
-            await supabaseAdmin.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
-          }
+        }
+        if (assignmentsToInsert.length > 0) {
+          await supabaseAdmin.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
         }
       }
 

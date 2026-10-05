@@ -15,6 +15,7 @@ import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
+import { rkGroupKey, isRkGroupScored, rkGroupAvg, formatScore1, normalizeRkName } from '@/lib/rk-scoring';
 import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
@@ -49,6 +50,8 @@ function KPICard({ icon, value, label, sub, iconBg }: {
 
 function RencanaKinerjaGroup({
   rkName,
+  rkKey,
+  parentName,
   entries,
   canReview,
   onSaveScore,
@@ -58,9 +61,11 @@ function RencanaKinerjaGroup({
   monthlyScores,
 }: {
   rkName: string;
+  rkKey: string;
+  parentName?: string | null;
   entries: CKPEntry[];
   canReview: boolean;
-  onSaveScore: (rk: string, score: number | null) => Promise<void>;
+  onSaveScore: (rkKey: string, rkName: string, score: number | null) => Promise<void>;
   defaultScore: number | null;
   onMoveEntryClick?: (entry: CKPEntry) => void;
   isTriwulan?: boolean;
@@ -81,7 +86,7 @@ function RencanaKinerjaGroup({
     if (score === '') {
       setSaving(true);
       try {
-        await onSaveScore(rkName, null);
+        await onSaveScore(rkKey, rkName, null);
       } catch {
         setScore(currentSavedStr);
       } finally {
@@ -99,7 +104,7 @@ function RencanaKinerjaGroup({
     
     setSaving(true);
     try {
-      await onSaveScore(rkName, num);
+      await onSaveScore(rkKey, rkName, num);
     } catch {
       setScore(currentSavedStr);
     } finally {
@@ -127,6 +132,9 @@ function RencanaKinerjaGroup({
         >
           <p className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: 'var(--text-secondary)' }}>Rencana Kinerja</p>
           <h4 className="text-[15px] font-bold leading-snug" style={{ color: 'var(--text-primary)' }}>{rkName || 'Tidak ada nama Rencana Kinerja'}</h4>
+          {parentName && normalizeRkName(parentName) !== normalizeRkName(rkName) && (
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>Induk: {parentName}</p>
+          )}
           <div className="flex items-center gap-2 mt-2 flex-wrap">
             <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               {entries.length} Kegiatan
@@ -142,7 +150,7 @@ function RencanaKinerjaGroup({
             {isTriwulan ? (
               <div className="flex flex-col items-end">
                 <span className="text-[17px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
-                  {hasScore ? Math.round(defaultScore!) : '-'}
+                  {hasScore ? formatScore1(defaultScore) : '-'}
                 </span>
                 <span className="text-[10px] font-medium text-slate-400">
                   Rata-rata triwulan
@@ -171,7 +179,7 @@ function RencanaKinerjaGroup({
               </div>
             ) : (
               <span className="text-[16px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
-                {hasScore ? defaultScore : '-'}
+                {hasScore ? formatScore1(defaultScore) : '-'}
               </span>
             )}
           </div>
@@ -322,7 +330,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
         supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number'),
         supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }),
-        supabase.from('rk_ketua_tim_mapping').select('rencana_kinerja, tim_kerja').order('rencana_kinerja'),
+        supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja').order('rencana_kinerja'),
       ]);
 
       const uploadMonthMap = new Map(targetUploads.map((u: any) => [u.id, u.bulan]));
@@ -337,12 +345,16 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       if (source === 'ketua_tim' && reviewerRole === 'pimpinan' && employeeData.role === 'ketua_tim') {
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
-          .select('rencana_kinerja')
+          .select('id, rencana_kinerja')
           .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${currentUser?.id}`);
-          
+
         if (rkMapping && rkMapping.length > 0) {
-          const ownRks = rkMapping.map((m: any) => m.rencana_kinerja);
-          entriesData = entriesData.filter((e: any) => e.rencana_kinerja && ownRks.includes(e.rencana_kinerja));
+          const ownRkIds = new Set(rkMapping.map((m: any) => m.id).filter(Boolean));
+          const ownRkNorms = new Set(rkMapping.map((m: any) => normalizeRkName(m.rencana_kinerja)));
+          entriesData = entriesData.filter((e: any) =>
+            (e.rk_ketua_tim_id && ownRkIds.has(e.rk_ketua_tim_id)) ||
+            (!e.rk_ketua_tim_id && e.rencana_kinerja && ownRkNorms.has(normalizeRkName(e.rencana_kinerja)))
+          );
         } else {
           entriesData = [];
         }
@@ -405,16 +417,25 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const approvals: Approval[] = data?.approvals || [];
   const masterRks: any[] = data?.masterRks || [];
 
-  // Group entries by RK
+  // Group entries by RK — kunci grup kontrak (rkGroupKey): 'id:<uuid>' data baru, 'legacy:<nama>' data lama.
+  // Key React = group key (bukan nama), label = nama sub-RK + parent bila beda.
   const rkGroups = useMemo(() => {
-    const map = new Map<string, CKPEntry[]>();
+    const map = new Map<string, { key: string; entries: CKPEntry[]; rkKetuaTimId: string | null; parentName: string | null }>();
     entries.forEach(e => {
-      const rk = e.rencana_kinerja || 'Tidak Diketahui';
-      if (!map.has(rk)) map.set(rk, []);
-      map.get(rk)!.push(e);
+      const key = rkGroupKey(e);
+      if (!map.has(key)) {
+        map.set(key, { key, entries: [], rkKetuaTimId: (e as any).rk_ketua_tim_id ?? null, parentName: null });
+      }
+      map.get(key)!.entries.push(e);
     });
 
-    return Array.from(map.entries()).map(([rk, groupEntries]) => {
+    return Array.from(map.values()).map(({ key, entries: groupEntries, rkKetuaTimId }) => {
+      // Nama tampil: sub-RK pertama (data baru) atau nama legacy (data lama)
+      const rk = groupEntries[0]?.rencana_kinerja || 'Tidak Diketahui';
+      const parentName = rkKetuaTimId
+        ? (masterRks as any[]).find((m: any) => m.id === rkKetuaTimId)?.rencana_kinerja ?? null
+        : null;
+
       if (isTriwulan) {
         const triwulanMonths: Record<string, number[]> = {
           'T1': [1, 2, 3],
@@ -425,49 +446,53 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const monthsInQ = triwulanMonths[String(paramBulan)] || [1, 2, 3];
 
         const monthlyScores: { bulan: number; bulanNama: string; score: number | null; count: number }[] = [];
-        const scoredValues: number[] = [];
 
         monthsInQ.forEach(m => {
           const entriesInMonth = groupEntries.filter(e => (e as any).bulan === m);
           if (entriesInMonth.length > 0) {
-            const scoredEntry = entriesInMonth.find(e => e.nilai !== null);
-            const score = scoredEntry?.nilai ?? null;
+            // Avg helper kontrak (1 desimal) dari SEMUA entry bulan itu — bukan find pertama.
+            const score = rkGroupAvg(entriesInMonth);
             monthlyScores.push({
               bulan: m,
               bulanNama: getBulanName(m),
               score,
               count: entriesInMonth.length,
             });
-            if (score !== null) {
-              scoredValues.push(score);
-            }
           }
         });
 
-        // Rata-rata nilai dari 3 bulan (nilai RK adalah rata-rata nilai bulanan RK tersebut) - dibulatkan
-        const avgScore = scoredValues.length > 0
-          ? Math.round(scoredValues.reduce((sum, s) => sum + s, 0) / scoredValues.length)
-          : null;
+        // Avg triwulan via helper kontrak dari nilai bulanan yang ada.
+        const monthlyVals = monthlyScores
+          .filter(ms => ms.score !== null)
+          .map(ms => ({ nilai: ms.score as number }));
+        const avgScore = rkGroupAvg(monthlyVals);
 
         return {
+          key,
           rk,
+          parentName,
+          rkKetuaTimId,
           entries: groupEntries,
           defaultScore: avgScore,
           monthlyScores,
           isTriwulan: true,
         };
       } else {
-        const allScored = groupEntries.every(e => e.nilai !== null);
+        // defaultScore per grup = avg helper kontrak, hanya bila SEMUA entry scored.
+        const defaultScore = isRkGroupScored(groupEntries) ? rkGroupAvg(groupEntries) : null;
         return {
+          key,
           rk,
+          parentName,
+          rkKetuaTimId,
           entries: groupEntries,
-          defaultScore: allScored ? (groupEntries[0]?.nilai ?? null) : null,
+          defaultScore,
           monthlyScores: [],
           isTriwulan: false,
         };
       }
     });
-  }, [entries, isTriwulan, paramBulan]);
+  }, [entries, isTriwulan, paramBulan, masterRks]);
 
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
@@ -519,25 +544,32 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     }
   };
 
-  const handleSaveScore = async (rkName: string, score: number | null) => {
-    // Optimistic update
+  const handleSaveScore = async (rkKey: string, rkName: string, score: number | null) => {
+    // Triwulan: kunci save bila >1 upload sekaligus agar rincian bulanan tidak hancur.
+    // Server juga menolak (ids.length > 1) — client cegah lebih awal + input triwulan read-only.
+    if (isTriwulan && (data?.targetUploadIds?.length ?? 1) > 1) {
+      toast.error('Penilaian triwulan dikunci — nilai per bulan agar rincian tidak tercampur');
+      return;
+    }
+    // Optimistic update — cocokkan by kunci grup kontrak, bukan nama.
     queryClient.setQueryData(['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''], (old: any) => {
       if (!old) return old;
-      const newEntries = old.entries.map((e: any) => 
-        (e.rencana_kinerja || 'Tidak Diketahui') === rkName 
-          ? { ...e, nilai: score, dinilai_oleh: score !== null ? currentUser?.id : null } 
+      const newEntries = old.entries.map((e: any) =>
+        rkGroupKey(e) === rkKey
+          ? { ...e, nilai: score, dinilai_oleh: score !== null ? currentUser?.id : null }
           : e
       );
-      
+
       const scored = newEntries.filter((e: any) => e.nilai !== null);
       const newAvg = scored.length > 0 ? scored.reduce((acc: number, e: any) => acc + e.nilai, 0) / scored.length : null;
-      
+
       return { ...old, entries: newEntries, upload: { ...old.upload, rata_rata_nilai: newAvg } };
     });
 
     try {
-      const targetIds = (isTriwulan && data?.targetUploadIds) ? data.targetUploadIds : uploadId;
-      const result = await gradeRencanaKinerjaAction(targetIds, rkName === 'Tidak Diketahui' ? '' : rkName, score);
+      // Selalu satu upload per save (server menolak multi-upload) — triwulan dinilai per bulan.
+      const targetIds = uploadId;
+      const result = await gradeRencanaKinerjaAction(targetIds, rkName === 'Tidak Diketahui' ? '' : rkName, score, rkKey);
       if (!result.success) throw new Error(result.error);
       // Validasi ulang secara asinkron (tidak memblokir UI)
       void queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
@@ -642,7 +674,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   // Nilai hanya bisa diubah ketika status CKP adalah 'submitted' atau 'scored'.
   // Ketika status 'approved', nilai TERKUNCI (read-only) untuk semua pihak.
   // Pimpinan harus menekan tombol 'Buka Kembali' terlebih dahulu untuk membuka kunci nilai dan menilai ulang.
-  const canReview = isKetuaTim && (upload.status === 'submitted' || upload.status === 'scored'); 
+  // Ketua tim tidak boleh menilai CKP miliknya sendiri (dinilai pimpinan).
+  const isOwnUpload = !!currentUser && !!upload && currentUser.id === (upload as any).user_id;
+  const canReview = isKetuaTim && !isOwnUpload && (upload.status === 'submitted' || upload.status === 'scored');
   
   const canReopen = isPimpinan && upload.status === 'approved';
   const bulanNama = getBulanName(upload.bulan);
@@ -655,10 +689,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     : upload.status;
 
   const scoredRks = rkGroups.filter(g => g.defaultScore !== null);
-  const avgRkScore = scoredRks.length > 0 ? (scoredRks.reduce((acc, g) => acc + g.defaultScore!, 0) / scoredRks.length) : null;
+  const avgVals = scoredRks.map(g => ({ nilai: g.defaultScore as number }));
+  const avgRkScore = rkGroupAvg(avgVals);
   const displayRataRataNilai = isTriwulan
-    ? (avgRkScore !== null ? Math.round(avgRkScore).toString() : (upload.rata_rata_nilai ? Math.round(upload.rata_rata_nilai).toString() : '-'))
-    : (upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-');
+    ? (avgRkScore !== null ? formatScore1(avgRkScore) : (upload.rata_rata_nilai != null ? formatScore1(upload.rata_rata_nilai) : '-'))
+    : (upload.rata_rata_nilai != null ? formatScore1(upload.rata_rata_nilai) : '-');
 
   return (
     <>
@@ -840,8 +875,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             <div className="space-y-4">
               {rkGroups.map(group => (
                 <RencanaKinerjaGroup
-                  key={group.rk}
+                  key={group.key}
+                  rkKey={group.key}
                   rkName={group.rk}
+                  parentName={group.parentName}
                   entries={group.entries}
                   canReview={isTriwulan ? false : canReview}
                   onSaveScore={handleSaveScore}

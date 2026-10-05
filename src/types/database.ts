@@ -69,7 +69,8 @@ export interface CKPEntry {
   tanggal_selesai: string | null;
   jam_mulai: string | null;
   jam_selesai: string | null;
-  rencana_kinerja: string | null;
+  rencana_kinerja: string | null;       // Nama sub-RK asli dari Excel pegawai
+  rk_ketua_tim_id: string | null;       // UUID referensi ke rk_ketua_tim_mapping (parent RK)
   kegiatan: string | null;
   progres: number;
   capaian: string | null;
