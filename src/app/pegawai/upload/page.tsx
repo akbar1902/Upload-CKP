@@ -538,14 +538,20 @@ export default function UploadPage() {
             <Upload className="h-6 w-6" style={{ color: 'var(--primary)' }} />
             Upload CKP
           </h2>
-          <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>Upload file Excel CKP bulanan Anda — {wizardStep === 1 ? 'langkah 1 dari 2: pilih periode' : wizardStep === 2 ? 'langkah 2 dari 2: upload & preview' : 'langkah tambahan: petakan RK tak dikenal'}</p>
+          <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+            {wizardStep === 1
+              ? 'Langkah 1 dari 2: pilih periode & unggah file Excel'
+              : wizardStep === 2
+                ? 'Langkah 2 dari 2: periksa preview sebelum submit'
+                : 'Langkah tambahan: petakan RK tak dikenal'}
+          </p>
         </div>
 
         {/* ── Stepper: Periode → File + Preview (+ Petakan RK bila perlu) ── */}
         <ol className="flex items-center gap-0" aria-label="Langkah upload">
           {[
-            { n: 1 as const, label: 'Periode' },
-            { n: 2 as const, label: 'File + Preview' },
+            { n: 1 as const, label: 'Periode & File' },
+            { n: 2 as const, label: 'Preview' },
             ...(wizardStep === 3 || unmatchedRKs.length > 0 ? [{ n: 3 as const, label: 'Petakan RK' }] : []),
           ].map((s, i, arr) => (
             <React.Fragment key={s.n}>
@@ -585,10 +591,10 @@ export default function UploadPage() {
         {wizardStep === 1 && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">1. Pilih Periode</CardTitle>
-            <CardDescription>Pilih bulan dan tahun CKP yang akan diupload</CardDescription>
+            <CardTitle className="text-base">1. Periode & File CKP</CardTitle>
+            <CardDescription>Pilih bulan/tahun, lalu unggah file Excel CKP (.xlsx / .xls)</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-5">
             <div className="flex items-center gap-4">
               <div className="w-48">
                 <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Bulan</label>
@@ -639,14 +645,62 @@ export default function UploadPage() {
                 </div>
               </div>
             )}
+
+            {/* Upload file */}
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>File Excel CKP</label>
+              <UploadDropzone
+                onFileSelected={handleFileSelected}
+                disabled={isLocked || existingUpload?.status === 'approved'}
+              />
+            </div>
+
+            {parsing && (
+              <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+                <div className="animate-spin w-5 h-5 border-2 border-t-transparent rounded-full"
+                     style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }} />
+                <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>Membaca file Excel...</p>
+              </div>
+            )}
+
+            {parseResult && !parseResult.success && parseResult.errors.length > 0 && (
+              <div className="p-4 rounded-xl" style={{ background: 'var(--danger-soft)', border: '1px solid var(--danger-soft)' }}>
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: 'var(--danger)' }} />
+                  <div>
+                    <h4 className="text-[14px] font-semibold" style={{ color: 'var(--danger-text)' }}>Gagal Membaca File Excel</h4>
+                    <ul className="mt-1 space-y-1">
+                      {parseResult.errors.map((err, i) => (
+                        <li key={i} className="text-[13px] leading-relaxed" style={{ color: 'var(--danger-text)' }}>{err}</li>
+                      ))}
+                    </ul>
+                    <p className="text-[12px] mt-2" style={{ color: 'var(--text-secondary)' }}>Perbaiki file lalu unggah ulang di atas.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {parseResult?.success && parseResult.entries.length > 0 && (
+              <div className="flex items-center gap-2 p-3.5 rounded-xl" style={{ background: 'var(--success-soft)' }}>
+                <CheckCircle2 className="h-4 w-4 flex-shrink-0" style={{ color: 'var(--success)' }} />
+                <p className="text-[13px]" style={{ color: 'var(--success-text)' }}>
+                  File terbaca: <strong>{parseResult.entries.length} baris</strong> siap dipreview.
+                </p>
+              </div>
+            )}
           </CardContent>
           <div className="flex justify-end px-7 pb-7">
             <Button
               onClick={() => setWizardStep(2)}
-              disabled={isLocked || existingUpload?.status === 'approved'}
-              title={isLocked ? 'Periode dikunci admin' : existingUpload?.status === 'approved' ? 'CKP sudah disetujui' : 'Lanjut ke upload file'}
+              disabled={isLocked || existingUpload?.status === 'approved' || !parseResult?.success || parseResult.entries.length === 0}
+              title={
+                isLocked ? 'Periode dikunci admin'
+                : existingUpload?.status === 'approved' ? 'CKP sudah disetujui'
+                : !parseResult?.success ? 'Unggah file Excel terlebih dahulu'
+                : 'Lanjut ke preview'
+              }
             >
-              Lanjut ke Upload File <ArrowLeft className="h-4 w-4 rotate-180" />
+              Lanjut ke Preview <ArrowLeft className="h-4 w-4 rotate-180" />
             </Button>
           </div>
         </Card>
@@ -654,65 +708,33 @@ export default function UploadPage() {
 
         {wizardStep === 2 && (
         <>
-        <button
-          onClick={() => setWizardStep(1)}
-          className="inline-flex items-center gap-1 text-[13px] font-medium transition-colors"
-          style={{ color: 'var(--text-tertiary)' }}
-        >
-          <ArrowLeft className="h-4 w-4" /> Kembali ke Periode ({getBulanName(bulan)} {tahun})
-        </button>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">2. Upload File Excel</CardTitle>
-            <CardDescription>Pilih atau seret file Excel CKP (.xlsx / .xls)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <UploadDropzone
-              onFileSelected={handleFileSelected}
-              disabled={isLocked || existingUpload?.status === 'approved'}
-            />
-          </CardContent>
-        </Card>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <button
+            onClick={() => setWizardStep(1)}
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-4 py-2 transition-all"
+            style={{ background: 'var(--neu-surface)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-raised-sm)' }}
+          >
+            <ArrowLeft className="h-4 w-4" /> Kembali / Upload Ulang
+          </button>
+          <span className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+            Periode: {getBulanName(bulan)} {tahun}
+          </span>
+        </div>
 
-        {parsing && (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-t-transparent rounded-full mx-auto mb-3"
-                   style={{ borderColor: 'var(--border)', borderTopColor: 'var(--primary)' }} />
-              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>Membaca file Excel...</p>
-            </CardContent>
-          </Card>
-        )}
-
-        {parseResult && (
+        {parseResult?.success && parseResult.entries.length > 0 ? (
           <>
-            {/* ─── 3. Preview Data Tabel ─────────────────────────────── */}
+            {/* ─── Preview Data Tabel ─────────────────────────────── */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base flex items-center gap-2">
-                  <FileSpreadsheet className="h-5 w-5 text-emerald-500" />
-                  3. Preview Data Tabel
+                  <FileSpreadsheet className="h-5 w-5" style={{ color: 'var(--success)' }} />
+                  Preview Data Kegiatan
                 </CardTitle>
                 <CardDescription>
-                  Data kegiatan yang berhasil dibaca dari file Excel ({parseResult.entries.length} baris)
+                  Periksa data yang terbaca dari file Excel ({parseResult.entries.length} baris). Jika ada yang salah, klik “Kembali / Upload Ulang”.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {!parseResult.success && parseResult.errors.length > 0 && (
-                  <div className="p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-900/50">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="h-5 w-5 text-red-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-[14px] font-semibold text-red-800 dark:text-red-300">Gagal Membaca File Excel</h4>
-                        <ul className="mt-1 space-y-1">
-                          {parseResult.errors.map((err, i) => (
-                            <li key={i} className="text-[13px] text-red-700 dark:text-red-400 leading-relaxed">{err}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {parseResult.success && parseResult.entries.length > 0 && (
                   <div className="overflow-x-auto rounded-xl shadow-xs" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
@@ -780,46 +802,56 @@ export default function UploadPage() {
               </CardContent>
             </Card>
 
-            {/* ─── 4. Preview Kalender Kerja Periode ─────────────────── */}
-            {parseResult.success && parseResult.entries.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <CalendarDays className="h-5 w-5 text-[var(--primary)]" />
-                    4. Preview Kalender Kerja Periode
-                  </CardTitle>
-                  <CardDescription>
-                    Periksa kalender kerja untuk memastikan tidak ada kegiatan harian yang terlewat
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <CalendarPreview
-                    bulan={bulan}
-                    tahun={tahun}
-                    entries={parseResult.entries}
-                  />
+            {/* ─── Preview Kalender Kerja Periode ─────────────────────── */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CalendarDays className="h-5 w-5" style={{ color: 'var(--primary)' }} />
+                  Preview Kalender Kerja Periode
+                </CardTitle>
+                <CardDescription>
+                  Periksa kalender kerja untuk memastikan tidak ada kegiatan harian yang terlewat
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <CalendarPreview
+                  bulan={bulan}
+                  tahun={tahun}
+                  entries={parseResult.entries}
+                />
 
-                  {/* ─── Tombol Submit di Bawah Kalender ────────────── */}
-                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-                    {calendarCoverage && calendarCoverage.emptyWorkDays.length > 0 ? (
-                      <span className="text-xs" style={{ color: 'var(--tertiary-text)' }}>
-                        * Terdapat <strong>{calendarCoverage.emptyWorkDays.length} hari kerja belum terisi</strong> (tetap dapat disubmit jika merupakan tanggal merah/hari libur).
-                      </span>
-                    ) : (
-                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                        Seluruh hari kerja telah terisi kegiatan.
-                      </span>
-                    )}
+                {/* ─── Tombol Submit di Bawah Kalender ────────────── */}
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+                  {calendarCoverage && calendarCoverage.emptyWorkDays.length > 0 ? (
+                    <span className="text-xs" style={{ color: 'var(--tertiary-text)' }}>
+                      * Terdapat <strong>{calendarCoverage.emptyWorkDays.length} hari kerja belum terisi</strong> (tetap dapat disubmit jika merupakan tanggal merah/hari libur).
+                    </span>
+                  ) : (
+                    <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
+                      Seluruh hari kerja telah terisi kegiatan.
+                    </span>
+                  )}
 
-                    <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg" className="w-full sm:w-auto">
-                      <Send className="h-4 w-4 mr-2" />
-                      {uploading ? 'Memproses Data...' : `Submit CKP ${getBulanName(bulan)} ${tahun}`}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  <Button onClick={handlePreSubmit} loading={uploading} disabled={isLocked || existingUpload?.status === 'approved'} size="lg" className="w-full sm:w-auto">
+                    <Send className="h-4 w-4 mr-2" />
+                    {uploading ? 'Memproses Data...' : `Submit CKP ${getBulanName(bulan)} ${tahun}`}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </>
+        ) : (
+          <Card>
+            <CardContent className="py-12 text-center space-y-4">
+              <Info className="h-8 w-8 mx-auto" style={{ color: 'var(--text-tertiary)' }} />
+              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                Belum ada file Excel yang siap dipreview.
+              </p>
+              <Button variant="outline" onClick={() => setWizardStep(1)}>
+                <ArrowLeft className="h-4 w-4" /> Kembali & Unggah File
+              </Button>
+            </CardContent>
+          </Card>
         )}
         </>
         )}
