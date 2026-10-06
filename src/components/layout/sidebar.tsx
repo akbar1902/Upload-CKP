@@ -21,6 +21,7 @@ import {
   Zap,
   Lock,
   FileDown,
+  BarChart3,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
@@ -131,6 +132,9 @@ export function Sidebar() {
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }
 
+  // Insight tersedia untuk semua peran (isinya menyesuaikan role)
+  navItems.push({ href: '/insight', label: 'Insight', icon: BarChart3 });
+
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
   const isActive = (href: string) => {
@@ -182,10 +186,10 @@ export function Sidebar() {
       {/* ── User Profile Card ─────────────────────────── */}
       {!collapsed && user && (
         <div className="mx-3 mt-4 mb-1 p-3 rounded-2xl flex items-center gap-3"
-             style={{ background: 'var(--card-bg)', border: '1px solid var(--sidebar-border)' }}>
+             style={{ background: 'var(--sidebar-bg)', boxShadow: 'var(--neu-raised)' }}>
           <div
             className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0"
-            style={{ background: 'var(--primary)' }}
+            style={{ background: 'var(--primary)', boxShadow: 'var(--neu-inset-sm)' }}
             aria-hidden="true"
           >
             {initials}

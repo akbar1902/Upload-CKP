@@ -17,12 +17,6 @@ import {
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
 } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/kpi-card';
-import {
-  CHART_COLORS,
-  ChartCard,
-  ChartEmpty,
-  HBarChart,
-} from '@/components/dashboard/charts';
 
 export default function KetuaTimDashboardClient() {
   const supabase = useMemo(() => createClient(), []);
@@ -446,71 +440,16 @@ export default function KetuaTimDashboardClient() {
   const pendingRKs = allRKStats.filter((rk: any) => rk.totalEntries > 0 && !rk.allEvaluated).length;
   const avgOverallProgress = activeRKs > 0 ? allRKStats.reduce((s: number, rk: any) => s + rk.avgProgress, 0) / activeRKs : 0;
 
-  // ── Insight: beban penilaian per pegawai + nilai per RK ──
-  const insight = useMemo(() => {
-    interface EntryRow { upload_id: string; nilai: number | null }
-    interface UploadRow { id: string; user_id: string }
-    interface UserRow { id: string; full_name: string }
-    interface RkRow {
-      rencana_kinerja: string;
-      totalEntries: number;
-      avgScore: number | null;
-      allEvaluated: boolean;
-      avgProgress: number;
-    }
-
-    const entryRows = (entries ?? []) as EntryRow[];
-    const uploadRows = (uploads ?? []) as UploadRow[];
-    const userRows = (data?.users ?? []) as UserRow[];
-    const rkRows = (rkStats ?? []) as RkRow[];
-
-    const map = new Map<string, { label: string; total: number; evaluated: number }>();
-    for (const e of entryRows) {
-      const up = uploadRows.find((u) => u.id === e.upload_id);
-      if (!up) continue;
-      const u = userRows.find((x) => x.id === up.user_id);
-      const rec = map.get(up.user_id) ?? { label: u?.full_name ?? 'Pegawai', total: 0, evaluated: 0 };
-      rec.total += 1;
-      if (e.nilai != null) rec.evaluated += 1;
-      map.set(up.user_id, rec);
-    }
-
-    const beban = Array.from(map.values())
-      .map((r) => {
-        const pending = r.total - r.evaluated;
-        return {
-          label: r.label,
-          value: pending,
-          color: pending === 0 ? CHART_COLORS.success : CHART_COLORS.warning,
-          caption: `${r.evaluated}/${r.total} entri dinilai`,
-        };
-      })
-      .sort((a, b) => b.value - a.value);
-
-    const perRk = rkRows
-      .filter((rk) => rk.totalEntries > 0)
-      .map((rk) => ({
-        label: rk.rencana_kinerja,
-        value: rk.avgScore != null ? Number(rk.avgScore.toFixed(1)) : 0,
-        color: rk.allEvaluated ? CHART_COLORS.success : CHART_COLORS.primary,
-        caption: `Capaian ${rk.avgProgress.toFixed(0)}% · ${rk.totalEntries} entri`,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
-
-    return { beban, perRk };
-  }, [entries, uploads, data?.users, rkStats]);
-
   if (error && !loading && rks.length === 0) {
     return (
       <>
         <Header />
         <div className="p-8 max-w-md mx-auto text-center py-24">
-          <div className="w-14 h-14 mx-auto mb-4 rounded-xl bg-slate-100 flex items-center justify-center">
-            <WifiOff className="h-6 w-6 text-slate-400" />
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center" style={{ background: 'var(--neu-surface-2)', boxShadow: 'var(--neu-inset-sm)' }}>
+            <WifiOff className="h-6 w-6" style={{ color: 'var(--text-tertiary)' }} />
           </div>
-          <h3 className="text-base font-semibold text-slate-700 mb-1">Gagal Memuat Data</h3>
-          <p className="text-sm text-slate-400 mb-6">{error}</p>
+          <h3 className="text-base font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-secondary)' }}>{error}</p>
           <button onClick={() => refetch()} className="btn-primary">
             <RefreshCw className="h-4 w-4" /> Coba Lagi
           </button>
@@ -525,48 +464,66 @@ export default function KetuaTimDashboardClient() {
       href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`}
       prefetch={true}
       onMouseEnter={() => prefetchRkDetail(rk.id)}
-      className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm hover:shadow-lg transition-all duration-300 relative overflow-hidden group flex flex-col h-full hover:border-[var(--primary)] cursor-pointer block"
+      className="neu-raised card-hover rounded-2xl p-5 transition-all duration-300 relative overflow-hidden group flex flex-col h-full cursor-pointer block"
     >
-      <div className={`absolute top-0 left-0 w-1.5 h-full transition-colors ${rk.totalEntries === 0 ? 'bg-slate-200' : rk.allEvaluated ? 'bg-[var(--primary)]' : 'bg-slate-400'}`} />
+      <div
+        className="absolute top-0 left-0 w-1.5 h-full transition-colors"
+        style={{ background: rk.totalEntries === 0 ? 'var(--sand-border)' : rk.allEvaluated ? 'var(--success)' : 'var(--accent)' }}
+      />
 
-      <div className="flex justify-between items-start mb-3 pl-2">
-        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-50 border border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+      <div className="flex justify-between items-start mb-3 pl-2 gap-2">
+        <span
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
+          style={{ background: 'var(--neu-surface-2)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-inset-sm)' }}
+        >
           <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
         </span>
         {rk.totalEntries > 0 && (
-          <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold shadow-sm ${rk.allEvaluated ? 'bg-[var(--primary-soft)] text-[var(--primary)] ring-1 ring-[var(--primary)]/20' : 'bg-slate-100 text-slate-600 ring-1 ring-slate-200'}`}>
+          <span
+            className="text-[11px] px-2.5 py-1 rounded-full font-bold"
+            style={rk.allEvaluated
+              ? { background: 'var(--success-soft)', color: 'var(--success-text)' }
+              : { background: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+          >
             {rk.allEvaluated ? 'Selesai Dinilai' : 'Perlu Dinilai'}
           </span>
         )}
       </div>
 
-      <h4 className="text-[15px] font-extrabold text-slate-800 mb-5 pl-2 leading-relaxed group-hover:text-[var(--primary)] transition-colors" title={rk.rencana_kinerja}>
+      <h4
+        className="text-[15px] font-extrabold mb-5 pl-2 leading-relaxed transition-colors group-hover:text-[var(--primary)]"
+        style={{ color: 'var(--text-primary)' }}
+        title={rk.rencana_kinerja}
+      >
         {rk.rencana_kinerja}
       </h4>
 
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-100 pl-2">
+      <div className="flex items-center justify-between mt-auto pt-4 pl-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
         <div className="flex gap-4 sm:gap-6">
           <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Pegawai</span>
-            <span className="text-[15px] font-black text-slate-700 flex items-center gap-1.5">
-              {rk.totalPegawai} <Users size={12} className="text-slate-300" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Pegawai</span>
+            <span className="text-[15px] font-black flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
+              {rk.totalPegawai} <Users size={12} style={{ color: 'var(--text-tertiary)' }} />
             </span>
           </div>
-          <div className="w-px bg-slate-200" />
+          <div className="w-px" style={{ background: 'var(--border-soft)' }} />
           <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Kegiatan</span>
-            <span className="text-[15px] font-black text-slate-700">{rk.totalEntries}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</span>
+            <span className="text-[15px] font-black" style={{ color: 'var(--text-primary)' }}>{rk.totalEntries}</span>
           </div>
-          <div className="w-px bg-slate-200" />
+          <div className="w-px" style={{ background: 'var(--border-soft)' }} />
           <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider mb-0.5">Rata2 Nilai</span>
-            <span className={`text-[15px] font-black ${rk.avgScore !== null ? 'text-[var(--primary)]' : 'text-slate-300'}`}>
+            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Rata2 Nilai</span>
+            <span className="text-[15px] font-black" style={{ color: rk.avgScore !== null ? 'var(--primary)' : 'var(--text-tertiary)' }}>
               {rk.avgScore !== null ? (typeof bulan === 'string' && bulan.startsWith('T') ? Math.round(rk.avgScore) : rk.avgScore.toFixed(1)) : '-'}
             </span>
           </div>
         </div>
 
-        <div className="p-2.5 rounded-xl bg-slate-50 text-slate-400 group-hover:bg-[var(--primary)] group-hover:text-white group-hover:shadow-md transition-all duration-300 transform group-hover:translate-x-1">
+        <div
+          className="p-2.5 rounded-full transition-all duration-300 transform group-hover:translate-x-1"
+          style={{ background: 'var(--neu-surface-2)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-inset-sm)' }}
+        >
           <ArrowRight size={18} />
         </div>
       </div>
@@ -579,11 +536,16 @@ export default function KetuaTimDashboardClient() {
       <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-slate-800">Dashboard Ketua Tim</h2>
-            <p className="text-sm text-slate-400 mt-0.5 flex items-center gap-2">
+            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Dashboard Ketua Tim</h2>
+            <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
               {getPeriodName(bulan)} {tahun}
               {!isCurrentPeriod && (
-                <span className="inline-flex items-center gap-1 text-[11px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">Filter aktif</span>
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}
+                >
+                  Filter aktif
+                </span>
               )}
             </p>
           </div>
@@ -593,7 +555,7 @@ export default function KetuaTimDashboardClient() {
               <span className="hidden sm:inline">Export Rekap</span>
             </button>
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
-            <button onClick={() => refetch()} className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors">
+            <button onClick={() => refetch()} className="filter-btn" title="Muat ulang" aria-label="Muat ulang data">
               <RefreshCw className={`h-4 w-4 ${queryFetching ? 'animate-spin' : ''}`} />
             </button>
           </div>
@@ -606,66 +568,32 @@ export default function KetuaTimDashboardClient() {
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgOverallProgress.toFixed(0)}%`} label="Rata-rata Capaian" sub="Seluruh RK aktif" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
-        {/* ── Insight (grafik) ──────────────────────── */}
-        {loading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {[0, 1].map((i) => (
-              <div key={i} className="neu-raised rounded-2xl p-5">
-                <div className="skeleton h-4 w-44 rounded mb-4" />
-                <div className="skeleton h-[150px] w-full rounded-xl" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <ChartCard
-              title="Beban Penilaian per Pegawai"
-              subtitle={`Entri yang belum dinilai · ${getPeriodName(bulan)} ${tahun}`}
-            >
-              {insight.beban.length > 0 ? (
-                <HBarChart data={insight.beban} emptyLabel="Belum ada entri untuk dinilai" />
-              ) : (
-                <ChartEmpty />
-              )}
-            </ChartCard>
-
-            <ChartCard
-              title="Rata-rata Nilai per RK"
-              subtitle="Skala 0–100, 10 RK teratas"
-            >
-              {insight.perRk.length > 0 ? (
-                <HBarChart data={insight.perRk} max={100} decimals={1} emptyLabel="Belum ada nilai" />
-              ) : (
-                <ChartEmpty label="Belum ada RK dengan entri" />
-              )}
-            </ChartCard>
-          </div>
-        )}
-
         <div>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-base font-semibold text-slate-800">Daftar Rencana Kinerja</h3>
-              <p className="text-xs text-slate-400 mt-0.5">{allRKStats.length} RK ditampilkan</p>
+              <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Daftar Rencana Kinerja</h3>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{allRKStats.length} RK ditampilkan</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-4 mb-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="relative w-full md:max-w-md flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
                 <input
                   type="search"
                   placeholder="Cari Rencana Kinerja atau Tim Kerja..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 h-10 text-sm bg-white border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 transition-all shadow-sm"
+                  className="neu-field w-full pl-10 h-11 text-sm rounded-full transition-all"
+                  style={{ color: 'var(--text-primary)' }}
                 />
               </div>
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="h-10 text-sm bg-white border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 text-slate-700 font-medium shadow-sm w-full md:w-auto"
+                className="neu-field h-11 text-sm rounded-full px-4 font-medium w-full md:w-auto cursor-pointer"
+                style={{ color: 'var(--text-primary)', outline: 'none' }}
               >
                 <option value="semua">Semua Status</option>
                 <option value="perlu_dinilai">Perlu Dinilai</option>
@@ -681,7 +609,8 @@ export default function KetuaTimDashboardClient() {
                     router.push(`/ketua_tim/rk/${e.target.value}?bulan=${bulan}&tahun=${tahun}`);
                   }
                 }}
-                className="w-full h-10 text-sm bg-slate-50 border border-slate-200 rounded-xl px-4 focus:outline-none focus:ring-2 focus:ring-[var(--primary-ring)]/20 text-slate-700 shadow-sm"
+                className="neu-field w-full h-11 text-sm rounded-full px-4 cursor-pointer"
+                style={{ color: 'var(--text-primary)', outline: 'none' }}
               >
                 <option value="">Pilih RK Disini...</option>
                 {allRKStats.map((rk: any) => (
@@ -698,16 +627,16 @@ export default function KetuaTimDashboardClient() {
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
           ) : allRKStats.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-slate-200 rounded-3xl shadow-sm">
-              <FileText className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <p className="text-base font-semibold text-slate-700">Tidak ada Rencana Kinerja ditemukan</p>
-              <p className="text-sm text-slate-400 mt-1">Coba ubah filter atau kata kunci pencarian Anda.</p>
+            <div className="text-center py-20 neu-raised rounded-3xl">
+              <FileText className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
+              <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Tidak ada Rencana Kinerja ditemukan</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Coba ubah filter atau kata kunci pencarian Anda.</p>
             </div>
           ) : (
             <div className="space-y-8">
               {filteredRKs.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-4 border-b pb-2">Rencana Kinerja</h4>
+                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 pb-2" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-soft)' }}>Rencana Kinerja</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredRKs.map(renderRkCard)}
                   </div>
@@ -716,7 +645,7 @@ export default function KetuaTimDashboardClient() {
 
               {filteredRKs.length === 0 && (
                 <div className="text-center py-10">
-                   <p className="text-sm text-slate-400">Pencarian tidak menemukan hasil.</p>
+                   <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>Pencarian tidak menemukan hasil.</p>
                 </div>
               )}
             </div>

@@ -29,14 +29,6 @@ function getProgressClass(pct: number): string {
 }
 
 import { KPICard } from '@/components/dashboard/kpi-card';
-import {
-  BarChart,
-  CHART_COLORS,
-  ChartCard,
-  ChartEmpty,
-  DonutChart,
-  LineChart,
-} from '@/components/dashboard/charts';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
@@ -273,31 +265,6 @@ export default function PegawaiDashboard() {
     });
   }, [uploadsArr, searchQuery, sortOrder, statusFilter]);
 
-  // ── Insight (grafik) ────────────────────────────────
-  const insight = useMemo(() => {
-    const yearUploads = uniqueUploads.filter(u => u.tahun === currentYear);
-    const monthly = Array.from({ length: 12 }, (_, i) => {
-      const u = yearUploads.find(x => x.bulan === i + 1);
-      return {
-        progres: u ? Math.round(u.avg_progres || 0) : null,
-        nilai: u && u.rata_rata_nilai != null ? Math.round(u.rata_rata_nilai) : null,
-        kegiatan: u ? (u.total_entries || 0) : 0,
-      };
-    });
-    return {
-      monthly,
-      hasTrend: yearUploads.length > 0,
-      hasKegiatan: yearUploads.some(u => (u.total_entries || 0) > 0),
-    };
-  }, [uniqueUploads, currentYear]);
-
-  const statusDonut = useMemo(() => [
-    { label: 'Disetujui', value: stats.approved, color: CHART_COLORS.success },
-    { label: 'Sudah Dinilai', value: uniqueUploads.filter(u => u.status === 'scored').length, color: CHART_COLORS.taupe },
-    { label: 'Menunggu Review', value: uniqueUploads.filter(u => u.status === 'submitted').length, color: CHART_COLORS.accent },
-    { label: 'Perlu Revisi', value: stats.rejected, color: CHART_COLORS.danger },
-  ].filter(d => d.value > 0), [stats.approved, stats.rejected, uniqueUploads]);
-
   // KPI cards config
   const kpiCards = [
     { icon: <FileText size={18} style={{ color: 'var(--primary)' }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: 'var(--primary-soft)' },
@@ -412,61 +379,6 @@ export default function PegawaiDashboard() {
             <KPICard key={card.label} loading={isLoading} {...card} />
           ))}
         </div>
-
-        {/* ── Insight (grafik) ──────────────────────── */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {[0, 1].map((i) => (
-              <div key={i} className={`neu-raised rounded-2xl p-5 ${i === 0 ? 'lg:col-span-2' : ''}`}>
-                <div className="skeleton h-4 w-40 rounded mb-4" />
-                <div className="skeleton h-[170px] w-full rounded-xl" />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <ChartCard
-              className="lg:col-span-2"
-              title="Tren Capaian & Nilai"
-              subtitle={`Perkembangan 12 bulan · ${currentYear}`}
-            >
-              {insight.hasTrend ? (
-                <LineChart
-                  labels={MONTH_ABBR.slice(1)}
-                  series={[
-                    { name: 'Capaian (%)', color: CHART_COLORS.primary, values: insight.monthly.map((m) => m.progres) },
-                    { name: 'Nilai', color: CHART_COLORS.accent, values: insight.monthly.map((m) => m.nilai) },
-                  ]}
-                />
-              ) : (
-                <ChartEmpty label={`Belum ada upload pada ${currentYear}`} />
-              )}
-            </ChartCard>
-
-            <ChartCard title="Komposisi Status" subtitle="Seluruh periode upload">
-              {statusDonut.length > 0 ? (
-                <DonutChart data={statusDonut} centerValue={String(uniqueUploads.length)} centerLabel="total upload" />
-              ) : (
-                <ChartEmpty />
-              )}
-            </ChartCard>
-
-            <ChartCard
-              className="lg:col-span-3"
-              title="Jumlah Kegiatan per Bulan"
-              subtitle={`Total kegiatan CKP ${currentYear}`}
-            >
-              {insight.hasKegiatan ? (
-                <BarChart
-                  data={insight.monthly.map((m, i) => ({ label: MONTH_ABBR[i + 1], value: m.kegiatan }))}
-                  valueSuffix=" kegiatan"
-                />
-              ) : (
-                <ChartEmpty label={`Belum ada kegiatan pada ${currentYear}`} />
-              )}
-            </ChartCard>
-          </div>
-        )}
 
         {/* ── Activity Feed Section ─────────────────── */}
         <div>

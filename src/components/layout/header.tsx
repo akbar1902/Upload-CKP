@@ -66,6 +66,12 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Monitoring Penilaian Ketua Tim',
     };
   }
+  if (pathname === '/insight') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : (pathname.startsWith('/ketua_tim') ? '/ketua_tim' : '/pegawai') }, { label: 'Insight' }],
+      title: 'Insight Kinerja',
+    };
+  }
   if (pathname === '/rencana_kinerja') {
     return {
       crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : '/pegawai' }, { label: 'Rencana Kinerja' }],
@@ -118,8 +124,8 @@ export function Header({
 }: HeaderProps) {
   const [mounted, setMounted] = React.useState(false);
 
-  // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration guard
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- canonical hydration guard
     setMounted(true);
   }, []);
 
@@ -239,11 +245,14 @@ export function Header({
           {/* Divider */}
           <div className="hidden sm:block w-px h-6" style={{ background: 'var(--border)' }} aria-hidden="true" />
 
-          {/* User info */}
-          <div className="hidden sm:flex items-center gap-2.5">
+          {/* User info — pill neumorfik */}
+          <div
+            className="hidden sm:flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5"
+            style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-raised-sm)' }}
+          >
             <div
               className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0"
-              style={{ background: 'var(--primary)' }}
+              style={{ background: 'var(--primary)', boxShadow: 'var(--neu-inset-sm)' }}
               aria-hidden="true"
             >
               {initials}
