@@ -20,9 +20,31 @@ import {
 } from 'lucide-react';
 
 import { KPICard } from '@/components/dashboard/kpi-card';
+import {
+  BarChart,
+  CHART_COLORS,
+  ChartCard,
+  ChartEmpty,
+  DonutChart,
+  HBarChart,
+  LineChart,
+} from '@/components/dashboard/charts';
 import { StatusLabel } from '@/components/dashboard/status-badge';
 import { PegawaiCard, PegawaiCardSkeleton, type PegawaiRow } from '@/components/dashboard/pegawai-card';
 import { ScreenshotButton } from '@/components/ui/screenshot-button';
+
+// ─── Label bulan singkat untuk sumbu grafik ────────────────
+const MONTH_ABBR = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+// ─── Tipe data insight (query tahunan) ─────────────────────
+interface InsightUpload {
+  bulan: number;
+  status: string;
+  version: number;
+  avg_progres: number;
+  rata_rata_nilai: number | null;
+  user_id: string;
+}
 
 // ─── Completion Rate Widget ────────────────────────────────
 function CompletionWidget({ uploaded, total, loading }: { uploaded: number; total: number; loading: boolean }) {
@@ -131,6 +153,32 @@ export default function PimpinanDashboard() {
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Query terpisah untuk insight setahun penuh (semua bulan)
+  const { data: insightData, isPending: insightPending } = useQuery({
+    queryKey: ['pimpinan-insight', tahun],
+    queryFn: async () => {
+      const [upsRes, usersRes] = await Promise.all([
+        supabase
+          .from('ckp_uploads')
+          .select('bulan, status, version, avg_progres, rata_rata_nilai, user_id')
+          .eq('tahun', tahun),
+        supabase
+          .from('users')
+          .select('id')
+          .in('role', ['anggota', 'ketua_tim'])
+          .eq('is_active', true),
+      ]);
+      if (upsRes.error) throw new Error(upsRes.error.message);
+      return {
+        uploads: (upsRes.data || []) as InsightUpload[],
+        totalPegawai: (usersRes.data || []).length,
+      };
+    },
+    enabled: !!user && !authLoading,
+    networkMode: 'always',
+    staleTime: 1000 * 60 * 5,
   });
 
   const loading = authLoading || queryPending;
@@ -280,6 +328,74 @@ export default function PimpinanDashboard() {
     ? Math.round(uniqueUploads.reduce((s, u) => s + (u.avg_progres || 0), 0) / uniqueUploads.length)
     : 0;
 
+  // ── Insight tahunan (grafik) ────────────────────────────
+  const insight = useMemo(() => {
+    const ups = insightData?.uploads ?? [];
+    const totalPegawai = insightData?.totalPegawai ?? 0;
+
+    // Dedupe: ambil versi terbaru per (pegawai, bulan)
+    const latest = new Map<string, InsightUpload>();
+    for (const u of ups) {
+      const key = `${u.user_id}-${u.bulan}`;
+      const cur = latest.get(key);
+      if (!cur || (u.version ?? 1) > (cur.version ?? 1)) latest.set(key, u);
+    }
+    const rows = Array.from(latest.values());
+
+    const monthly = Array.from({ length: 12 }, (_, i) => {
+      const m = rows.filter((r) => r.bulan === i + 1);
+      const withProgress = m.filter((r) => (r.avg_progres ?? 0) > 0);
+      const avgProgres = withProgress.length
+        ? withProgress.reduce((s, r) => s + (r.avg_progres || 0), 0) / withProgress.length
+        : null;
+      const scored = m.filter((r) => r.rata_rata_nilai != null);
+      const avgNilai = scored.length
+        ? scored.reduce((s, r) => s + (r.rata_rata_nilai || 0), 0) / scored.length
+        : null;
+      return {
+        bulan: i + 1,
+        reporters: new Set(m.map((r) => r.user_id)).size,
+        avgProgres,
+        avgNilai,
+      };
+    });
+
+    const statusCounts = { approved: 0, scored: 0, submitted: 0, revision: 0 };
+    for (const r of rows) {
+      if (r.status === 'approved') statusCounts.approved++;
+      else if (r.status === 'scored') statusCounts.scored++;
+      else if (r.status === 'submitted') statusCounts.submitted++;
+      else if (r.status === 'rejected' || r.status === 'revision_required') statusCounts.revision++;
+    }
+
+    const topPegawai = uniqueUploads
+      .filter((u) => u.user)
+      .map((u) => {
+        const p = u.avg_progres || 0;
+        return {
+          label: u.user!.full_name,
+          value: Math.round(p),
+          caption: u.rata_rata_nilai != null ? `Nilai ${u.rata_rata_nilai.toFixed(1)}` : 'Belum dinilai',
+          color: p >= 80 ? CHART_COLORS.success : p >= 50 ? CHART_COLORS.primary : CHART_COLORS.warning,
+        };
+      })
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8);
+
+    return { monthly, statusCounts, topPegawai, totalPegawai, hasYear: rows.length > 0 };
+  }, [insightData, uniqueUploads]);
+
+  const statusDonut = useMemo(
+    () =>
+      [
+        { label: 'Disetujui', value: insight.statusCounts.approved, color: CHART_COLORS.success },
+        { label: 'Sudah Dinilai', value: insight.statusCounts.scored, color: CHART_COLORS.taupe },
+        { label: 'Menunggu Review', value: insight.statusCounts.submitted, color: CHART_COLORS.accent },
+        { label: 'Perlu Revisi', value: insight.statusCounts.revision, color: CHART_COLORS.danger },
+      ].filter((d) => d.value > 0),
+    [insight.statusCounts]
+  );
+
   const getPeriodName = (p: string | number) => {
     if (typeof p === 'string' && p.startsWith('T')) {
       const tMap: Record<string, string> = {
@@ -411,6 +527,80 @@ export default function PimpinanDashboard() {
           <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--success-text)' }} />} value={approvedCount} label="Disetujui" sub="Bulan ini" iconBg="var(--success-soft)" loading={loading} />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
         </div>
+
+        {/* ── Insight (grafik) ──────────────────────── */}
+        {loading || insightPending ? (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            {[0, 1].map((i) => (
+              <div key={i} className={`neu-raised rounded-2xl p-5 ${i === 0 ? 'lg:col-span-2' : ''}`}>
+                <div className="skeleton h-4 w-44 rounded mb-4" />
+                <div className="skeleton h-[170px] w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <ChartCard
+              className="lg:col-span-2"
+              title="Tingkat Pelaporan per Bulan"
+              subtitle={`Jumlah pegawai yang melapor · ${tahun}`}
+            >
+              {insight.hasYear ? (
+                <BarChart
+                  data={insight.monthly.map((m, i) => ({ label: MONTH_ABBR[i + 1] ?? String(i + 1), value: m.reporters }))}
+                  max={Math.max(insight.totalPegawai, 1)}
+                  referenceValue={insight.totalPegawai}
+                  referenceLabel={`Total ${insight.totalPegawai}`}
+                  valueSuffix=" pegawai"
+                />
+              ) : (
+                <ChartEmpty label={`Belum ada laporan pada ${tahun}`} />
+              )}
+            </ChartCard>
+
+            <ChartCard title="Komposisi Status" subtitle={`Seluruh bulan ${tahun}`}>
+              {statusDonut.length > 0 ? (
+                <DonutChart
+                  data={statusDonut}
+                  centerValue={String(statusDonut.reduce((s, d) => s + d.value, 0))}
+                  centerLabel="total CKP"
+                />
+              ) : (
+                <ChartEmpty />
+              )}
+            </ChartCard>
+
+            <ChartCard
+              className="lg:col-span-2"
+              title="Tren Capaian & Nilai"
+              subtitle={`Rata-rata seluruh pegawai · ${tahun}`}
+            >
+              {insight.hasYear ? (
+                <LineChart
+                  labels={MONTH_ABBR.slice(1)}
+                  series={[
+                    {
+                      name: 'Capaian (%)',
+                      color: CHART_COLORS.primary,
+                      values: insight.monthly.map((m) => (m.avgProgres == null ? null : Math.round(m.avgProgres))),
+                    },
+                    {
+                      name: 'Nilai',
+                      color: CHART_COLORS.accent,
+                      values: insight.monthly.map((m) => (m.avgNilai == null ? null : Math.round(m.avgNilai))),
+                    },
+                  ]}
+                />
+              ) : (
+                <ChartEmpty />
+              )}
+            </ChartCard>
+
+            <ChartCard title="Peringkat Pegawai" subtitle={`Capaian · ${getPeriodName(bulan)} ${tahun}`}>
+              <HBarChart data={insight.topPegawai} max={100} valueSuffix="%" emptyLabel="Belum ada data pegawai" />
+            </ChartCard>
+          </div>
+        )}
 
         {/* ── Rekap per Pegawai section ─────────────── */}
         <div id="export-pegawai-section" className="neu-raised rounded-2xl p-4 sm:p-5">

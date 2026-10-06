@@ -17,6 +17,12 @@ import {
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
 } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/kpi-card';
+import {
+  CHART_COLORS,
+  ChartCard,
+  ChartEmpty,
+  HBarChart,
+} from '@/components/dashboard/charts';
 
 export default function KetuaTimDashboardClient() {
   const supabase = useMemo(() => createClient(), []);
@@ -440,6 +446,61 @@ export default function KetuaTimDashboardClient() {
   const pendingRKs = allRKStats.filter((rk: any) => rk.totalEntries > 0 && !rk.allEvaluated).length;
   const avgOverallProgress = activeRKs > 0 ? allRKStats.reduce((s: number, rk: any) => s + rk.avgProgress, 0) / activeRKs : 0;
 
+  // ── Insight: beban penilaian per pegawai + nilai per RK ──
+  const insight = useMemo(() => {
+    interface EntryRow { upload_id: string; nilai: number | null }
+    interface UploadRow { id: string; user_id: string }
+    interface UserRow { id: string; full_name: string }
+    interface RkRow {
+      rencana_kinerja: string;
+      totalEntries: number;
+      avgScore: number | null;
+      allEvaluated: boolean;
+      avgProgress: number;
+    }
+
+    const entryRows = (entries ?? []) as EntryRow[];
+    const uploadRows = (uploads ?? []) as UploadRow[];
+    const userRows = (data?.users ?? []) as UserRow[];
+    const rkRows = (rkStats ?? []) as RkRow[];
+
+    const map = new Map<string, { label: string; total: number; evaluated: number }>();
+    for (const e of entryRows) {
+      const up = uploadRows.find((u) => u.id === e.upload_id);
+      if (!up) continue;
+      const u = userRows.find((x) => x.id === up.user_id);
+      const rec = map.get(up.user_id) ?? { label: u?.full_name ?? 'Pegawai', total: 0, evaluated: 0 };
+      rec.total += 1;
+      if (e.nilai != null) rec.evaluated += 1;
+      map.set(up.user_id, rec);
+    }
+
+    const beban = Array.from(map.values())
+      .map((r) => {
+        const pending = r.total - r.evaluated;
+        return {
+          label: r.label,
+          value: pending,
+          color: pending === 0 ? CHART_COLORS.success : CHART_COLORS.warning,
+          caption: `${r.evaluated}/${r.total} entri dinilai`,
+        };
+      })
+      .sort((a, b) => b.value - a.value);
+
+    const perRk = rkRows
+      .filter((rk) => rk.totalEntries > 0)
+      .map((rk) => ({
+        label: rk.rencana_kinerja,
+        value: rk.avgScore != null ? Number(rk.avgScore.toFixed(1)) : 0,
+        color: rk.allEvaluated ? CHART_COLORS.success : CHART_COLORS.primary,
+        caption: `Capaian ${rk.avgProgress.toFixed(0)}% · ${rk.totalEntries} entri`,
+      }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+
+    return { beban, perRk };
+  }, [entries, uploads, data?.users, rkStats]);
+
   if (error && !loading && rks.length === 0) {
     return (
       <>
@@ -544,6 +605,42 @@ export default function KetuaTimDashboardClient() {
           <KPICard icon={<Clock size={18} style={{ color: 'var(--warning)' }} />} value={pendingRKs} label="Menunggu Nilai" sub="RK belum dinilai penuh" iconBg="var(--warning-soft)" loading={loading} />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgOverallProgress.toFixed(0)}%`} label="Rata-rata Capaian" sub="Seluruh RK aktif" iconBg="var(--primary-soft)" loading={loading} />
         </div>
+
+        {/* ── Insight (grafik) ──────────────────────── */}
+        {loading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {[0, 1].map((i) => (
+              <div key={i} className="neu-raised rounded-2xl p-5">
+                <div className="skeleton h-4 w-44 rounded mb-4" />
+                <div className="skeleton h-[150px] w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ChartCard
+              title="Beban Penilaian per Pegawai"
+              subtitle={`Entri yang belum dinilai · ${getPeriodName(bulan)} ${tahun}`}
+            >
+              {insight.beban.length > 0 ? (
+                <HBarChart data={insight.beban} emptyLabel="Belum ada entri untuk dinilai" />
+              ) : (
+                <ChartEmpty />
+              )}
+            </ChartCard>
+
+            <ChartCard
+              title="Rata-rata Nilai per RK"
+              subtitle="Skala 0–100, 10 RK teratas"
+            >
+              {insight.perRk.length > 0 ? (
+                <HBarChart data={insight.perRk} max={100} decimals={1} emptyLabel="Belum ada nilai" />
+              ) : (
+                <ChartEmpty label="Belum ada RK dengan entri" />
+              )}
+            </ChartCard>
+          </div>
+        )}
 
         <div>
           <div className="flex items-center justify-between mb-4">
