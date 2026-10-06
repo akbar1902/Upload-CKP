@@ -241,6 +241,10 @@ export default function UploadPage() {
         const result = await parseExcelFile(file, bulan, tahun);
         if (isMounted) {
           setParseResult(result);
+          // File berhasil dibaca → langsung masuk ke langkah Preview
+          if (result.success && result.entries.length > 0) {
+            setWizardStep(2);
+          }
         }
       } catch {
         if (isMounted) {
@@ -689,20 +693,6 @@ export default function UploadPage() {
               </div>
             )}
           </CardContent>
-          <div className="flex justify-end px-7 pb-7">
-            <Button
-              onClick={() => setWizardStep(2)}
-              disabled={isLocked || existingUpload?.status === 'approved' || !parseResult?.success || parseResult.entries.length === 0}
-              title={
-                isLocked ? 'Periode dikunci admin'
-                : existingUpload?.status === 'approved' ? 'CKP sudah disetujui'
-                : !parseResult?.success ? 'Unggah file Excel terlebih dahulu'
-                : 'Lanjut ke preview'
-              }
-            >
-              Lanjut ke Preview <ArrowLeft className="h-4 w-4 rotate-180" />
-            </Button>
-          </div>
         </Card>
         )}
 
