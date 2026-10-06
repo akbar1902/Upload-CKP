@@ -219,8 +219,8 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer hover:border-[var(--tertiary-text)]"
-                      style={{ background: 'var(--sand-strong)', border: '1px dashed var(--tertiary-text)' }}
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer"
+                      style={{ background: 'var(--sand-strong)', boxShadow: 'var(--neu-raised-sm)', border: '1px solid transparent' }}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold" style={{ color: 'var(--tertiary-text)' }}>
