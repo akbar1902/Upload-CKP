@@ -32,7 +32,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
       value={
         <div className="flex items-baseline gap-1">
           <span>{uploaded}</span>
-          <span className="text-base font-normal text-slate-400">/{total}</span>
+          <span className="text-base font-normal" style={{ color: 'var(--text-tertiary)' }}>/{total}</span>
         </div>
       }
       label="Tingkat Pelaporan"
@@ -413,7 +413,7 @@ export default function PimpinanDashboard() {
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}
-        <div id="export-pegawai-section" className="bg-white dark:bg-[var(--card-bg)] rounded-xl p-4 sm:p-5">
+        <div id="export-pegawai-section" className="neu-raised rounded-2xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>

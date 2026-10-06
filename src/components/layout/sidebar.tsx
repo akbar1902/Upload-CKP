@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
@@ -79,6 +79,13 @@ export function Sidebar() {
   }, [queryClient, supabase, prefetchedUpload]);
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+
+  // Terima permintaan buka modal ganti password dari Command Palette
+  useEffect(() => {
+    const handler = () => setChangePasswordOpen(true);
+    window.addEventListener('sikap:change-password', handler);
+    return () => window.removeEventListener('sikap:change-password', handler);
+  }, []);
 
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';

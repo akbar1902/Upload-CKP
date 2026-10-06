@@ -106,7 +106,7 @@ export default function LoginPage() {
     }
   };
 
-  const primaryColor = '#0F766E'; // The green from SIKAP logo
+  const primaryColor = 'var(--primary)'; // Selaras token tema (light/dark)
 
   return (
     <div
@@ -116,8 +116,8 @@ export default function LoginPage() {
         className="absolute inset-0 pointer-events-none dark:hidden"
         style={{
           background: `
-            radial-gradient(circle at 12% 85%, rgba(15,118,110,.08), transparent 35%),
-            linear-gradient(180deg, #FFFFFF 0%, #FCFBF7 60%, #F7F3EA 100%)
+            radial-gradient(circle at 12% 85%, rgba(15,118,110,.10), transparent 35%),
+            linear-gradient(180deg, #F5F1EA 0%, #EFEAE2 55%, #E7E0D5 100%)
           `
         }}
       />
@@ -179,7 +179,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
 
         {/* Login Card */}
-        <div className="w-full max-w-[440px] bg-[var(--card-bg)] shadow-[0_20px_60px_-15px_rgba(90,74,52,0.18)] dark:shadow-none rounded-[32px] p-8 flex flex-col relative z-10 border border-transparent border-[var(--sand-border)]">
+        <div className="w-full max-w-[440px] neu-raised-lg rounded-[32px] p-8 flex flex-col relative z-10">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
@@ -224,9 +224,9 @@ export default function LoginPage() {
                 </div>
 
                 {resetError && (
-                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-red-50 border border-red-100">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
-                    <p className="text-[13px] font-medium text-red-600">{resetError}</p>
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
+                    <p className="text-[13px] font-medium text-[var(--danger-text)]">{resetError}</p>
                   </div>
                 )}
 
@@ -247,7 +247,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
@@ -317,9 +317,9 @@ export default function LoginPage() {
                 </div>
 
                 {error && (
-                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-red-50 border border-red-100">
-                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-red-500" />
-                    <p className="text-[13px] font-medium text-red-600">{error}</p>
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
+                    <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
                   </div>
                 )}
 
@@ -340,7 +340,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
@@ -374,12 +374,12 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[#0F766E] focus:ring-1 focus:ring-[#0F766E] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-gray-600 transition-colors"
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
                       >
                         {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                       </button>
@@ -402,10 +402,10 @@ export default function LoginPage() {
 
           {/* Footer inside the card */}
           <div className="mt-6 text-center border-t border-[var(--border)] pt-6">
-            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-slate-500 font-medium">
+            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
               © {new Date().getFullYear()} BPS Kabupaten Belitung
             </p>
-            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-slate-500 font-medium">
+            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
               Sistem Informasi Capaian Kinerja Pegawai
             </p>
           </div>

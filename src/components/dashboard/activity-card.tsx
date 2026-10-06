@@ -235,7 +235,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             {canDelete && (
               showConfirmDelete ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-[12px] text-slate-500 hidden sm:inline">Yakin hapus?</span>
+                  <span className="text-[12px] hidden sm:inline" style={{ color: 'var(--text-secondary)' }}>Yakin hapus?</span>
                   <button
                     onClick={() => setShowConfirmDelete(false)}
                     className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-[var(--sand-subtle)] text-[var(--text-secondary)] hover:bg-[var(--sand-strong)] hover:text-[var(--tertiary-text)] transition-colors"
@@ -244,7 +244,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-[var(--danger)] hover:opacity-90 transition-colors"
                   >
                     Ya, Hapus
                   </button>

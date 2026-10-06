@@ -190,14 +190,29 @@
   --color-ring: var(--primary);
 }
 
-/* ─── Earthy Minimal Tokens ──────────────────────────────── */
+/* ─── Earthy Neumorphism Tokens ──────────────────────────── */
 :root {
-  /* Surface — 60%: netral hangat (hue ~35, saturasi <0.05, tidak kuning) */
-  --bg-base:        #FCFBF7; /* paper netral hangat */
-  --bg-secondary:   #F7F3EA; /* sand-subtle: tint SANGAT tipis utk hover/muted halus */
-  --card-bg:        #FFFFFF; /* putih paling terang → layering terjaga */
-  --bg-hover:       #F7F3EA;
-  --bg-active:      #EFE8D8;
+  /* ── Soft-UI (neumorphism) primitives ──
+     Surface dasar = warna yang sama dengan background; kedalaman dibentuk
+     oleh dua bayangan: gelap (kanan-bawah) + terang (kiri-atas). */
+  --neu-bg:            #EFEAE2;
+  --neu-surface:       #EFEAE2;
+  --neu-surface-2:     #E6DFD4;
+  --neu-shadow-dark:   rgba(163, 145, 116, 0.50);
+  --neu-shadow-light:  rgba(255, 255, 255, 0.95);
+  --neu-raised:        8px 8px 18px var(--neu-shadow-dark), -8px -8px 18px var(--neu-shadow-light);
+  --neu-raised-sm:     4px 4px 10px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light);
+  --neu-raised-lg:     14px 14px 34px var(--neu-shadow-dark), -14px -14px 34px var(--neu-shadow-light);
+  --neu-inset:         inset 5px 5px 12px var(--neu-shadow-dark), inset -5px -5px 12px var(--neu-shadow-light);
+  --neu-inset-sm:      inset 3px 3px 7px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light);
+  --neu-pressed:       inset 6px 6px 14px var(--neu-shadow-dark), inset -6px -6px 14px var(--neu-shadow-light);
+
+  /* Surface — 60%: satu bidang neumorfik (bg & kartu menyatu) */
+  --bg-base:        var(--neu-bg);
+  --bg-secondary:   var(--neu-surface-2);
+  --card-bg:        var(--neu-surface);
+  --bg-hover:       var(--neu-surface-2);
+  --bg-active:      #DED6C9;
 
   /* Primary — DIPERTAHANKAN (Teal SIKAP) */
   --primary:        #0F766E; /* Teal 700 */
@@ -215,8 +230,8 @@
   /* Tertiary — beige / sand: AKsen 10%, BUKAN permukaan utama.
      Pecah 3 turunan: border (50-60%), subtle (tint tipis), strong (elemen kecil) */
   --tertiary:        #E2D5C0;
-  --sand-border:     rgba(169, 146, 118, 0.55);  /* khusus border/divider */
-  --sand-subtle:     #F7F3EA;                    /* hover & muted sangat halus */
+  --sand-border:     rgba(169, 146, 118, 0.34);  /* border/divider — dilembutkan utk soft-UI */
+  --sand-subtle:     var(--neu-surface-2);       /* hover & muted sangat halus */
   --sand-strong:     #E2D5C0;                    /* chip aktif, badge netral, avatar placeholder */
   --tertiary-soft:   rgba(226, 213, 192, 0.35);
   --tertiary-text:   #5F4527;                 /* teks di atas sand (5.47 OK) */
@@ -243,23 +258,23 @@
   --text-secondary: #6E6759; /* cokelat keabu-abuan */
   --text-tertiary:  #A89C86; /* sand tua */
 
-  /* Border (sand-border, bukan beige solid) */
-  --border:         rgba(169, 146, 118, 0.55);
-  --border-soft:    rgba(169, 146, 118, 0.3);
-  --border-hover:   rgba(169, 146, 118, 0.75);
+  /* Border — dilembutkan (neumorphism mengandalkan bayangan, bukan garis tegas) */
+  --border:         rgba(169, 146, 118, 0.34);
+  --border-soft:    rgba(169, 146, 118, 0.2);
+  --border-hover:   rgba(169, 146, 118, 0.5);
 
-  /* Sidebar — paper netral, border kanan tipis */
-  --sidebar-bg:     #FCFBF7;
-  --sidebar-hover:  #F7F3EA;
+  /* Sidebar — menyatu dengan surface, dibatasi bayangan + garis tipis */
+  --sidebar-bg:     var(--neu-bg);
+  --sidebar-hover:  var(--neu-surface-2);
   --sidebar-active: rgba(15, 118, 110, 0.1);
   --sidebar-text:   #2B2A26;
   --sidebar-text-muted: #6E6759;
-  --sidebar-border: rgba(169, 146, 118, 0.55);
+  --sidebar-border: rgba(169, 146, 118, 0.28);
 
-  /* Shadow (hangat, tipis) */
-  --shadow-card:    0 1px 3px rgba(90, 74, 52, 0.06), 0 0 0 1px rgba(90, 74, 52, 0.04);
-  --shadow-hover:   0 4px 16px rgba(90, 74, 52, 0.1), 0 0 0 1px rgba(90, 74, 52, 0.04);
-  --shadow-elevated:0 12px 40px rgba(90, 74, 52, 0.16);
+  /* Shadow → neumorphism (raised / inset) */
+  --shadow-card:    var(--neu-raised);
+  --shadow-hover:   var(--neu-raised-lg);
+  --shadow-elevated:var(--neu-raised-lg);
 
   /* Radius */
   --radius-card:    20px;
@@ -276,14 +291,25 @@
 }
 
 .dark {
-  /* Malam netral elegan: bg abu-hangat netral (tanpa hijau), card abu hangat.
-     Sidebar tetap lebih gelap (dipertahankan — sudah oke). */
-  --bg-base:        #1C1A17;
-  --bg-secondary:   #292524;   /* sand-subtle versi dark */
-  --card-bg:        #35302A;   /* card-vs-bg 1.33 OK, netral hangat tanpa hijau */
-  --sand-subtle:    #292524;
-  --sand-border:    rgba(214, 201, 180, 0.22);
-  --sand-strong:    #4A4033;   /* netral hangat, tanpa dominan hijau */
+  /* ── Soft-UI primitives (dark) — highlight tipis, bayangan dalam ── */
+  --neu-bg:            #24211D;
+  --neu-surface:       #24211D;
+  --neu-surface-2:     #1D1B17;
+  --neu-shadow-dark:   rgba(0, 0, 0, 0.65);
+  --neu-shadow-light:  rgba(255, 255, 255, 0.05);
+  --neu-raised:        8px 8px 18px var(--neu-shadow-dark), -8px -8px 18px var(--neu-shadow-light);
+  --neu-raised-sm:     4px 4px 10px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light);
+  --neu-raised-lg:     14px 14px 34px var(--neu-shadow-dark), -14px -14px 34px var(--neu-shadow-light);
+  --neu-inset:         inset 5px 5px 12px var(--neu-shadow-dark), inset -5px -5px 12px var(--neu-shadow-light);
+  --neu-inset-sm:      inset 3px 3px 7px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light);
+  --neu-pressed:       inset 6px 6px 14px var(--neu-shadow-dark), inset -6px -6px 14px var(--neu-shadow-light);
+
+  --bg-base:        var(--neu-bg);
+  --bg-secondary:   var(--neu-surface-2);
+  --card-bg:        var(--neu-surface);
+  --sand-subtle:    var(--neu-surface-2);
+  --sand-border:    rgba(214, 201, 180, 0.16);
+  --sand-strong:    #3A342C;
 
   /* Primary dark = DUA teal (hasil ukur kontras):
      --primary = teal DALAM utk tombol (putih di atasnya 4.53 OK)
@@ -323,20 +349,20 @@
   --text-secondary: #B8AC96;   /* 7.90 OK di bg */
   --text-tertiary:  #9A8D76;   /* 5.43 OK di bg; hanya label kecil/non-esensial */
 
-  --border:         rgba(214, 201, 180, 0.22);
-  --border-soft:    rgba(214, 201, 180, 0.12);
-  --border-hover:   rgba(214, 201, 180, 0.35);
+  --border:         rgba(214, 201, 180, 0.16);
+  --border-soft:    rgba(214, 201, 180, 0.09);
+  --border-hover:   rgba(214, 201, 180, 0.28);
 
-  --sidebar-bg:     #14110D;   /* lebih gelap dari bg → sidebar kepisah */
-  --sidebar-hover:  rgba(214, 201, 180, 0.07);
+  --sidebar-bg:     #1E1B18;   /* sedikit lebih dalam dari surface */
+  --sidebar-hover:  var(--neu-surface-2);
   --sidebar-active: rgba(31, 138, 125, 0.22);
   --sidebar-text:   #EDE6D6;
   --sidebar-text-muted: #B8AC96;
-  --sidebar-border: rgba(214, 201, 180, 0.14);
+  --sidebar-border: rgba(214, 201, 180, 0.12);
 
-  --shadow-card:    0 1px 2px rgba(0,0,0,0.5), 0 0 0 1px rgba(214,201,180,0.06);
-  --shadow-hover:   0 6px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(214,201,180,0.08);
-  --shadow-elevated:0 14px 44px rgba(0,0,0,0.6);
+  --shadow-card:    var(--neu-raised);
+  --shadow-hover:   var(--neu-raised-lg);
+  --shadow-elevated:var(--neu-raised-lg);
 }
 
 /* ─── Base ───────────────────────────────────────────────── */
@@ -487,7 +513,7 @@ body {
 .badge-approved  { background: var(--success-soft);  color: var(--success-text); }
 /* Menunggu Review = terracotta tint (aksen perhatian, bukan primary) */
 .badge-submitted { background: var(--accent-soft); color: var(--accent-strong); border: 1px solid var(--accent-ring); }
-.badge-scored { background: #EFE9DB; color: #6B5A44; border: 1px solid transparent; }
+.badge-scored { background: var(--sand-strong); color: var(--tertiary-text); border: 1px solid transparent; }
 .badge-rejected  { background: var(--danger-soft);  color: var(--danger-text); }
 .badge-revision  { background: var(--danger-soft); color: var(--danger-text); border: 1px solid var(--danger-soft); }
 .badge-draft     { background: var(--sand-subtle);   color: var(--text-secondary); }
@@ -495,7 +521,7 @@ body {
 
 .dark .badge-approved  { background: var(--success-soft);  color: var(--success-text); }
 .dark .badge-submitted { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-ring); }
-.dark .badge-scored { background: rgba(217,201,178,0.12); color: #D9C9B2; }
+.dark .badge-scored { background: var(--sand-strong); color: var(--tertiary-text); }
 .dark .badge-rejected  { background: var(--danger-soft);  color: var(--danger-text); }
 .dark .badge-revision  { background: var(--danger-soft); color: var(--danger-text); }
 .dark .badge-draft     { background: rgba(255,255,255,0.06); color: var(--text-secondary); }
@@ -959,4 +985,154 @@ input, textarea, select {
 }
 .dark .shadow-sm {
   box-shadow: var(--shadow-card) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   NEUMORPHISM (Soft UI) LAYER
+   Presentational override saja — tidak mengubah struktur/logika.
+   Ditulis tanpa @layer agar menang atas utility Tailwind.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Utility */
+.neu-raised    { background: var(--neu-surface); box-shadow: var(--neu-raised); }
+.neu-raised-sm { background: var(--neu-surface); box-shadow: var(--neu-raised-sm); }
+.neu-raised-lg { background: var(--neu-surface); box-shadow: var(--neu-raised-lg); }
+.neu-inset     { background: var(--neu-surface); box-shadow: var(--neu-inset); }
+.neu-inset-sm  { background: var(--neu-surface); box-shadow: var(--neu-inset-sm); }
+.neu-flat      { background: var(--neu-surface); box-shadow: none; }
+
+/* ── Cards ── */
+.kpi-card,
+.activity-card,
+.pegawai-card {
+  background: var(--neu-surface);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--neu-raised);
+}
+.kpi-card:hover,
+.activity-card:hover,
+.pegawai-card:hover {
+  box-shadow: var(--neu-raised-lg);
+  transform: translateY(-2px);
+}
+
+/* ── Buttons ── */
+.btn-primary {
+  box-shadow: var(--neu-raised-sm);
+}
+.btn-primary:hover {
+  background: var(--primary-hover);
+  box-shadow: var(--neu-raised);
+}
+.btn-primary:active {
+  transform: translateY(1px);
+  box-shadow: var(--neu-pressed);
+}
+
+.btn-secondary {
+  background: var(--neu-surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--neu-raised-sm);
+}
+.btn-secondary:hover {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+.btn-secondary:active {
+  transform: translateY(1px);
+  box-shadow: var(--neu-pressed);
+}
+
+/* ── Fields (inset / cekung) ── */
+.neu-field {
+  background: var(--neu-surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--neu-inset-sm);
+}
+.neu-field:focus,
+.neu-field:focus-within {
+  border-color: var(--primary);
+  box-shadow: var(--neu-inset-sm), 0 0 0 4px var(--primary-ring);
+}
+
+.search-input {
+  background: var(--neu-surface);
+  border-color: transparent;
+  box-shadow: var(--neu-inset-sm);
+}
+.search-input:focus-within {
+  border-color: transparent;
+  box-shadow: var(--neu-inset-sm), 0 0 0 4px var(--primary-ring);
+}
+
+/* ── Filter buttons / toggles ── */
+.filter-btn {
+  background: var(--neu-surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--neu-raised-sm);
+}
+.filter-btn:hover {
+  background: var(--neu-surface);
+  box-shadow: var(--neu-raised);
+}
+.filter-btn.active,
+.filter-btn-active {
+  box-shadow: var(--neu-pressed);
+  border-color: var(--primary-ring);
+}
+.filter-btn.active.attention,
+.filter-btn-active.attention {
+  box-shadow: var(--neu-pressed);
+  border-color: var(--accent-ring);
+}
+
+.view-toggle {
+  background: var(--neu-surface);
+  border-color: var(--border-soft);
+  box-shadow: var(--neu-raised-sm);
+}
+.view-toggle-btn.active {
+  background: var(--primary);
+  box-shadow: var(--neu-pressed);
+}
+
+/* ── Date block (inset tint) ── */
+.date-block {
+  background: var(--primary-soft);
+  border-color: var(--primary-ring);
+  box-shadow: var(--neu-inset-sm);
+}
+
+/* ── Badges — flat ── */
+.badge-pill { box-shadow: none; }
+
+/* ── Skeleton — inset ── */
+.skeleton { box-shadow: var(--neu-inset-sm); }
+
+/* ── Header — pemisah halus ── */
+.header-glass {
+  box-shadow: 0 8px 20px -14px rgba(90, 74, 52, 0.6);
+}
+.dark .header-glass {
+  box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.85);
+}
+
+/* ── Table rows ── */
+.table-row:hover,
+.table-row-hover:hover {
+  background-color: var(--neu-surface-2);
+}
+
+/* ── Sidebar nav item aktif — cekung ── */
+.sidebar-nav-item.active {
+  box-shadow: var(--neu-inset-sm);
+}
+
+/* ── Reduced motion: matikan translasi berlebih ── */
+@media (prefers-reduced-motion: reduce) {
+  .kpi-card:hover,
+  .activity-card:hover,
+  .pegawai-card:hover {
+    transform: none;
+  }
 }

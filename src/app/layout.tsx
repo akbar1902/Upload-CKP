@@ -9,6 +9,7 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { RecoveryManager } from "@/components/providers/recovery-manager";
 import { KeepAliveManager } from "@/components/providers/keepalive-manager";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import NextTopLoader from 'nextjs-toploader';
 
 export const metadata: Metadata = {
@@ -71,22 +72,24 @@ export default function RootLayout({
           <QueryProvider>
             <AuthProvider>
               <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
-                <RecoveryManager>
-                  {children}
-                </RecoveryManager>
-                <KeepAliveManager />
-                <Toaster
-                  position="top-right"
-                  richColors
-                  closeButton
-                  toastOptions={{
-                    style: {
-                      fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
-                      borderRadius: '16px',
-                      fontSize: '14px',
-                    },
-                  }}
-                />
+                <CommandPaletteProvider>
+                  <RecoveryManager>
+                    {children}
+                  </RecoveryManager>
+                  <KeepAliveManager />
+                  <Toaster
+                    position="top-right"
+                    richColors
+                    closeButton
+                    toastOptions={{
+                      style: {
+                        fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
+                        borderRadius: '16px',
+                        fontSize: '14px',
+                      },
+                    }}
+                  />
+                </CommandPaletteProvider>
               </ThemeProvider>
             </AuthProvider>
           </QueryProvider>

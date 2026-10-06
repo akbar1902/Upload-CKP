@@ -29,7 +29,7 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
       value={
         <div className="flex items-baseline gap-1">
           <span>{uploaded}</span>
-          <span className="text-base font-normal text-slate-400">/{total}</span>
+          <span className="text-base font-normal" style={{ color: 'var(--text-tertiary)' }}>/{total}</span>
         </div>
       }
       label="Tingkat Pelaporan"

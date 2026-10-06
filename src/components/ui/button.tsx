@@ -7,10 +7,10 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)]",
-        destructive: "bg-[var(--danger)] text-white rounded-full hover:opacity-90",
-        outline: "border border-[var(--sand-border)] bg-[var(--card-bg)] text-[var(--primary)] rounded-full hover:bg-[var(--sand-subtle)]",
-        secondary: "bg-[var(--card-bg)] border border-[var(--sand-border)] text-[var(--primary)] rounded-full hover:bg-[var(--sand-subtle)]",
+        default: "bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)] shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
+        destructive: "bg-[var(--danger)] text-white rounded-full hover:opacity-90 shadow-[var(--neu-raised-sm)]",
+        outline: "border border-[var(--border-soft)] bg-[var(--neu-surface)] text-[var(--primary)] rounded-full shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
+        secondary: "bg-[var(--neu-surface)] border border-[var(--border-soft)] text-[var(--primary)] rounded-full shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
         ghost: "text-[var(--text-secondary)] rounded-xl hover:bg-[var(--sand-subtle)] hover:text-[var(--text-primary)]",
         link: "text-[var(--primary)] underline-offset-4 hover:underline rounded-xl",
         success: "bg-[var(--secondary-strong)] text-white rounded-full hover:opacity-90",

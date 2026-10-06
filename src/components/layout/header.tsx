@@ -4,9 +4,10 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { Download, ChevronRight } from 'lucide-react';
+import { Download, ChevronRight, Search } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { useCommandPalette } from '@/components/layout/command-palette';
 
 // ── Breadcrumb configuration ───────────────────────────────
 interface BreadcrumbConfig {
@@ -124,6 +125,7 @@ export function Header({
 
   const pathname = usePathname();
   const { user } = useAuth();
+  const { open: openCommandPalette } = useCommandPalette();
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
 
   const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan);
@@ -192,6 +194,29 @@ export function Header({
 
         {/* ── Right: Actions + User ─────────────────── */}
         <div className="flex items-center gap-2 flex-shrink-0">
+
+          {/* Command palette trigger */}
+          <button
+            onClick={openCommandPalette}
+            className="group flex items-center gap-2 rounded-full transition-all duration-200"
+            style={{
+              background: 'var(--neu-surface)',
+              boxShadow: 'var(--neu-raised-sm)',
+              color: 'var(--text-secondary)',
+              padding: '8px 12px',
+            }}
+            aria-label="Buka pencarian cepat (Ctrl+K)"
+            title="Pencarian cepat (Ctrl+K)"
+          >
+            <Search size={15} />
+            <span className="hidden md:inline text-[13px]">Cari…</span>
+            <kbd
+              className="hidden md:inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+              style={{ background: 'var(--neu-surface-2)', color: 'var(--text-tertiary)', boxShadow: 'var(--neu-inset-sm)' }}
+            >
+              Ctrl K
+            </kbd>
+          </button>
 
           {/* Export button */}
           {showExport && onExport && (
