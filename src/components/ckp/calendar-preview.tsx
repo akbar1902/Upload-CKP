@@ -59,7 +59,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
     <div className="space-y-4">
       {/* ─── Triwulan Month Tabs (if Triwulan) ─── */}
       {isTriwulan && (
-        <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: 'var(--border)' }}>
+        <div className="flex items-center gap-2 pb-2" style={{ borderBottom: '1px solid var(--border-soft)' }}>
           <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Bulan:</span>
           {monthsInTriwulan.map(m => {
             const mName = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][m];
@@ -69,11 +69,10 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                 key={m}
                 type="button"
                 onClick={() => setSelectedBulan(m)}
-                className={`px-3 py-1 text-[12px] rounded-lg font-medium transition-all ${
-                  isActive
-                    ? 'bg-[var(--primary)] text-white shadow-sm'
-                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
+                className="px-3 py-1 text-[12px] rounded-full font-medium transition-all"
+                style={isActive
+                  ? { background: 'var(--primary)', color: '#fff' }
+                  : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 {mName}
               </button>
@@ -83,29 +82,31 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
       )}
 
       {/* ─── Header Info Ringkas & Kalem ──────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1 border-b border-slate-100 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-1" style={{ borderBottom: '1px solid var(--border-soft)' }}>
         <div className="flex items-center gap-2">
-          <CalendarIcon className="w-4 h-4 text-[var(--primary)]" />
-          <span className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+          <CalendarIcon className="w-4 h-4" style={{ color: 'var(--primary)' }} />
+          <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
             Kalender Hari Kerja
           </span>
-          <span className="text-xs text-slate-400 dark:text-slate-500">
+          <span className="text-xs" style={{ color: 'var(--text-tertiary)' }}>
             ({period.periodLabel})
           </span>
         </div>
 
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-slate-500 dark:text-slate-400">
+          <span style={{ color: 'var(--text-secondary)' }}>
             {filledWorkDays} dari {totalWorkDays} hari kerja terisi
           </span>
           {emptyWorkDays.length > 0 ? (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px] bg-amber-50 text-amber-700 border border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px]"
+                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warning)' }} />
               {emptyWorkDays.length} belum terisi
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px]"
+                  style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--success)' }} />
               Lengkap
             </span>
           )}
@@ -117,35 +118,39 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
         {months.map((m) => (
           <div
             key={`${m.year}-${m.month}`}
-            className="rounded-xl border border-slate-200/90 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900/60 shadow-xs"
+            className="rounded-2xl overflow-hidden"
+            style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}
           >
             {/* Header Bulan */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/60 dark:bg-slate-900/80">
+            <div
+              className="px-4 py-3 flex items-center justify-between"
+              style={{ borderBottom: '1px solid var(--border-soft)', background: 'var(--neu-surface-2)' }}
+            >
               <div>
-                <span className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+                <span className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>
                   {m.monthName} {m.year}
                 </span>
-                <span className="ml-2 text-xs text-slate-400 dark:text-slate-500">
+                <span className="ml-2 text-xs" style={{ color: 'var(--text-tertiary)' }}>
                   ({m.periodSubtitle.replace('Periode: ', '')})
                 </span>
               </div>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                 {m.filledWorkDaysInPeriod}/{m.workDaysInPeriod} hari kerja
               </span>
             </div>
 
             {/* Header Hari (Sen - Min) */}
-            <div className="grid grid-cols-7 border-b border-slate-100 dark:border-slate-800/80 text-center py-2 bg-slate-50/30 dark:bg-slate-900/40">
+            <div
+              className="grid grid-cols-7 text-center py-2"
+              style={{ borderBottom: '1px solid var(--border-soft)' }}
+            >
               {WEEK_HEADER.map((dayName, idx) => {
                 const isWeekendCol = idx >= 5;
                 return (
                   <span
                     key={dayName}
-                    className={`text-[11px] font-medium ${
-                      isWeekendCol
-                        ? 'text-slate-400 dark:text-slate-500'
-                        : 'text-slate-600 dark:text-slate-300'
-                    }`}
+                    className="text-[11px] font-medium"
+                    style={{ color: isWeekendCol ? 'var(--text-tertiary)' : 'var(--text-secondary)' }}
                   >
                     {dayName}
                   </span>
@@ -161,9 +166,10 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                   return (
                     <div
                       key={idx}
-                      className="min-h-[68px] rounded-lg p-1.5 flex flex-col justify-start opacity-25 select-none bg-slate-50/40 dark:bg-slate-900/20"
+                      className="min-h-[68px] rounded-lg p-1.5 flex flex-col justify-start opacity-25 select-none"
+                      style={{ background: 'var(--neu-surface-2)' }}
                     >
-                      <span className="text-xs text-slate-400 dark:text-slate-600 font-medium">
+                      <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
                         {day.dayOfMonth}
                       </span>
                     </div>
@@ -177,27 +183,28 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className={`min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-colors border ${
-                        day.hasActivities
-                          ? 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700/80 hover:border-slate-300'
-                          : 'bg-slate-50/40 dark:bg-slate-900/30 border-dashed border-slate-200/70 dark:border-slate-800/60'
-                      }`}
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all"
+                      style={{
+                        background: day.hasActivities ? 'var(--neu-surface)' : 'var(--neu-surface-2)',
+                        boxShadow: day.hasActivities ? 'var(--neu-raised-sm)' : 'none',
+                        border: day.hasActivities ? '1px solid transparent' : '1px dashed var(--border)',
+                      }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                        <span className="text-xs font-medium" style={{ color: 'var(--text-tertiary)' }}>
                           {day.dayOfMonth}
                         </span>
                         {day.hasActivities && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary)' }} />
                         )}
                       </div>
 
                       {day.hasActivities ? (
-                        <span className="text-[10px] text-[var(--primary)] font-medium truncate">
+                        <span className="text-[10px] font-medium truncate" style={{ color: 'var(--primary)' }}>
                           {day.activities.length} keg (weekend)
                         </span>
                       ) : (
-                        <span className="text-[10px] text-slate-300 dark:text-slate-600">
+                        <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                           Libur
                         </span>
                       )}
@@ -212,21 +219,22 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all bg-amber-50/60 dark:bg-amber-950/20 border border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-pointer shadow-2xs"
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer hover:border-[var(--warning)]"
+                      style={{ background: 'var(--warning-soft)', border: '1px dashed var(--warning)' }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-amber-900 dark:text-amber-200">
+                        <span className="text-xs font-semibold" style={{ color: 'var(--warning-text)' }}>
                           {day.dayOfMonth}
                         </span>
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--warning)' }} />
                       </div>
 
                       <div className="space-y-0.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.2 rounded bg-amber-100/90 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: 'var(--card-bg)', color: 'var(--warning-text)' }}>
                           Kosong
                         </span>
                         {day.holidayName ? (
-                          <span className="block text-[9px] text-amber-700 dark:text-amber-400 truncate" title={day.holidayName}>
+                          <span className="block text-[9px] truncate" style={{ color: 'var(--warning-text)' }} title={day.holidayName}>
                             {day.holidayName}
                           </span>
                         ) : null}
@@ -241,21 +249,22 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                     key={idx}
                     type="button"
                     onClick={() => setSelectedDay(day)}
-                    className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 hover:border-teal-400 dark:hover:border-teal-600 hover:shadow-2xs cursor-pointer group"
+                    className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer group"
+                    style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-raised-sm)', border: '1px solid transparent' }}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-teal-700 dark:group-hover:text-teal-400">
+                      <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)' }}>
                         {day.dayOfMonth}
                       </span>
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]" />
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--primary)' }} />
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] text-[var(--primary)] font-medium block">
+                      <span className="text-[10px] font-medium block" style={{ color: 'var(--primary)' }}>
                         {day.activities.length} kegiatan
                       </span>
                       {day.activities[0]?.kegiatan && (
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate font-normal leading-tight">
+                        <p className="text-[10px] truncate font-normal leading-tight" style={{ color: 'var(--text-secondary)' }}>
                           {String(day.activities[0].kegiatan)}
                         </p>
                       )}

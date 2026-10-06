@@ -271,10 +271,12 @@
   --sidebar-text-muted: #6E6759;
   --sidebar-border: rgba(169, 146, 118, 0.28);
 
-  /* Shadow → neumorphism (raised / inset) */
+  /* Shadow → neumorphism (raised / inset) untuk elemen di atas permukaan */
   --shadow-card:    var(--neu-raised);
   --shadow-hover:   var(--neu-raised-lg);
-  --shadow-elevated:var(--neu-raised-lg);
+  /* Elemen mengambang (dialog/dropdown) di atas backdrop gelap: pakai drop
+     shadow biasa — highlight putih neumorfik justru tampak "glow". */
+  --shadow-elevated:0 24px 60px -16px rgba(60, 50, 35, 0.45), 0 6px 16px -8px rgba(60, 50, 35, 0.22);
 
   /* Radius */
   --radius-card:    20px;
@@ -362,7 +364,8 @@
 
   --shadow-card:    var(--neu-raised);
   --shadow-hover:   var(--neu-raised-lg);
-  --shadow-elevated:var(--neu-raised-lg);
+  /* Drop shadow gelap untuk elemen mengambang (tanpa highlight putih) */
+  --shadow-elevated:0 24px 60px -16px rgba(0, 0, 0, 0.75), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
 }
 
 /* ─── Base ───────────────────────────────────────────────── */
