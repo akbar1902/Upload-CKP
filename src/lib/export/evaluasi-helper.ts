@@ -107,9 +107,45 @@ function readInlineParentName(entry: any): string | null {
   return typeof v === 'string' && v.trim().length > 0 ? v.trim() : null;
 }
 
+/** Pecah teks jadi himpunan kata (huruf/angka saja, huruf kecil). */
+function rkTokens(s: string): Set<string> {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .split(/\s+/)
+      .filter(Boolean),
+  );
+}
+
 /**
- * Label tampil RK: 'Sub-RK (Parent RK)' bila parent ada dan beda dari sub;
- * fallback nama sub apa adanya (data lama / tanpa mapping).
+ * True bila parent RK praktis sama dengan sub-RK, sehingga menampilkan
+ * "(parent)" hanya membuat label dobel. Contoh: sub "Terlaksananya Kegiatan
+ * Survei ... Tahun 2026" vs parent "Terlaksananya Survei ... Tahun 2026"
+ * (beda hanya kata "Kegiatan").
+ */
+function isRedundantParent(sub: string, parent: string): boolean {
+  const a = rkTokens(sub);
+  const b = rkTokens(parent);
+  if (a.size === 0 || b.size === 0) return false;
+
+  let inter = 0;
+  a.forEach((t) => {
+    if (b.has(t)) inter += 1;
+  });
+  const union = a.size + b.size - inter;
+  const jaccard = union > 0 ? inter / union : 0;
+  if (jaccard >= 0.8) return true;
+
+  // Salah satu himpunan kata termuat penuh di himpunan lain
+  const minSize = Math.min(a.size, b.size);
+  return minSize > 0 && inter === minSize;
+}
+
+/**
+ * Label tampil RK: 'Sub-RK (Parent RK)' bila parent ada dan benar-benar
+ * berbeda dari sub; fallback nama sub apa adanya (data lama / tanpa mapping).
+ * Parent yang nyaris identik dengan sub tidak ditampilkan agar tidak dobel.
  */
 export function formatRkLabel(
   subName: string | null | undefined,
@@ -118,7 +154,10 @@ export function formatRkLabel(
   const sub = (subName ?? '').trim() || 'Lainnya / Tidak Ditentukan';
   const parent = (parentName ?? '').trim();
   if (!parent) return sub;
-  if (parent.toLowerCase() === sub.toLowerCase()) return sub;
+  const normSub = sub.toLowerCase().replace(/\s+/g, ' ');
+  const normParent = parent.toLowerCase().replace(/\s+/g, ' ');
+  if (normParent === normSub) return sub;
+  if (isRedundantParent(sub, parent)) return sub;
   return `${sub} (${parent})`;
 }
 
