@@ -38,26 +38,45 @@ function KPICard({ icon, value, label, sub, iconBg }: {
   );
 }
 
-// ─── RK Anggota Group ──────────────────────────────────────────────────────
-// Kartu untuk satu RK Anggota (satu rencana_kinerja) milik seorang pegawai
-function RkAnggotaGroup({
-  rkAnggotaName,
+// ─── RK Baris Row ──────────────────────────────────────────────────────────
+// Satu baris = 1 pasangan pegawai × RK Anggota (tabel flat, bukan kartu).
+// Logika input nilai / expand / monthly dipindah utuh; markup jadi 3 kolom
+// Nama | Nama RK + sub-meta | Nilai + chevron, expand = full-width row bawah.
+type RowBaris = {
+  userId: string;
+  nama: string;
+  nip?: string;
+  rkName: string;
+  entries: CKPEntry[];
+  uploads: (CKPUpload & { user?: User })[];
+  defaultScore: number | null;
+  canReview: boolean;
+  isOwnGroup: boolean;
+};
+function RkBarisRow({
+  nama,
+  nip,
+  rkName,
   entries,
   uploads,
   canReview,
   onSaveScore,
   defaultScore,
+  isOwnGroup,
   onMarkEntryClick,
   forceExpanded,
   isTriwulan,
   bulan,
 }: {
-  rkAnggotaName: string;
+  nama: string;
+  nip?: string;
+  rkName: string;
   entries: CKPEntry[];
   uploads: CKPUpload[];
   canReview: boolean;
   onSaveScore: (uploadIds: string[], score: number | null, rkAnggotaName: string) => Promise<void>;
   defaultScore: number | null;
+  isOwnGroup?: boolean;
   onMarkEntryClick?: (entry: CKPEntry) => void;
   forceExpanded?: boolean;
   isTriwulan?: boolean;
@@ -88,7 +107,7 @@ function RkAnggotaGroup({
 
     if (score === '') {
       setSaving(true);
-      try { await onSaveScore(uploadIds, null, rkAnggotaName); }
+      try { await onSaveScore(uploadIds, null, rkName); }
       catch { setScore(currentSavedStr); }
       finally { setSaving(false); }
       return;
@@ -102,7 +121,7 @@ function RkAnggotaGroup({
     }
 
     setSaving(true);
-    try { await onSaveScore(uploadIds, num, rkAnggotaName); }
+    try { await onSaveScore(uploadIds, num, rkName); }
     catch { setScore(currentSavedStr); }
     finally { setSaving(false); }
   };
@@ -140,23 +159,71 @@ function RkAnggotaGroup({
 
   return (
     <div
-      className="border rounded-xl overflow-hidden transition-all"
-      style={{ borderColor: allScored ? 'var(--primary)' : 'var(--border)', background: 'var(--card-bg)' }}
+      className="rounded-xl border overflow-hidden transition-colors"
+      style={{
+        borderColor: 'var(--border)',
+        background: 'var(--card-bg)',
+      }}
     >
-      {/* RK Anggota header */}
+      {/* Baris 3 kolom: Nama | Nama RK + sub-meta | Nilai + chevron */}
+      {/* Mobile (<640px): Nama + Nilai satu baris atas, RK full-width di bawah */}
       <div
-        className="flex flex-row items-center gap-2 px-2.5 py-2 cursor-pointer hover:bg-[var(--sand-subtle)] transition-colors"
+        className="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(160px,1fr)_minmax(0,2fr)_110px] items-center gap-x-2 gap-y-1 px-2.5 py-2 cursor-pointer hover:bg-[var(--sand-subtle)] transition-colors"
         onClick={() => setExpandedState(!expandedState)}
+        tabIndex={0}
+        onKeyDown={e => {
+          // Abaikan Enter/Space dari dalam input nilai (punya handler sendiri)
+          if ((e.target as HTMLElement).closest('input, textarea')) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            setExpandedState(!expandedState);
+          }
+        }}
       >
-        <div className="flex-1 min-w-0 flex items-start gap-2">
-          <div className="mt-0.5 flex-shrink-0">
+        {/* Kolom 1: Nama + avatar */}
+        <div className="min-w-0 col-start-1 row-start-1 flex items-center gap-2.5">
+          <div
+            className="w-8 h-8 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0"
+            role="img"
+            aria-label={`Foto profil ${nama}`}
+          >
+            <UserIcon size={16} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+          </div>
+          <div className="min-w-0 flex-1">
+          <p
+            className="text-[13px] font-bold leading-tight truncate"
+            style={{ color: 'var(--text-primary)' }}
+            title={nama}
+          >
+            {nama}
+          </p>
+          {nip && (
+            <p
+              className="text-[11px] leading-tight truncate mt-[2px]"
+              style={{ color: 'var(--text-secondary)' }}
+              title={`NIP. ${nip}`}
+            >
+              NIP. {nip}
+            </p>
+          )}
+          {isOwnGroup && (
+            <span className="text-[10px] px-1.5 py-px rounded-full font-semibold" style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
+              Dinilai pimpinan
+            </span>
+          )}
+          </div>
+        </div>
+
+        {/* Kolom 2: Nama RK + sub-meta */}
+        <div className="min-w-0 col-span-full row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1 flex items-start gap-2">
+          <div className="mt-0.5 flex-shrink-0 hidden sm:block">
             <FolderOpen size={14} style={{ color: allScored ? 'var(--primary)' : 'var(--text-tertiary)' }} />
           </div>
           <div className="min-w-0">
             <p
               className="text-[13px] font-medium sm:font-semibold leading-snug line-clamp-2 sm:line-clamp-none"
               style={{ color: 'var(--text-primary)' }}
-              title={rkAnggotaName}
+              title={rkName}
               onClick={e => {
                 // Di mobile: ketuk judul untuk baca full (toggle clamp)
                 if (window.innerWidth < 640) {
@@ -165,7 +232,7 @@ function RkAnggotaGroup({
                 }
               }}
             >
-              {rkAnggotaName}
+              {rkName}
             </p>
             <div className="flex items-center gap-2 mt-px flex-wrap">
               <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{entries.length} kegiatan</span>
@@ -179,7 +246,8 @@ function RkAnggotaGroup({
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0" onClick={e => e.stopPropagation()}>
+        {/* Kolom 3: Nilai + chevron */}
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0 col-start-2 row-start-1 sm:col-start-3" onClick={e => e.stopPropagation()}>
           <div className="flex flex-col items-end mr-0.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Nilai</p>
             {canReview ? (
@@ -197,6 +265,7 @@ function RkAnggotaGroup({
                   style={{ borderColor: 'var(--border)' }}
                   placeholder="—"
                   title="Tekan Enter atau klik di luar untuk menyimpan"
+                  aria-label={`Nilai ${rkName} milik ${nama}`}
                 />
                 {saving && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -212,6 +281,8 @@ function RkAnggotaGroup({
           </div>
           <button
             onClick={() => setExpandedState(!expandedState)}
+            aria-expanded={expanded}
+            aria-label="Tampilkan detail kegiatan"
             className="p-1 rounded-lg transition-colors bg-slate-50 hover:bg-slate-100 text-slate-400"
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
@@ -219,13 +290,13 @@ function RkAnggotaGroup({
         </div>
       </div>
 
-      {/* Expanded entries */}
+      {/* Expanded entries — full-width row di bawah baris */}
       {expanded && (
         <div className="border-t p-3.5 space-y-3" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
           {isTriwulan && monthlyScores.length > 0 && (
             <div className="flex items-stretch gap-2 mb-2">
               {monthlyScores.map(m => (
-                <div key={m.bulan} className="flex-1 flex items-center gap-2 py-2 px-3 rounded-lg" style={{ background: 'var(--primary-soft)', borderLeft: '3px solid var(--primary)' }}>
+                <div key={m.bulan} className="flex-1 flex items-center gap-2 py-2 px-3 rounded-lg border" style={{ background: 'var(--primary-soft)', borderColor: 'var(--border)' }}>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>{m.bulanNama}</p>
                     <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{m.count} kegiatan</p>
@@ -273,7 +344,7 @@ function RkAnggotaGroup({
                         <span className={`text-[11px] font-bold ${entry.progres >= 100 ? 'text-[var(--success)]' : 'text-[var(--primary)]'}`}>{entry.progres}%</span>
                       </div>
                       {entry.nilai !== null && (
-                        <div className="flex items-center gap-1 pl-2 border-l" style={{ borderColor: 'var(--border)' }}>
+                        <div className="flex items-center gap-1 pl-2">
                           <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>Nilai:</span>
                           <span className="text-[11px] font-bold" style={{ color: 'var(--success)' }}>{entry.nilai}</span>
                         </div>
@@ -293,108 +364,6 @@ function RkAnggotaGroup({
               </div>
             ))}
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Pegawai Section ────────────────────────────────────────────────────────
-// Kartu per-pegawai yang berisi daftar RK Anggota mereka
-function PegawaiSection({
-  user,
-  uploads,
-  rkGroups,
-  onSaveScore,
-  onMarkEntryClick,
-  forceExpanded,
-  isTriwulan,
-  bulan,
-  isOwnCard,
-}: {
-  user: User;
-  uploads: (CKPUpload & { user?: User })[];
-  rkGroups: { rkName: string; entries: CKPEntry[]; defaultScore: number | null; canReview: boolean; isOwnGroup?: boolean }[];
-  onSaveScore: (uploadIds: string[], score: number | null, rkAnggotaName: string) => Promise<void>;
-  onMarkEntryClick?: (entry: CKPEntry) => void;
-  forceExpanded?: boolean;
-  isTriwulan?: boolean;
-  bulan?: string | number;
-  isOwnCard?: boolean;
-}) {
-  const [sectionExpanded, setSectionExpanded] = useState(true);
-  // Search hanya buka kartu pegawai (biar hasil kelihatan);
-  // detail RK di dalamnya tetap manual (jangan ikut dipaksa kebuka).
-  const expanded = forceExpanded || sectionExpanded;
-
-  const allRkScored = rkGroups.length > 0 && rkGroups.every(g => g.defaultScore !== null);
-  const totalEntries = rkGroups.reduce((s, g) => s + g.entries.length, 0);
-  const scoredRkCount = rkGroups.filter(g => g.defaultScore !== null).length;
-
-  return (
-    <div className="activity-card bg-white border rounded-xl shadow-sm hover:shadow transition-shadow overflow-hidden" style={{ borderColor: 'var(--border)' }}>
-      {/* Pegawai header */}
-      <div
-        className="px-3 sm:px-4 py-2.5 flex flex-row gap-3 justify-between items-center cursor-pointer"
-        onClick={() => setSectionExpanded(!sectionExpanded)}
-      >
-        <div className="flex-1 min-w-0 flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[var(--primary-soft)] flex items-center justify-center flex-shrink-0">
-            <UserIcon className="text-[var(--primary)]" size={16} />
-          </div>
-          <div className="min-w-0">
-            <h4 className="text-[14px] font-bold leading-tight truncate" style={{ color: 'var(--text-primary)' }}>{user.full_name || 'Pegawai'}</h4>
-            <div className="flex items-center gap-1.5 mt-px flex-wrap text-[11px]" style={{ color: 'var(--text-secondary)' }}>
-              <span className="truncate">{user.nip ? `NIP. ${user.nip}` : 'NIP tidak tersedia'}</span>
-              <span>• {rkGroups.length} RK Anggota</span>
-              <span>• {totalEntries} Kegiatan</span>
-              {isOwnCard ? (
-                <span className="text-[10px] px-1.5 py-px rounded-full font-semibold" style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
-                  Dinilai pimpinan
-                </span>
-              ) : allRkScored ? (
-                <span className="badge-pill bg-[var(--success-soft)] text-[var(--success-text)] text-[10px]">Semua RK Dinilai</span>
-              ) : scoredRkCount > 0 ? (
-                <span className="text-[10px] px-1.5 py-px rounded-full font-semibold" style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
-                  {scoredRkCount}/{rkGroups.length} RK Dinilai
-                </span>
-              ) : null}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
-          <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Progress</p>
-            <p className="text-[13px] font-bold leading-tight" style={{ color: allRkScored ? 'var(--primary)' : 'var(--text-secondary)' }}>
-              {scoredRkCount}/{rkGroups.length}
-            </p>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setSectionExpanded(!sectionExpanded); }}
-            className="p-1.5 rounded-lg transition-colors bg-slate-50 hover:bg-slate-100 text-slate-500"
-          >
-            {sectionExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-        </div>
-      </div>
-
-      {/* RK Anggota list */}
-      {expanded && (
-        <div className="border-t px-2.5 sm:px-3 py-2.5 space-y-2" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
-          {rkGroups.map(group => (
-            <RkAnggotaGroup
-              key={group.rkName}
-              rkAnggotaName={group.rkName}
-              entries={group.entries}
-              uploads={uploads}
-              canReview={group.canReview}
-              onSaveScore={onSaveScore}
-              defaultScore={group.defaultScore}
-              onMarkEntryClick={onMarkEntryClick}
-              isTriwulan={isTriwulan}
-              bulan={bulan}
-            />
-          ))}
         </div>
       )}
     </div>
@@ -498,8 +467,9 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
     }
   };
 
-  // ─── Build user + RK Anggota groups ────────────────────────────────────
-  const { filteredPegawaiSections, totalDisplayedUsers, totalRkAnggota } = useMemo(() => {
+  // ─── Build user + RK Anggota groups, lalu flatten ke baris ──────────────
+  // sections dipertahankan untuk Export Excel; render memakai rows (flat).
+  const { filteredPegawaiSections, totalDisplayedUsers, totalRkAnggota, rows } = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
 
@@ -557,7 +527,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         return { rkName, entries: rkEntries, defaultScore, canReview, isOwnGroup };
       });
 
-      // Search filter
+      // Search filter: nama pegawai, lalu RK/kegiatan/capaian di bawah
       const userMatches = !q ||
         user.full_name?.toLowerCase().includes(q) ||
         user.nip?.toLowerCase().includes(q);
@@ -572,19 +542,36 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       if (filteredRkGroups.length === 0) return null;
 
       return { user, uploads: userUploads, rkGroups: filteredRkGroups };
-    }).filter(Boolean) as { user: User; uploads: (CKPUpload & { user?: User })[]; rkGroups: { rkName: string; entries: CKPEntry[]; defaultScore: number | null; canReview: boolean }[] }[];
-
-    // Urutkan: pegawai yang belum semua RK-nya dinilai → di atas
-    sections.sort((a, b) => {
-      const aAllDone = a.rkGroups.every(g => g.defaultScore !== null);
-      const bAllDone = b.rkGroups.every(g => g.defaultScore !== null);
-      if (aAllDone !== bAllDone) return aAllDone ? 1 : -1;
-      return (a.user.full_name || '').localeCompare(b.user.full_name || '', 'id');
-    });
+    }).filter(Boolean) as { user: User; uploads: (CKPUpload & { user?: User })[]; rkGroups: { rkName: string; entries: CKPEntry[]; defaultScore: number | null; canReview: boolean; isOwnGroup?: boolean }[] }[];
 
     const totalRkAnggota = sections.reduce((s, sec) => s + sec.rkGroups.length, 0);
 
-    return { filteredPegawaiSections: sections, totalDisplayedUsers: sections.length, totalRkAnggota };
+    // Flatten: satu baris = 1 pasangan pegawai × RK Anggota (nama diulang).
+    // Sort final: nama A-Z lalu rkName A-Z (localeCompare 'id').
+    const rows: RowBaris[] = [];
+    for (const sec of sections) {
+      const nama = sec.user.full_name || 'Pegawai';
+      const nip = sec.user.nip || undefined;
+      for (const g of sec.rkGroups) {
+        rows.push({
+          userId: sec.user.id,
+          nama,
+          nip,
+          rkName: g.rkName,
+          entries: g.entries,
+          uploads: sec.uploads,
+          defaultScore: g.defaultScore,
+          canReview: g.canReview,
+          isOwnGroup: !!g.isOwnGroup,
+        });
+      }
+    }
+    rows.sort((a, b) =>
+      (a.nama || '').localeCompare(b.nama || '', 'id') ||
+      (a.rkName || '').localeCompare(b.rkName || '', 'id')
+    );
+
+    return { filteredPegawaiSections: sections, totalDisplayedUsers: sections.length, totalRkAnggota, rows };
   }, [uploads, entries, searchQuery, bulan]);
 
   // ─── KPI calculations ───────────────────────────────────────────────────
@@ -807,16 +794,26 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
             </div>
           </div>
 
-          <div className="space-y-4">
-            {filteredPegawaiSections.length > 0 ? (
-              filteredPegawaiSections.map(({ user, uploads: userUploads, rkGroups }) => (
-                <PegawaiSection
-                  key={user.id}
-                  user={user}
-                  uploads={userUploads}
-                  rkGroups={rkGroups}
+          <div>
+            <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_minmax(0,2fr)_110px] gap-x-2 px-2.5 py-2 rounded-xl border bg-white" style={{ borderColor: 'var(--border)' }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Nama</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Rencana Kinerja</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-right" style={{ color: 'var(--text-tertiary)' }}>Nilai</p>
+            </div>
+            {rows.length > 0 ? (
+              <div className="space-y-2.5 mt-2.5">
+              {rows.map((row) => (
+                <RkBarisRow
+                  key={`${row.userId}::${row.rkName}`}
+                  nama={row.nama}
+                  nip={row.nip}
+                  rkName={row.rkName}
+                  entries={row.entries}
+                  uploads={row.uploads}
+                  canReview={row.canReview}
                   onSaveScore={handleSaveScore}
-                  isOwnCard={currentUser?.role === 'ketua_tim' && user.id === currentUser?.id}
+                  defaultScore={row.defaultScore}
+                  isOwnGroup={row.isOwnGroup}
                   onMarkEntryClick={(entry) => {
                     setEntryToMark(entry);
                     setCatatanKoreksi(entry.catatan_koreksi || '');
@@ -825,7 +822,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                   isTriwulan={isTriwulanMode}
                   bulan={bulan}
                 />
-              ))
+              ))}
+              </div>
             ) : (
               <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl">
                 <UserIcon className="h-10 w-10 mx-auto mb-3 text-slate-300" />
