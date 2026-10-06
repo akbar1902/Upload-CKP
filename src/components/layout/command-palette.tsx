@@ -19,7 +19,6 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
-  BarChart3,
   Calendar,
   CheckCircle2,
   CornerDownLeft,
@@ -325,13 +324,6 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         { id: 'nav-rk', group: 'Navigasi', label: 'Rencana Kinerja', keywords: 'rk', icon: FileText, run: () => go('/rencana_kinerja') },
       );
     }
-
-    // Insight — tersedia untuk semua peran
-    items.push({
-      id: 'nav-insight', group: 'Navigasi', label: 'Insight Kinerja',
-      keywords: 'grafik chart analitik tren', icon: BarChart3,
-      run: () => go('/insight'),
-    });
 
     // Aksi
     if (!isPimpinan) {

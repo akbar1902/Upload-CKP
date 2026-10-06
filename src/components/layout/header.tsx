@@ -66,12 +66,6 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Monitoring Penilaian Ketua Tim',
     };
   }
-  if (pathname === '/insight') {
-    return {
-      crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : (pathname.startsWith('/ketua_tim') ? '/ketua_tim' : '/pegawai') }, { label: 'Insight' }],
-      title: 'Insight Kinerja',
-    };
-  }
   if (pathname === '/rencana_kinerja') {
     return {
       crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/pimpinan' : '/pegawai' }, { label: 'Rencana Kinerja' }],

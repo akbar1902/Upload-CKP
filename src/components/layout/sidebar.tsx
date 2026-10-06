@@ -21,7 +21,6 @@ import {
   Zap,
   Lock,
   FileDown,
-  BarChart3,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
@@ -131,9 +130,6 @@ export function Sidebar() {
     }
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }
-
-  // Insight tersedia untuk semua peran (isinya menyesuaikan role)
-  navItems.push({ href: '/insight', label: 'Insight', icon: BarChart3 });
 
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 
