@@ -802,11 +802,11 @@ export default function UploadPage() {
                   {/* ─── Tombol Submit di Bawah Kalender ────────────── */}
                   <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
                     {calendarCoverage && calendarCoverage.emptyWorkDays.length > 0 ? (
-                      <span className="text-xs text-amber-700 dark:text-amber-400">
+                      <span className="text-xs" style={{ color: 'var(--tertiary-text)' }}>
                         * Terdapat <strong>{calendarCoverage.emptyWorkDays.length} hari kerja belum terisi</strong> (tetap dapat disubmit jika merupakan tanggal merah/hari libur).
                       </span>
                     ) : (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                      <span className="text-xs" style={{ color: 'var(--text-secondary)' }}>
                         Seluruh hari kerja telah terisi kegiatan.
                       </span>
                     )}

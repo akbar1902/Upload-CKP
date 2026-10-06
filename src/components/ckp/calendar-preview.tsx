@@ -99,8 +99,8 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
           </span>
           {emptyWorkDays.length > 0 ? (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-medium text-[11px]"
-                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}>
-              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--warning)' }} />
+                  style={{ background: 'var(--sand-strong)', color: 'var(--tertiary-text)' }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--tertiary-text)' }} />
               {emptyWorkDays.length} belum terisi
             </span>
           ) : (
@@ -219,22 +219,22 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer hover:border-[var(--warning)]"
-                      style={{ background: 'var(--warning-soft)', border: '1px dashed var(--warning)' }}
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer hover:border-[var(--tertiary-text)]"
+                      style={{ background: 'var(--sand-strong)', border: '1px dashed var(--tertiary-text)' }}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold" style={{ color: 'var(--warning-text)' }}>
+                        <span className="text-xs font-semibold" style={{ color: 'var(--tertiary-text)' }}>
                           {day.dayOfMonth}
                         </span>
-                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--warning)' }} />
+                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--tertiary-text)' }} />
                       </div>
 
                       <div className="space-y-0.5">
-                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: 'var(--card-bg)', color: 'var(--warning-text)' }}>
+                        <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ background: 'var(--card-bg)', color: 'var(--tertiary-text)' }}>
                           Kosong
                         </span>
                         {day.holidayName ? (
-                          <span className="block text-[9px] truncate" style={{ color: 'var(--warning-text)' }} title={day.holidayName}>
+                          <span className="block text-[9px] truncate" style={{ color: 'var(--tertiary-text)' }} title={day.holidayName}>
                             {day.holidayName}
                           </span>
                         ) : null}
@@ -285,8 +285,8 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
             <span>Terisi</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 inline-block" />
-            <span className="text-amber-700 dark:text-amber-400 font-medium">Belum ada kegiatan</span>
+            <span className="w-2 h-2 rounded-full inline-block" style={{ background: 'var(--tertiary-text)' }} />
+            <span className="font-medium" style={{ color: 'var(--tertiary-text)' }}>Belum ada kegiatan</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 inline-block" />
@@ -317,7 +317,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                   </div>
 
                   {selectedDay.isMissingWorkDay ? (
-                    <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                    <span className="text-xs px-2.5 py-1 rounded-full font-medium" style={{ background: 'var(--sand-strong)', color: 'var(--tertiary-text)', border: '1px solid var(--tertiary-text)' }}>
                       Belum Terisi
                     </span>
                   ) : selectedDay.hasActivities ? (
