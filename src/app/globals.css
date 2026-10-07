@@ -207,15 +207,16 @@
   --neu-inset-sm:      inset 3px 3px 7px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light);
   --neu-pressed:       inset 6px 6px 14px var(--neu-shadow-dark), inset -6px -6px 14px var(--neu-shadow-light);
 
-  /* Surface — 60%: satu bidang neumorfik (bg & kartu menyatu) */
-  --bg-base:        var(--neu-bg);
+  /* Surface — background app lebih terang (#FAFAF5); kartu & sidebar tetap
+     neumorfik #EFEAE2 (--neu-surface / --neu-bg) sehingga tampak menonjol. */
+  --bg-base:        #FAFAF5;
   --bg-secondary:   var(--neu-surface-2);
   --card-bg:        var(--neu-surface);
   --bg-hover:       var(--neu-surface-2);
   --bg-active:      #DED6C9;
 
   /* Scrim untuk overlay loading saat filter/refetch dashboard */
-  --overlay-scrim:  rgba(239, 234, 226, 0.62);
+  --overlay-scrim:  rgba(250, 250, 245, 0.62);
 
   /* Primary — DIPERTAHANKAN (Teal SIKAP) */
   --primary:        #0F766E; /* Teal 700 */
