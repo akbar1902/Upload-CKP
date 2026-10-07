@@ -71,7 +71,7 @@ export default function RootLayout({
         <ErrorBoundary>
           <QueryProvider>
             <AuthProvider>
-              <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                 <CommandPaletteProvider>
                   <RecoveryManager>
                     {children}
