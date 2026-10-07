@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { runSafeRead, createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
 import { useAuth } from '@/hooks/use-auth';
 
 interface Notification {
@@ -50,17 +51,27 @@ export function NotificationBell() {
   // Muat 20 terbaru
   useEffect(() => {
     if (!user?.id) return;
-    const load = async () => {
-      const { data } = await supabase
+    let cancelled = false;
+    void runSafeRead(async (sb) => {
+      const { data, error } = await sb
         .from('notifications')
         .select('id, type, title, body, upload_id, is_read, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
-      if (data) setItems(data as Notification[]);
+      if (error) throw new Error(error.message);
+      return (data || []) as Notification[];
+    })
+      .then((rows) => {
+        if (!cancelled) setItems(rows);
+      })
+      .catch(() => {
+        /* gagal memuat notifikasi tidak boleh mengganggu UI */
+      });
+    return () => {
+      cancelled = true;
     };
-    void load();
-  }, [user?.id, supabase]);
+  }, [user?.id]);
 
   // Realtime: notifikasi baru masuk tanpa refresh
   useEffect(() => {
@@ -97,18 +108,38 @@ export function NotificationBell() {
   const markAllRead = async () => {
     if (!user?.id || unread === 0) return;
     setItems((prev) => prev.map((i) => ({ ...i, is_read: true })));
-    await supabase
-      .from('notifications')
-      .update({ is_read: true })
-      .eq('user_id', user.id)
-      .eq('is_read', false);
+    try {
+      await withTimeoutRetry(
+        async () => {
+          const sb = createReadClient();
+          await sb
+            .from('notifications')
+            .update({ is_read: true })
+            .eq('user_id', user.id)
+            .eq('is_read', false);
+        },
+        { attempts: 1, timeoutMs: 8000 }
+      );
+    } catch {
+      /* optimistic UI sudah diperbarui; kegagalan update tidak memblokir */
+    }
   };
 
   const openItem = async (n: Notification) => {
     setOpen(false);
     if (!n.is_read) {
       setItems((prev) => prev.map((i) => (i.id === n.id ? { ...i, is_read: true } : i)));
-      await supabase.from('notifications').update({ is_read: true }).eq('id', n.id);
+      try {
+        await withTimeoutRetry(
+          async () => {
+            const sb = createReadClient();
+            await sb.from('notifications').update({ is_read: true }).eq('id', n.id);
+          },
+          { attempts: 1, timeoutMs: 8000 }
+        );
+      } catch {
+        /* abaikan */
+      }
     }
     router.push(notifLink(n, user?.role));
   };

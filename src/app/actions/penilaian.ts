@@ -331,7 +331,8 @@ export async function getRkDetailAction(rkId: string, bulan: string | number, ta
     const { data: allRKsWithSameName } = await adminClient
       .from('rk_ketua_tim_mapping')
       .select('id')
-      .eq('rencana_kinerja', rkName);
+      .eq('rencana_kinerja', rkName)
+      .eq('is_active', true);
     const allRkIds = Array.from(new Set([rkId, ...(allRKsWithSameName?.map((r: any) => r.id) || [])]));
 
     // 3. Fetch uploads in this period

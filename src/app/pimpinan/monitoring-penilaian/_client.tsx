@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
+import { FetchingBar } from '@/components/dashboard/filter-loading';
+import { usePeriodParams } from '@/hooks/use-period-params';
+import { withTimeoutRetry } from '@/lib/supabase/read';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import { getPendingScoringKetuaTim, type PendingScoringKetuaTim } from '@/app/actions/monitoring';
 import { ChevronDown, ChevronUp, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
@@ -121,8 +124,8 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
 }
 
 export default function MonitoringPenilaianClient() {
-  const router = useRouter();
   const searchParams = useSearchParams();
+  const setPeriod = usePeriodParams();
   const defaultPeriod = getDefaultPeriod(10);
 
   const paramBulan = searchParams.get('bulan');
@@ -141,7 +144,12 @@ export default function MonitoringPenilaianClient() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await getPendingScoringKetuaTim(bulan, tahun);
+      // Batas waktu + retry: server action tidak bisa dibatalkan lewat signal,
+      // tapi UI tidak akan menggantung selamanya bila request macet pasca-idle.
+      const res = await withTimeoutRetry(
+        () => getPendingScoringKetuaTim(bulan, tahun),
+        { attempts: 2, timeoutMs: 12000 }
+      );
       if (res.error) {
         toast.error(res.error);
       } else {
@@ -158,15 +166,18 @@ export default function MonitoringPenilaianClient() {
     fetchData();
   }, [bulan, tahun]);
 
-  const setBulan = (b: string | number) => router.push(`?bulan=${b}&tahun=${tahun}`);
-  const setTahun = (t: number) => router.push(`?bulan=${bulan}&tahun=${t}`);
+  // Ganti periode via native History API → tanpa round-trip RSC ke server.
+  const setBulan = (b: string | number) => setPeriod({ bulan: b, tahun });
+  const setTahun = (t: number) => setPeriod({ bulan, tahun: t });
 
   const getBulanLabel = () => getBulanName(bulan);
 
   return (
     <>
       <Header />
-      <div id="export-monitoring-section" className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+
+        <FetchingBar show={loading} />
 
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--card-bg)] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">

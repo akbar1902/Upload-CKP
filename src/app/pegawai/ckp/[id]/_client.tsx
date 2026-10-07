@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
@@ -365,7 +365,6 @@ export default function CKPDetailPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
   const [isDeleting, setIsDeleting] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
 
@@ -379,44 +378,32 @@ export default function CKPDetailPage() {
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['ckp-detail', id],
-    queryFn: async () => {
-      if (!id) throw new Error("Missing ID");
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
+        if (!id) throw new Error("Missing ID");
 
-      const fetchLogic = async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
+          supabase.from('ckp_uploads').select('*').eq('id', id).abortSignal(signal).single(),
+          supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(signal),
+          supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(signal),
+        ]);
 
-        try {
-          const [uploadRes, entriesRes, approvalsRes] = await Promise.all([
-            supabase.from('ckp_uploads').select('*').eq('id', id).single().abortSignal(controller.signal),
-            supabase.from('ckp_entries').select('*').eq('upload_id', id).order('row_number').abortSignal(controller.signal),
-            supabase.from('approvals').select('*, reviewer:reviewer_id(full_name)').eq('upload_id', id).order('created_at', { ascending: false }).abortSignal(controller.signal),
-          ]);
+        if (uploadRes.error) throw new Error(uploadRes.error.message);
 
-          if (uploadRes.error) throw new Error(uploadRes.error.message);
-
-          return {
-            upload: uploadRes.data as CKPUpload,
-            entries: (entriesRes.data as CKPEntry[]) || [],
-            approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
-              ...a, reviewer: a.reviewer as User | undefined,
-            })) as Approval[],
-          };
-        } finally {
-          clearTimeout(timeoutId);
-        }
-      };
-
-      return Promise.race([
-        fetchLogic(),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
-      ]);
-    },
+        return {
+          upload: uploadRes.data as CKPUpload,
+          entries: (entriesRes.data as CKPEntry[]) || [],
+          approvals: (approvalsRes.data || []).map((a: Record<string, unknown>) => ({
+            ...a, reviewer: a.reviewer as User | undefined,
+          })) as Approval[],
+        };
+      }),
     enabled: !!user && !authLoading && !!id,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   // KEY FIX: Only show skeleton when there is genuinely NO data.
@@ -424,18 +411,6 @@ export default function CKPDetailPage() {
   // but isPending remains true — so `!!user && queryPending` would wrongly
   // show a skeleton over perfectly good cached data.
   const loading = authLoading || (!data && queryPending);
-
-  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
-  React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
-      timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
-        void refetch();
-      }, 15000);
-    }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
 
   const upload = data?.upload || null;
   const entries: CKPEntry[] = data?.entries || [];

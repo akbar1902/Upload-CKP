@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -17,9 +17,10 @@ import {
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
 } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/kpi-card';
+import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
+import { usePeriodParams } from '@/hooks/use-period-params';
 
 export default function KetuaTimDashboardClient() {
-  const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,56 +50,34 @@ export default function KetuaTimDashboardClient() {
     router.prefetch(`/ketua_tim/rk/${rkId}?bulan=${bulan}&tahun=${tahun}`);
   }, [router, bulan, tahun, prefetchedRks]);
 
+  const setPeriod = usePeriodParams();
+
+  // Ganti periode via native History API → tidak memicu render ulang server
+  // (dulu pakai router.push sehingga setiap filter menunggu round-trip RSC).
   const setBulan = (b: string | number) => {
-    router.push(`?bulan=${b}&tahun=${tahun}`);
+    setPeriod({ bulan: b, tahun });
   };
 
   const setTahun = (t: number) => {
-    router.push(`?bulan=${bulan}&tahun=${t}`);
+    setPeriod({ bulan, tahun: t });
   };
 
   const { data, isPending: queryPending, isFetching: queryFetching, error: queryError, refetch } = useQuery({
     // KEY must match server prefetch in ketua_tim/page.tsx exactly
     queryKey: ['ketua-tim-uploads', bulan, tahun],
-    queryFn: async ({ queryKey }) => {
+    queryFn: ({ queryKey }) => {
       const [_key, qBulan, qTahun] = queryKey as [string, string | number, number];
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      try {
+      return runSafeRead(async (supabase, signal) => {
         if (!user) return { rks: [], uploads: [], entries: [], users: [] };
 
-        // 1. Get RKs
-        let mappingQuery = supabase.from('rk_ketua_tim_mapping').select('*');
+        // 1. RK mapping + uploads periode bersifat independen → jalankan PARALEL
+        //    agar tidak ada tahap menunggu berurutan yang tak perlu.
+        let mappingQuery = supabase.from('rk_ketua_tim_mapping').select('*').eq('is_active', true);
         if (user.role !== 'pimpinan' && user.role !== 'admin') {
           mappingQuery = mappingQuery.eq('ketua_tim_id', user.id);
         }
-        
-        const { data: mappingData, error: mapError } = await mappingQuery.abortSignal(controller.signal);
 
-        if (mapError) throw mapError;
-
-        if (!mappingData || mappingData.length === 0) {
-          return { rks: [], uploads: [], entries: [], users: [], assignments: [] };
-        }
-
-        const rkIds = mappingData.map((m: any) => m.id);
-        const rkNames = mappingData.map((m: any) => m.rencana_kinerja);
-
-        // Fetch user assignments for these RKs (chunked to avoid URI Too Long)
-        let assignmentsData: any[] = [];
-        for (let i = 0; i < rkIds.length; i += 100) {
-          const chunk = rkIds.slice(i, i + 100);
-          const { data, error } = await supabase
-            .from('user_rk_assignments')
-            .select('user_id, rk_id')
-            .in('rk_id', chunk)
-            .abortSignal(controller.signal);
-          if (error) throw error;
-          if (data) assignmentsData.push(...data);
-        }
-
-        // 2. Get uploads for the selected month/period that are submitted, scored, or approved
         let uploadsQuery = supabase
           .from('ckp_uploads')
           .select('id, user_id, status, uploaded_at')
@@ -117,41 +96,100 @@ export default function KetuaTimDashboardClient() {
           uploadsQuery = uploadsQuery.eq('bulan', qBulan);
         }
 
-        const { data: uploadsData, error: uploadsError } = await uploadsQuery.abortSignal(controller.signal);
+        const [mappingRes, uploadsRes] = await Promise.all([
+          mappingQuery.abortSignal(signal),
+          uploadsQuery.abortSignal(signal),
+        ]);
 
-        if (uploadsError) throw uploadsError;
+        if (mappingRes.error) throw mappingRes.error;
+        if (uploadsRes.error) throw uploadsRes.error;
+
+        const mappingData = mappingRes.data;
+        if (!mappingData || mappingData.length === 0) {
+          return { rks: [], uploads: [], entries: [], users: [], assignments: [] };
+        }
+
+        const rkIds = mappingData.map((m: any) => m.id);
+        const rkNames = mappingData.map((m: any) => m.rencana_kinerja);
+
+        const uploadsData = uploadsRes.data;
         const uploadIds = uploadsData?.map((u: any) => u.id) || [];
 
+        // 2. Ambil assignments (chunked) — dijalankan paralel dengan pengambilan
+        //    entri di bawah, karena keduanya tidak saling bergantung.
+        const runAssignments = async (): Promise<any[]> => {
+          const chunks: string[][] = [];
+          for (let i = 0; i < rkIds.length; i += 100) {
+            chunks.push(rkIds.slice(i, i + 100));
+          }
+          const results = await Promise.all(
+            chunks.map((chunk) =>
+              supabase
+                .from('user_rk_assignments')
+                .select('user_id, rk_id')
+                .in('rk_id', chunk)
+                .abortSignal(signal)
+            )
+          );
+          const collected: any[] = [];
+          for (const { data, error } of results) {
+            if (error) throw error;
+            if (data) collected.push(...data);
+          }
+          return collected;
+        };
+
+        const assignmentsPromise = runAssignments();
+
         if (uploadIds.length === 0) {
-          return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsData || [] };
+          const assignmentsData = await assignmentsPromise;
+          return { rks: mappingData, uploads: [], entries: [], users: [], assignments: assignmentsData };
         }
 
-        // 3. Get entries for these uploads (chunked to bypass 1000 row limit)
-        let entriesData: any[] = [];
-        let from = 0;
-        const limit = 999;
-        while (true) {
-          const { data: chunk, error: entriesError } = await supabase
-            .from('ckp_entries')
-            .select('*')
-            .in('upload_id', uploadIds)
-            .range(from, from + limit)
-            .abortSignal(controller.signal);
-
-          if (entriesError) throw entriesError;
-          if (chunk) entriesData.push(...chunk);
-          if (!chunk || chunk.length <= limit) break;
-          from += limit + 1;
+        // 3. Ambil entri untuk upload tersebut, difilter di sisi DB ke RK yang
+        //    relevan (strategi dual: data lama by nama parent RK, data baru by
+        //    UUID parent di rk_ketua_tim_id). Kedua strategi dijalankan PARALEL.
+        const uploadBatches: string[][] = [];
+        for (let i = 0; i < uploadIds.length; i += 50) {
+          uploadBatches.push(uploadIds.slice(i, i + 50));
         }
-        
-        const validRkNames = new Set(rkNames);
-        const validRkIds = new Set(rkIds);
-        // Strategi dual (pola getRkDetailAction di actions/penilaian.ts):
-        // data lama cocok by nama parent RK, data baru cocok by UUID parent di rk_ketua_tim_id. Dedupe by id.
+
+        const fetchEntriesBy = async (
+          column: 'rencana_kinerja' | 'rk_ketua_tim_id',
+          values: any[]
+        ): Promise<any[]> => {
+          if (values.length === 0) return [];
+          const collected: any[] = [];
+          for (const batch of uploadBatches) {
+            let from = 0;
+            const limit = 999;
+            while (true) {
+              const { data: chunk, error: entriesError } = await supabase
+                .from('ckp_entries')
+                .select('*')
+                .in('upload_id', batch)
+                .in(column, values)
+                .range(from, from + limit)
+                .abortSignal(signal);
+
+              if (entriesError) throw entriesError;
+              if (chunk) collected.push(...chunk);
+              if (!chunk || chunk.length <= limit) break;
+              from += limit + 1;
+            }
+          }
+          return collected;
+        };
+
+        const [assignmentsData, entriesByName, entriesById] = await Promise.all([
+          assignmentsPromise,
+          fetchEntriesBy('rencana_kinerja', rkNames),
+          fetchEntriesBy('rk_ketua_tim_id', rkIds),
+        ]);
+
+        // Dedupe by id (entri lama bisa cocok via nama, entri baru via UUID)
         const seenEntryIds = new Set<string>();
-        const filteredEntriesData = (entriesData || []).filter((e: any) => {
-          const match = validRkNames.has(e.rencana_kinerja) || (e.rk_ketua_tim_id && validRkIds.has(e.rk_ketua_tim_id));
-          if (!match) return false;
+        const filteredEntriesData = [...entriesByName, ...entriesById].filter((e: any) => {
           if (seenEntryIds.has(e.id)) return false;
           seenEntryIds.add(e.id);
           return true;
@@ -171,7 +209,7 @@ export default function KetuaTimDashboardClient() {
             .from('users')
             .select('*')
             .in('id', relevantUserIds)
-            .abortSignal(controller.signal);
+            .abortSignal(signal);
           if (uError) throw uError;
           usersData = uData || [];
         }
@@ -183,27 +221,26 @@ export default function KetuaTimDashboardClient() {
           users: usersData,
           assignments: assignmentsData || [],
         };
-      } finally {
-        clearTimeout(timeoutId);
-      }
+      });
     },
     enabled: !!user && !authLoading && !!bulan && !!tahun,
     networkMode: 'always',
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
+    // Client baru tiap percobaan ditangani runSafeRead (retry internal).
+    retry: false,
   });
 
   const loading = authLoading || queryPending;
+  // Refetch di background (ganti periode / refresh) sementara data lama tetap tampil.
+  const isFiltering = !loading && queryFetching;
 
+  // Beri tahu pengguna bila pemuatan periode gagal (data lama tetap tampil).
   useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && (queryPending || queryFetching)) {
-      timeout = setTimeout(() => {
-        void refetch();
-      }, 10000);
+    if (queryError) {
+      toast.error('Gagal memuat data periode ini. Silakan coba lagi.', { id: 'period-fetch-error' });
     }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, queryFetching, refetch]);
+  }, [queryError]);
 
   const rks = data?.rks || [];
   const entries = data?.entries || [];
@@ -533,7 +570,8 @@ export default function KetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={0} />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+        <FetchingBar show={isFiltering} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Dashboard Ketua Tim</h2>
@@ -568,7 +606,8 @@ export default function KetuaTimDashboardClient() {
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgOverallProgress.toFixed(0)}%`} label="Rata-rata Capaian" sub="Seluruh RK aktif" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
-        <div>
+        <div className="relative">
+          <FetchingOverlay show={isFiltering} label={`Memuat ${getPeriodName(bulan)} ${tahun}…`} />
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Daftar Rencana Kinerja</h3>
@@ -637,7 +676,7 @@ export default function KetuaTimDashboardClient() {
               {filteredRKs.length > 0 && (
                 <div>
                   <h4 className="text-sm font-bold uppercase tracking-wider mb-4 pb-2" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-soft)' }}>Rencana Kinerja</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredRKs.map(renderRkCard)}
                   </div>
                 </div>

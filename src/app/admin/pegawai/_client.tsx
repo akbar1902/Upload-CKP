@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -11,7 +11,6 @@ import { createEmployee, deleteEmployee, resetPassword, toggleEmployeeStatus, re
 import { toast } from 'sonner';
 
 export default function AdminPegawaiClient({ initialUsers }: { initialUsers: User[] }) {
-  const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
@@ -70,48 +69,50 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
 
   const { data: usersData, isPending, refetch } = useQuery({
     queryKey: ['admin-pegawai'],
-    queryFn: async () => {
-      const [{ data, error }, { data: profiles }, { data: mappings }] = await Promise.all([
-        supabase.from('users').select('*').order('full_name'),
-        supabase.from('employee_profiles').select('user_id, jabatan, golongan'),
-        supabase.from('rk_ketua_tim_mapping').select('ketua_tim_id, tim_kerja').not('ketua_tim_id', 'is', null),
-      ]);
+    queryFn: () =>
+      runSafeRead(async (supabase) => {
+        const [{ data, error }, { data: profiles }, { data: mappings }] = await Promise.all([
+          supabase.from('users').select('*').order('full_name'),
+          supabase.from('employee_profiles').select('user_id, jabatan, golongan'),
+          supabase.from('rk_ketua_tim_mapping').select('ketua_tim_id, tim_kerja').eq('is_active', true).not('ketua_tim_id', 'is', null),
+        ]);
 
-      if (error) throw error;
-      
-      const users = (data as (User & { managed_teams?: string })[]) ?? [];
-      const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
-      (profiles || []).forEach((p: any) => {
-        profileMap.set(p.user_id, p);
-      });
+        if (error) throw error;
+        
+        const users = (data as (User & { managed_teams?: string })[]) ?? [];
+        const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
+        (profiles || []).forEach((p: any) => {
+          profileMap.set(p.user_id, p);
+        });
 
-      users.forEach(u => {
-        const p = profileMap.get(u.id);
-        if (p) {
-          u.jabatan = p.jabatan;
-          u.golongan = p.golongan;
-        }
-        if (mappings && u.role === 'ketua_tim') {
-          const tims = mappings.filter((m: any) => m.ketua_tim_id === u.id).map((m: any) => m.tim_kerja).filter(Boolean);
-          if (tims.length > 0) {
-            u.managed_teams = [...new Set(tims)].join(', ');
+        users.forEach(u => {
+          const p = profileMap.get(u.id);
+          if (p) {
+            u.jabatan = p.jabatan;
+            u.golongan = p.golongan;
           }
-        }
-      });
+          if (mappings && u.role === 'ketua_tim') {
+            const tims = mappings.filter((m: any) => m.ketua_tim_id === u.id).map((m: any) => m.tim_kerja).filter(Boolean);
+            if (tims.length > 0) {
+              u.managed_teams = [...new Set(tims)].join(', ');
+            }
+          }
+        });
 
-      // Urutkan: Pegawai aktif di atas, pegawai nonaktif di paling bawah
-      users.sort((a, b) => {
-        const aActive = a.is_active !== false ? 1 : 0;
-        const bActive = b.is_active !== false ? 1 : 0;
-        if (aActive !== bActive) {
-          return bActive - aActive;
-        }
-        return (a.full_name || '').localeCompare(b.full_name || '', 'id');
-      });
+        // Urutkan: Pegawai aktif di atas, pegawai nonaktif di paling bawah
+        users.sort((a, b) => {
+          const aActive = a.is_active !== false ? 1 : 0;
+          const bActive = b.is_active !== false ? 1 : 0;
+          if (aActive !== bActive) {
+            return bActive - aActive;
+          }
+          return (a.full_name || '').localeCompare(b.full_name || '', 'id');
+        });
 
-      return users;
-    },
+        return users;
+      }),
     initialData: initialUsers as (User & { managed_teams?: string })[],
+    retry: false,
   });
 
   const users = usersData || [];

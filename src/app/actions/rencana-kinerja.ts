@@ -26,6 +26,16 @@ export async function addRencanaKinerjaAction(
 
     if (!user) return { success: false, error: 'Sesi berakhir' };
 
+    // Tentukan tahun RK aktif saat ini (agar tidak jatuh ke default 2026).
+    const { data: activeYearRow } = await supabase
+      .from('rk_ketua_tim_mapping')
+      .select('tahun')
+      .eq('is_active', true)
+      .order('tahun', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const activeYear = activeYearRow?.tahun || new Date().getFullYear();
+
     // 1. Insert to rk_ketua_tim_mapping (Global Dictionary)
     const { data: rkData, error: rkError } = await supabase
       .from('rk_ketua_tim_mapping')
@@ -33,7 +43,9 @@ export async function addRencanaKinerjaAction(
         rencana_kinerja: rencanaKinerja,
         ketua_tim_id: ketuaTimId,
         tim_kerja: timKerja,
-        created_by: user.id
+        created_by: user.id,
+        tahun: activeYear,
+        is_active: true,
       })
       .select('id, rencana_kinerja')
       .single();

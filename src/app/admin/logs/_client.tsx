@@ -1,30 +1,31 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { Search, RefreshCw, Clock, User, Activity } from 'lucide-react';
 import { formatDateTime } from '@/lib/utils';
 
 export default function AdminLogsClient({ initialLogs }: { initialLogs: any[] }) {
-  const supabase = useMemo(() => createClient(), []);
   const [search, setSearch] = useState('');
   const [filterEntity, setFilterEntity] = useState('all');
 
   const { data: logsData, isPending, refetch } = useQuery({
     queryKey: ['admin-logs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*, user:users(full_name, role)')
-        .order('created_at', { ascending: false })
-        .limit(200); // Batasi 200 terbaru untuk performa
+    queryFn: () =>
+      runSafeRead(async (supabase) => {
+        const { data, error } = await supabase
+          .from('audit_logs')
+          .select('*, user:users(full_name, role)')
+          .order('created_at', { ascending: false })
+          .limit(200); // Batasi 200 terbaru untuk performa
 
-      if (error) throw error;
-      return data ?? [];
-    },
+        if (error) throw error;
+        return data ?? [];
+      }),
     initialData: initialLogs,
+    retry: false,
   });
 
   const logs = logsData || [];

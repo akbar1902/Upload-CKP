@@ -17,13 +17,19 @@ import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
-import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, getUploadMasterData, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
+import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
+import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import masterMappingDataRaw from '@/data/master_mapping.json';
 import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { calculateCalendarCoverage } from '@/lib/ckp-calendar-utils';
+
+// Batas atas progres per langkah (uploadStep 0-4).
+// Nilai 100 SENGAJA hanya dicapai lewat langkah 4 (sukses) — sehingga bar
+// tidak pernah "selesai" sebelum file benar-benar terupload & tersimpan.
+const PROGRESS_CAP = [18, 40, 68, 98, 100] as const;
 
 export default function UploadPage() {
   const { user } = useAuth();
@@ -63,17 +69,11 @@ export default function UploadPage() {
   }, [bulan, tahun, parseResult]);
 
   const { data: masterData } = useQuery({
-    queryKey: ['upload-master-data'],
-    queryFn: async () => {
-      // Server action with 6s timeout, returns fallback on error
-      return Promise.race([
-        getUploadMasterData(),
-        new Promise<{ masterRKs: any[]; ketuaTims: any[]; masterKegiatan: any[] }>((resolve) =>
-          setTimeout(() => resolve({ masterRKs: [], ketuaTims: [], masterKegiatan: [] }), 6000)
-        ),
-      ]);
-    },
-    staleTime: 1000 * 60 * 60, // 1 hour — master data rarely changes
+    queryKey: uploadMasterDataQueryKey,
+    // Sumber tunggal + timeout/retry: error TIDAK berubah jadi data kosong,
+    // dan cache lama yang valid tetap dipakai bila refetch gagal pasca-idle.
+    queryFn: fetchUploadMasterData,
+    staleTime: 1000 * 60 * 5, // 5 minutes
     refetchOnWindowFocus: false,
     retry: 0,
   });
@@ -147,6 +147,27 @@ export default function UploadPage() {
     }, 30_000); // 30 seconds — aggressive timeout
     return () => clearTimeout(safetyTimer);
   }, [uploading]);
+
+  // ══════════════════════════════════════════════════════════════════
+  // PROGRESS ANIMATION: progres bergerak mulus menuju batas langkah.
+  // Saat menunggu server action (upload file + simpan DB), angka terus
+  // merangkak naik (asymptotic) sehingga tidak berhenti di 75%. 100%
+  // hanya diberikan saat upload benar-benar sukses (langkah 4).
+  // ══════════════════════════════════════════════════════════════════
+  useEffect(() => {
+    if (!uploading || uploadStep < 0) return;
+    const cap = PROGRESS_CAP[Math.min(uploadStep, PROGRESS_CAP.length - 1)];
+    const id = setInterval(() => {
+      setUploadProgress((prev) => {
+        if (prev >= cap) return prev;
+        // Ease-out: makin dekat cap, makin lambat — tapi selalu bergerak.
+        const remaining = cap - prev;
+        const increment = Math.max(0.04, remaining * 0.05);
+        return Math.min(cap, prev + increment);
+      });
+    }, 160);
+    return () => clearInterval(id);
+  }, [uploading, uploadStep]);
 
   const normalize = (str: string) => (str || '').toLowerCase().replace(/tahun\s*20\d{2}/g, '').replace(/[^a-z0-9]/g, '');
   
@@ -317,12 +338,6 @@ export default function UploadPage() {
         return;
       }
 
-      // Gagalkan eksplisit bila master kosong — jangan fail-open tanpa validasi RK.
-      if (masterRKs.length === 0) {
-        toast.error('Data master RK belum termuat. Tunggu sebentar lalu muat ulang halaman.', { duration: 8000 });
-        return;
-      }
-
       // NOW set uploading — all guards have passed
       setUploading(true);
       setUploadStep(0);
@@ -332,6 +347,31 @@ export default function UploadPage() {
 
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
+
+      // PEMULIHAN: bila masterKegiatan kosong (mis. cache kadaluarsa setelah
+      // idle & fetch sempat gagal), ambil ulang master sekali lagi. RK yang
+      // dikenali lewat kegiatan hasil mapping upload sebelumnya (mis. "rapat
+      // humas") tidak akan salah dianggap "tak dikenal".
+      if (currentMasterKegiatan.length === 0) {
+        try {
+          const fresh = await fetchUploadMasterData();
+          if (fresh.masterRKs?.length) {
+            currentMasterRKs = fresh.masterRKs;
+            currentMasterKegiatan = fresh.masterKegiatan || [];
+            queryClient.setQueryData(uploadMasterDataQueryKey, fresh);
+          }
+        } catch {
+          /* pakai cache yang ada */
+        }
+      }
+
+      // Gagalkan eksplisit bila master benar-benar kosong — jangan fail-open.
+      if (currentMasterRKs.length === 0) {
+        toast.error('Data master RK belum termuat. Tunggu sebentar lalu muat ulang halaman.', { duration: 8000 });
+        setUploading(false);
+        setUploadStep(-1);
+        return;
+      }
 
       const getUnmatched = (rks: any[], kegiatan: any[]) => {
         const names = Array.from(new Set(rks.map((r: any) => String(r.rencana_kinerja))));
@@ -947,6 +987,18 @@ export default function UploadPage() {
                       strokeDashoffset={283 - (283 * uploadProgress) / 100}
                       strokeLinecap="round"
                     />
+                    {/* Arc berputar — indikator server masih memproses */}
+                    {uploadStep >= 3 && uploadProgress < 100 && (
+                      <circle
+                        cx="50" cy="50" r="45" fill="none"
+                        className="animate-spin"
+                        style={{ stroke: 'var(--primary)', transformBox: 'fill-box', transformOrigin: 'center' }}
+                        strokeWidth="8"
+                        strokeDasharray="5 16"
+                        strokeLinecap="round"
+                        opacity="0.45"
+                      />
+                    )}
                   </svg>
                   <span className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>{Math.round(uploadProgress)}%</span>
                 </>

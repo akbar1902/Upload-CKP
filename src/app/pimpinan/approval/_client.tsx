@@ -2,11 +2,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { runSafeRead } from '@/lib/supabase/read';
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
+import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
+import { usePeriodParams } from '@/hooks/use-period-params';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import type { CKPUpload, User } from '@/types/database';
 import { toast } from 'sonner';
@@ -20,7 +22,6 @@ import { ApprovalModal } from '@/components/ckp/approval-modal';
 import type { ApprovalAction } from '@/types/database';
 
 export default function PimpinanQuickApprovalClient() {
-  const supabase = useMemo(() => createClient(), []);
   const { user: authUser, loading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,98 +41,114 @@ export default function PimpinanQuickApprovalClient() {
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
+  const setPeriod = usePeriodParams();
+
+  // Ganti periode via native History API → tanpa round-trip RSC ke server.
   const setBulan = (b: string | number) => {
-    router.push(`?bulan=${b}&tahun=${tahun}`);
+    setPeriod({ bulan: b, tahun });
   };
 
   const setTahun = (t: number) => {
-    router.push(`?bulan=${bulan}&tahun=${t}`);
+    setPeriod({ bulan, tahun: t });
   };
 
   const { data, isPending, isFetching, error, refetch } = useQuery({
     queryKey: ['quick-approval', bulan, tahun],
-    queryFn: async () => {
-      let uploadsQuery = supabase
-        .from('ckp_uploads')
-        .select('*, user:user_id(id, full_name, nip, unit_kerja)')
-        .eq('tahun', tahun)
-        .in('status', ['submitted', 'scored'])
-        .order('uploaded_at', { ascending: true });
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
+        let uploadsQuery = supabase
+          .from('ckp_uploads')
+          .select('*, user:user_id(id, full_name, nip, unit_kerja)')
+          .eq('tahun', tahun)
+          .in('status', ['submitted', 'scored'])
+          .order('uploaded_at', { ascending: true });
 
-      if (typeof bulan === 'string' && bulan.startsWith('T')) {
-        const triwulanMap: Record<string, number[]> = {
-          'T1': [1, 2, 3], 'T2': [4, 5, 6], 'T3': [7, 8, 9], 'T4': [10, 11, 12]
-        };
-        uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
-      } else {
-        uploadsQuery = uploadsQuery.eq('bulan', bulan);
-      }
-
-      // 1. Fetch Uploads
-      const { data: uploadsRes, error: uploadsErr } = await uploadsQuery;
-      if (uploadsErr) throw new Error(uploadsErr.message);
-
-      const uploadsList = uploadsRes || [];
-      if (uploadsList.length === 0) return [];
-
-      const uploadIds = uploadsList.map((u: any) => u.id);
-
-      // 2. Fetch entries to check which uploads are fully scored
-      // We only need to check if there are any unscored entries per upload.
-      // But because entries are grouped by rencana_kinerja, we can just fetch distinct rk with their nilais.
-      // Fetching all entries' nilais for these uploads is safer than a huge join if done separately.
-      let entriesData: any[] = [];
-      const batchSize = 50;
-      for (let i = 0; i < uploadIds.length; i += batchSize) {
-        const batchIds = uploadIds.slice(i, i + batchSize);
-        let from = 0;
-        const limit = 999;
-        while (true) {
-          const { data: chunk, error: entriesErr } = await supabase
-            .from('ckp_entries')
-            .select('upload_id, rencana_kinerja, rk_ketua_tim_id, nilai')
-            .in('upload_id', batchIds)
-            .range(from, from + limit);
-
-          if (entriesErr) throw new Error(entriesErr.message);
-          if (chunk) entriesData.push(...chunk);
-          if (!chunk || chunk.length <= limit) break;
-          from += limit + 1;
+        if (typeof bulan === 'string' && bulan.startsWith('T')) {
+          const triwulanMap: Record<string, number[]> = {
+            'T1': [1, 2, 3], 'T2': [4, 5, 6], 'T3': [7, 8, 9], 'T4': [10, 11, 12]
+          };
+          uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
+        } else {
+          uploadsQuery = uploadsQuery.eq('bulan', bulan);
         }
-      }
 
-      const entriesByUpload = new Map<string, any[]>();
-      if (entriesData) {
-         for (const e of entriesData) {
-           if (!entriesByUpload.has(e.upload_id)) entriesByUpload.set(e.upload_id, []);
-           entriesByUpload.get(e.upload_id)!.push(e);
-         }
-      }
+        // 1. Fetch Uploads
+        const { data: uploadsRes, error: uploadsErr } = await uploadsQuery.abortSignal(signal);
+        if (uploadsErr) throw new Error(uploadsErr.message);
 
-      return uploadsList.map((u: any) => {
-        const entries = entriesByUpload.get(u.id) || [];
-        // Kelompokkan per RK-id (rkGroupKey): data baru via rk_ketua_tim_id,
-        // data lama via nama. Satu grup lolos hanya bila SEMUA entry-nya bernilai.
-        const groups = new Map<string, { nilai: number | null }[]>();
-        for (const e of entries) {
-          const k = rkGroupKey(e);
-          if (!groups.has(k)) groups.set(k, []);
-          groups.get(k)!.push({ nilai: e.nilai ?? null });
+        const uploadsList = uploadsRes || [];
+        if (uploadsList.length === 0) return [];
+
+        const uploadIds = uploadsList.map((u: any) => u.id);
+
+        // 2. Fetch entries to check which uploads are fully scored
+        // We only need to check if there are any unscored entries per upload.
+        // But because entries are grouped by rencana_kinerja, we can just fetch distinct rk with their nilais.
+        // Fetching all entries' nilais for these uploads is safer than a huge join if done separately.
+        let entriesData: any[] = [];
+        const batchSize = 50;
+        for (let i = 0; i < uploadIds.length; i += batchSize) {
+          const batchIds = uploadIds.slice(i, i + batchSize);
+          let from = 0;
+          const limit = 999;
+          while (true) {
+            const { data: chunk, error: entriesErr } = await supabase
+              .from('ckp_entries')
+              .select('upload_id, rencana_kinerja, rk_ketua_tim_id, nilai')
+              .in('upload_id', batchIds)
+              .range(from, from + limit)
+              .abortSignal(signal);
+
+            if (entriesErr) throw new Error(entriesErr.message);
+            if (chunk) entriesData.push(...chunk);
+            if (!chunk || chunk.length <= limit) break;
+            from += limit + 1;
+          }
         }
-        const allScored = groups.size > 0 && Array.from(groups.values()).every(isRkGroupScored);
 
-        return {
-          ...u,
-          user: u.user as User,
-          allScored,
-        };
-      }) as (CKPUpload & { user: User, allScored: boolean })[];
-    },
+        const entriesByUpload = new Map<string, any[]>();
+        if (entriesData) {
+           for (const e of entriesData) {
+             if (!entriesByUpload.has(e.upload_id)) entriesByUpload.set(e.upload_id, []);
+             entriesByUpload.get(e.upload_id)!.push(e);
+           }
+        }
+
+        return uploadsList.map((u: any) => {
+          const entries = entriesByUpload.get(u.id) || [];
+          // Kelompokkan per RK-id (rkGroupKey): data baru via rk_ketua_tim_id,
+          // data lama via nama. Satu grup lolos hanya bila SEMUA entry-nya bernilai.
+          const groups = new Map<string, { nilai: number | null }[]>();
+          for (const e of entries) {
+            const k = rkGroupKey(e);
+            if (!groups.has(k)) groups.set(k, []);
+            groups.get(k)!.push({ nilai: e.nilai ?? null });
+          }
+          const allScored = groups.size > 0 && Array.from(groups.values()).every(isRkGroupScored);
+
+          return {
+            ...u,
+            user: u.user as User,
+            allScored,
+          };
+        }) as (CKPUpload & { user: User, allScored: boolean })[];
+      }),
     enabled: !!authUser && !authLoading,
+    placeholderData: keepPreviousData,
+    retry: false,
   });
 
   const loading = authLoading || isPending;
+  // Refetch di background (ganti periode / refresh) sementara data lama tetap tampil.
+  const isFiltering = !loading && isFetching;
   const uploads = data || [];
+
+  // Beri tahu pengguna bila pemuatan periode gagal (data lama tetap tampil).
+  React.useEffect(() => {
+    if (error) {
+      toast.error('Gagal memuat data periode ini. Silakan coba lagi.', { id: 'period-fetch-error' });
+    }
+  }, [error]);
 
   const filteredUploads = useMemo(() => {
     if (!searchQuery.trim()) return uploads;
@@ -199,8 +216,10 @@ export default function PimpinanQuickApprovalClient() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
         
+        <FetchingBar show={isFiltering} />
+
         <button onClick={() => router.back()} className="flex items-center gap-1 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
@@ -240,7 +259,8 @@ export default function PimpinanQuickApprovalClient() {
           </div>
         </div>
 
-        <div className="rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+        <div className="relative rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
+          <FetchingOverlay show={isFiltering} label={`Memuat ${getPeriodName(bulan)} ${tahun}…`} />
           <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead>

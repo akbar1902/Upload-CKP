@@ -126,7 +126,8 @@ export async function getPendingScoringKetuaTim(
       const { data: byName, error: byNameErr } = await admin
         .from('rk_ketua_tim_mapping')
         .select('id, rencana_kinerja, ketua_tim_id, tim_kerja')
-        .in('rencana_kinerja', legacyNames);
+        .in('rencana_kinerja', legacyNames)
+        .eq('is_active', true);
       if (byNameErr) throw byNameErr;
       ((byName ?? []) as RkMappingRow[])
         .filter((m) => m.ketua_tim_id)

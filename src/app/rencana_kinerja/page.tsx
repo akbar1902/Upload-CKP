@@ -24,14 +24,17 @@ export default async function RencanaKinerjaPage() {
     allUsersRes
   ] = await Promise.all([
     supabase.from('users').select('*').eq('id', user.id).single(),
-    supabase.from('rk_ketua_tim_mapping').select('*, ketua_tim:users!ketua_tim_id(full_name)').order('rencana_kinerja', { ascending: true }),
-    supabase.from('user_rk_assignments').select('id, rk:rk_ketua_tim_mapping!rk_id(id, rencana_kinerja, tim_kerja), assigned_by_user:users!assigned_by(full_name)').eq('user_id', user.id),
+    supabase.from('rk_ketua_tim_mapping').select('*, ketua_tim:users!ketua_tim_id(full_name)').eq('is_active', true).order('rencana_kinerja', { ascending: true }),
+    supabase.from('user_rk_assignments').select('id, rk:rk_ketua_tim_mapping!rk_id(id, rencana_kinerja, tim_kerja, tahun, is_active), assigned_by_user:users!assigned_by(full_name)').eq('user_id', user.id),
     supabase.from('users').select('id, full_name, role').order('full_name', { ascending: true })
   ]);
 
   const currentUser = currentUserRes.data;
   const allRKs = allRKsRes.data;
-  const myAssignments = myAssignmentsRes.data;
+  // Sembunyikan penugasan ke RK tahun arsip (is_active=false).
+  const myAssignments = (myAssignmentsRes.data || []).filter(
+    (a: any) => a.rk?.is_active !== false
+  );
   const allUsers = allUsersRes.data;
 
   const isKetuaTimOrAdmin = ['ketua_tim', 'pimpinan', 'admin'].includes(currentUser?.role || '');
@@ -49,6 +52,7 @@ export default async function RencanaKinerjaPage() {
         )
       `)
       .or(`created_by.eq.${user.id},ketua_tim_id.eq.${user.id}`)
+      .eq('is_active', true)
       .order('created_at', { ascending: false });
     myManagedRKs = data || [];
   }

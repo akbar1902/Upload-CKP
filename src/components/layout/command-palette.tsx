@@ -13,7 +13,7 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { cn } from '@/lib/utils';
 import {
   ArrowDown,
@@ -200,7 +200,6 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
-  const supabase = useMemo(() => createClient(), []);
 
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
@@ -238,33 +237,41 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     const load = async () => {
       setLoadingData(true);
       try {
-        const uploadsQuery = supabase
-          .from('ckp_uploads')
-          .select('id, bulan, tahun, status, file_name, user_id')
-          .order('tahun', { ascending: false })
-          .order('bulan', { ascending: false })
-          .limit(isPimpinan ? 150 : 60);
+        const result = await runSafeRead(async (supabase) => {
+          const uploadsQuery = supabase
+            .from('ckp_uploads')
+            .select('id, bulan, tahun, status, file_name, user_id')
+            .order('tahun', { ascending: false })
+            .order('bulan', { ascending: false })
+            .limit(isPimpinan ? 150 : 60);
 
-        // Tipe builder Supabase tidak persis Promise — pakai any[] agar aman.
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const queries: any[] = [uploadsQuery];
-        if (isPimpinan) {
-          queries.push(
-            supabase
-              .from('users')
-              .select('id, full_name, nip, unit_kerja, role')
-              .order('full_name')
-              .limit(300)
-          );
-        }
+          // Tipe builder Supabase tidak persis Promise — pakai any[] agar aman.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const queries: any[] = [uploadsQuery];
+          if (isPimpinan) {
+            queries.push(
+              supabase
+                .from('users')
+                .select('id, full_name, nip, unit_kerja, role')
+                .order('full_name')
+                .limit(300)
+            );
+          }
 
-        const [upRes, usRes] = await Promise.all(queries);
+          const [upRes, usRes] = await Promise.all(queries);
+          return {
+            upData: (upRes?.data as SearchUpload[] | null) ?? [],
+            usData: usRes ? ((usRes.data as SearchUser[] | null) ?? null) : null,
+          };
+        });
+
         if (cancelled) return;
 
-        const upData = (upRes?.data as SearchUpload[] | null) ?? [];
         // Anggota hanya melihat upload miliknya sendiri
-        setUploads(isPimpinan ? upData : upData.filter((u) => u.user_id === user.id));
-        if (usRes) setPeople((usRes.data as SearchUser[] | null) ?? []);
+        setUploads(isPimpinan ? result.upData : result.upData.filter((u) => u.user_id === user.id));
+        if (result.usData) setPeople(result.usData);
+      } catch {
+        /* gagal memuat hasil pencarian tidak boleh memblokir palette */
       } finally {
         if (!cancelled) setLoadingData(false);
       }
@@ -274,7 +281,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     return () => {
       cancelled = true;
     };
-  }, [user?.id, isPimpinan, supabase]);
+  }, [user?.id, isPimpinan]);
 
   const go = useCallback(
     (href: string) => {

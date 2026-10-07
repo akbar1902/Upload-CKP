@@ -115,6 +115,7 @@ export default async function KetuaTimPage({
         const { data: mappingData, error: mapError } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('*')
+          .eq('is_active', true)
           .eq('ketua_tim_id', user.id);
         
         if (mapError) throw mapError;

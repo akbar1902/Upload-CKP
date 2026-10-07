@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -142,33 +142,25 @@ function StaffCardSkeleton() {
 
 // ── Main page ──────────────────────────────────────────────
 export default function PimpinanPegawaiPage() {
-  const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
   const [search, setSearch] = useState('');
 
   const { data: usersData, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai'],
-    queryFn: async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      try {
-        const queryPromise = Promise.all([
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
+        const [usersRes, profilesRes] = await Promise.all([
           supabase
             .from('users')
             .select('*')
             .in('role', ['anggota', 'ketua_tim'])
             .eq('is_active', true)
             .order('full_name')
-            .abortSignal(controller.signal),
+            .abortSignal(signal),
           supabase
             .from('employee_profiles')
             .select('user_id, jabatan, golongan')
-            .abortSignal(controller.signal),
-        ]);
-
-        const [usersRes, profilesRes] = await Promise.race([
-          queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
+            .abortSignal(signal),
         ]);
 
         if (usersRes.error) throw new Error(usersRes.error.message);
@@ -185,15 +177,13 @@ export default function PimpinanPegawaiPage() {
         }));
 
         return data as User[];
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
+      }),
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   // KEY FIX: Only show skeleton when there is genuinely NO data.
@@ -203,18 +193,6 @@ export default function PimpinanPegawaiPage() {
 
   // Safe array alias for all downstream usage
   const users = usersData ?? [];
-
-  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
-  React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
-      timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
-        void refetch();
-      }, 15000);
-    }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
 
   // NOTE: visibilitychange refetch removed — RecoveryManager handles this globally
   //       by invalidating all queries when the tab becomes visible.

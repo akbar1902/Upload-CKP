@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import { UploadStatusBadge } from '@/components/dashboard/upload-status-badge';
@@ -28,26 +28,18 @@ import {
 export default function PimpinanPegawaiDetailPage() {
   const { userId } = useParams<{ userId: string }>();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-pegawai-detail', userId],
-    queryFn: async () => {
-      if (!userId) throw new Error('Missing userId');
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
+        if (!userId) throw new Error('Missing userId');
 
-      try {
-        const queryPromise = Promise.all([
-          supabase.from('users').select('*').eq('id', userId).single().abortSignal(controller.signal),
-          supabase.from('employee_profiles').select('*').eq('user_id', userId).maybeSingle().abortSignal(controller.signal),
-          supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).abortSignal(controller.signal),
-        ]);
-
-        const [userRes, profileRes, uploadsRes] = await Promise.race([
-          queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
+        const [userRes, profileRes, uploadsRes] = await Promise.all([
+          supabase.from('users').select('*').eq('id', userId).abortSignal(signal).single(),
+          supabase.from('employee_profiles').select('*').eq('user_id', userId).abortSignal(signal).maybeSingle(),
+          supabase.from('ckp_uploads').select('*').eq('user_id', userId).order('tahun', { ascending: false }).order('bulan', { ascending: false }).abortSignal(signal),
         ]);
 
         if (userRes.error) throw userRes.error;
@@ -63,32 +55,18 @@ export default function PimpinanPegawaiDetailPage() {
           employee,
           uploads: (uploadsRes.data as CKPUpload[]) || [],
         };
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
+      }),
     enabled: !!userId && !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   // KEY FIX: Only show skeleton when there is genuinely NO data.
   // With keepPreviousData, cached data stays visible during background refetch.
   const loading = authLoading || (!data && queryPending);
-
-  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
-  React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
-      timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
-        void refetch();
-      }, 15000);
-    }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
 
   const employee = data?.employee || null;
   const uploads = data?.uploads || [];

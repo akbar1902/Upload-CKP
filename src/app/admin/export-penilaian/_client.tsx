@@ -25,7 +25,7 @@ import {
 import { generateEvaluationPdf } from '@/lib/export/pdf-generator';
 import { groupEntriesByRK, getGroupedRkDisplayName, type GroupedRK, type RkParentMap } from '@/lib/export/evaluasi-helper';
 import { formatScore1 } from '@/lib/rk-scoring';
-import { createClient } from '@/lib/supabase/client';
+import { createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
 
 interface ExportPenilaianClientProps {
   initialBulan: number;
@@ -116,7 +116,10 @@ export default function ExportPenilaianClient({
   useEffect(() => {
     if (currentUpload) {
       setLoadingEntries(true);
-      getExportEntriesForUpload(currentUpload.id)
+      withTimeoutRetry(
+        () => getExportEntriesForUpload(currentUpload.id),
+        { attempts: 2, timeoutMs: 15000 }
+      )
         .then((res) => {
           setEntries(res);
         })
@@ -151,12 +154,14 @@ export default function ExportPenilaianClient({
       return;
     }
     let cancelled = false;
-    const supabase = createClient();
-    supabase
-      .from('rk_ketua_tim_mapping')
-      .select('id, rencana_kinerja')
-      .in('id', ids)
-      .then(({ data, error }: any) => {
+    const supabase = createReadClient();
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('rk_ketua_tim_mapping')
+          .select('id, rencana_kinerja')
+          .in('id', ids);
+
         if (cancelled) return;
         if (error || !data) {
           setRkParentMap({});
@@ -167,10 +172,10 @@ export default function ExportPenilaianClient({
           if (row?.id && typeof row?.rencana_kinerja === 'string') m[row.id] = row.rencana_kinerja;
         }
         setRkParentMap(m);
-      })
-      .catch(() => {
+      } catch {
         if (!cancelled) setRkParentMap({});
-      });
+      }
+    })();
     return () => {
       cancelled = true;
     };
@@ -197,7 +202,10 @@ export default function ExportPenilaianClient({
     startTransition(async () => {
       try {
         const targetId = isEmployeeView ? (selectedUserId || data.allUsers[0]?.id) : undefined;
-        const newData = await getExportPenilaianData(newBulan, newTahun, targetId);
+        const newData = await withTimeoutRetry(
+          () => getExportPenilaianData(newBulan, newTahun, targetId),
+          { attempts: 2, timeoutMs: 20000 }
+        );
         setData(newData);
         if (newData.uploads.length > 0) {
           setSelectedUserId(newData.uploads[0].user_id);
@@ -256,7 +264,7 @@ export default function ExportPenilaianClient({
       let bulkParentMap: RkParentMap = rkParentMap;
       if (bulkIds.length > 0) {
         try {
-          const sb = createClient();
+          const sb = createReadClient();
           const { data: rows } = await sb.from('rk_ketua_tim_mapping').select('id, rencana_kinerja').in('id', bulkIds);
           const m: Record<string, string> = { ...(rkParentMap as Record<string, string>) };
           for (const r of (rows || []) as any[]) {

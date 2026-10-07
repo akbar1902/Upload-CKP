@@ -31,6 +31,7 @@ export default async function AdminPegawaiPage() {
     supabase
       .from('rk_ketua_tim_mapping')
       .select('ketua_tim_id, tim_kerja')
+      .eq('is_active', true)
       .not('ketua_tim_id', 'is', null),
   ]);
 

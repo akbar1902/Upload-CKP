@@ -93,7 +93,8 @@ export default async function PenilaianCKPDetailPage({
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('rencana_kinerja')
-          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${user.id}`);
+          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${user.id}`)
+          .eq('is_active', true);
           
         if (rkMapping && rkMapping.length > 0) {
           const ownRks = rkMapping.map(m => m.rencana_kinerja);

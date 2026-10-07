@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { withTimeoutRetry } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
@@ -374,7 +374,6 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user: currentUser, loading: authLoading } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
   const defaultPeriod = getDefaultPeriod(10);
@@ -393,15 +392,20 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['rk-detail', rkId, bulan, tahun],
-    queryFn: async () => {
-      const res = await getRkDetailAction(rkId, bulan, tahun);
-      if (!res.success) throw new Error(res.error);
-      return res.data;
-    },
+    queryFn: () =>
+      withTimeoutRetry(
+        async () => {
+          const res = await getRkDetailAction(rkId, bulan, tahun);
+          if (!res.success) throw new Error(res.error);
+          return res.data;
+        },
+        { attempts: 2, timeoutMs: 15000 }
+      ),
     enabled: !!currentUser && !authLoading && !!rkId,
     networkMode: 'always',
     staleTime: 1000 * 60 * 2,
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   const loading = authLoading || (!data && queryPending);

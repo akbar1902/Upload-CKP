@@ -214,6 +214,9 @@
   --bg-hover:       var(--neu-surface-2);
   --bg-active:      #DED6C9;
 
+  /* Scrim untuk overlay loading saat filter/refetch dashboard */
+  --overlay-scrim:  rgba(239, 234, 226, 0.62);
+
   /* Primary — DIPERTAHANKAN (Teal SIKAP) */
   --primary:        #0F766E; /* Teal 700 */
   --primary-hover:  #115E59; /* Teal 800 */
@@ -310,6 +313,7 @@
   --bg-secondary:   var(--neu-surface-2);
   --card-bg:        var(--neu-surface);
   --sand-subtle:    var(--neu-surface-2);
+  --overlay-scrim:  rgba(36, 33, 29, 0.62);
   --sand-border:    rgba(214, 201, 180, 0.16);
   --sand-strong:    #3A342C;
 

@@ -36,6 +36,8 @@ export interface RkKetuaTimMapping {
   rencana_kinerja: string;
   ketua_tim_id: string | null;
   tim_kerja: string | null;
+  tahun: number;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

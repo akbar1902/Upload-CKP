@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -11,7 +11,6 @@ import { toast } from 'sonner';
 import { getBulanName } from '@/lib/utils';
 
 export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode: any[] }) {
-  const supabase = useMemo(() => createClient(), []);
   const { user } = useAuth();
   
   const currentYear = new Date().getFullYear();
@@ -19,16 +18,18 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
 
   const { data: periodeData, isPending, refetch } = useQuery({
     queryKey: ['admin-periode', selectedYear],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('periode_ckp')
-        .select('*')
-        .eq('tahun', selectedYear);
+    queryFn: () =>
+      runSafeRead(async (supabase) => {
+        const { data, error } = await supabase
+          .from('periode_ckp')
+          .select('*')
+          .eq('tahun', selectedYear);
 
-      if (error && error.code !== '42P01') throw error; // ignore relation does not exist if migration not run yet
-      return data ?? [];
-    },
+        if (error && error.code !== '42P01') throw error; // ignore relation does not exist if migration not run yet
+        return data ?? [];
+      }),
     initialData: selectedYear === currentYear ? initialPeriode : undefined,
+    retry: false,
   });
 
   const periodes = useMemo(() => {

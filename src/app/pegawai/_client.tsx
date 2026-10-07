@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { getBulanName, formatDateTime, getDefaultPeriod } from '@/lib/utils';
@@ -136,7 +136,6 @@ export default function PegawaiDashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc');
-  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
   const handleDeleteSuccess = useCallback((deletedId: string) => {
@@ -153,39 +152,29 @@ export default function PegawaiDashboard() {
 
   const { data: uploads, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['pegawai-uploads', user?.id],
-    queryFn: async () => {
-      if (!user) return [];
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
+        if (!user) return [];
 
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-      try {
-        const queryPromise = supabase
+        const { data, error } = await supabase
           .from('ckp_uploads')
           .select('*')
           .eq('user_id', user.id)
           .order('tahun', { ascending: false })
           .order('bulan', { ascending: false })
           .order('uploaded_at', { ascending: false })
-          .abortSignal(controller.signal);
-
-        const { data, error } = await Promise.race([
-          queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
-        ]);
+          .abortSignal(signal);
 
         if (error) throw new Error(error.message);
         return data as CKPUpload[];
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
+      }),
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 0,
     refetchOnMount: 'always',
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   // KEY FIX: Only show skeleton when there is genuinely NO data.
@@ -195,18 +184,6 @@ export default function PegawaiDashboard() {
 
   // Safe array for all downstream usage
   const uploadsArr: CKPUpload[] = uploads ?? [];
-
-  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
-  React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
-      timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
-        void refetch();
-      }, 15000);
-    }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
 
   // Only consider the latest upload per period (bulan-tahun)
   const uniqueUploads = useMemo(() => {

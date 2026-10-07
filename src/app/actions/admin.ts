@@ -234,7 +234,7 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
     }
 
     // Fetch all existing mappings to inherit ketua_tim_id for existing teams
-    const { data: existingMappings } = await supabase.from('rk_ketua_tim_mapping').select('tim_kerja, ketua_tim_id').not('ketua_tim_id', 'is', null);
+    const { data: existingMappings } = await supabase.from('rk_ketua_tim_mapping').select('tim_kerja, ketua_tim_id').eq('is_active', true).not('ketua_tim_id', 'is', null);
     const timKerjaToKetuaId: Record<string, string> = {};
     if (existingMappings) {
       existingMappings.forEach(m => {
@@ -244,6 +244,16 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       });
     }
 
+    // Tahun aktif saat ini (agar RK manual/bulk masuk ke periode yang benar)
+    const { data: activeYearRow } = await supabase
+      .from('rk_ketua_tim_mapping')
+      .select('tahun')
+      .eq('is_active', true)
+      .order('tahun', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const activeYear = activeYearRow?.tahun || new Date().getFullYear();
+
     for (const rk of Object.keys(rkGroups)) {
       const rows = rkGroups[rk];
       
@@ -251,7 +261,9 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       
       const payload: any = {
         rencana_kinerja: rk,
-        tim_kerja: timKerja
+        tim_kerja: timKerja,
+        tahun: activeYear,
+        is_active: true,
       };
 
       // Auto inherit ketua_tim_id if it exists for this team
@@ -262,7 +274,7 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       // Upsert the Master RK
       const { data: upsertData, error: upsertError } = await supabase.from('rk_ketua_tim_mapping').upsert(
         payload, 
-        { onConflict: 'rencana_kinerja,tim_kerja' }
+        { onConflict: 'rencana_kinerja,tim_kerja,tahun' }
       ).select().single();
 
       if (upsertError) {
@@ -354,11 +366,12 @@ export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
       return { success: false, error: 'Pengganti tidak ditemukan' };
     }
 
-    // 2. Update rk_ketua_tim_mapping
+    // 2. Update rk_ketua_tim_mapping (HANYA tahun aktif, agar arsip tidak berubah)
     const { error: updateMappingError } = await supabaseAdmin
       .from('rk_ketua_tim_mapping')
       .update({ ketua_tim_id: newUserId })
-      .eq('ketua_tim_id', oldUserId);
+      .eq('ketua_tim_id', oldUserId)
+      .eq('is_active', true);
 
     if (updateMappingError) throw updateMappingError;
 
@@ -392,20 +405,57 @@ export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
   }
 }
 
-export async function getAdminRkDataAction() {
+export async function getAdminRkDataAction(tahun?: number) {
   try {
-    const [rksRes, subsRes, usersRes] = await Promise.all([
-      supabaseAdmin.from('rk_ketua_tim_mapping').select('*, ketua_tim:users!ketua_tim_id(full_name)').order('rencana_kinerja'),
-      supabaseAdmin.from('master_kegiatan_anggota').select('*').order('kegiatan_nama'),
-      supabaseAdmin.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin'])
-    ]);
+    // 1. Semua tahun yang tersedia + tahun aktif (untuk filter tahun)
+    const { data: yearRows, error: yearErr } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('tahun, is_active');
+    if (yearErr) throw yearErr;
 
-    if (rksRes.error) throw rksRes.error;
-    if (subsRes.error) throw subsRes.error;
+    const rows = (yearRows || []) as { tahun: number | null; is_active: boolean }[];
+    const years = Array.from(
+      new Set(rows.map((r) => r.tahun).filter((t): t is number => typeof t === 'number'))
+    ).sort((a, b) => b - a);
+    const activeYear =
+      rows
+        .filter((r) => r.is_active && typeof r.tahun === 'number')
+        .map((r) => r.tahun as number)
+        .sort((a, b) => b - a)[0] ??
+      years[0] ??
+      new Date().getFullYear();
+    const selectedYear = typeof tahun === 'number' && tahun > 0 ? tahun : activeYear;
 
-    const rks = rksRes.data || [];
-    const subs = subsRes.data || [];
-    const ketuaTims = usersRes.data || [];
+    // 2. RK untuk tahun terpilih
+    const { data: rks, error: rksErr } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('*, ketua_tim:users!ketua_tim_id(full_name)')
+      .eq('tahun', selectedYear)
+      .order('tim_kerja', { ascending: true })
+      .order('rencana_kinerja', { ascending: true });
+    if (rksErr) throw rksErr;
+
+    const { data: usersRes } = await supabaseAdmin
+      .from('users')
+      .select('id, full_name, unit_kerja')
+      .in('role', ['ketua_tim', 'pimpinan', 'admin']);
+    const ketuaTims = usersRes || [];
+
+    const rkList = (rks || []) as any[];
+    const rkIds = rkList.map((r) => r.id);
+
+    // 3. Sub-RK khusus RK tahun terpilih (chunk agar aman URL-nya)
+    const subs: any[] = [];
+    for (let i = 0; i < rkIds.length; i += 150) {
+      const chunk = rkIds.slice(i, i + 150);
+      const { data, error } = await supabaseAdmin
+        .from('master_kegiatan_anggota')
+        .select('*')
+        .in('rk_id', chunk)
+        .order('kegiatan_nama', { ascending: true });
+      if (error) throw error;
+      if (data) subs.push(...data);
+    }
 
     // Group Sub-RKs by rk_id with case-insensitive deduplication
     const subsByRk: Record<string, any[]> = {};
@@ -419,41 +469,73 @@ export async function getAdminRkDataAction() {
       }
     }
 
-    // Defensive fallback: if an RK in DB has 0 subs, load defaults from master_mapping.json
-    const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    const mmMap = new Map<string, string[]>();
-    (masterMappingDataRaw as Array<{ rk_ketua: string; sub_rk: string[] }>).forEach(item => {
-      mmMap.set(normalize(item.rk_ketua), item.sub_rk || []);
-    });
+    // Defensive fallback: hanya untuk tahun AKTIF, jika RK di DB belum punya sub
+    if (selectedYear === activeYear) {
+      const normalize = (str: string) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const mmMap = new Map<string, string[]>();
+      (masterMappingDataRaw as Array<{ rk_ketua: string; sub_rk: string[] }>).forEach(item => {
+        mmMap.set(normalize(item.rk_ketua), item.sub_rk || []);
+      });
 
-    for (const rk of rks) {
-      if (!subsByRk[rk.id] || subsByRk[rk.id].length === 0) {
-        const fallbackSubs = mmMap.get(normalize(rk.rencana_kinerja));
-        if (fallbackSubs && fallbackSubs.length > 0) {
-          subsByRk[rk.id] = fallbackSubs.map((name, idx) => ({
-            id: `fallback-${rk.id}-${idx}`,
-            rk_id: rk.id,
-            kegiatan_nama: name,
-            is_fallback: true
-          }));
+      for (const rk of rkList) {
+        if (!subsByRk[rk.id] || subsByRk[rk.id].length === 0) {
+          const fallbackSubs = mmMap.get(normalize(rk.rencana_kinerja));
+          if (fallbackSubs && fallbackSubs.length > 0) {
+            subsByRk[rk.id] = fallbackSubs.map((name, idx) => ({
+              id: `fallback-${rk.id}-${idx}`,
+              rk_id: rk.id,
+              kegiatan_nama: name,
+              is_fallback: true
+            }));
+          }
         }
       }
     }
 
-    return { success: true, rks, subsByRk, ketuaTims };
+    return {
+      success: true,
+      rks: rkList,
+      subsByRk,
+      ketuaTims,
+      years,
+      activeYear,
+      selectedYear,
+    };
   } catch (error: any) {
     console.error('[getAdminRkDataAction] Error:', error);
-    return { success: false, error: error.message, rks: [], subsByRk: {}, ketuaTims: [] };
+    return {
+      success: false,
+      error: error.message,
+      rks: [],
+      subsByRk: {},
+      ketuaTims: [],
+      years: [],
+      activeYear: new Date().getFullYear(),
+      selectedYear: tahun ?? new Date().getFullYear(),
+    };
   }
 }
 
-export async function addRkMasterAction(payload: { rencana_kinerja: string; tim_kerja: string; ketua_tim_id: string; created_by?: string }) {
+export async function addRkMasterAction(payload: { rencana_kinerja: string; tim_kerja: string; ketua_tim_id: string; created_by?: string; tahun?: number }) {
   try {
+    const { data: activeYearRow } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('tahun')
+      .eq('is_active', true)
+      .order('tahun', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const activeYear = activeYearRow?.tahun || new Date().getFullYear();
+    // Bila tahun tak dikirim, pakai tahun aktif. RK yang ditambah ke tahun arsip -> nonaktif.
+    const tahun = payload.tahun ?? activeYear;
+
     const { error } = await supabaseAdmin.from('rk_ketua_tim_mapping').insert({
       rencana_kinerja: payload.rencana_kinerja.trim(),
       tim_kerja: payload.tim_kerja.trim(),
       ketua_tim_id: payload.ketua_tim_id,
       created_by: payload.created_by || null,
+      tahun,
+      is_active: tahun === activeYear,
     });
     if (error) throw error;
     revalidatePath('/admin/rk');
@@ -504,6 +586,138 @@ export async function deleteRkOrSubAction(id: string, type: 'master' | 'sub') {
     revalidatePath('/admin/rk');
     return { success: true };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// ============================================================
+// Bersih-bersih per TAHUN (arsip)
+// ============================================================
+export interface RkYearStats {
+  tahun: number;
+  rk: number;
+  subs: number;
+  assignments: number;
+  entries: number;
+}
+
+/** Hitung berapa banyak objek yang terkait dengan sebuah tahun RK. */
+export async function getRkYearStatsAction(tahun: number) {
+  try {
+    const { data: rks, error } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('id')
+      .eq('tahun', tahun);
+    if (error) throw error;
+    const ids = (rks || []).map((r: any) => r.id);
+
+    let subs = 0;
+    let assignments = 0;
+    let entries = 0;
+    const CH = 150;
+    for (let i = 0; i < ids.length; i += CH) {
+      const chunk = ids.slice(i, i + CH);
+      const [s, a, e] = await Promise.all([
+        supabaseAdmin.from('master_kegiatan_anggota').select('id', { count: 'exact', head: true }).in('rk_id', chunk),
+        supabaseAdmin.from('user_rk_assignments').select('id', { count: 'exact', head: true }).in('rk_id', chunk),
+        supabaseAdmin.from('ckp_entries').select('id', { count: 'exact', head: true }).in('rk_ketua_tim_id', chunk),
+      ]);
+      subs += s.count || 0;
+      assignments += a.count || 0;
+      entries += e.count || 0;
+    }
+
+    const stats: RkYearStats = { tahun, rk: ids.length, subs, assignments, entries };
+    return { success: true, stats };
+  } catch (error: any) {
+    console.error('[getRkYearStatsAction] Error:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Hapus seluruh RK satu tahun (Sub-RK & penugasan ikut via CASCADE).
+ * Tahun aktif tidak boleh dihapus. Bila masih ada entri CKP yang menunjuk
+ * RK tahun tsb, wajib force=true (tautan entri akan jadi NULL).
+ */
+export async function deleteRkYearAction(tahun: number, force = false) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Sesi berakhir' };
+
+    const { data: me } = await supabase.from('users').select('role').eq('id', user.id).single();
+    if (!me || !['admin', 'pimpinan'].includes(me.role)) {
+      return { success: false, error: 'Hanya admin/pimpinan yang boleh menghapus tahun RK.' };
+    }
+
+    const { data: activeRow } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('tahun')
+      .eq('is_active', true)
+      .order('tahun', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (activeRow?.tahun === tahun) {
+      return { success: false, error: `Tahun ${tahun} sedang aktif dan tidak boleh dihapus.` };
+    }
+
+    const statsRes = await getRkYearStatsAction(tahun);
+    const stats = statsRes.stats;
+    if (!stats) return { success: false, error: statsRes.error || 'Gagal menghitung data.' };
+
+    if (stats.entries > 0 && !force) {
+      return {
+        success: false,
+        needsConfirm: true,
+        stats,
+        error: `${stats.entries} entri CKP menunjuk RK tahun ${tahun}. Tautan entri akan menjadi kosong bila tetap dihapus.`,
+      };
+    }
+
+    const { error: delErr } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .delete()
+      .eq('tahun', tahun);
+    if (delErr) throw delErr;
+
+    // Pastikan selalu ada satu tahun aktif.
+    const { data: stillActive } = await supabaseAdmin
+      .from('rk_ketua_tim_mapping')
+      .select('tahun')
+      .eq('is_active', true)
+      .limit(1);
+    if (!stillActive || stillActive.length === 0) {
+      const { data: newest } = await supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('tahun')
+        .order('tahun', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (newest?.tahun) {
+        await supabaseAdmin
+          .from('rk_ketua_tim_mapping')
+          .update({ is_active: true })
+          .eq('tahun', newest.tahun);
+      }
+    }
+
+    await supabaseAdmin.from('audit_logs').insert({
+      user_id: user.id,
+      action: 'rk_year_deleted',
+      entity_type: 'rencana_kinerja',
+      entity_id: null,
+      old_data: { ...stats },
+    });
+
+    revalidatePath('/admin/rk');
+    revalidatePath('/rencana_kinerja');
+    revalidatePath('/', 'layout');
+    return { success: true, stats };
+  } catch (error: any) {
+    console.error('[deleteRkYearAction] Error:', error);
     return { success: false, error: error.message };
   }
 }

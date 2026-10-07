@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient } from '@tanstack/react-query';
-import { createClient } from '@/lib/supabase/client';
+import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
 import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
 import {
@@ -53,7 +53,6 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const queryClient = useQueryClient();
-  const supabase = useCallback(() => createClient(), []);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -64,19 +63,12 @@ export function Sidebar() {
   const prefetchUploadData = useCallback(async () => {
     if (prefetchedUpload) return;
     setPrefetchedUpload(true);
-    const sb = supabase();
     await queryClient.prefetchQuery({
-      queryKey: ['upload-master-data'],
-      queryFn: async () => {
-        const [{ data: rks }, { data: ketuas }] = await Promise.all([
-          sb.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').limit(10000),
-          sb.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
-        ]);
-        return { masterRKs: rks || [], ketuaTims: ketuas || [] };
-      },
-      staleTime: 1000 * 60 * 10, // 10 minutes — master data rarely changes
+      queryKey: uploadMasterDataQueryKey,
+      queryFn: fetchUploadMasterData,
+      staleTime: 1000 * 60 * 5, // 5 minutes — samakan dengan halaman upload
     });
-  }, [queryClient, supabase, prefetchedUpload]);
+  }, [queryClient, prefetchedUpload]);
 
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 

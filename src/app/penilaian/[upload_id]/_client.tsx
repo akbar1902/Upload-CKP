@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
-import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
@@ -276,7 +276,6 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const isTriwulan = typeof paramBulan === 'string' && paramBulan.startsWith('T');
 
   const { user: currentUser, loading: authLoading } = useAuth();
-  const supabase = useMemo(() => createClient(), []);
   const queryClient = useQueryClient();
 
   const [showApprovalModal, setShowApprovalModal] = useState(false);
@@ -294,9 +293,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''],
-    queryFn: async () => {
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
       const { data: uploadData, error: uploadError } = await supabase
-        .from('ckp_uploads').select('*').eq('id', uploadId).single();
+        .from('ckp_uploads').select('*').eq('id', uploadId).abortSignal(signal).single();
       if (uploadError) throw new Error(uploadError.message);
 
       let targetUploads = [uploadData];
@@ -318,7 +318,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           .eq('user_id', uploadData.user_id)
           .eq('tahun', targetYear)
           .in('bulan', targetMonths)
-          .order('bulan', { ascending: true });
+          .order('bulan', { ascending: true })
+          .abortSignal(signal);
 
         if (qUploads && qUploads.length > 0) {
           targetUploads = qUploads;
@@ -327,10 +328,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       }
 
       const [employeeRes, entriesRes, approvalsRes, masterRkRes] = await Promise.all([
-        supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
-        supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number'),
-        supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }),
-        supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja').order('rencana_kinerja'),
+        supabase.from('users').select('*').eq('id', uploadData.user_id).abortSignal(signal).single(),
+        supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number').abortSignal(signal),
+        supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }).abortSignal(signal),
+        supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja').eq('is_active', true).order('rencana_kinerja').abortSignal(signal),
       ]);
 
       const uploadMonthMap = new Map(targetUploads.map((u: any) => [u.id, u.bulan]));
@@ -346,7 +347,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('id, rencana_kinerja')
-          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${currentUser?.id}`);
+          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${currentUser?.id}`)
+          .eq('is_active', true)
+          .abortSignal(signal);
 
         if (rkMapping && rkMapping.length > 0) {
           const ownRkIds = new Set(rkMapping.map((m: any) => m.id).filter(Boolean));
@@ -401,11 +404,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         masterRks: masterRkRes.data || [],
         targetUploadIds,
       };
-    },
+      }),
     enabled: !!uploadId && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5,
     placeholderData: keepPreviousData,
+    retry: false,
   });
 
   const loading = authLoading || (!data && queryPending);

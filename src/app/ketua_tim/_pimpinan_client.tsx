@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -21,6 +22,8 @@ import {
 import { KPICard } from '@/components/dashboard/kpi-card';
 import { StatusLabel } from '@/components/dashboard/status-badge';
 import { PegawaiCard, PegawaiCardSkeleton, type PegawaiRow } from '@/components/dashboard/pegawai-card';
+import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
+import { usePeriodParams } from '@/hooks/use-period-params';
 // ─── Completion Rate Widget ────────────────────────────────
 function CompletionWidget({ uploaded, total, loading }: { uploaded: number; total: number; loading: boolean }) {
   return (
@@ -47,7 +50,6 @@ export default function PimpinanKetuaTimDashboardClient() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const router = useRouter();
   const searchParams = useSearchParams();
 
   const defaultPeriod = getDefaultPeriod(10);
@@ -61,20 +63,21 @@ export default function PimpinanKetuaTimDashboardClient() {
 
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
+  const setPeriod = usePeriodParams();
+
+  // Ganti periode via native History API → tanpa round-trip RSC ke server.
   const setBulan = (b: string | number) => {
-    router.push(`?bulan=${b}&tahun=${tahun}`);
+    setPeriod({ bulan: b, tahun });
   };
 
   const setTahun = (t: number) => {
-    router.push(`?bulan=${bulan}&tahun=${t}`);
+    setPeriod({ bulan, tahun: t });
   };
 
-  const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
+  const { data, isPending: queryPending, isFetching: queryFetching, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-ketua-tim-uploads', bulan, tahun],
-    queryFn: async () => {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
-      try {
+    queryFn: () =>
+      runSafeRead(async (supabase, signal) => {
         let uploadsQuery = supabase
           .from('ckp_uploads')
           .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
@@ -93,20 +96,15 @@ export default function PimpinanKetuaTimDashboardClient() {
           uploadsQuery = uploadsQuery.eq('bulan', bulan);
         }
 
-        const queryPromise = Promise.all([
-          uploadsQuery.abortSignal(controller.signal),
+        const [uploadsRes, usersRes] = await Promise.all([
+          uploadsQuery.abortSignal(signal),
           supabase
             .from('users')
             .select('*, rk_ketua_tim_mapping!rk_ketua_tim_mapping_ketua_tim_id_fkey(tim_kerja)')
             .eq('role', 'ketua_tim')
             .eq('is_active', true)
             .order('full_name')
-            .abortSignal(controller.signal),
-        ]);
-
-        const [uploadsRes, usersRes] = await Promise.race([
-          queryPromise,
-          new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Supabase request took too long')), 15000))
+            .abortSignal(signal),
         ]);
 
         if (uploadsRes.error) throw new Error(`Gagal memuat data upload: ${uploadsRes.error.message}`);
@@ -129,28 +127,24 @@ export default function PimpinanKetuaTimDashboardClient() {
         }) as User[];
 
         return { uploads: newUploads, users: newUsers };
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    },
+      }),
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
+    placeholderData: keepPreviousData,
+    retry: false,
   });
 
   const loading = authLoading || queryPending;
+  // Refetch di background (ganti periode / refresh) sementara data lama tetap tampil.
+  const isFiltering = !loading && queryFetching;
 
-  // Failsafe: if genuinely stuck for > 15s after auth resolved, retry query (NOT hard reload)
-  React.useEffect(() => {
-    let timeout: NodeJS.Timeout;
-    if (!authLoading && queryPending) {
-      timeout = setTimeout(() => {
-        console.warn('Failsafe triggered: retrying stuck query');
-        void refetch();
-      }, 15000);
+  // Beri tahu pengguna bila pemuatan periode gagal (data lama tetap tampil).
+  useEffect(() => {
+    if (queryError) {
+      toast.error('Gagal memuat data periode ini. Silakan coba lagi.', { id: 'period-fetch-error' });
     }
-    return () => clearTimeout(timeout);
-  }, [authLoading, queryPending, refetch]);
+  }, [queryError]);
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
@@ -330,7 +324,9 @@ export default function PimpinanKetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+
+        <FetchingBar show={isFiltering} />
 
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -382,7 +378,8 @@ export default function PimpinanKetuaTimDashboardClient() {
         </div>
 
         {/* ── Rekap per Pegawai section ─────────────── */}
-        <div>
+        <div className="relative">
+          <FetchingOverlay show={isFiltering} label={`Memuat ${getPeriodName(bulan)} ${tahun}…`} />
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>
@@ -458,7 +455,7 @@ export default function PimpinanKetuaTimDashboardClient() {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+            <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => <PegawaiCard key={row.user.id} row={row} source="ketua_tim" bulan={bulan} tahun={tahun} />)}
             </div>
           )}
