@@ -70,6 +70,12 @@ export default function LoginPage() {
         return;
       }
 
+      // Tandai sesi ini sebagai sesi aktif browser (SESSION cookie).
+      // Hilang saat browser ditutup → pengguna wajib login lagi.
+      if (typeof document !== 'undefined') {
+        document.cookie = 'sikap-session=1; path=/; samesite=lax';
+      }
+
       // Sukses: JANGAN redirect manual di sini — useEffect di atas yang
       // redirect berdasarkan role dari database (cover admin/pimpinan/
       // ketua_tim/pegawai). Redirect manual pakai user_metadata bisa salah

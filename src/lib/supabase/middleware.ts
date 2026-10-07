@@ -47,6 +47,24 @@ export async function updateSession(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const publicRoutes = ['/login', '/'];
 
+  // ── Penanda sesi: wajib login tiap kali browser dibuka ──────────────
+  // 'sikap-session' adalah SESSION cookie (hilang saat browser ditutup).
+  // Bila sesi Supabase masih ada (cookie persisten) TAPI penanda ini tidak
+  // ada, artinya browser baru dibuka → paksa login & bersihkan sesi lama.
+  const hasSessionMarker = request.cookies.get('sikap-session')?.value === '1';
+  if (user && !hasSessionMarker) {
+    const isLoginPath = pathname === '/login';
+    const res = isLoginPath
+      ? NextResponse.next({ request })
+      : NextResponse.redirect(new URL('/login', request.url));
+    request.cookies.getAll().forEach((c) => {
+      if (c.name.startsWith('sb-') || c.name.startsWith('ckp-role')) {
+        res.cookies.set(c.name, '', { maxAge: 0, path: '/' });
+      }
+    });
+    return res;
+  }
+
   // Not logged in → clear cached role and redirect if not public
   if (!user) {
     let response = NextResponse.next({ request });

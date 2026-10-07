@@ -367,6 +367,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
+    // SESSION cookie penanda: hilang saat browser ditutup → wajib login lagi.
+    if (typeof document !== 'undefined') {
+      document.cookie = 'sikap-session=1; path=/; samesite=lax';
+    }
     return { error: null };
   }, [supabase]);
 
@@ -391,6 +395,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // 3. Clear Cookies explicitly (crucial for @supabase/ssr)
     if (typeof document !== 'undefined') {
+      // Bersihkan penanda sesi browser juga
+      document.cookie = 'sikap-session=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
       const cookies = document.cookie.split(';');
       for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i];
