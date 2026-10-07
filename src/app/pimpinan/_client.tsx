@@ -414,7 +414,7 @@ export default function PimpinanDashboard() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>
-              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{filteredRows.length} pegawai ditampilkan</p>
+              <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{filteredRows.length} pegawai ditampilkan</p>
             </div>
             <Link
               href="/pimpinan/pegawai"

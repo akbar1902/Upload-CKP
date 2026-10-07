@@ -294,7 +294,7 @@ export default function PimpinanQuickApprovalClient() {
                     <tr key={upload.id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
                       <td className="py-3 px-4">
                         <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{upload.user.full_name}</div>
-                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{upload.user.unit_kerja || upload.user.nip}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{upload.user.unit_kerja || upload.user.nip}</div>
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="inline-flex items-center gap-2">

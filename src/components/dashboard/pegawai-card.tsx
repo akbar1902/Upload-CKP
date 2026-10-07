@@ -52,7 +52,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
               <p className="text-[11px] sm:text-[12px] mt-0.5 truncate"
-                 style={{ color: 'var(--text-tertiary)' }}>{user.unit_kerja || user.nip || '—'}</p>
+                 style={{ color: 'var(--text-secondary)' }}>{user.unit_kerja || user.nip || '—'}</p>
               
               {/* Badge on Mobile (Centered under name) */}
               <div className="mt-1.5 sm:hidden inline-block">
@@ -72,17 +72,17 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
       <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5" style={{ background: 'transparent', border: '1px solid var(--sand-border)' }}>
         <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
           <div>
-            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</p>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
           </div>
           <div style={{ borderLeft: '1px solid var(--sand-border)', borderRight: '1px solid var(--sand-border)' }}>
-            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Capaian</p>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Capaian</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--primary)' : avgProgres >= 50 ? 'var(--accent-strong)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>
           <div>
-            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-tertiary)' }}>Skor</p>
+            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Skor</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
               {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
             </p>

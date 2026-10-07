@@ -26,7 +26,7 @@ export function KPICard({ icon, value, label, sub, iconBg, loading, tone = 'defa
       <div className="flex items-start justify-between gap-3">
         <p
           className="flex-1 min-w-0 text-[13px] font-semibold uppercase leading-snug"
-          style={{ color: 'var(--text-tertiary)', letterSpacing: '0.04em', textWrap: 'balance' }}
+          style={{ color: 'var(--text-secondary)', letterSpacing: '0.04em', textWrap: 'balance' }}
         >
           {label}
         </p>
