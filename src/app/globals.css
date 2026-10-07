@@ -1087,6 +1087,16 @@ input, textarea, select {
   box-shadow: var(--neu-inset-sm), 0 0 0 4px var(--primary-ring);
 }
 
+/* ── Login page: panel ilustrasi kanan (ikut terang/gelap) ── */
+.login-panel {
+  background: linear-gradient(to bottom right, #E1F8E6 0%, #9BD1AC 50%, #59B17A 100%);
+  box-shadow: 0 36px 72px -24px rgba(26, 64, 44, 0.45), 0 10px 24px -14px rgba(26, 64, 44, 0.22);
+}
+.dark .login-panel {
+  background: linear-gradient(to bottom right, #2F5140 0%, #1F3A2C 50%, #122318 100%);
+  box-shadow: 0 30px 70px -26px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.5);
+}
+
 .search-input {
   background: var(--neu-surface);
   border-color: transparent;

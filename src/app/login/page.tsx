@@ -157,7 +157,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={110} className="drop-shadow-sm dark:brightness-0 dark:invert" />
+                    <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
                   </div>
                   <h2 className="text-[24px] font-bold text-[var(--text-primary)] tracking-tight mb-2">
                     Lupa Password?
@@ -250,7 +250,7 @@ export default function LoginPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-6">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={110} className="drop-shadow-sm dark:brightness-0 dark:invert" />
+                    <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
                   </div>
                   <h2 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight mb-2">
                     Selamat Datang
@@ -369,22 +369,31 @@ export default function LoginPage() {
             di layar kotak/tinggi panel dibatasi lebar & ke-center vertikal.
             Isi pakai container query unit (cqw/cqh) supaya selalu proporsional. */}
         <div
-          className="relative shrink-0 overflow-hidden rounded-[32px]"
+          className="login-panel relative shrink-0 overflow-hidden rounded-[32px]"
           style={{
             width: 'min(50.6vw, calc((100vh - 96px) * 1.0196))',
             aspectRatio: '728 / 714',
             containerType: 'size',
-            background: 'linear-gradient(to bottom right, #E1F8E6 0%, #9BD1AC 50%, #59B17A 100%)',
-            boxShadow: '0 36px 72px -24px rgba(26, 64, 44, 0.45), 0 10px 24px -14px rgba(26, 64, 44, 0.22)',
           }}
         >
-          <img
-            src="/login-figure.png"
-            alt=""
+          <div
             aria-hidden="true"
-            draggable={false}
             className="absolute select-none pointer-events-none"
-            style={{ height: '61.5cqh', width: 'auto', right: '9.5cqw', top: '11.8cqh' }}
+            style={{
+              height: '61.5cqh',
+              aspectRatio: '1358 / 1920',
+              right: '9.5cqw',
+              top: '11.8cqh',
+              backgroundColor: 'var(--text-primary)',
+              WebkitMaskImage: 'url(/login-figure.png)',
+              maskImage: 'url(/login-figure.png)',
+              WebkitMaskRepeat: 'no-repeat',
+              maskRepeat: 'no-repeat',
+              WebkitMaskPosition: 'center',
+              maskPosition: 'center',
+              WebkitMaskSize: 'contain',
+              maskSize: 'contain',
+            }}
           />
           <p
             className="absolute"
@@ -394,7 +403,7 @@ export default function LoginPage() {
               fontSize: '4.5cqw',
               lineHeight: 1.5,
               fontWeight: 500,
-              color: '#111111',
+              color: 'var(--text-primary)',
             }}
           >
             CKP sudah diupload,<br />
