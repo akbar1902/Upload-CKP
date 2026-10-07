@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Header } from '@/components/layout/header';
+import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
 import { BULAN_NAMES, getBulanName, getFormattedPenilaianPeriod } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -332,7 +333,9 @@ export default function ExportPenilaianClient({
         <Header />
       </div>
 
-      <div className="p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
+        <FetchingBar show={isPending} />
+        <FetchingOverlay show={isPending} label={`Memuat ${getBulanName(bulan)} ${tahun}…`} />
         {/* Top Header Controls (Hidden during print) */}
         <div className="print:hidden flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>

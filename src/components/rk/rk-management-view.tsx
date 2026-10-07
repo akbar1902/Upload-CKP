@@ -53,7 +53,17 @@ function initials(name?: string | null): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export default function AdminRencanaKinerjaClient({ initialData }: { initialData: any }) {
+/**
+ * Tampilan RK bersama untuk admin & semua akun.
+ * canEdit=false  → mode lihat-saja (semua kontrol ubah disembunyikan).
+ */
+export function RkManagementView({
+  initialData,
+  canEdit = false,
+}: {
+  initialData: any;
+  canEdit?: boolean;
+}) {
   const { user } = useAuth();
 
   const [search, setSearch] = useState('');
@@ -63,7 +73,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
   );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
-  // Modal states
+  // Modal states (hanya dipakai bila canEdit)
   const [showAddMasterModal, setShowAddMasterModal] = useState(false);
   const [showAddSubModal, setShowAddSubModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; type: 'master' | 'sub' } | null>(null);
@@ -82,7 +92,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
   const [isDeletingYear, setIsDeletingYear] = useState(false);
 
   const { data, isPending, isFetching, refetch } = useQuery({
-    queryKey: ['admin-rk-data', selectedYear],
+    queryKey: ['rk-management-data', selectedYear],
     queryFn: () =>
       withTimeoutRetry(
         async () => {
@@ -167,7 +177,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
     setExpanded(new Set());
   };
 
-  // ---------- handlers ----------
+  // ---------- handlers (admin) ----------
   const executeDelete = async () => {
     if (!deleteConfirm) return;
     setIsSubmitting(true);
@@ -285,24 +295,26 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Manajemen Rencana Kinerja
+              {canEdit ? 'Manajemen Rencana Kinerja' : 'Rencana Kinerja'}
             </h2>
             <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Kelola Rencana Kinerja Utama, Sub-RK Anggota, dan Tim Kerja per tahun.
+              Daftar Rencana Kinerja Utama, Sub-RK Anggota, dan Tim Kerja per tahun.
             </p>
           </div>
-          <div className="flex gap-2">
-            <Link prefetch={true} href="/admin/rk/import" className="btn-secondary text-[13px]">
-              <FileSpreadsheet size={15} />
-              Upload Dataset / Excel
-            </Link>
-            <button onClick={() => setShowAddMasterModal(true)} className="btn-primary text-[13px]">
-              <Plus size={15} /> Tambah RK
-            </button>
-          </div>
+          {canEdit && (
+            <div className="flex gap-2">
+              <Link prefetch={true} href="/admin/rk/import" className="btn-secondary text-[13px]">
+                <FileSpreadsheet size={15} />
+                Upload Dataset / Excel
+              </Link>
+              <button onClick={() => setShowAddMasterModal(true)} className="btn-primary text-[13px]">
+                <Plus size={15} /> Tambah RK
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* ===== Statistik (tanpa ikon, earthy) ===== */}
+        {/* ===== Statistik ===== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { label: 'Tim Kerja', value: stats.teams, accent: EARTH[0] },
@@ -315,10 +327,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               className="relative overflow-hidden rounded-2xl px-5 py-4"
               style={{ background: 'var(--card-bg)', border: '1px solid var(--border-soft)', boxShadow: 'var(--shadow-card)' }}
             >
-              <span
-                className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full"
-                style={{ background: s.accent.color }}
-              />
+              <span className="absolute left-0 top-4 bottom-4 w-[3px] rounded-full" style={{ background: s.accent.color }} />
               <div className="pl-3">
                 <div className="text-[26px] leading-none font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>
                   {s.value}
@@ -397,12 +406,8 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                 )}
               </button>
             ))}
-            {isArchiveView && (
-              <button
-                onClick={openDeleteYear}
-                className="filter-btn ml-auto"
-                style={{ color: 'var(--danger)' }}
-              >
+            {canEdit && isArchiveView && (
+              <button onClick={openDeleteYear} className="filter-btn ml-auto" style={{ color: 'var(--danger)' }}>
                 <Trash2 size={13} /> Hapus tahun {selectedYear}
               </button>
             )}
@@ -435,7 +440,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
               Tidak ada Rencana Kinerja
             </p>
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
-              Ubah filter tahun/tim atau kata kunci, atau tambahkan RK baru.
+              {canEdit ? 'Ubah filter tahun/tim atau kata kunci, atau tambahkan RK baru.' : 'Ubah filter tahun/tim atau kata kunci.'}
             </p>
           </div>
         ) : (
@@ -475,55 +480,72 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                           <span className="absolute left-0 top-0 bottom-0 w-[3px]" style={{ background: accent.color, opacity: 0.85 }} />
 
                           <div className="p-5 pl-6">
-                            <div className="flex items-start gap-3">
-                              <h4
-                                className="flex-1 text-[14.5px] font-medium leading-snug"
-                                style={{ color: 'var(--text-primary)' }}
-                              >
-                                {r.rencana_kinerja}
-                              </h4>
-                              <div className="flex items-center gap-1 shrink-0 -mt-0.5">
-                                <button
-                                  onClick={() => { setSelectedRkForSub(r); setShowAddSubModal(true); }}
-                                  title="Tambah Sub-RK"
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:brightness-95"
-                                  style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}
-                                >
-                                  <Plus size={15} />
-                                </button>
-                                <button
-                                  onClick={() => setDeleteConfirm({ id: r.id, name: r.rencana_kinerja, type: 'master' })}
-                                  title="Hapus RK"
-                                  className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-                                  style={{ color: 'var(--text-tertiary)' }}
-                                  onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
-                                  onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
-                                >
-                                  <Trash2 size={15} />
-                                </button>
+                            {/* Area klik besar: judul + meta → buka/tutup */}
+                            <div
+                              role="button"
+                              tabIndex={0}
+                              aria-expanded={isOpen}
+                              onClick={() => toggle(r.id)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  toggle(r.id);
+                                }
+                              }}
+                              className="cursor-pointer rounded-xl -m-2 p-2 transition-colors hover:bg-[var(--sand-subtle)]"
+                            >
+                              <div className="flex items-start gap-3">
+                                <h4 className="flex-1 text-[14.5px] font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
+                                  {r.rencana_kinerja}
+                                </h4>
+                                {canEdit && (
+                                  <div
+                                    className="flex items-center gap-1 shrink-0 -mt-0.5"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <button
+                                      onClick={() => { setSelectedRkForSub(r); setShowAddSubModal(true); }}
+                                      title="Tambah Sub-RK"
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors hover:brightness-95"
+                                      style={{ background: 'var(--primary-soft)', color: 'var(--primary)' }}
+                                    >
+                                      <Plus size={15} />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeleteConfirm({ id: r.id, name: r.rencana_kinerja, type: 'master' })}
+                                      title="Hapus RK"
+                                      className="flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+                                      style={{ color: 'var(--text-tertiary)' }}
+                                      onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--danger)')}
+                                      onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}
+                                    >
+                                      <Trash2 size={15} />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* meta */}
+                              <div className="mt-3 flex items-center flex-wrap gap-x-2 gap-y-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                                <span className="inline-flex items-center gap-1.5">
+                                  <span
+                                    className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-semibold"
+                                    style={{ background: accent.soft, color: accent.color }}
+                                  >
+                                    {initials(r.ketua_tim?.full_name)}
+                                  </span>
+                                  {r.ketua_tim?.full_name || 'Belum di-set'}
+                                </span>
+                                <span style={{ color: 'var(--text-tertiary)' }}>&middot;</span>
+                                <span className="tabular-nums">{subs.length} Sub-RK</span>
                               </div>
                             </div>
 
-                            {/* meta */}
-                            <div className="mt-3 flex items-center flex-wrap gap-x-2 gap-y-1 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-                              <span className="inline-flex items-center gap-1.5">
-                                <span
-                                  className="flex h-4 w-4 items-center justify-center rounded-full text-[8px] font-semibold"
-                                  style={{ background: accent.soft, color: accent.color }}
-                                >
-                                  {initials(r.ketua_tim?.full_name)}
-                                </span>
-                                {r.ketua_tim?.full_name || 'Belum di-set'}
-                              </span>
-                              <span style={{ color: 'var(--text-tertiary)' }}>&middot;</span>
-                              <span className="tabular-nums">{subs.length} Sub-RK</span>
-                            </div>
-
-                            {/* toggle */}
+                            {/* toggle lebar penuh */}
                             <button
                               onClick={() => toggle(r.id)}
-                              className="mt-3 inline-flex items-center gap-1.5 text-[12.5px] font-medium transition-colors hover:text-[var(--primary)]"
-                              style={{ color: 'var(--text-secondary)' }}
+                              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[12.5px] font-medium transition-colors hover:bg-[var(--sand-subtle)]"
+                              style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-soft)' }}
                             >
                               <ChevronDown size={14} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
                               {isOpen ? 'Sembunyikan kegiatan' : `Lihat ${subs.length} kegiatan`}
@@ -558,7 +580,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                             </em>
                                           )}
                                         </span>
-                                        {!sub.is_fallback && (
+                                        {canEdit && !sub.is_fallback && (
                                           <span className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover/sub:opacity-100">
                                             <button
                                               onClick={() => { setSelectedSubForMove(sub); setShowMoveSubModal(true); setTargetRkId(''); }}
@@ -583,7 +605,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
                                   </ul>
                                 ) : (
                                   <p className="px-2 py-3 text-center text-[12px] italic" style={{ color: 'var(--text-tertiary)' }}>
-                                    Belum ada Sub-RK — tekan tombol tambah pada kartu.
+                                    {canEdit ? 'Belum ada Sub-RK — tekan tombol tambah pada kartu.' : 'Belum ada Sub-RK.'}
                                   </p>
                                 )}
                               </div>
@@ -601,7 +623,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       </div>
 
       {/* ================= Modal Tambah RK ================= */}
-      {showAddMasterModal && (
+      {canEdit && showAddMasterModal && (
         <Modal title="Tambah RK Utama" onClose={() => setShowAddMasterModal(false)}>
           <div className="space-y-4">
             <Field label="Nama Rencana Kinerja">
@@ -644,7 +666,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       )}
 
       {/* ================= Modal Tambah Sub-RK ================= */}
-      {showAddSubModal && selectedRkForSub && (
+      {canEdit && showAddSubModal && selectedRkForSub && (
         <Modal title="Tambah Sub-RK" onClose={() => setShowAddSubModal(false)}>
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
@@ -670,13 +692,11 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       )}
 
       {/* ================= Modal Konfirmasi Hapus ================= */}
-      {deleteConfirm && (
+      {canEdit && deleteConfirm && (
         <Modal title="Konfirmasi Hapus" onClose={() => setDeleteConfirm(null)}>
           <div className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             <AlertTriangle size={16} style={{ color: 'var(--danger)' }} className="mt-0.5 shrink-0" />
-            <span>
-              Hapus {deleteConfirm.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?
-            </span>
+            <span>Hapus {deleteConfirm.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?</span>
           </div>
           <div className="p-3 rounded-xl" style={{ background: 'var(--danger-soft)' }}>
             <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{deleteConfirm.name}</p>
@@ -691,7 +711,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       )}
 
       {/* ================= Modal Pindah Sub-RK ================= */}
-      {showMoveSubModal && selectedSubForMove && (
+      {canEdit && showMoveSubModal && selectedSubForMove && (
         <Modal title="Pindah Induk RK" onClose={() => setShowMoveSubModal(false)}>
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
@@ -724,7 +744,7 @@ export default function AdminRencanaKinerjaClient({ initialData }: { initialData
       )}
 
       {/* ================= Modal Hapus Tahun ================= */}
-      {showDeleteYearModal && (
+      {canEdit && showDeleteYearModal && (
         <Modal title={`Hapus RK tahun ${selectedYear}`} onClose={() => setShowDeleteYearModal(false)}>
           {!yearStats ? (
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
@@ -834,10 +854,7 @@ function ModalFooter({
 }) {
   return (
     <div className="flex justify-end gap-3 pt-1">
-      <button
-        className="btn-secondary text-[14px]"
-        onClick={onCancel}
-      >
+      <button className="btn-secondary text-[14px]" onClick={onCancel}>
         Batal
       </button>
       <button

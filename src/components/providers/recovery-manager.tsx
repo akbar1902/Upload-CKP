@@ -62,11 +62,16 @@ export function RecoveryManager({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Step 2: Mark all caches as stale WITHOUT triggering a refetch.
-      // refetchType: 'none' means isPending stays false → no skeleton flash.
-      // Data refetches lazily on next user interaction or component mount.
-      await queryClient.invalidateQueries({ refetchType: 'none' });
-      console.log('[Recovery] All queries marked stale (lazy refetch on next interaction)');
+      // Step 2: Hanya tandai cache stale saat jaringan pulih (network-online).
+      // Untuk tab-visible (kembali ke tab / setelah idle), cukup validasi sesi —
+      // TIDAK menandai semua query stale, supaya pindah menu tidak memicu refetch
+      // + loading hanya karena berpindah tab. Freshness diatur oleh staleTime.
+      if (reason !== 'tab-visible') {
+        await queryClient.invalidateQueries({ refetchType: 'none' });
+        console.log('[Recovery] Caches marked stale (lazy refetch on next interaction)');
+      } else {
+        console.log('[Recovery] Session validated (caches kept fresh per staleTime)');
+      }
 
     } catch (err) {
       console.error('[Recovery] Recovery failed:', err);

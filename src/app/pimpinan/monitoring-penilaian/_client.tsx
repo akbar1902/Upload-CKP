@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
-import { FetchingBar } from '@/components/dashboard/filter-loading';
+import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
 import { usePeriodParams } from '@/hooks/use-period-params';
 import { withTimeoutRetry } from '@/lib/supabase/read';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
@@ -178,6 +178,7 @@ export default function MonitoringPenilaianClient() {
       <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
 
         <FetchingBar show={loading} />
+        <FetchingOverlay show={loading && data.length > 0} label={`Memuat ${getBulanLabel()} ${tahun}…`} />
 
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-[var(--card-bg)] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
@@ -214,7 +215,7 @@ export default function MonitoringPenilaianClient() {
         </div>
 
         {/* Content */}
-        {loading ? (
+        {loading && data.length === 0 ? (
           <div className="space-y-4">
             {[1, 2, 3].map(i => (
               <Skeleton key={i} className="w-full h-[90px] rounded-2xl" />

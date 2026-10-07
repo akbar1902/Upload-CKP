@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
@@ -52,6 +52,7 @@ const SIDEBAR_COLLAPSED = 72;
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const queryClient = useQueryClient();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -122,6 +123,47 @@ export function Sidebar() {
     }
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }
+
+  // Prefetch semua rute menu (saat login & saat kembali ke tab) agar pindah
+  // menu tidak menunggu render server (terasa instan).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const hrefs = Array.from(
+      new Set([...dashboardSubItems.map((i) => i.href), ...navItems.map((i) => i.href)])
+    ).filter((h) => h && !h.startsWith('#'));
+    if (hrefs.length === 0) return;
+
+    const warm = () => {
+      for (const h of hrefs) {
+        try {
+          router.prefetch(h);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') warm();
+    };
+
+    const timer = setTimeout(warm, 400);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, user?.role]);
+
+  // Ekspos lebar sidebar ke CSS var (dipakai overlay transisi agar pas di area konten).
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.documentElement.style.setProperty(
+      '--sikap-sidebar-w',
+      `${collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED}px`
+    );
+  }, [collapsed]);
 
   const sidebarW = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_EXPANDED;
 

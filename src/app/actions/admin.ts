@@ -16,6 +16,31 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   },
 });
 
+// ------------------------------------------------------------
+// Otorisasi: hanya ADMIN yang boleh mengubah struktur RK.
+// (Server actions bypass RLS, jadi harus dicek di sini.)
+// ------------------------------------------------------------
+async function requireAdmin(): Promise<{ ok: boolean; userId?: string; error?: string }> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { ok: false, error: 'Sesi berakhir' };
+    const { data: me } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (!me || me.role !== 'admin') {
+      return { ok: false, error: 'Hanya admin yang boleh mengubah Rencana Kinerja.' };
+    }
+    return { ok: true, userId: user.id };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || 'Gagal memverifikasi hak akses' };
+  }
+}
+
 export async function createEmployee(data: any) {
   try {
     // 1. Create user in auth.users
@@ -407,6 +432,24 @@ export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
 
 export async function getAdminRkDataAction(tahun?: number) {
   try {
+    // Hanya untuk pengguna yang login (semua peran boleh melihat).
+    const authClient = await createServerSupabaseClient();
+    const {
+      data: { user },
+    } = await authClient.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'Sesi berakhir',
+        rks: [],
+        subsByRk: {},
+        ketuaTims: [],
+        years: [],
+        activeYear: new Date().getFullYear(),
+        selectedYear: tahun ?? new Date().getFullYear(),
+      };
+    }
+
     // 1. Semua tahun yang tersedia + tahun aktif (untuk filter tahun)
     const { data: yearRows, error: yearErr } = await supabaseAdmin
       .from('rk_ketua_tim_mapping')
@@ -518,6 +561,8 @@ export async function getAdminRkDataAction(tahun?: number) {
 
 export async function addRkMasterAction(payload: { rencana_kinerja: string; tim_kerja: string; ketua_tim_id: string; created_by?: string; tahun?: number }) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
     const { data: activeYearRow } = await supabaseAdmin
       .from('rk_ketua_tim_mapping')
       .select('tahun')
@@ -547,10 +592,12 @@ export async function addRkMasterAction(payload: { rencana_kinerja: string; tim_
 
 export async function addSubRkAction(payload: { rk_id: string; kegiatan_nama: string; user_id?: string }) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
     const { error } = await supabaseAdmin.from('master_kegiatan_anggota').insert({
       rk_id: payload.rk_id,
       kegiatan_nama: payload.kegiatan_nama.trim(),
-      user_id: payload.user_id || null,
+      user_id: payload.user_id || guard.userId || null,
     });
     if (error) throw error;
     revalidatePath('/admin/rk');
@@ -562,6 +609,8 @@ export async function addSubRkAction(payload: { rk_id: string; kegiatan_nama: st
 
 export async function moveSubRkAction(subId: string, targetRkId: string) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
     const { error } = await supabaseAdmin
       .from('master_kegiatan_anggota')
       .update({ rk_id: targetRkId })
@@ -576,6 +625,8 @@ export async function moveSubRkAction(subId: string, targetRkId: string) {
 
 export async function deleteRkOrSubAction(id: string, type: 'master' | 'sub') {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
     if (type === 'master') {
       const { error } = await supabaseAdmin.from('rk_ketua_tim_mapping').delete().eq('id', id);
       if (error) throw error;
@@ -604,6 +655,8 @@ export interface RkYearStats {
 /** Hitung berapa banyak objek yang terkait dengan sebuah tahun RK. */
 export async function getRkYearStatsAction(tahun: number) {
   try {
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
     const { data: rks, error } = await supabaseAdmin
       .from('rk_ketua_tim_mapping')
       .select('id')
@@ -642,16 +695,9 @@ export async function getRkYearStatsAction(tahun: number) {
  */
 export async function deleteRkYearAction(tahun: number, force = false) {
   try {
-    const supabase = await createServerSupabaseClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: 'Sesi berakhir' };
-
-    const { data: me } = await supabase.from('users').select('role').eq('id', user.id).single();
-    if (!me || !['admin', 'pimpinan'].includes(me.role)) {
-      return { success: false, error: 'Hanya admin/pimpinan yang boleh menghapus tahun RK.' };
-    }
+    const guard = await requireAdmin();
+    if (!guard.ok) return { success: false, error: guard.error };
+    const user = { id: guard.userId! };
 
     const { data: activeRow } = await supabaseAdmin
       .from('rk_ketua_tim_mapping')

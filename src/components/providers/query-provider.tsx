@@ -47,8 +47,8 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 2,        // 2 minutes — avoids skeleton on normal back/forward nav, still fresh enough
-            gcTime: 1000 * 60 * 30,           // 30 minutes garbage collection — keeps cache warm for background return
+            staleTime: 1000 * 60 * 10,       // 10 minutes — hindari refetch tiap pindah menu / setelah idle
+            gcTime: 1000 * 60 * 60,           // 60 minutes — cache tetap hangat lebih lama
             retry: shouldRetry,
             retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000), // exponential backoff: 1s, 2s, 4s (capped at 10s)
             // Disabled: RecoveryManager centralises tab-visible/reconnect recovery.
