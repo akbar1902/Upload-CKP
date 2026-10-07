@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { resetPasswordDirectAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock, CloudUpload, BarChart, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -115,77 +115,15 @@ export default function LoginPage() {
   const primaryColor = 'var(--primary)'; // Selaras token tema (light/dark)
 
   return (
-    <div
-      className="h-screen overflow-hidden flex relative bg-[var(--bg-base)] dark:bg-[var(--bg-secondary)]"
-    >
-      <div
-        className="absolute inset-0 pointer-events-none dark:hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 12% 85%, rgba(15,118,110,.10), transparent 35%),
-            linear-gradient(180deg, #F5F1EA 0%, #EFEAE2 55%, #E7E0D5 100%)
-          `
-        }}
-      />
-      {/* Subtle Pattern (fading out towards the right) */}
-      <div
-        className="absolute inset-0 opacity-40 pointer-events-none"
-        style={{
-          backgroundImage: 'radial-gradient(rgba(169,146,118,0.5) 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
-          maskImage: 'linear-gradient(to right, black 30%, transparent 80%)',
-          WebkitMaskImage: 'linear-gradient(to right, black 30%, transparent 80%)'
-        }}
-      />
+    <div className="h-screen overflow-hidden flex bg-[#FAFAF5] dark:bg-[var(--bg-secondary)]">
 
       {/* ═══════════════════════════════════════════════ */}
-      {/*  Left Panel — Modern Light Design             */}
+      {/*  Left — Login Form                             */}
       {/* ═══════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-1/2 relative">
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col justify-center py-8 w-full h-full max-w-[560px] ml-auto px-8 lg:pr-16 xl:pr-20">
-
-          {/* Hero tagline */}
-          <h2 className="text-[44px] font-extrabold text-[var(--text-primary)] leading-[1.15] tracking-tight mb-4">
-            Rekap, Review,<br />
-            dan Approval<br />
-            <span style={{ color: primaryColor }}>Capaian Kinerja</span>
-          </h2>
-          <p className="text-[16px] text-[var(--text-secondary)] mb-12 font-medium">
-            Semua dalam satu platform terintegrasi.
-          </p>
-
-          {/* Features */}
-          <div className="space-y-6">
-            {[
-              { icon: CloudUpload, title: 'Upload CKP Bulanan', desc: 'Unggah file Excel CKP dengan mudah dan aman.' },
-              { icon: BarChart, title: 'Dashboard Real-time', desc: 'Pantau progress capaian kinerja secara real-time.' },
-              { icon: ShieldCheck, title: 'Workflow Approval', desc: 'Proses review dan approval lebih cepat dan transparan.' },
-              { icon: Lock, title: 'Akses Bukti Dukung Langsung', desc: 'Sistem mempermudah untuk mengakses bukti dukung.' },
-            ].map((feat, i) => (
-              <div key={i} className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 mt-1 bg-[var(--primary-soft)]"
-                  style={{ color: primaryColor }}>
-                  <feat.icon size={18} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h4 className="text-[15px] font-bold text-[var(--text-primary)] mb-0.5">{feat.title}</h4>
-                  <p className="text-[13px] text-[var(--text-secondary)]">{feat.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ═══════════════════════════════════════════════ */}
-      {/*  Right Panel — Login Form                      */}
-      {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 relative z-10 bg-transparent">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 relative z-10">
 
         {/* Login Card */}
-        <div className="w-full max-w-[440px] neu-raised-lg rounded-[32px] p-8 flex flex-col relative z-10">
+        <div className="w-full max-w-[440px] rounded-[32px] p-8 flex flex-col relative z-10 bg-white border border-[#EDE8DF] shadow-[0_28px_70px_-32px_rgba(45,80,60,0.30)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
@@ -253,7 +191,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
@@ -273,7 +211,7 @@ export default function LoginPage() {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
@@ -346,7 +284,7 @@ export default function LoginPage() {
                         placeholder="nama@bps.go.id"
                         required
                         autoFocus
-                        className="pl-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                     </div>
                   </div>
@@ -380,7 +318,7 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="pl-12 pr-12 h-12 py-2 bg-[var(--card-bg)] border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
                       />
                       <button
                         type="button"
@@ -418,6 +356,52 @@ export default function LoginPage() {
 
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════ */}
+      {/*  Right Panel — Illustration                    */}
+      {/* ═══════════════════════════════════════════════ */}
+      <aside
+        className="hidden xl:flex items-center shrink-0"
+        style={{ padding: '48px 60px 48px 0' }}
+      >
+        {/* Panel: rasio 728:714. Ukuran = yang lebih kecil antara 50.6% lebar layar
+            dan (tinggi layar - 96px). Jadi di layar lebar/short panel isi tinggi,
+            di layar kotak/tinggi panel dibatasi lebar & ke-center vertikal.
+            Isi pakai container query unit (cqw/cqh) supaya selalu proporsional. */}
+        <div
+          className="relative shrink-0 overflow-hidden rounded-[32px]"
+          style={{
+            width: 'min(50.6vw, calc((100vh - 96px) * 1.0196))',
+            aspectRatio: '728 / 714',
+            containerType: 'size',
+            background: 'linear-gradient(to bottom right, #E1F8E6 0%, #9BD1AC 50%, #59B17A 100%)',
+            boxShadow: '0 36px 72px -24px rgba(26, 64, 44, 0.45), 0 10px 24px -14px rgba(26, 64, 44, 0.22)',
+          }}
+        >
+          <img
+            src="/login-figure.png"
+            alt=""
+            aria-hidden="true"
+            draggable={false}
+            className="absolute select-none pointer-events-none"
+            style={{ height: '61.5cqh', width: 'auto', right: '9.5cqw', top: '11.8cqh' }}
+          />
+          <p
+            className="absolute"
+            style={{
+              left: '6.5cqw',
+              bottom: '5cqh',
+              fontSize: '4.5cqw',
+              lineHeight: 1.5,
+              fontWeight: 500,
+              color: '#111111',
+            }}
+          >
+            CKP sudah diupload,<br />
+            Hati <span className="italic" style={{ fontWeight: 700 }}>Tenang</span>
+          </p>
+        </div>
+      </aside>
     </div>
   );
 }
