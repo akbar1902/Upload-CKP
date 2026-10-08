@@ -15,7 +15,6 @@ const ROUTE_LABELS: Record<string, string> = {
   '/admin/periode': 'Pengaturan Periode',
   '/admin/logs': 'Log Aktivitas',
   '/admin/monitoring-penilaian': 'Monitoring Penilaian',
-  '/analitik': 'Analitik',
   '/pegawai/upload': 'Upload CKP',
   '/pegawai/evaluasi-penilaian': 'Evaluasi Penilaian',
   '/pegawai/ckp': 'Detail CKP',

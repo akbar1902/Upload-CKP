@@ -15,7 +15,7 @@ interface BreadcrumbConfig {
   title: string;
 }
 
-function getBreadcrumbConfig(pathname: string, isPimpinan: boolean, isAdmin = false): BreadcrumbConfig {
+function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbConfig {
   if (pathname === '/pegawai') {
     return {
       crumbs: [{ label: 'Dashboard' }],
@@ -102,12 +102,6 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean, isAdmin = fa
       title: 'Persetujuan Cepat CKP',
     };
   }
-  if (pathname === '/analitik') {
-    return {
-      crumbs: [{ label: 'Dashboard', href: isAdmin ? '/admin' : '/pimpinan' }, { label: 'Analitik' }],
-      title: 'Analitik CKP',
-    };
-  }
   if (pathname === '/admin/rk/import') {
     return {
       crumbs: [
@@ -162,7 +156,7 @@ export function Header({
   const { open: openCommandPalette } = useCommandPalette();
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
 
-  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan, user?.role === 'admin');
+  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan);
 
   const initials = user?.full_name
     ?.split(' ')
