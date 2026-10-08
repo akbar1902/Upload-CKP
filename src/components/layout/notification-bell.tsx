@@ -154,14 +154,15 @@ export function NotificationBell() {
             ? { background: 'var(--accent-soft)', color: 'var(--accent-strong)' }
             : { background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }
         }
-        aria-label={unread > 0 ? `${unread} notifikasi belum dibaca` : 'Notifikasi'}
+        aria-label={unread > 0 ? `Notifikasi, ${unread} belum dibaca` : 'Notifikasi'}
+        aria-expanded={open}
+        aria-haspopup="dialog"
         title="Notifikasi"
       >
         <Bell size={16} />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
-            style={{ background: 'var(--accent-strong)' }}
+            className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-[var(--accent-strong)] text-white text-[9px] font-bold flex items-center justify-center"
             aria-hidden="true"
           >
             {unread > 9 ? '9+' : unread}

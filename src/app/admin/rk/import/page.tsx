@@ -20,6 +20,16 @@ import {
 import { uploadRencanaKinerjaBulk } from '@/app/actions/admin';
 import { importDatasetRkAction, type DatasetImportReport } from '@/app/actions/dataset-rk';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import {
   parseDatasetRkWorkbook,
   buildParsedDataset,
   type ParsedDataset,
@@ -46,8 +56,10 @@ export default function ImportRKPage() {
   const [dataset, setDataset] = useState<ParsedDataset | null>(null);
   const [importYear, setImportYear] = useState<number>(new Date().getFullYear());
   const [isImporting, setIsImporting] = useState(false);
+  const [importMode, setImportMode] = useState<'dry' | 'save' | null>(null);
   const [importReport, setImportReport] = useState<DatasetImportReport | null>(null);
   const [lastDryRun, setLastDryRun] = useState<boolean>(false);
+  const [showImportConfirm, setShowImportConfirm] = useState(false);
   const zipInputRef = useRef<HTMLInputElement>(null);
 
   const handleDownloadTemplate = () => {
@@ -199,6 +211,7 @@ export default function ImportRKPage() {
   const runImport = async (dryRun: boolean) => {
     if (!dataset) return;
     setIsImporting(true);
+    setImportMode(dryRun ? 'dry' : 'save');
     setImportReport(null);
     try {
       const res = await importDatasetRkAction(dataset, importYear, dryRun);
@@ -219,8 +232,18 @@ export default function ImportRKPage() {
       toast.error('Terjadi kesalahan: ' + error.message);
     } finally {
       setIsImporting(false);
+      setImportMode(null);
     }
   };
+
+  // Konfirmasi "Simpan ke Database" dulu — impor menimpa/arsipkan RK tahun berjalan.
+  const handleConfirmSave = async () => {
+    setShowImportConfirm(false);
+    await runImport(false);
+  };
+
+  // Ringkasan dampak: pakai hasil dry-run bila ada & tahunnya cocok, jika tidak pakai total dataset.
+  const dryRunReport = lastDryRun && importReport && importReport.year === importYear ? importReport : null;
 
   return (
     <>
@@ -430,10 +453,14 @@ export default function ImportRKPage() {
                   <X size={14} className="mr-1.5" /> Batal
                 </button>
                 <button onClick={() => runImport(true)} disabled={isImporting} className="btn-secondary flex items-center gap-2 justify-center">
-                  {isImporting ? <RefreshCw size={14} className="animate-spin" /> : <Play size={14} />} Periksa (dry-run)
+                  {isImporting && importMode === 'dry'
+                    ? <><RefreshCw size={14} className="animate-spin" /> Memeriksa...</>
+                    : <><Play size={14} /> Periksa (dry-run)</>}
                 </button>
-                <button onClick={() => runImport(false)} disabled={isImporting} className="btn-primary flex items-center gap-2 justify-center">
-                  {isImporting ? <><RefreshCw size={14} className="animate-spin" /> Memproses...</> : <><Database size={14} /> Simpan ke Database</>}
+                <button onClick={() => setShowImportConfirm(true)} disabled={isImporting} className="btn-primary flex items-center gap-2 justify-center">
+                  {isImporting && importMode === 'save'
+                    ? <><RefreshCw size={14} className="animate-spin" /> Menyimpan...</>
+                    : <><Database size={14} /> Simpan ke Database</>}
                 </button>
               </div>
             </div>
@@ -524,6 +551,73 @@ export default function ImportRKPage() {
           </div>
         )}
       </div>
+
+      {/* Konfirmasi simpan — impor mengarsipkan RK tahun lain & menimpa RK tahun yang sama */}
+      {showImportConfirm && dataset && (
+        <Dialog
+          open={showImportConfirm}
+          onClose={() => { if (!isImporting) setShowImportConfirm(false); }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Simpan dataset ke database?</DialogTitle>
+              <DialogDescription>
+                Data akan disimpan sebagai RK tahun {importYear}.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
+              <div className="grid grid-cols-3 gap-3">
+                {([
+                  ['Tim', dryRunReport?.teams ?? dataset.totals.teams],
+                  ['RK Ketua Tim', dryRunReport?.parents ?? dataset.totals.parents],
+                  ['Sub-RK', dryRunReport?.subRks ?? dataset.totals.subRks],
+                ] as [string, number][]).map(([label, val]) => (
+                  <div key={label} className="rounded-xl p-3" style={{ background: 'var(--sand-subtle)' }}>
+                    <div className="text-[10.5px] uppercase tracking-[0.12em]" style={{ color: 'var(--text-tertiary)' }}>{label}</div>
+                    <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--text-primary)' }}>{val}</div>
+                  </div>
+                ))}
+              </div>
+              <ul className="space-y-1.5 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+                  <span>
+                    <strong style={{ color: 'var(--text-primary)' }}>{dryRunReport?.parents ?? dataset.totals.parents} RK Ketua Tim</strong>{' '}
+                    dan <strong style={{ color: 'var(--text-primary)' }}>{dryRunReport?.subRks ?? dataset.totals.subRks} Sub-RK</strong>{' '}
+                    akan diimpor untuk tahun {importYear}.
+                  </span>
+                </li>
+                {dryRunReport && (
+                  <li className="flex items-start gap-2">
+                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+                    <span>
+                      Hasil periksa (dry-run): <strong style={{ color: 'var(--text-primary)' }}>{dryRunReport.assignments} penugasan</strong>
+                      {dryRunReport.missingEmployees.length > 0 && (
+                        <>, <strong style={{ color: 'var(--warning-text)' }}>{dryRunReport.missingEmployees.length} pegawai tidak ditemukan</strong> (dilewati)</>
+                      )}.
+                    </span>
+                  </li>
+                )}
+                <li className="flex items-start gap-2">
+                  <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
+                  <span>
+                    RK tahun lain akan <strong style={{ color: 'var(--text-primary)' }}>diarsipkan</strong> (tidak dihapus), dan hanya
+                    RK tahun {importYear} yang aktif. RK tahun {importYear} dengan nama &amp; tim yang sama akan diperbarui.
+                  </span>
+                </li>
+              </ul>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowImportConfirm(false)} disabled={isImporting}>
+                Batal
+              </Button>
+              <Button onClick={handleConfirmSave} loading={isImporting && importMode === 'save'}>
+                Ya, Simpan ke Database
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

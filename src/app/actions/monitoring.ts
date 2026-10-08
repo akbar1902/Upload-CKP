@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/read';
 import { rkGroupKey } from '@/lib/rk-scoring';
 
 export interface PendingRkItem {
@@ -49,6 +50,17 @@ type EntryRow = {
   nilai: number | null;
 };
 
+interface MonitoringUploadRow {
+  id: string;
+  user_id: string;
+  user: {
+    id: string;
+    full_name: string;
+    nip: string | null;
+    unit_kerja: string | null;
+  } | null;
+}
+
 export async function getPendingScoringKetuaTim(
   bulan: number | string,
   tahun: number
@@ -62,41 +74,67 @@ export async function getPendingScoringKetuaTim(
 
     const admin = createAdminClient();
 
-    // 1. Uploads dgn status yg masih relevan utk penilaian
-    let uploadsQuery = admin
-      .from('ckp_uploads')
-      .select(`
-        id, 
-        user_id,
-        user:user_id(id, full_name, nip, unit_kerja)
-      `)
-      .eq('tahun', tahun)
-      .in('status', ['submitted', 'scored', 'revision_required']);
-
-    if (typeof bulan === 'string' && bulan.startsWith('T')) {
-      uploadsQuery = uploadsQuery.in('bulan', TRIWULAN_MAP[bulan] ?? []);
-    } else {
-      uploadsQuery = uploadsQuery.eq('bulan', Number(bulan));
+    // Wajib pimpinan/admin (baca DB users — jangan percaya metadata sesi).
+    const { data: me, error: meErr } = await admin
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (meErr) throw meErr;
+    if (!me || !['pimpinan', 'admin'].includes(me.role)) {
+      return { data: null, error: 'Hanya pimpinan/admin yang dapat mengakses monitoring penilaian.' };
     }
 
-    const { data: uploads, error: uploadErr } = await uploadsQuery;
+    // 1. Uploads dgn status yg masih relevan utk penilaian (paginasi penuh)
+    const buildUploadsQuery = () => {
+      let q = admin
+        .from('ckp_uploads')
+        .select(`
+          id, 
+          user_id,
+          user:user_id(id, full_name, nip, unit_kerja)
+        `)
+        .eq('tahun', tahun)
+        .in('status', ['submitted', 'scored', 'revision_required']);
 
-    if (uploadErr) throw uploadErr;
-    if (!uploads || uploads.length === 0) return { data: [], error: null };
+      if (typeof bulan === 'string' && bulan.startsWith('T')) {
+        q = q.in('bulan', TRIWULAN_MAP[bulan] ?? []);
+      } else {
+        q = q.eq('bulan', Number(bulan));
+      }
+      return q;
+    };
 
-    const uploadIds = (uploads as { id: string }[]).map((u) => u.id);
+    const uploadsRaw = await fetchAllRows<Record<string, unknown>>((from, to) =>
+      buildUploadsQuery().order('id', { ascending: true }).range(from, to)
+    );
+    const uploads = uploadsRaw as unknown as MonitoringUploadRow[];
 
-    // 2. Entries yg belum dinilai — sertakan rk_ketua_tim_id (kunci join data baru)
-    const { data: entries, error: entriesErr } = await admin
-      .from('ckp_entries')
-      .select('id, upload_id, rencana_kinerja, rk_ketua_tim_id, nilai')
-      .in('upload_id', uploadIds)
-      .is('nilai', null);
+    if (uploads.length === 0) return { data: [], error: null };
 
-    if (entriesErr) throw entriesErr;
-    if (!entries || entries.length === 0) return { data: [], error: null };
+    const uploadIds = uploads.map((u) => u.id);
 
-    const entryRows = entries as EntryRow[];
+    // 2. Entries yg belum dinilai — sertakan rk_ketua_tim_id (kunci join data baru).
+    //    KRITIS: paginasi + per-chunk agar >1000 entri tidak terpotong senyap.
+    const entries: EntryRow[] = [];
+    const ENTRY_CHUNK = 100;
+    for (let i = 0; i < uploadIds.length; i += ENTRY_CHUNK) {
+      const chunkIds = uploadIds.slice(i, i + ENTRY_CHUNK);
+      const rows = await fetchAllRows<EntryRow>((from, to) =>
+        admin
+          .from('ckp_entries')
+          .select('id, upload_id, rencana_kinerja, rk_ketua_tim_id, nilai')
+          .in('upload_id', chunkIds)
+          .is('nilai', null)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+      entries.push(...rows);
+    }
+
+    if (entries.length === 0) return { data: [], error: null };
+
+    const entryRows = entries;
 
     // 3. Join mapping via mapping.id IN rk_ketua_tim_id (data baru / Sub-RK)
     const idSet = Array.from(
@@ -162,8 +200,8 @@ export async function getPendingScoringKetuaTim(
       .maybeSingle();
 
     // Build Map Upload ID -> User (Pegawai)
-    const uploadToUser = new Map<string, any>();
-    (uploads as any[]).forEach((u) => uploadToUser.set(u.id, u.user));
+    const uploadToUser = new Map<string, MonitoringUploadRow['user']>();
+    uploads.forEach((u) => uploadToUser.set(u.id, u.user));
 
     // Grouping pending per rkGroupKey (id utk data baru, legacy-nama utk data lama)
     const resultGroup = new Map<string, PendingScoringKetuaTim>();

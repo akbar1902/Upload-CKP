@@ -15,7 +15,7 @@ interface BreadcrumbConfig {
   title: string;
 }
 
-function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbConfig {
+function getBreadcrumbConfig(pathname: string, isPimpinan: boolean, isAdmin = false): BreadcrumbConfig {
   if (pathname === '/pegawai') {
     return {
       crumbs: [{ label: 'Dashboard' }],
@@ -96,6 +96,40 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Log Aktivitas Sistem',
     };
   }
+  if (pathname === '/pimpinan/approval') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/pimpinan' }, { label: 'Persetujuan Cepat' }],
+      title: 'Persetujuan Cepat CKP',
+    };
+  }
+  if (pathname === '/analitik') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: isAdmin ? '/admin' : '/pimpinan' }, { label: 'Analitik' }],
+      title: 'Analitik CKP',
+    };
+  }
+  if (pathname === '/admin/rk/import') {
+    return {
+      crumbs: [
+        { label: 'Dashboard', href: '/admin' },
+        { label: 'Rencana Kinerja', href: '/admin/rk' },
+        { label: 'Import RK' },
+      ],
+      title: 'Import Rencana Kinerja',
+    };
+  }
+  if (pathname === '/admin/rk') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/admin' }, { label: 'Rencana Kinerja' }],
+      title: 'Manajemen Rencana Kinerja',
+    };
+  }
+  if (pathname.startsWith('/ketua_tim/rk/')) {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/ketua_tim' }, { label: 'Detail RK' }],
+      title: 'Detail Rencana Kinerja',
+    };
+  }
   return {
     crumbs: [{ label: 'SIKAP' }],
     title: 'SIKAP',
@@ -128,7 +162,7 @@ export function Header({
   const { open: openCommandPalette } = useCommandPalette();
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
 
-  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan);
+  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan, user?.role === 'admin');
 
   const initials = user?.full_name
     ?.split(' ')

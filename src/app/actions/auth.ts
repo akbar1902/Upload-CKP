@@ -1,55 +1,87 @@
 "use server";
 
 import { createClient } from "@supabase/supabase-js";
+import { headers } from "next/headers";
 
-export async function resetPasswordDirectAction(email: string, newPassword: string) {
+/** Pesan netral — tidak membocorkan apakah email terdaftar atau tidak. */
+const NEUTRAL_RESET_MESSAGE = "Jika email terdaftar, tautan reset telah dikirim.";
+
+/**
+ * Resolusi origin untuk `redirectTo` tautan reset.
+ * Prioritas: NEXT_PUBLIC_SITE_URL → header request (x-forwarded-host/host)
+ * → fallback http://localhost:3000.
+ */
+async function resolveOrigin(): Promise<string> {
+  const envUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (envUrl) return envUrl.replace(/\/+$/, "");
+
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const h = await headers();
+    const host = h.get("x-forwarded-host") || h.get("host");
+    if (host) {
+      const proto = h.get("x-forwarded-proto") || "http";
+      return `${proto}://${host}`;
+    }
+  } catch (err) {
+    console.warn("[requestPasswordResetAction] Gagal membaca header request:", err);
+  }
 
-    if (!supabaseUrl || !supabaseServiceKey) {
+  return "http://localhost:3000";
+}
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Kirim tautan reset password via Supabase Auth (alur standar).
+ *
+ * Keamanan: memakai client ANON tanpa session + `resetPasswordForEmail`
+ * sehingga password TIDAK PERNAH diubah langsung dari server. Ini menutup
+ * celah account takeover pada aksi lama `resetPasswordDirectAction`.
+ *
+ * Anti-enumeration: hasil selalu `{ success: true }` dengan pesan netral,
+ * apa pun status email (terdaftar / tidak / error kirim). Detail error
+ * hanya dicatat ke console server.
+ */
+export async function requestPasswordResetAction(email: string) {
+  try {
+    const cleanEmail = (email || "").trim().toLowerCase();
+    if (!cleanEmail || !EMAIL_RE.test(cleanEmail)) {
+      return { success: false, error: "Masukkan alamat email yang valid." };
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("[requestPasswordResetAction] Konfigurasi Supabase tidak lengkap.");
       return { success: false, error: "Konfigurasi server tidak lengkap." };
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+    const origin = await resolveOrigin();
+
+    // Client anon sekali-pakai: tanpa session, tanpa refresh token.
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
+        detectSessionInUrl: false,
       },
     });
 
-    // 1. Get user id from public.users table by email
-    const { data: users, error: dbError } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .ilike("email", email.trim())
-      .limit(1);
+    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+      redirectTo: `${origin}/reset-password`,
+    });
 
-    if (dbError) {
-      console.error("DB Error:", dbError);
-      return { success: false, error: "Terjadi kesalahan database (mungkin Service Role Key tidak valid)." };
+    if (error) {
+      // Jangan bocorkan ke client — cukup catat untuk admin/SMTP monitoring.
+      console.warn(
+        "[requestPasswordResetAction] resetPasswordForEmail gagal:",
+        error.message
+      );
     }
 
-    if (!users || users.length === 0) {
-      return { success: false, error: "Email tidak ditemukan." };
-    }
-
-    const userId = users[0].id;
-
-    // 2. Update password in auth.users using admin api
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
-      { password: newPassword }
-    );
-
-    if (updateError) {
-      console.error("Auth Admin Error:", updateError);
-      return { success: false, error: "Gagal mengupdate password: " + updateError.message };
-    }
-
-    return { success: true };
-  } catch (err: any) {
-    console.error("Action Error:", err);
-    return { success: false, error: err.message || "Terjadi kesalahan tidak terduga" };
+    return { success: true, message: NEUTRAL_RESET_MESSAGE };
+  } catch (err) {
+    console.error("[requestPasswordResetAction] Error:", err);
+    return { success: true, message: NEUTRAL_RESET_MESSAGE };
   }
 }

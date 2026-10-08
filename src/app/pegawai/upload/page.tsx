@@ -16,7 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
-import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
+import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, ArrowRight, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
 import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
 import {
@@ -48,7 +48,14 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadStep, setUploadStep] = useState(-1);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [existingUpload, setExistingUpload] = useState<{id: string; version: number; status: string} | null>(null);
+  const [existingUpload, setExistingUpload] = useState<{
+    id: string;
+    version: number;
+    status: string;
+    catatan_pimpinan?: string | null;
+    rata_rata_nilai?: number | null;
+    approved_at?: string | null;
+  } | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
   // ── Wizard state: 1 = Periode, 2 = File + Preview, 3 = Petakan RK ──
@@ -679,12 +686,47 @@ export default function UploadPage() {
                 ) : (
                   <Info className="h-4 w-4 text-[var(--primary)] mt-0.5" />
                 )}
-                <div className="text-sm">
+                <div className="text-sm space-y-1 min-w-0">
                   {existingUpload.status === 'approved' && (
                     <p className="text-red-700">CKP periode ini sudah <strong>disetujui</strong>. Tidak dapat mengupload ulang.</p>
                   )}
                   {existingUpload.status === 'submitted' && (
                     <p className="text-[var(--primary)]">CKP periode ini sedang <strong>dalam review</strong> (v{existingUpload.version}).</p>
+                  )}
+                  {existingUpload.status === 'scored' && (
+                    <p className="text-amber-800">
+                      CKP periode ini <strong>sudah dinilai</strong> (v{existingUpload.version}
+                      {existingUpload.rata_rata_nilai != null
+                        ? `, rata-rata nilai ${existingUpload.rata_rata_nilai.toFixed(1)}`
+                        : ''}) dan sedang <strong>menunggu persetujuan pimpinan</strong>.
+                    </p>
+                  )}
+                  {existingUpload.status === 'revision_required' && (
+                    <p className="text-amber-800">
+                      CKP periode ini <strong>perlu revisi</strong> (v{existingUpload.version}). Silakan perbaiki file lalu unggah ulang.
+                    </p>
+                  )}
+                  {existingUpload.status === 'rejected' && (
+                    <p className="text-amber-800">
+                      CKP periode ini <strong>ditolak</strong> (v{existingUpload.version}). Silakan perbaiki file lalu unggah ulang.
+                    </p>
+                  )}
+                  {(existingUpload.status === 'revision_required' || existingUpload.status === 'rejected') && existingUpload.catatan_pimpinan && (
+                    <p className="text-amber-800 break-words">
+                      <span className="font-semibold">Catatan pimpinan:</span>{' '}
+                      {existingUpload.catatan_pimpinan.length > 200
+                        ? `${existingUpload.catatan_pimpinan.slice(0, 200)}…`
+                        : existingUpload.catatan_pimpinan}
+                    </p>
+                  )}
+                  {(existingUpload.status === 'revision_required' || existingUpload.status === 'rejected') && (
+                    <Link
+                      href={`/pegawai/ckp/${existingUpload.id}`}
+                      prefetch={true}
+                      className="inline-flex items-center gap-1 font-medium text-[var(--primary)] hover:underline"
+                    >
+                      Lihat Detail CKP <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
                   )}
                 </div>
               </div>

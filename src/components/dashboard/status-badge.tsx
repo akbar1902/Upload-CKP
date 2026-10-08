@@ -13,14 +13,15 @@ const STATUS_META = {
 };
 
 // Backward-compat untuk modul yang butuh lookup label/kelas.
+// Warna dot memakai token semantik agar sama dengan pill-nya di light & dark.
 export const STATUS_CONFIG = {
-  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: '#0F766E' },
-  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: '#6B5A44' },
-  approved:          { label: 'Disetujui',       cls: 'badge-approved',  dot: '#46583E' },
-  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  dot: '#A8442F' },
-  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  dot: '#B97A1A' },
-  draft:             { label: 'Draft',           cls: 'badge-draft',     dot: '#A89C86' },
-  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     dot: '#A89C86' },
+  submitted:         { label: 'Menunggu Review', cls: 'badge-submitted', dot: 'var(--accent-strong)' },
+  scored:            { label: 'Sudah Dinilai',   cls: 'badge-scored',    dot: 'var(--tertiary-text)' },
+  approved:          { label: 'Disetujui',       cls: 'badge-approved',  dot: 'var(--success)' },
+  rejected:          { label: 'Ditolak',         cls: 'badge-rejected',  dot: 'var(--danger)' },
+  revision_required: { label: 'Perlu Revisi',    cls: 'badge-revision',  dot: 'var(--danger)' },
+  draft:             { label: 'Draft',           cls: 'badge-draft',     dot: 'var(--text-tertiary)' },
+  superseded:        { label: 'Diganti (Arsip)', cls: 'badge-draft',     dot: 'var(--text-tertiary)' },
 } as const;
 
 export function StatusBadge({ status }: { status: string }) {

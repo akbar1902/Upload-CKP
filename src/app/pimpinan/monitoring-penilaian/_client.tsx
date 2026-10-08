@@ -140,9 +140,12 @@ export default function MonitoringPenilaianClient() {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<PendingScoringKetuaTim[]>([]);
+  // Error eksplisit: tanpa ini, kegagalan fetch tampil seolah-olah "semua selesai".
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       // Batas waktu + retry: server action tidak bisa dibatalkan lewat signal,
       // tapi UI tidak akan menggantung selamanya bila request macet pasca-idle.
@@ -151,12 +154,17 @@ export default function MonitoringPenilaianClient() {
         { attempts: 2, timeoutMs: 12000 }
       );
       if (res.error) {
+        setLoadError(res.error);
         toast.error(res.error);
       } else {
         setData(res.data || []);
       }
     } catch (err) {
-      toast.error('Gagal mengambil data monitoring');
+      const message = err instanceof Error && err.message
+        ? err.message
+        : 'Gagal mengambil data monitoring';
+      setLoadError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -220,6 +228,28 @@ export default function MonitoringPenilaianClient() {
             {[1, 2, 3].map(i => (
               <Skeleton key={i} className="w-full h-[90px] rounded-2xl" />
             ))}
+          </div>
+        ) : loadError ? (
+          <div
+            className="bg-[var(--card-bg)] rounded-2xl border p-12 text-center shadow-sm"
+            style={{ borderColor: 'var(--danger-soft)' }}
+            role="alert"
+          >
+            <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                 style={{ background: 'var(--danger-soft)' }}>
+              <AlertCircle size={32} style={{ color: 'var(--danger)' }} />
+            </div>
+            <h3 className="text-[18px] font-bold mb-2" style={{ color: 'var(--text-primary)' }}>Gagal Memuat Data</h3>
+            <p className="text-[14px] max-w-md mx-auto mb-6" style={{ color: 'var(--text-secondary)' }}>
+              {loadError}
+            </p>
+            <button
+              onClick={fetchData}
+              disabled={loading}
+              className="btn-primary disabled:opacity-60"
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} /> Coba Lagi
+            </button>
           </div>
         ) : data.length === 0 ? (
           <div className="bg-[var(--card-bg)] rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center shadow-sm">

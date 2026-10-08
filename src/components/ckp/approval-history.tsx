@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { formatDateTime, getApprovalActionLabel, getApprovalActionColor } from '@/lib/utils';
-import { CheckCircle2, XCircle, RefreshCw, Unlock } from 'lucide-react';
+import { CheckCircle2, XCircle, RefreshCw, Unlock, History } from 'lucide-react';
 import type { Approval } from '@/types/database';
 
 interface ApprovalHistoryProps {
@@ -19,9 +19,18 @@ const actionIcons: Record<string, React.ElementType> = {
 export function ApprovalHistory({ approvals }: ApprovalHistoryProps) {
   if (approvals.length === 0) {
     return (
-      <p className="text-[14px] italic py-4" style={{ color: 'var(--text-tertiary)' }}>
-        Belum ada riwayat review.
-      </p>
+      <div
+        className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed px-6 py-10 text-center"
+        style={{ borderColor: 'var(--border)' }}
+      >
+        <History className="h-5 w-5" style={{ color: 'var(--text-tertiary)' }} aria-hidden="true" />
+        <p className="text-[14px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+          Belum ada riwayat review.
+        </p>
+        <p className="text-[12px]" style={{ color: 'var(--text-tertiary)' }}>
+          Riwayat akan muncul setelah ada tindakan persetujuan.
+        </p>
+      </div>
     );
   }
 

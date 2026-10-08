@@ -223,6 +223,7 @@
   --primary-hover:  #115E59; /* Teal 800 */
   --primary-soft:   rgba(15, 118, 110, 0.08);
   --primary-ring:   rgba(15, 118, 110, 0.15);
+  --primary-bright: #0F766E; /* di light = primary; di dark = teal terang utk teks/ikon */
 
   /* Secondary — sage */
   --secondary:        #6B7F5B;
@@ -257,10 +258,14 @@
   --danger-text:    #86341F;
   --danger-soft:    #FAECE6;
 
+  /* Teks di atas permukaan solid berwarna (tombol danger/warning dsb.).
+     Di light = putih; di dark permukaan tsb. justru terang → ink gelap. */
+  --on-solid:       #FFFDF8;
+
   /* Text */
   --text-primary:   #2B2A26; /* hijau-cokelat sangat tua */
   --text-secondary: #6E6759; /* cokelat keabu-abuan */
-  --text-tertiary:  #A89C86; /* sand tua */
+  --text-tertiary:  #6E6759; /* label 10-13px — kontras >= 4.5 di kartu (light) */
 
   /* Border — dilembutkan (neumorphism mengandalkan bayangan, bukan garis tegas) */
   --border:         rgba(169, 146, 118, 0.34);
@@ -354,7 +359,11 @@
 
   --text-primary:   #EDE6D6;
   --text-secondary: #B8AC96;   /* 7.90 OK di bg */
-  --text-tertiary:  #9A8D76;   /* 5.43 OK di bg; hanya label kecil/non-esensial */
+  --text-tertiary:  #A89C86;   /* 5.93 OK di card; hanya label kecil/non-esensial */
+
+  /* Teks "ink" utk permukaan solid yang terang di dark mode
+     (danger, accent-strong, warning, success, secondary-strong) */
+  --on-solid:       #2B1A12;
 
   --border:         rgba(214, 201, 180, 0.16);
   --border-soft:    rgba(214, 201, 180, 0.09);
@@ -962,12 +971,22 @@ input, textarea, select {
 .dark .text-green-400 {
   color: var(--success) !important;
 }
-/* text-white di dark = ink terang. Tombol primary dark pakai teal dalam
-   (#1F8A7D, putih di atasnya 4.53 OK) jadi teks tombol tetap putih terbaca. */
-.dark .text-white {
-  color: var(--text-primary) !important;
+/* text-white di dark: default tetap putih (--color-white = #FFFDF8) agar
+   kontras di atas permukaan solid/gelap (primary, teal, slate-800, avatar).
+   PENGECUALIAN: permukaan solid yang justru TERANG di dark mode
+   (danger, accent-strong, warning, success, secondary/secondary-strong)
+   memakai ink gelap agar ikut lolos kontras WCAG (>= 4.5:1). */
+.dark :is(
+  [class*="bg-[var(--danger)]"],
+  [class*="bg-[var(--accent-strong)]"],
+  [class*="bg-[var(--warning)]"],
+  [class*="bg-[var(--success)]"],
+  [class*="bg-[var(--secondary-strong)]"],
+  [class*="bg-[var(--secondary)]"]
+).text-white {
+  color: var(--on-solid) !important;
 }
-.dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-700, .dark .border-slate-800 {
+.dark .border-slate-100, .dark .border-slate-200, .dark .border-slate-400, .dark .border-slate-700, .dark .border-slate-800 {
   border-color: var(--border) !important;
 }
 .dark .border-teal-800, .dark .border-teal-900\/50 {
@@ -991,9 +1010,41 @@ input, textarea, select {
 .dark .ring-slate-100, .dark .ring-slate-200 {
   --tw-ring-color: var(--border) !important;
 }
+/* shadow-sm di dark jangan mewarisi neumorfik besar (--shadow-card):
+   chip filter/input kecil cukup bayangan tipis agar tetap "flat". */
 .dark .shadow-sm {
-  box-shadow: var(--shadow-card) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3) !important;
 }
+
+/* ═══════════════════════════════════════════════════════════
+   SONNER TOAST — selaras palet sage/terracotta (light & dark)
+   Warna dasar di-set via toastOptions; di sini detail ikon,
+   tombol tutup/aksi, dan deskripsi agar ikut token.
+   ═══════════════════════════════════════════════════════════ */
+[data-sonner-toast][data-styled="true"] [data-description] {
+  color: var(--text-secondary) !important;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  background: var(--card-bg) !important;
+  border-color: var(--border) !important;
+  color: var(--text-secondary) !important;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover {
+  background: var(--sand-subtle) !important;
+  color: var(--text-primary) !important;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-button] {
+  background: var(--primary-bright) !important;
+  color: var(--on-solid) !important;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-cancel] {
+  background: var(--sand-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+[data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] { color: var(--success); }
+[data-sonner-toast][data-styled="true"][data-type="error"] [data-icon]   { color: var(--danger); }
+[data-sonner-toast][data-styled="true"][data-type="warning"] [data-icon] { color: var(--warning); }
+[data-sonner-toast][data-styled="true"][data-type="info"] [data-icon]    { color: var(--primary-bright); }
 
 /* ═══════════════════════════════════════════════════════════
    NEUMORPHISM (Soft UI) LAYER

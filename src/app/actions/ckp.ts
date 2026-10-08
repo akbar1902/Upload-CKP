@@ -1,44 +1,113 @@
 'use server';
 
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { createClient } from '@supabase/supabase-js';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/read';
 import { revalidatePath } from 'next/cache';
 import { notify, getReviewerIds } from '@/lib/notifications';
 import { getBulanName } from '@/lib/utils';
+import { normalizeRkName } from '@/lib/rk-scoring';
+
+interface MasterKegiatanRow {
+  kegiatan_nama: string;
+  rk_ketua_tim_mapping?: { rencana_kinerja: string } | null;
+}
+
+interface MasterRkRow {
+  id: string;
+  rencana_kinerja: string;
+  tim_kerja: string | null;
+  ketua_tim_id: string | null;
+}
+
+interface KetuaTimRow {
+  id: string;
+  full_name: string;
+  unit_kerja: string | null;
+}
+
+interface CkpEntryRow {
+  id: string;
+  upload_id: string;
+  rencana_kinerja: string | null;
+  rk_ketua_tim_id: string | null;
+  kegiatan: string | null;
+  nilai: number | null;
+  dinilai_oleh: string | null;
+  [key: string]: unknown;
+}
+
+interface RkMappingRow {
+  id: string;
+  rencana_kinerja: string;
+  ketua_tim_id: string | null;
+}
+
+interface UploadEntryPayload {
+  row_number?: number | null;
+  tanggal_mulai?: string | null;
+  tanggal_selesai?: string | null;
+  jam_mulai?: string | null;
+  jam_selesai?: string | null;
+  rencana_kinerja?: string | null;
+  kegiatan?: string | null;
+  progres?: number | string | null;
+  capaian?: string | null;
+  data_dukung?: string | null;
+  extra_columns?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+interface UploadItem {
+  entry?: UploadEntryPayload;
+  matchedRK?: string | null;
+  rawRK?: string | null;
+  matchedRkId?: string | null;
+  [key: string]: unknown;
+}
+
+interface TeamMappingValue {
+  rk_id?: string | null;
+}
 
 export async function saveKegiatanAnggotaMapping(mappings: any[]) {
   try {
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
+    // Wajib login (role apa pun) — aksi ini memakai service role.
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Sesi berakhir' };
+
+    if (!Array.isArray(mappings) || mappings.length === 0 || mappings.length > 5000) {
+      return { success: false, error: 'Data mapping kegiatan tidak valid.' };
+    }
+
+    const supabaseAdmin = createAdminClient();
     const { error } = await supabaseAdmin.from('master_kegiatan_anggota').insert(mappings);
     if (error) throw new Error(error.message);
     
     return { success: true };
   } catch (error: any) {
     console.error('[saveKegiatanAnggotaMapping] Error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Gagal menyimpan mapping kegiatan.' };
   }
 }
 
 
 export async function getMasterKegiatanAnggota() {
   try {
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const { data, error } = await supabaseAdmin
-      .from('master_kegiatan_anggota')
-      .select('kegiatan_nama, rk_ketua_tim_mapping!inner(rencana_kinerja)')
-      .eq('rk_ketua_tim_mapping.is_active', true)
-      .limit(10000);
-      
-    if (error) throw new Error(error.message);
-    return data || [];
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const supabaseAdmin = createAdminClient();
+    const data = (await fetchAllRows<Record<string, unknown>>((from, to) =>
+      supabaseAdmin
+        .from('master_kegiatan_anggota')
+        .select('kegiatan_nama, rk_ketua_tim_mapping!inner(rencana_kinerja)')
+        .eq('rk_ketua_tim_mapping.is_active', true)
+        .order('kegiatan_nama', { ascending: true })
+        .range(from, to)
+    )) as unknown as MasterKegiatanRow[];
+    return data;
   } catch (error: any) {
     console.error('[getMasterKegiatanAnggota] Error:', error);
     return [];
@@ -46,41 +115,90 @@ export async function getMasterKegiatanAnggota() {
 }
 
 export async function getUploadMasterData() {
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
+  // Wajib login sebelum memakai service role.
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Sesi berakhir');
 
-  const [rksRes, ketuasRes, kegiatanRes] = await Promise.all([
-    supabaseAdmin.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja, ketua_tim_id').eq('is_active', true).limit(10000),
-    supabaseAdmin.from('users').select('id, full_name, unit_kerja').in('role', ['ketua_tim', 'pimpinan', 'admin']),
-    supabaseAdmin.from('master_kegiatan_anggota').select('kegiatan_nama, rk_ketua_tim_mapping!inner(rencana_kinerja)').eq('rk_ketua_tim_mapping.is_active', true).limit(10000),
+  const supabaseAdmin = createAdminClient();
+
+  const [masterRKs, ketuaTims, masterKegiatan] = await Promise.all([
+    fetchAllRows<Record<string, unknown>>((from, to) =>
+      supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('id, rencana_kinerja, tim_kerja, ketua_tim_id')
+        .eq('is_active', true)
+        .order('id', { ascending: true })
+        .range(from, to)
+    ),
+    fetchAllRows<KetuaTimRow>((from, to) =>
+      supabaseAdmin
+        .from('users')
+        .select('id, full_name, unit_kerja')
+        .in('role', ['ketua_tim', 'pimpinan', 'admin'])
+        .order('id', { ascending: true })
+        .range(from, to)
+    ),
+    fetchAllRows<Record<string, unknown>>((from, to) =>
+      supabaseAdmin
+        .from('master_kegiatan_anggota')
+        .select('kegiatan_nama, rk_ketua_tim_mapping!inner(rencana_kinerja)')
+        .eq('rk_ketua_tim_mapping.is_active', true)
+        .order('kegiatan_nama', { ascending: true })
+        .range(from, to)
+    ),
   ]);
 
   // JANGAN telan error menjadi data kosong. Data kosong yang ter-cache membuat
   // RK yang sudah dikenal (termasuk hasil mapping upload sebelumnya) dianggap
-  // "tak dikenal" lagi. Biarkan error naik agar client retry / pakai cache lama.
-  if (rksRes.error) throw new Error(rksRes.error.message);
-  if (ketuasRes.error) throw new Error(ketuasRes.error.message);
-  if (kegiatanRes.error) throw new Error(kegiatanRes.error.message);
-
+  // "tak dikenal" lagi. fetchAllRows melempar error → client retry / pakai cache lama.
   return {
-    masterRKs: rksRes.data || [],
-    ketuaTims: ketuasRes.data || [],
-    masterKegiatan: kegiatanRes.data || [],
+    masterRKs: masterRKs as unknown as MasterRkRow[],
+    ketuaTims,
+    masterKegiatan: masterKegiatan as unknown as MasterKegiatanRow[],
   };
 }
 
 export async function checkPeriodStatusAction(userId: string, bulan: number, tahun: number) {
   try {
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    // Wajib login.
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { isLocked: false, existingUpload: null };
+
+    const bulanNum = Number(bulan);
+    const tahunNum = Number(tahun);
+    if (!Number.isInteger(bulanNum) || bulanNum < 1 || bulanNum > 12 || !Number.isInteger(tahunNum)) {
+      return { isLocked: false, existingUpload: null };
+    }
+
+    // Bila userId ≠ sesi: hanya pimpinan/admin yang boleh melihat user lain;
+    // selain itu pakai id sesi (cegah enumerasi status unggahan orang lain).
+    let effectiveUserId = user.id;
+    if (userId && userId !== user.id) {
+      const { data: me } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+      const isPrivileged = me?.role === 'pimpinan' || me?.role === 'admin';
+      if (isPrivileged) effectiveUserId = userId;
+    }
+
+    const supabaseAdmin = createAdminClient();
 
     const [lockRes, uploadRes] = await Promise.all([
-      supabaseAdmin.from('periode_ckp').select('is_locked').eq('bulan', bulan).eq('tahun', tahun).maybeSingle(),
-      supabaseAdmin.from('ckp_uploads').select('id, version, status').eq('user_id', userId).eq('bulan', bulan).eq('tahun', tahun).order('version', { ascending: false }).limit(1).maybeSingle(),
+      supabaseAdmin.from('periode_ckp').select('is_locked').eq('bulan', bulanNum).eq('tahun', tahunNum).maybeSingle(),
+      supabaseAdmin
+        .from('ckp_uploads')
+        // KONTRAK dengan halaman upload: sertakan alasan revisi & nilai rata-rata.
+        .select('id, version, status, catatan_pimpinan, rata_rata_nilai, approved_at')
+        .eq('user_id', effectiveUserId)
+        .eq('bulan', bulanNum)
+        .eq('tahun', tahunNum)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     return {
@@ -99,13 +217,23 @@ export async function deleteCkpUploadAction(uploadId: string) {
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      throw new Error('Sesi berakhir');
     }
 
+    const supabaseAdmin = createAdminClient();
+
+    // Role pemanggil (pimpinan/admin boleh menghapus upload orang lain).
+    const { data: me } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    const isPrivileged = me?.role === 'pimpinan' || me?.role === 'admin';
+
     // 1. Fetch the upload to verify ownership and status
-    const { data: upload, error: fetchError } = await supabase
+    const { data: upload, error: fetchError } = await supabaseAdmin
       .from('ckp_uploads')
-      .select('user_id, status, storage_path')
+      .select('user_id, status, storage_path, bulan, tahun')
       .eq('id', uploadId)
       .single();
 
@@ -113,7 +241,7 @@ export async function deleteCkpUploadAction(uploadId: string) {
       throw new Error('Data CKP tidak ditemukan');
     }
 
-    if (upload.user_id !== user.id) {
+    if (upload.user_id !== user.id && !isPrivileged) {
       throw new Error('Anda tidak memiliki akses untuk menghapus CKP ini');
     }
 
@@ -121,23 +249,47 @@ export async function deleteCkpUploadAction(uploadId: string) {
       throw new Error('CKP yang sudah disetujui (Approved) tidak dapat dihapus');
     }
 
-    // 2. Delete the actual record
-    await supabase.from('ckp_entries').delete().eq('upload_id', uploadId);
+    // Tolak bila periode terkunci — kecuali pimpinan/admin.
+    if (!isPrivileged) {
+      const { data: periode } = await supabaseAdmin
+        .from('periode_ckp')
+        .select('is_locked')
+        .eq('bulan', upload.bulan)
+        .eq('tahun', upload.tahun)
+        .maybeSingle();
+      if (periode?.is_locked) {
+        throw new Error('Periode CKP sedang dikunci. Penghapusan tidak diizinkan.');
+      }
+    }
 
-    const { error: deleteError } = await supabase
+    // 2. Delete the actual record (service role — otorisasi sudah dicek manual)
+    const { error: entriesError } = await supabaseAdmin
+      .from('ckp_entries')
+      .delete()
+      .eq('upload_id', uploadId);
+    if (entriesError) {
+      console.error('[deleteCkpUploadAction] Delete entries error:', entriesError);
+      throw new Error('Gagal menghapus rincian kegiatan CKP.');
+    }
+
+    const { error: deleteError } = await supabaseAdmin
       .from('ckp_uploads')
       .delete()
       .eq('id', uploadId);
 
     if (deleteError) {
-      throw new Error(`Gagal menghapus dari database: ${deleteError.message}`);
+      console.error('[deleteCkpUploadAction] Delete upload error:', deleteError);
+      throw new Error('Gagal menghapus data CKP.');
     }
 
-    // 3. Delete the file from storage if it exists
+    // 3. Delete the file from storage (best-effort — DB sudah terhapus).
     if (upload.storage_path) {
-      supabase.storage.from('ckp-files').remove([upload.storage_path]).catch((err: any) => {
-        console.error('Failed to remove file from storage:', err);
-      });
+      const { error: storageRemoveError } = await supabaseAdmin.storage
+        .from('ckp-files')
+        .remove([upload.storage_path]);
+      if (storageRemoveError) {
+        console.warn('[deleteCkpUploadAction] Gagal hapus file storage:', storageRemoveError.message);
+      }
     }
 
     revalidatePath('/pegawai');
@@ -166,14 +318,14 @@ export async function moveEntriesAction(entryIds: string[], targetMoveRk: string
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      throw new Error('Sesi berakhir');
     }
 
     const { data: userData } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!userData || !['ketua_tim', 'pimpinan', 'admin'].includes(userData.role)) {
       throw new Error('Unauthorized: Hanya pimpinan atau ketua tim yang dapat memindah RK.');
@@ -181,10 +333,7 @@ export async function moveEntriesAction(entryIds: string[], targetMoveRk: string
     const callerRole = userData.role;
 
     // Bypass RLS using service role — otorisasi ditegakkan manual di bawah.
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = createAdminClient();
 
     // Resolve target: UUID langsung, atau nama (kompat dialog lama yg kirim string nama).
     let targetRkId: string;
@@ -230,27 +379,60 @@ export async function moveEntriesAction(entryIds: string[], targetMoveRk: string
     }
 
     // Tolak bila ada upload yg sudah approved.
-    const { data: entries, error: eErr } = await supabaseAdmin
+    const { data: entriesRaw, error: eErr } = await supabaseAdmin
       .from('ckp_entries')
-      .select('id, upload_id')
+      .select('id, upload_id, rk_ketua_tim_id, rencana_kinerja')
       .in('id', entryIds);
-    if (eErr || !entries || entries.length === 0) {
+    const entries = (entriesRaw ?? []) as Array<{
+      id: string;
+      upload_id: string;
+      rk_ketua_tim_id: string | null;
+      rencana_kinerja: string | null;
+    }>;
+    if (eErr || entries.length === 0) {
       throw new Error('Data kegiatan tidak ditemukan.');
     }
     if (entries.length !== entryIds.length) {
       throw new Error('Sebagian kegiatan tidak ditemukan. Muat ulang dan coba lagi.');
     }
     const uploadIds = Array.from(new Set(entries.map((e: any) => e.upload_id)));
-    const { data: uploads } = await supabaseAdmin
+    const { data: uploads, error: uploadsErr } = await supabaseAdmin
       .from('ckp_uploads')
       .select('id, status, user_id')
       .in('id', uploadIds);
+    if (uploadsErr) {
+      throw new Error('Gagal memeriksa data upload tujuan.');
+    }
     if ((uploads || []).some((u: any) => u.status === 'approved')) {
       throw new Error('CKP yang sudah disetujui (Approved) tidak dapat dipindah.');
     }
     // Ketua tim tidak boleh memindah kegiatan miliknya sendiri (dinilai pimpinan).
     if (callerRole === 'ketua_tim' && (uploads || []).some((u: any) => u.user_id === user.id)) {
       throw new Error('Ketua tim tidak dapat memindah kegiatan milik sendiri — harus dinilai pimpinan.');
+    }
+
+    // Ketua tim hanya boleh memindah kegiatan dari RK timnya (ownership ASAL).
+    if (callerRole === 'ketua_tim') {
+      const { data: myMappings, error: myMapErr } = await supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('id, rencana_kinerja')
+        .eq('ketua_tim_id', user.id)
+        .eq('is_active', true);
+      if (myMapErr) {
+        throw new Error('Gagal memverifikasi kepemilikan RK asal.');
+      }
+      const myMappingRows = (myMappings ?? []) as RkMappingRow[];
+      const ownedIds = new Set(myMappingRows.map((m) => m.id));
+      const ownedNorms = new Set(
+        myMappingRows.map((m) => normalizeRkName(m.rencana_kinerja))
+      );
+      const allOwned = entries.every((e) =>
+        (e.rk_ketua_tim_id && ownedIds.has(e.rk_ketua_tim_id)) ||
+        (!e.rk_ketua_tim_id && ownedNorms.has(normalizeRkName(e.rencana_kinerja)))
+      );
+      if (!allOwned) {
+        throw new Error('Anda hanya dapat memindah kegiatan dari RK tim Anda sendiri.');
+      }
     }
 
     // Update ATOMIK nama + UUID dalam 1 update (hindari split-brain).
@@ -260,7 +442,7 @@ export async function moveEntriesAction(entryIds: string[], targetMoveRk: string
       .in('id', entryIds);
 
     if (error) {
-      throw new Error(`Gagal update DB: ${error.message}`);
+      throw new Error('Gagal memindahkan kegiatan. Silakan coba lagi.');
     }
 
     try {
@@ -292,60 +474,115 @@ export async function markEntryAction(entryId: string, catatanKoreksi: string | 
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      throw new Error('Unauthorized');
+      throw new Error('Sesi berakhir');
     }
 
     const { data: userData } = await supabase
       .from('users')
       .select('role')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
 
     if (!userData || !['ketua_tim', 'pimpinan', 'admin'].includes(userData.role)) {
       throw new Error('Unauthorized: Hanya reviewer yang dapat memberikan catatan.');
     }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    const supabaseAdmin = createAdminClient();
 
-    // Ketua tim tidak boleh memberi catatan koreksi ke CKP miliknya sendiri.
+    // Baca entry dulu: pemilik upload + info RK (untuk verifikasi wewenang ketua tim).
+    const { data: targetEntry, error: targetErr } = await supabaseAdmin
+      .from('ckp_entries')
+      .select('id, upload_id, catatan_koreksi, rk_ketua_tim_id, rencana_kinerja, ckp_uploads!inner(user_id)')
+      .eq('id', entryId)
+      .maybeSingle();
+
+    if (targetErr || !targetEntry) {
+      throw new Error('Data kegiatan tidak ditemukan.');
+    }
+    const ownerRel = targetEntry.ckp_uploads as
+      | { user_id: string }
+      | { user_id: string }[]
+      | null;
+    const ownerId = Array.isArray(ownerRel) ? ownerRel[0]?.user_id : ownerRel?.user_id;
+
     if (userData.role === 'ketua_tim') {
-      const { data: targetEntry } = await supabaseAdmin
-        .from('ckp_entries')
-        .select('upload_id, ckp_uploads!inner(user_id)')
-        .eq('id', entryId)
-        .maybeSingle();
-      const ownerId = (targetEntry?.ckp_uploads as any)?.user_id;
+      // Ketua tim tidak boleh memberi catatan koreksi ke CKP miliknya sendiri.
       if (ownerId === user.id) {
         throw new Error('Ketua tim tidak dapat memberi catatan ke CKP milik sendiri — harus dinilai pimpinan.');
       }
+
+      // Entry harus milik RK yang di-mapping ke ketua tim ini.
+      let owns = false;
+      if (targetEntry.rk_ketua_tim_id) {
+        const { data: mapping, error: mapErr } = await supabaseAdmin
+          .from('rk_ketua_tim_mapping')
+          .select('id, ketua_tim_id')
+          .eq('id', targetEntry.rk_ketua_tim_id)
+          .maybeSingle();
+        if (mapErr) {
+          throw new Error('Gagal memverifikasi kepemilikan RK.');
+        }
+        owns = !!mapping && mapping.ketua_tim_id === user.id;
+      } else {
+        const norm = normalizeRkName(targetEntry.rencana_kinerja);
+        if (norm) {
+          const { data: myMappings, error: myMapErr } = await supabaseAdmin
+            .from('rk_ketua_tim_mapping')
+            .select('rencana_kinerja')
+            .eq('ketua_tim_id', user.id)
+            .eq('is_active', true);
+          if (myMapErr) {
+            throw new Error('Gagal memverifikasi kepemilikan RK.');
+          }
+          const myMappingRows = (myMappings ?? []) as RkMappingRow[];
+          owns = myMappingRows.some(
+            (m) => normalizeRkName(m.rencana_kinerja) === norm
+          );
+        }
+      }
+
+      if (!owns) {
+        throw new Error('Anda tidak berwenang menilai RK ini');
+      }
     }
-    
+
+    const previousCatatan = targetEntry.catatan_koreksi ?? null;
+
     // Update the entry
-    const { data: entryData, error: entryError } = await supabaseAdmin
+    const { error: entryError } = await supabaseAdmin
       .from('ckp_entries')
       .update({ catatan_koreksi: catatanKoreksi || null })
-      .eq('id', entryId)
-      .select('upload_id')
-      .single();
+      .eq('id', entryId);
 
     if (entryError) {
-      throw new Error(`Gagal menyimpan catatan: ${entryError.message}`);
+      console.error('[markEntryAction] Entry update error:', entryError);
+      throw new Error('Gagal menyimpan catatan.');
     }
 
     // If a note was added, we should set the upload status to revision_required
-    // so the Pegawai sees the warning on their dashboard immediately
-    if (catatanKoreksi && entryData?.upload_id) {
+    // so the Pegawai sees the warning on their dashboard immediately.
+    // Jangan tinggalkan catatan tersimpan tanpa perubahan status: bila update
+    // status gagal, kembalikan catatan lama lalu laporkan error.
+    if (catatanKoreksi && targetEntry.upload_id) {
       const { error: uploadError } = await supabaseAdmin
         .from('ckp_uploads')
         .update({ status: 'revision_required' })
-        .eq('id', entryData.upload_id)
+        .eq('id', targetEntry.upload_id)
         .eq('status', 'submitted'); // Only change if it's currently submitted to prevent overriding 'approved' etc
-        
+
       if (uploadError) {
         console.error('[markEntryAction] Failed to update upload status:', uploadError);
+        const { error: rollbackErr } = await supabaseAdmin
+          .from('ckp_entries')
+          .update({ catatan_koreksi: previousCatatan })
+          .eq('id', entryId);
+        if (rollbackErr) {
+          console.error('[markEntryAction] Rollback catatan gagal:', rollbackErr);
+        }
+        return {
+          success: false,
+          error: 'Gagal memperbarui status revisi. Catatan tidak disimpan — silakan coba lagi.',
+        };
       }
     }
 
@@ -358,42 +595,109 @@ export async function markEntryAction(entryId: string, catatanKoreksi: string | 
 
 export async function submitCkpUploadAction(formData: FormData) {
   try {
+    // 0. WAJIB sesi login — jangan percaya userId dari FormData.
+    const supabase = await createServerSupabaseClient();
+    const { data: { user: sessionUser } } = await supabase.auth.getUser();
+    if (!sessionUser) {
+      return { success: false, error: 'Sesi berakhir. Silakan login ulang.' };
+    }
+
     const file = formData.get('file') as File;
-    const userId = formData.get('userId') as string;
+    const userIdFromForm = String(formData.get('userId') || '').trim();
     const bulan = Number(formData.get('bulan'));
     const tahun = Number(formData.get('tahun'));
     const entriesJson = formData.get('entries') as string;
     const rkTeamMappingJson = formData.get('rkTeamMapping') as string;
     const validRKsToAssignJson = formData.get('validRKsToAssign') as string;
 
-    if (!file || !userId || !bulan || !tahun || !entriesJson) {
+    if (!file || !entriesJson || !Number.isInteger(bulan) || !Number.isInteger(tahun)) {
       return { success: false, error: 'Data upload tidak lengkap.' };
     }
+    if (bulan < 1 || bulan > 12) {
+      return { success: false, error: 'Bulan tidak valid.' };
+    }
+    if (tahun < 2020 || tahun > 2100) {
+      return { success: false, error: 'Tahun tidak valid.' };
+    }
 
-    const entries = JSON.parse(entriesJson);
-    const rkTeamMapping = rkTeamMappingJson ? JSON.parse(rkTeamMappingJson) : {};
-    const validRKsToAssign: string[] = validRKsToAssignJson ? JSON.parse(validRKsToAssignJson) : [];
+    // Parsing aman: jangan biarkan JSON rusak melempar error mentah ke client.
+    let entries: UploadItem[];
+    let rkTeamMapping: Record<string, TeamMappingValue>;
+    let validRKsToAssign: unknown[];
+    try {
+      entries = JSON.parse(entriesJson) as UploadItem[];
+      rkTeamMapping = (rkTeamMappingJson
+        ? JSON.parse(rkTeamMappingJson)
+        : {}) as Record<string, TeamMappingValue>;
+      validRKsToAssign = validRKsToAssignJson
+        ? (JSON.parse(validRKsToAssignJson) as unknown[])
+        : [];
+    } catch {
+      return { success: false, error: 'Format data entri tidak valid.' };
+    }
 
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    if (!Array.isArray(entries) || entries.length === 0) {
+      return { success: false, error: 'Tidak ada entri kegiatan yang dikirim.' };
+    }
+    if (entries.length > 5000) {
+      return { success: false, error: 'Terlalu banyak entri (maksimal 5000 per upload).' };
+    }
+    if (!entries.every((e: unknown) => e && typeof e === 'object' && !Array.isArray(e))) {
+      return { success: false, error: 'Format entri kegiatan tidak valid.' };
+    }
+    if (!Array.isArray(validRKsToAssign)) validRKsToAssign = [];
+    if (!rkTeamMapping || typeof rkTeamMapping !== 'object' || Array.isArray(rkTeamMapping)) {
+      rkTeamMapping = {};
+    }
+
+    const supabaseAdmin = createAdminClient();
+
+    // Bila userId FormData ≠ sesi, hanya pimpinan/admin yang boleh upload
+    // untuk pegawai lain. Selain itu selalu pakai id sesi.
+    let userId = sessionUser.id;
+    if (userIdFromForm && userIdFromForm !== sessionUser.id) {
+      const { data: me } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', sessionUser.id)
+        .maybeSingle();
+      const privileged = me?.role === 'pimpinan' || me?.role === 'admin';
+      if (!privileged) {
+        return { success: false, error: 'Anda tidak berwenang mengunggah CKP untuk pegawai lain.' };
+      }
+      userId = userIdFromForm;
+    }
+
+    // CEK SERVER-SIDE: periode dikunci? (jangan hanya andalkan client)
+    const { data: periode } = await supabaseAdmin
+      .from('periode_ckp')
+      .select('is_locked')
+      .eq('bulan', bulan)
+      .eq('tahun', tahun)
+      .maybeSingle();
+    if (periode?.is_locked) {
+      return { success: false, error: 'Periode CKP ini sedang dikunci oleh Admin. Upload tidak diizinkan.' };
+    }
+
+    // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id.
+    // Paginasi penuh — jangan terpotong diam-diam di 1000 baris.
+    const rkMappingData = await fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
+      supabaseAdmin
+        .from('rk_ketua_tim_mapping')
+        .select('id, rencana_kinerja')
+        .eq('is_active', true)
+        .order('id', { ascending: true })
+        .range(from, to)
     );
 
-    // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id
-    const { data: rkMappingData } = await supabaseAdmin
-      .from('rk_ketua_tim_mapping')
-      .select('id, rencana_kinerja')
-      .eq('is_active', true)
-      .limit(10000);
-
     // Gagalkan eksplisit bila master kosong — jangan fail-open (semua rk_ketua_tim_id jadi NULL).
-    if (entries.length > 0 && (!rkMappingData || rkMappingData.length === 0)) {
+    if (rkMappingData.length === 0) {
       return { success: false, error: 'Data master RK kosong. Muat ulang halaman dan coba lagi.' };
     }
 
     const rkNameToId = new Map<string, string>(); // nama (lower) → id
     const rkIdSet = new Set<string>();            // UUID mapping yg valid
-    (rkMappingData || []).forEach((r: any) => {
+    rkMappingData.forEach((r) => {
       rkIdSet.add(String(r.id));
       rkNameToId.set(String(r.rencana_kinerja).toLowerCase(), String(r.id));
     });
@@ -415,17 +719,33 @@ export async function submitCkpUploadAction(formData: FormData) {
 
     let newVersion = 1;
     let previousUploadId: string | null = null;
-    let existingEntries: any[] = [];
+    let existingEntries: CkpEntryRow[] = [];
 
     if (existingUpload) {
       newVersion = existingUpload.version + 1;
       previousUploadId = existingUpload.id;
 
-      const { data: oldEntries } = await supabaseAdmin
-        .from('ckp_entries')
-        .select('*')
-        .eq('upload_id', existingUpload.id);
-      if (oldEntries) existingEntries = oldEntries;
+      // Paginasi penuh — upload lama bisa >1000 entri.
+      existingEntries = await fetchAllRows<CkpEntryRow>((from, to) =>
+        supabaseAdmin
+          .from('ckp_entries')
+          .select('*')
+          .eq('upload_id', existingUpload.id)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+    }
+
+    // Validasi UUID matchedRkId SEBELUM upload storage / supersede versi lama,
+    // supaya data buruk tidak meninggalkan file yatim / versi lama tertandai.
+    for (const item of entries) {
+      const candidateUuid = item?.matchedRkId ? String(item.matchedRkId).trim() : '';
+      if (candidateUuid && !rkIdSet.has(candidateUuid)) {
+        return {
+          success: false,
+          error: `RK tujuan "${candidateUuid}" tidak valid — UUID tidak ditemukan di master RK. Muat ulang halaman upload dan coba lagi.`,
+        };
+      }
     }
 
     // 2. Upload file to Supabase Storage via admin client
@@ -444,21 +764,25 @@ export async function submitCkpUploadAction(formData: FormData) {
 
     if (storageError) {
       console.error('[submitCkpUploadAction] Storage upload error:', storageError);
-      return { success: false, error: `Gagal upload ke storage: ${storageError.message}` };
+      return { success: false, error: 'Gagal mengunggah file ke penyimpanan. Silakan coba lagi.' };
     }
 
     // 3. Mark previous upload as superseded
     if (previousUploadId) {
-      await supabaseAdmin
+      const { error: supersedeError } = await supabaseAdmin
         .from('ckp_uploads')
         .update({ status: 'superseded' })
         .eq('id', previousUploadId);
+      if (supersedeError) {
+        console.error('[submitCkpUploadAction] Supersede error:', supersedeError);
+        return { success: false, error: 'Gagal menonaktifkan versi CKP lama. Silakan coba lagi.' };
+      }
     }
 
     // 4. Calculate total entries & avg progres
     const totalEntries = entries.length;
     const avgProgres = totalEntries > 0
-      ? entries.reduce((s: number, e: any) => s + (Number(e.progres) || 0), 0) / totalEntries
+      ? entries.reduce((s: number, e: UploadItem) => s + (Number((e.entry ?? e).progres) || 0), 0) / totalEntries
       : 0;
 
     // 5. Create new ckp_uploads record
@@ -480,24 +804,25 @@ export async function submitCkpUploadAction(formData: FormData) {
 
     if (uploadError || !uploadData) {
       console.error('[submitCkpUploadAction] Insert upload error:', uploadError);
-      return { success: false, error: `Gagal menyimpan info upload: ${uploadError?.message}` };
+      return { success: false, error: 'Gagal menyimpan informasi upload. Silakan coba lagi.' };
     }
 
     // 6. Compare activities between old and new to preserve scores
     const normalize = (str: string) => (str || '').toLowerCase().replace(/tahun\s*20\d{2}/g, '').replace(/[^a-z0-9]/g, '');
 
     const oldRkActivities = new Map<string, Set<string>>();
-    existingEntries.forEach((e: any) => {
+    existingEntries.forEach((e: CkpEntryRow) => {
       const rk = normalize(e.rencana_kinerja || '');
       if (!oldRkActivities.has(rk)) oldRkActivities.set(rk, new Set());
       oldRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
     });
 
     const newRkActivities = new Map<string, Set<string>>();
-    entries.forEach((e: any) => {
-      const rk = normalize(e.rencana_kinerja || '');
+    entries.forEach((e: UploadItem) => {
+      const entry = (e.entry ?? e) as UploadEntryPayload;
+      const rk = normalize(entry.rencana_kinerja || '');
       if (!newRkActivities.has(rk)) newRkActivities.set(rk, new Set());
-      newRkActivities.get(rk)!.add(normalize(e.kegiatan || ''));
+      newRkActivities.get(rk)!.add(normalize(entry.kegiatan || ''));
     });
 
     const unchangedRKs = new Set<string>();
@@ -515,8 +840,16 @@ export async function submitCkpUploadAction(formData: FormData) {
       }
     });
 
-    const entriesToInsert = entries.map((item: any) => {
-      const entry = item.entry || item;
+    // Map pencarian lama dibangun SEKALI (O(n)) — pengganti existingEntries.find()
+    // yang membuat keseluruhan loop O(n²). Kunci: normalize(kegiatan)|normalize(rk).
+    const oldEntryIndex = new Map<string, { entry: CkpEntryRow; index: number }>();
+    existingEntries.forEach((e: CkpEntryRow, index: number) => {
+      const key = `${normalize(e.kegiatan || '')}|${normalize(e.rencana_kinerja || '')}`;
+      if (!oldEntryIndex.has(key)) oldEntryIndex.set(key, { entry: e, index });
+    });
+
+    const entriesToInsert = entries.map((item: UploadItem) => {
+      const entry = (item.entry ?? item) as UploadEntryPayload;
       // matchedRK = nama RK Ketua Tim (parent) hasil resolusi
       const matchedRK = item.matchedRK !== undefined ? item.matchedRK : entry.rencana_kinerja;
       // rawRK = nama sub-RK asli dari Excel pegawai (sebelum resolusi)
@@ -525,11 +858,19 @@ export async function submitCkpUploadAction(formData: FormData) {
       const rk = normalize(matchedRK || '');
       const isRkUnchanged = unchangedRKs.has(rk);
 
-      const matchingOldEntry = existingEntries.find((e: any) =>
-        normalize(e.kegiatan || '') === normalize(entry.kegiatan || '') &&
-        (normalize(e.rencana_kinerja || '') === normalize(rawRK || '') ||
-         normalize(e.rencana_kinerja || '') === normalize(matchedRK || ''))
-      );
+      // Padanan PERSIS dari find() lama: kandidat pertama (indeks terkecil) yang
+      // cocok via kunci raw ATAU kunci matched.
+      const kegKey = normalize(entry.kegiatan || '');
+      const rawRef = oldEntryIndex.get(`${kegKey}|${normalize(rawRK || '')}`);
+      const matchedRef = oldEntryIndex.get(`${kegKey}|${normalize(matchedRK || '')}`);
+      let matchingOldEntry: CkpEntryRow | null = null;
+      if (rawRef && matchedRef) {
+        matchingOldEntry = rawRef.index <= matchedRef.index ? rawRef.entry : matchedRef.entry;
+      } else if (rawRef) {
+        matchingOldEntry = rawRef.entry;
+      } else if (matchedRef) {
+        matchingOldEntry = matchedRef.entry;
+      }
 
       // Resolve rk_ketua_tim_id — prioritaskan item.matchedRkId (UUID tervalidasi dari client).
       // Error eksplisit bila UUID tak dikenal (jangan silent NULL).
@@ -574,7 +915,7 @@ export async function submitCkpUploadAction(formData: FormData) {
       const { error: chunkErr } = await supabaseAdmin.from('ckp_entries').insert(chunk);
       if (chunkErr) {
         console.error('[submitCkpUploadAction] Insert chunk error:', chunkErr);
-        throw chunkErr;
+        return { success: false, error: 'Gagal menyimpan rincian kegiatan CKP. Silakan coba lagi.' };
       }
     }
 
@@ -587,14 +928,19 @@ export async function submitCkpUploadAction(formData: FormData) {
           kegiatan_nama: rk,
         })).filter(m => m.rk_id !== null && m.rk_id !== '');
         if (newMappings.length > 0) {
-          await supabaseAdmin.from('master_kegiatan_anggota').insert(newMappings);
+          const { error: mapInsertErr } = await supabaseAdmin
+            .from('master_kegiatan_anggota')
+            .insert(newMappings);
+          if (mapInsertErr) {
+            console.warn('[submitCkpUploadAction] Insert mapping warning:', mapInsertErr.message);
+          }
         }
       }
 
       if (validRKsToAssign.length > 0) {
         // validRKsToAssign berisi UUID mapping (dikirim client); nama lama tetap didukung utk kompat.
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const assignmentsToInsert: any[] = [];
+        const assignmentsToInsert: Array<{ rk_id: string; user_id: string; assigned_by: string }> = [];
         for (const rkItem of validRKsToAssign) {
           const rkStr = String(rkItem || '').trim();
           if (!rkStr) continue;
@@ -610,7 +956,12 @@ export async function submitCkpUploadAction(formData: FormData) {
           }
         }
         if (assignmentsToInsert.length > 0) {
-          await supabaseAdmin.from('user_rk_assignments').upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
+          const { error: assignErr } = await supabaseAdmin
+            .from('user_rk_assignments')
+            .upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
+          if (assignErr) {
+            console.warn('[submitCkpUploadAction] Upsert assignment warning:', assignErr.message);
+          }
         }
       }
 
@@ -650,7 +1001,7 @@ export async function submitCkpUploadAction(formData: FormData) {
     return { success: true, uploadId: uploadData.id };
   } catch (error: any) {
     console.error('[submitCkpUploadAction] Error:', error);
-    return { success: false, error: error.message || 'Terjadi kesalahan saat memproses upload' };
+    return { success: false, error: 'Terjadi kesalahan saat memproses upload. Silakan coba lagi.' };
   }
 }
 

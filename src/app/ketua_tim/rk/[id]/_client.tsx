@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { withTimeoutRetry } from '@/lib/supabase/read';
@@ -64,7 +64,6 @@ function RkBarisRow({
   defaultScore,
   isOwnGroup,
   onMarkEntryClick,
-  forceExpanded,
   isTriwulan,
   bulan,
 }: {
@@ -78,20 +77,31 @@ function RkBarisRow({
   defaultScore: number | null;
   isOwnGroup?: boolean;
   onMarkEntryClick?: (entry: CKPEntry) => void;
-  forceExpanded?: boolean;
   isTriwulan?: boolean;
   bulan?: string | number;
 }) {
   const [expandedState, setExpandedState] = useState(false);
-  // Search TIDAK lagi memaksa detail RK kebuka — user buka-tutup manual.
-  // (Dulu forceExpanded bikin detail nyangkut kebuka & tombol nggak mempan.)
+  // Detail RK dibuka-tutup manual oleh user (search tidak memaksa expand).
   const expanded = expandedState;
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setScore(defaultScore?.toString() ?? '');
   }, [defaultScore]);
+
+  // Bersihkan timer badge "Tersimpan" saat baris unmount.
+  useEffect(() => () => {
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+  }, []);
+
+  const flashSaved = () => {
+    setJustSaved(true);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
+  };
 
   const hasScore = defaultScore !== null;
   const allScored = entries.length > 0 && entries.every(e => e.nilai !== null);
@@ -102,28 +112,31 @@ function RkBarisRow({
   const uploadIds = useMemo(() => Array.from(new Set(entries.map(e => e.upload_id))), [entries]);
 
   const handleBlur = async () => {
+    // Cegah submit dobel untuk baris yang sama selama request berjalan.
+    if (saving) return;
     const currentSavedStr = defaultScore?.toString() ?? '';
     if (score === currentSavedStr) return;
 
-    if (score === '') {
-      setSaving(true);
-      try { await onSaveScore(uploadIds, null, rkName); }
-      catch { setScore(currentSavedStr); }
-      finally { setSaving(false); }
-      return;
-    }
-
-    const num = parseInt(score, 10);
-    if (isNaN(num) || num < 0 || num > 100) {
-      toast.error('Nilai harus berupa angka 0-100');
-      setScore(currentSavedStr);
-      return;
-    }
-
     setSaving(true);
-    try { await onSaveScore(uploadIds, num, rkName); }
-    catch { setScore(currentSavedStr); }
-    finally { setSaving(false); }
+    try {
+      if (score === '') {
+        await onSaveScore(uploadIds, null, rkName);
+      } else {
+        const num = parseInt(score, 10);
+        if (isNaN(num) || num < 0 || num > 100) {
+          toast.error('Nilai harus berupa angka 0-100');
+          setScore(currentSavedStr);
+          return;
+        }
+        await onSaveScore(uploadIds, num, rkName);
+      }
+      flashSaved();
+    } catch {
+      // Parent sudah menampilkan toast error; di sini cukup kembalikan nilai lama.
+      setScore(currentSavedStr);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -251,27 +264,42 @@ function RkBarisRow({
           <div className="flex flex-col items-end mr-0.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Nilai</p>
             {canReview ? (
-              <div className="relative w-16">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={score}
-                  onChange={e => setScore(e.target.value)}
-                  onBlur={handleBlur}
-                  onKeyDown={handleKeyDown}
-                  disabled={saving}
-                  className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
-                  style={{ borderColor: 'var(--border)' }}
-                  placeholder="—"
-                  title="Tekan Enter atau klik di luar untuk menyimpan"
-                  aria-label={`Nilai ${rkName} milik ${nama}`}
-                />
-                {saving && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <RefreshCw size={11} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
-                  </div>
-                )}
+              <div className="flex flex-col items-end">
+                <div className="relative w-16">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={score}
+                    onChange={e => setScore(e.target.value)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    disabled={saving}
+                    aria-busy={saving}
+                    className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    style={{ borderColor: 'var(--border)' }}
+                    placeholder="—"
+                    title="Tekan Enter atau klik di luar untuk menyimpan"
+                    aria-label={`Nilai ${rkName} milik ${nama}`}
+                  />
+                  {saving && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <RefreshCw size={11} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
+                    </div>
+                  )}
+                </div>
+                {/* Umpan balik simpan per baris: menyimpan → Tersimpan (fade ±2 dtk) */}
+                <div className="mt-0.5 min-h-[13px]" aria-live="polite">
+                  {saving ? (
+                    <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
+                      Menyimpan…
+                    </span>
+                  ) : justSaved ? (
+                    <span className="text-[10px] font-semibold flex items-center gap-0.5 whitespace-nowrap animate-fade-in" style={{ color: 'var(--success-text)' }}>
+                      <CheckCircle2 size={10} /> Tersimpan
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <span className="text-[14px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
@@ -389,6 +417,21 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const [entryToMark, setEntryToMark] = useState<CKPEntry | null>(null);
   const [catatanKoreksi, setCatatanKoreksi] = useState<string>('');
   const [isMarking, setIsMarking] = useState(false);
+  const markTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+  // Modal "Tandai Perlu Diperbaiki": autofocus ke textarea + tutup dengan Esc.
+  useEffect(() => {
+    if (!entryToMark) return;
+    const focusTimer = setTimeout(() => markTextareaRef.current?.focus(), 0);
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isMarking) setEntryToMark(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimeout(focusTimer);
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [entryToMark, isMarking]);
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['rk-detail', rkId, bulan, tahun],
@@ -446,8 +489,11 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       void queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
       void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
     } catch (err: any) {
+      // Rollback instan ke data sebelum optimistic update, lalu lempar agar
+      // RkBarisRow ikut mengembalikan input lokalnya.
       queryClient.setQueryData(rkDetailKey, previousData);
       toast.error(`Gagal menyimpan nilai: ${err.message || 'Error server'}`);
+      throw err;
     }
   };
 
@@ -473,9 +519,11 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
   // ─── Build user + RK Anggota groups, lalu flatten ke baris ──────────────
   // sections dipertahankan untuk Export Excel; render memakai rows (flat).
-  const { filteredPegawaiSections, totalDisplayedUsers, totalRkAnggota, rows } = useMemo(() => {
+  const { filteredPegawaiSections, totalDisplayedUsers, totalRkAnggota, totalRkAnggotaAll, rows } = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
+    // Total RK Anggota tanpa filter — untuk info "Ekspor mengikuti filter: n dari m".
+    let totalRkAnggotaAll = 0;
 
     // Group uploads per user
     const userMap: Record<string, { user: User; uploads: (CKPUpload & { user?: User })[] }> = {};
@@ -531,6 +579,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         return { rkName, entries: rkEntries, defaultScore, canReview, isOwnGroup };
       });
 
+      totalRkAnggotaAll += rkGroups.length;
+
       // Search filter: nama pegawai, lalu RK/kegiatan/capaian di bawah
       const userMatches = !q ||
         user.full_name?.toLowerCase().includes(q) ||
@@ -575,7 +625,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       (a.rkName || '').localeCompare(b.rkName || '', 'id')
     );
 
-    return { filteredPegawaiSections: sections, totalDisplayedUsers: sections.length, totalRkAnggota, rows };
+    return { filteredPegawaiSections: sections, totalDisplayedUsers: sections.length, totalRkAnggota, totalRkAnggotaAll, rows };
   }, [uploads, entries, searchQuery, bulan]);
 
   // ─── KPI calculations ───────────────────────────────────────────────────
@@ -753,13 +803,21 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
               )}
             </div>
           </div>
-          <button
-            onClick={handleExportExcel}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-colors w-fit shadow-sm flex-shrink-0"
-            title="Unduh rekap nilai RK Anggota ke Excel"
-          >
-            <Download size={16} /> Export Excel
-          </button>
+          <div className="flex flex-col items-start lg:items-end gap-1 flex-shrink-0">
+            <button
+              onClick={handleExportExcel}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold rounded-xl transition-colors w-fit shadow-sm"
+              title="Unduh rekap nilai RK Anggota ke Excel"
+            >
+              <Download size={16} /> Export Excel
+            </button>
+            {/* Jelaskan cakupan ekspor saat pencarian aktif agar tidak membingungkan */}
+            {searchQuery.trim() && (
+              <p className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
+                Ekspor mengikuti filter: {totalRkAnggota} dari {totalRkAnggotaAll} RK
+              </p>
+            )}
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -822,7 +880,6 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                     setEntryToMark(entry);
                     setCatatanKoreksi(entry.catatan_koreksi || '');
                   }}
-                  forceExpanded={!!searchQuery.trim()}
                   isTriwulan={isTriwulanMode}
                   bulan={bulan}
                 />
@@ -842,14 +899,21 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       </div>
       
       {entryToMark && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="mark-entry-modal-title"
+          onClick={(e) => { if (e.target === e.currentTarget && !isMarking) setEntryToMark(null); }}
+        >
           <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
             <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
-              <h3 className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+              <h3 id="mark-entry-modal-title" className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                 <AlertTriangle size={18} className="text-amber-500" />
                 Tandai Perlu Diperbaiki
               </h3>
-              <button onClick={() => setEntryToMark(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
+              <button onClick={() => setEntryToMark(null)} className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Tutup dialog">
                  <XCircle size={20} />
               </button>
             </div>
@@ -862,6 +926,8 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Berikan Catatan Perbaikan</label>
                 <textarea 
+                  ref={markTextareaRef}
+                  autoFocus
                   className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none"
                   style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
                   placeholder="Contoh: Kegiatan ini seharusnya masuk ke Rencana Kinerja X..."

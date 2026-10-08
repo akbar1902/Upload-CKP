@@ -36,7 +36,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F8F6EE" },
     { media: "(prefers-color-scheme: dark)", color: "#201E1A" },
@@ -79,13 +78,16 @@ export default function RootLayout({
                   <KeepAliveManager />
                   <Toaster
                     position="top-right"
-                    richColors
                     closeButton
                     toastOptions={{
                       style: {
                         fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
                         borderRadius: '16px',
                         fontSize: '14px',
+                        background: 'var(--card-bg)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-card)',
                       },
                     }}
                   />

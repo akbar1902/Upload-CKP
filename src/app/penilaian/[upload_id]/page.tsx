@@ -5,6 +5,31 @@ import { redirect } from 'next/navigation';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import PenilaianCKPDetailClient from './_client';
 
+// Supabase memotong hasil query di 1000 baris per request (default limit).
+// Helper ini meloop `.range(from, from+999)` sampai semua baris terambil —
+// penting untuk triwulan yang total entri/persetujuannya bisa >1000.
+type PageableQuery<T> = {
+  range(
+    from: number,
+    to: number
+  ): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+};
+
+async function fetchAllRows<T>(
+  buildQuery: () => PageableQuery<T>
+): Promise<{ data: T[] | null; error: { message: string } | null }> {
+  const PAGE_SIZE = 1000;
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    const chunk = data ?? [];
+    rows.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
+  }
+  return { data: rows, error: null };
+}
+
 export default async function PenilaianCKPDetailPage({
   params,
   searchParams,
@@ -71,12 +96,20 @@ export default async function PenilaianCKPDetailPage({
 
       const [employeeRes, entriesRes, approvalsRes, currentUserRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
-        supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number'),
-        supabase
-          .from('approvals')
-          .select('*, reviewer:reviewer_id(id, full_name)')
-          .in('upload_id', targetUploadIds)
-          .order('created_at', { ascending: false }),
+        fetchAllRows<CKPEntry>(() =>
+          supabase
+            .from('ckp_entries')
+            .select('*')
+            .in('upload_id', targetUploadIds)
+            .order('row_number')
+        ),
+        fetchAllRows<Approval>(() =>
+          supabase
+            .from('approvals')
+            .select('*, reviewer:reviewer_id(id, full_name)')
+            .in('upload_id', targetUploadIds)
+            .order('created_at', { ascending: false })
+        ),
         user ? supabase.from('users').select('role').eq('id', user.id).single() : Promise.resolve({ data: null }),
       ]);
 
@@ -141,7 +174,7 @@ export default async function PenilaianCKPDetailPage({
         employee: employeeData,
         entries: entriesData,
         calendarEntries: rawEntries,
-        approvals: (approvalsRes.data ?? []).map((a: Record<string, unknown>) => ({
+        approvals: (approvalsRes.data ?? []).map((a) => ({
           ...a,
           reviewer: a.reviewer as User | undefined,
         })) as Approval[],

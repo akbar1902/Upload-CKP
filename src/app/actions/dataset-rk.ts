@@ -1,6 +1,7 @@
 'use server';
 
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/read';
 import { revalidatePath } from 'next/cache';
 import type { ParsedDataset, DatasetTeam, DatasetSubRk } from '@/lib/excel/dataset-rk';
 
@@ -117,8 +118,8 @@ export async function importDatasetRkAction(
       .select('role')
       .eq('id', user.id)
       .single();
-    if (!me || !['admin', 'pimpinan'].includes(me.role)) {
-      return { success: false, error: 'Hanya admin/pimpinan yang boleh mengimpor Dataset RK.' };
+    if (!me || me.role !== 'admin') {
+      return { success: false, error: 'Hanya admin yang boleh mengimpor Dataset RK.' };
     }
 
     if (!dataset || !Array.isArray(dataset.teams) || dataset.teams.length === 0) {
@@ -128,12 +129,16 @@ export async function importDatasetRkAction(
 
     const admin = createAdminClient();
 
-    const { data: usersData, error: usersErr } = await admin
-      .from('users')
-      .select('id, full_name, nip');
-    if (usersErr) throw usersErr;
+    // Paginasi penuh — daftar user bisa >1000 baris.
+    const usersData = await fetchAllRows<MiniUser>((from, to) =>
+      admin
+        .from('users')
+        .select('id, full_name, nip')
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
 
-    const resolveUser = makeResolver((usersData ?? []) as MiniUser[]);
+    const resolveUser = makeResolver(usersData);
 
     const report: DatasetImportReport = {
       year: tahun,

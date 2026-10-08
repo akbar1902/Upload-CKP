@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { runSafeRead } from '@/lib/supabase/read';
@@ -11,6 +11,16 @@ import { ApprovalHistory } from '@/components/ckp/approval-history';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
 import { CalendarPreview } from '@/components/ckp/calendar-preview';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-badge';
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
@@ -25,6 +35,31 @@ import {
   Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle,
   CalendarDays,
 } from 'lucide-react';
+
+// Supabase memotong hasil query di 1000 baris per request. Refetch client
+// (mis. setelah simpan nilai) harus membaca semua halaman agar entri/persetujuan
+// triwulan >1000 baris tidak hilang — samakan perilakunya dengan server page.
+type PageableQuery<T> = {
+  range(
+    from: number,
+    to: number
+  ): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
+};
+
+async function fetchAllRows<T>(
+  buildQuery: () => PageableQuery<T>
+): Promise<{ data: T[] | null; error: { message: string } | null }> {
+  const PAGE_SIZE = 1000;
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) return { data: null, error };
+    const chunk = data ?? [];
+    rows.push(...chunk);
+    if (chunk.length < PAGE_SIZE) break;
+  }
+  return { data: rows, error: null };
+}
 
 function UploadBadge({ status }: { status: string }) {
   return <SharedStatusBadge status={status} />;
@@ -74,38 +109,46 @@ function RencanaKinerjaGroup({
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     setScore(defaultScore?.toString() ?? '');
   }, [defaultScore]);
 
+  // Bersihkan timer badge "Tersimpan" saat komponen unmount.
+  useEffect(() => () => {
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+  }, []);
+
+  const flashSaved = () => {
+    setJustSaved(true);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
+  };
+
   const handleBlur = async () => {
+    // Cegah submit dobel untuk RK yang sama selama request berjalan.
+    if (saving) return;
     const currentSavedStr = defaultScore?.toString() ?? '';
     if (score === currentSavedStr) return;
 
-    if (score === '') {
-      setSaving(true);
-      try {
-        await onSaveScore(rkKey, rkName, null);
-      } catch {
-        setScore(currentSavedStr);
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    const num = parseInt(score, 10);
-    if (isNaN(num) || num < 0 || num > 100) {
-      toast.error('Nilai harus berupa angka 0-100');
-      setScore(currentSavedStr);
-      return;
-    }
-    
     setSaving(true);
     try {
-      await onSaveScore(rkKey, rkName, num);
+      if (score === '') {
+        await onSaveScore(rkKey, rkName, null);
+      } else {
+        const num = parseInt(score, 10);
+        if (isNaN(num) || num < 0 || num > 100) {
+          toast.error('Nilai harus berupa angka 0-100');
+          setScore(currentSavedStr);
+          return;
+        }
+        await onSaveScore(rkKey, rkName, num);
+      }
+      flashSaved();
     } catch {
+      // Parent sudah menampilkan toast error; di sini cukup kembalikan nilai lama.
       setScore(currentSavedStr);
     } finally {
       setSaving(false);
@@ -157,25 +200,40 @@ function RencanaKinerjaGroup({
                 </span>
               </div>
             ) : canReview ? (
-              <div className="relative w-24">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  value={score}
-                  onChange={e => setScore(e.target.value)}
-                  onBlur={handleBlur}
-                  onKeyDown={handleKeyDown}
-                  disabled={saving}
-                  className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
-                  placeholder="-"
-                  title="Tekan Enter atau klik di luar untuk menyimpan"
-                />
-                {saving && (
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
-                  </div>
-                )}
+              <div>
+                <div className="relative w-24">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={score}
+                    onChange={e => setScore(e.target.value)}
+                    onBlur={handleBlur}
+                    onKeyDown={handleKeyDown}
+                    disabled={saving}
+                    aria-busy={saving}
+                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    placeholder="-"
+                    title="Tekan Enter atau klik di luar untuk menyimpan"
+                  />
+                  {saving && (
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                      <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
+                    </div>
+                  )}
+                </div>
+                {/* Umpan balik simpan: "Menyimpan…" saat request, badge hijau ±2 dtk saat sukses */}
+                <div className="mt-1 min-h-[14px]" aria-live="polite">
+                  {saving ? (
+                    <span className="text-[10px] font-medium flex items-center justify-end gap-1" style={{ color: 'var(--text-secondary)' }}>
+                      Menyimpan…
+                    </span>
+                  ) : justSaved ? (
+                    <span className="text-[10px] font-semibold flex items-center justify-end gap-1 animate-fade-in" style={{ color: 'var(--success-text)' }}>
+                      <CheckCircle2 size={11} /> Tersimpan
+                    </span>
+                  ) : null}
+                </div>
               </div>
             ) : (
               <span className="text-[16px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
@@ -284,12 +342,21 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const [targetMoveRk, setTargetMoveRk] = useState<string>('');
   const [isMovingEntry, setIsMovingEntry] = useState(false);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
-  
+  const [rkSearch, setRkSearch] = useState('');
+  const [showReopenConfirm, setShowReopenConfirm] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
+  // Timer redirect setelah approve — disimpan di ref agar bisa dibersihkan saat unmount.
+  const redirectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!authLoading && !currentUser) {
       router.replace('/login');
     }
   }, [currentUser, authLoading, router]);
+
+  useEffect(() => () => {
+    if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+  }, []);
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''],
@@ -329,8 +396,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
       const [employeeRes, entriesRes, approvalsRes, masterRkRes] = await Promise.all([
         supabase.from('users').select('*').eq('id', uploadData.user_id).abortSignal(signal).single(),
-        supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number').abortSignal(signal),
-        supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }).abortSignal(signal),
+        fetchAllRows<CKPEntry>(() =>
+          supabase.from('ckp_entries').select('*').in('upload_id', targetUploadIds).order('row_number').abortSignal(signal)
+        ),
+        fetchAllRows<Approval>(() =>
+          supabase.from('approvals').select('*, reviewer:reviewer_id(id, full_name)').in('upload_id', targetUploadIds).order('created_at', { ascending: false }).abortSignal(signal)
+        ),
         supabase.from('rk_ketua_tim_mapping').select('id, rencana_kinerja, tim_kerja').eq('is_active', true).order('rencana_kinerja').abortSignal(signal),
       ]);
 
@@ -498,6 +569,20 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     });
   }, [entries, isTriwulan, paramBulan, masterRks]);
 
+  // Filter daftar RK (nama RK / induk / kegiatan / capaian) — untuk jumlah grup banyak.
+  const filteredRkGroups = useMemo(() => {
+    const q = rkSearch.trim().toLowerCase();
+    if (!q) return rkGroups;
+    return rkGroups.filter(g =>
+      (g.rk || '').toLowerCase().includes(q) ||
+      (g.parentName || '').toLowerCase().includes(q) ||
+      g.entries.some(e =>
+        (e.kegiatan || '').toLowerCase().includes(q) ||
+        (e.capaian || '').toLowerCase().includes(q)
+      )
+    );
+  }, [rkGroups, rkSearch]);
+
   const handleApproval = async (action: ApprovalAction, catatan: string) => {
     if (!upload || !currentUser) return;
     
@@ -535,12 +620,14 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       // Jika disetujui, kembali ke daftar dashboard setelah 1 detik.
       // Jika dibuka kembali, tetap di halaman ini agar pimpinan bisa langsung mengubah nilai.
       if (isApproved) {
-        const timeoutId = setTimeout(() => {
+        // Simpan di ref + bersihkan timer lama supaya redirect tidak dobel
+        // dan bisa dibatalkan saat komponen unmount.
+        if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = setTimeout(() => {
           const backUrl = (currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
             `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`;
           router.push(backUrl);
         }, 1000);
-        return () => clearTimeout(timeoutId);
       }
     } catch (error: any) {
       await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
@@ -553,19 +640,22 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     // Server juga menolak (ids.length > 1) — client cegah lebih awal + input triwulan read-only.
     if (isTriwulan && (data?.targetUploadIds?.length ?? 1) > 1) {
       toast.error('Penilaian triwulan dikunci — nilai per bulan agar rincian tidak tercampur');
-      return;
+      throw new Error('Penilaian triwulan dikunci');
     }
+    const detailKey = ['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''];
+    const previousData = queryClient.getQueryData(detailKey);
+
     // Optimistic update — cocokkan by kunci grup kontrak, bukan nama.
-    queryClient.setQueryData(['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''], (old: any) => {
+    queryClient.setQueryData<{ entries: CKPEntry[]; upload: CKPUpload } | undefined>(detailKey, (old) => {
       if (!old) return old;
-      const newEntries = old.entries.map((e: any) =>
+      const newEntries = old.entries.map((e) =>
         rkGroupKey(e) === rkKey
-          ? { ...e, nilai: score, dinilai_oleh: score !== null ? currentUser?.id : null }
+          ? { ...e, nilai: score, dinilai_oleh: score !== null ? (currentUser?.id ?? null) : null }
           : e
       );
 
-      const scored = newEntries.filter((e: any) => e.nilai !== null);
-      const newAvg = scored.length > 0 ? scored.reduce((acc: number, e: any) => acc + e.nilai, 0) / scored.length : null;
+      const scored = newEntries.filter((e) => e.nilai !== null);
+      const newAvg = scored.length > 0 ? scored.reduce((acc: number, e) => acc + (e.nilai as number), 0) / scored.length : null;
 
       return { ...old, entries: newEntries, upload: { ...old.upload, rata_rata_nilai: newAvg } };
     });
@@ -582,8 +672,22 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
       void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
       void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
     } catch (error: any) {
-      await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
+      // Rollback instan ke data sebelum optimistic update, lalu lempar agar
+      // RencanaKinerjaGroup ikut mengembalikan input lokalnya.
+      queryClient.setQueryData(detailKey, previousData);
       toast.error(`Gagal menyimpan nilai: ${error.message || 'Error server'}`);
+      throw error;
+    }
+  };
+
+  // Buka kembali lewat Dialog konfirmasi — jelaskan dampak sebelum eksekusi.
+  const handleReopenConfirm = async () => {
+    setIsReopening(true);
+    try {
+      await handleApproval('reopened', 'Dibuka kembali oleh pimpinan.');
+      setShowReopenConfirm(false);
+    } finally {
+      setIsReopening(false);
     }
   };
 
@@ -750,7 +854,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               </button>
             ) : null}
             {canReopen && (
-              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm" style={{ color: 'var(--warning-text)', borderColor: 'var(--warning-text)' }}>
+              <button onClick={() => setShowReopenConfirm(true)} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm" style={{ color: 'var(--warning-text)', borderColor: 'var(--warning-text)' }}>
                 <Unlock size={14} /> Buka Kembali
               </button>
             )}
@@ -860,6 +964,27 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 </p>
               )}
             </div>
+
+            {/* Search daftar RK — muncul bila ada grup untuk disaring */}
+            {viewMode === 'list' && rkGroups.length > 0 && (
+              <div className="w-full sm:w-72 flex-shrink-0">
+                <div className="search-input">
+                  <Search size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                  <input
+                    type="search"
+                    placeholder="Cari RK atau kegiatan..."
+                    value={rkSearch}
+                    onChange={(e) => setRkSearch(e.target.value)}
+                    aria-label="Cari Rencana Kinerja"
+                  />
+                </div>
+                {rkSearch.trim() && (
+                  <p className="text-[11px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
+                    Menampilkan {filteredRkGroups.length} dari {rkGroups.length} RK
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ── Calendar View ── */}
@@ -877,7 +1002,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           ) : (
             /* ── List View (Penilaian per RK) ── */
             <div className="space-y-4">
-              {rkGroups.map(group => (
+              {filteredRkGroups.map(group => (
                 <RencanaKinerjaGroup
                   key={group.key}
                   rkKey={group.key}
@@ -896,9 +1021,18 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 />
               ))}
               
-              {rkGroups.length === 0 && (
+              {filteredRkGroups.length === 0 && (
                 <div className="text-center py-12 rounded-2xl" style={{ background: 'var(--sand-subtle)', border: '1px solid var(--sand-border)' }}>
-                  <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
+                  {rkSearch.trim() ? (
+                    <>
+                      <p style={{ color: 'var(--text-secondary)' }}>Tidak ada RK yang cocok dengan pencarian.</p>
+                      <button type="button" onClick={() => setRkSearch('')} className="btn-secondary mt-3 text-[12px]">
+                        Hapus pencarian
+                      </button>
+                    </>
+                  ) : (
+                    <p style={{ color: 'var(--text-secondary)' }}>Tidak ada Rencana Kinerja yang ditemukan.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -959,7 +1093,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               </button>
             )}
             {canReopen && (
-              <button onClick={() => handleApproval('reopened', 'Dibuka kembali oleh pimpinan.')} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5">
+              <button onClick={() => setShowReopenConfirm(true)} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5">
                 <Unlock size={14} /> Buka Kembali
               </button>
             )}
@@ -979,6 +1113,41 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           period={`${bulanNama} ${upload.tahun}`}
           defaultAction={defaultModalAction}
         />
+      )}
+
+      {/* Konfirmasi Buka Kembali — jelaskan dampak sebelum nilai dibuka ulang */}
+      {showReopenConfirm && (
+        <Dialog
+          open={showReopenConfirm}
+          onClose={() => { if (!isReopening) setShowReopenConfirm(false); }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Buka kembali penilaian?</DialogTitle>
+              <DialogDescription>
+                CKP {employee.full_name} — {bulanNama} {upload.tahun}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogBody className="space-y-3">
+              <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+                Semua nilai pada CKP ini akan{' '}
+                <strong style={{ color: 'var(--text-primary)' }}>terbuka untuk dinilai ulang</strong>{' '}
+                oleh ketua tim dan pimpinan, dan status CKP kembali ke tahap penilaian.
+              </p>
+              <p className="text-[13px]" style={{ color: 'var(--text-tertiary)' }}>
+                Tindakan ini tercatat pada riwayat persetujuan dan pegawai akan menerima notifikasi.
+              </p>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowReopenConfirm(false)} disabled={isReopening}>
+                Batal
+              </Button>
+              <Button variant="warning" onClick={handleReopenConfirm} loading={isReopening}>
+                Ya, Buka Kembali
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Modal Pindah RK / Koreksi RK */}

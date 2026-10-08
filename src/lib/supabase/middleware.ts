@@ -45,14 +45,19 @@ export async function updateSession(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const publicRoutes = ['/login', '/'];
+  const publicRoutes = ['/login', '/', '/reset-password'];
 
   // ── Penanda sesi: wajib login tiap kali browser dibuka ──────────────
   // 'sikap-session' adalah SESSION cookie (hilang saat browser ditutup).
   // Bila sesi Supabase masih ada (cookie persisten) TAPI penanda ini tidak
   // ada, artinya browser baru dibuka → paksa login & bersihkan sesi lama.
+  //
+  // PENGECUALIAN /reset-password: tautan reset dari email harus tetap bisa
+  // membuka halaman (dan menukar code menjadi session) walau dibuka di
+  // browser baru. Jangan hancurkan cookie sb-* untuk path ini.
+  const isResetPasswordPath = pathname === '/reset-password';
   const hasSessionMarker = request.cookies.get('sikap-session')?.value === '1';
-  if (user && !hasSessionMarker) {
+  if (user && !hasSessionMarker && !isResetPasswordPath) {
     const isLoginPath = pathname === '/login';
     const res = isLoginPath
       ? NextResponse.next({ request })

@@ -35,10 +35,15 @@ export function ScreenshotButton({
 
     try {
       setIsCapturing(true);
+      // Ambil nilai token bg-base dari tema aktif (light/dark) agar hasil
+      // screenshot konsisten; fallback ke warna earthy lama bila kosong.
+      const tokenBg = getComputedStyle(document.documentElement)
+        .getPropertyValue('--bg-base')
+        .trim();
       const dataUrl = await htmlToImage.toPng(targetElement, {
         quality: 1,
         pixelRatio: 2, // High resolution
-        backgroundColor: '#F8F6EE', // match app bg (earthy)
+        backgroundColor: tokenBg || '#F8F6EE', // match app bg (earthy)
         style: {
           transform: 'none', // Prevent some glitching
         },

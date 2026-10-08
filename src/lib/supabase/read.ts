@@ -7,6 +7,47 @@ import { createBrowserClient } from '@supabase/ssr';
 export const READ_TIMEOUT_MS = 8000;
 
 /**
+ * Ambil SEMUA baris dari query Supabase dengan paginasi `range`.
+ *
+ * Supabase/PostgREST membatasi jumlah baris per request (default 1000).
+ * Tanpa loop paginasi, query besar terpotong DIAM-DIAM — sehingga data
+ * penilaian/ekspor bisa tidak lengkap. Helper ini memanggil `build(from, to)`
+ * berulang (range inklusif, ukuran `pageSize`) sampai halaman terakhir,
+ * lalu melempar error bila salah satu request gagal.
+ *
+ * Pemakaian:
+ *   const rows = await fetchAllRows((from, to) =>
+ *     supabase.from('tabel').select('*').order('id').range(from, to)
+ *   );
+ */
+export async function fetchAllRows<T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: unknown }>,
+  pageSize = 1000
+): Promise<T[]> {
+  const size = Number.isFinite(pageSize) && pageSize > 0 ? Math.floor(pageSize) : 1000;
+  const rows: T[] = [];
+  let from = 0;
+
+  // Guard: cegah loop tak berujung bila server mengabaikan parameter range.
+  const MAX_PAGES = 100000;
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data, error } = await build(from, from + size - 1);
+    if (error) {
+      if (error instanceof Error) throw error;
+      const message = (error as { message?: unknown })?.message;
+      throw new Error(
+        typeof message === 'string' && message ? message : 'Gagal memuat data.'
+      );
+    }
+    const chunk = data ?? [];
+    rows.push(...chunk);
+    if (chunk.length < size) return rows;
+    from += size;
+  }
+  throw new Error('Paginasi data melebihi batas wajar — periksa filter query.');
+}
+
+/**
  * fetch yang memberi batas waktu pada request yang belum punya signal.
  *
  * Request query Supabase sudah membawa signal (via `.abortSignal()`), jadi

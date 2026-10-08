@@ -151,13 +151,20 @@ export default function PimpinanKetuaTimDashboardClient() {
   const error = queryError ? queryError.message : null;
 
   // Realtime
+  // Catatan filter: postgres_changes hanya mengevaluasi SATU ekspresi filter;
+  // beberapa kondisi AND dipisah koma (bukan '&'). Saat triwulan, kolom `bulan`
+  // berisi 'T1'..'T4' sehingga filter `bulan=eq.` tidak pernah cocok — cukup
+  // filter `tahun` (bulan sudah dicakup oleh query periode di atasnya).
   useEffect(() => {
     const channelName = `pimpinan-${bulan}-${tahun}`;
+    const realtimeFilter = typeof bulan === 'string' && bulan.startsWith('T')
+      ? `tahun=eq.${tahun}`
+      : `bulan=eq.${bulan},tahun=eq.${tahun}`;
     const channel = supabase
       .channel(channelName)
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'ckp_uploads',
-        filter: `bulan=eq.${bulan}`,
+        filter: realtimeFilter,
       }, () => refetch())
       .subscribe();
     return () => {

@@ -21,6 +21,7 @@ import {
   Zap,
   Lock,
   FileDown,
+  BarChart3,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
@@ -48,17 +49,67 @@ const ketuaTimNav: NavItem[] = [
 
 const SIDEBAR_EXPANDED = 260;
 const SIDEBAR_COLLAPSED = 72;
+const SIDEBAR_STORAGE_KEY = 'sikap-sidebar-collapsed';
+const SIDEBAR_STORAGE_EVENT = 'sikap:sidebar-collapsed';
+
+function subscribeSidebarCollapsed(onChange: () => void) {
+  window.addEventListener('storage', onChange);
+  window.addEventListener(SIDEBAR_STORAGE_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(SIDEBAR_STORAGE_EVENT, onChange);
+  };
+}
+
+function getSidebarCollapsedSnapshot() {
+  try {
+    return window.localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+// Snapshot server = false (sidebar terbuka) → aman saat hydration.
+function getSidebarCollapsedServerSnapshot() {
+  return false;
+}
 
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [prefetchedUpload, setPrefetchedUpload] = useState(false);
+
+  // Persist preferensi collapsed via localStorage (tanpa setState di effect).
+  const collapsed = React.useSyncExternalStore(
+    subscribeSidebarCollapsed,
+    getSidebarCollapsedSnapshot,
+    getSidebarCollapsedServerSnapshot
+  );
+
+  const setCollapsedPersisted = useCallback((next: boolean) => {
+    try {
+      window.localStorage.setItem(SIDEBAR_STORAGE_KEY, next ? '1' : '0');
+    } catch {
+      /* localStorage bisa diblokir; abaikan */
+    }
+    // Beri tahu useSyncExternalStore di tab yang sama.
+    window.dispatchEvent(new Event(SIDEBAR_STORAGE_EVENT));
+  }, []);
+
+  // Tutup drawer mobile dengan Escape.
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileOpen(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [mobileOpen]);
 
   // Prefetch upload master data on hover so the upload page opens instantly
   const prefetchUploadData = useCallback(async () => {
@@ -108,10 +159,12 @@ export function Sidebar() {
     navItems.push({ href: '/admin', label: 'Monitoring CKP', icon: LayoutDashboard });
     navItems.push({ href: '/admin/pegawai', label: 'Kepegawaian', icon: Users });
     navItems.push({ href: '/admin/rk', label: 'Rencana Kinerja', icon: Users });
+    navItems.push({ href: '/analitik', label: 'Analitik', icon: BarChart3 });
     navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     navItems.push({ href: '/admin/periode', label: 'Pengaturan Periode', icon: Lock });
     navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
   } else if (isPimpinan) {
+    navItems.push({ href: '/analitik', label: 'Analitik', icon: BarChart3 });
     navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
     navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
   }
@@ -270,7 +323,7 @@ export function Sidebar() {
           <div>
             <button
               onClick={() => {
-                if (collapsed) setCollapsed(false);
+                if (collapsed) setCollapsedPersisted(false);
                 setIsDashboardOpen(!isDashboardOpen);
               }}
               className={cn(
@@ -279,7 +332,7 @@ export function Sidebar() {
               )}
               style={
                 isDashboardActive
-                  ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                  ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
                   : { color: 'var(--sidebar-text-muted)' }
               }
               onMouseEnter={(e) => {
@@ -325,7 +378,7 @@ export function Sidebar() {
                       className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
                       style={
                         active
-                          ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                          ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
                           : { color: 'var(--sidebar-text-muted)' }
                       }
                       onMouseEnter={(e) => {
@@ -374,7 +427,7 @@ export function Sidebar() {
               )}
               style={
                 active
-                  ? { background: 'var(--sidebar-active)', color: 'var(--primary)' }
+                  ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
                   : { color: 'var(--sidebar-text-muted)' }
               }
               onMouseEnter={(e) => {
@@ -411,7 +464,7 @@ export function Sidebar() {
 
         {/* Collapse toggle — desktop only */}
         <button
-          onClick={() => setCollapsed(c => !c)}
+          onClick={() => setCollapsedPersisted(!collapsed)}
           className={cn(
             "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
             collapsed && "justify-center"
@@ -426,6 +479,7 @@ export function Sidebar() {
             (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
           }}
           aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
+          aria-expanded={!collapsed}
         >
           {collapsed
             ? <ChevronRight size={15} />
@@ -498,6 +552,8 @@ export function Sidebar() {
         className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-2xl shadow-lg"
         style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         aria-label="Buka menu navigasi"
+        aria-expanded={mobileOpen}
+        aria-controls="sikap-mobile-sidebar"
       >
         <Menu size={16} />
       </button>
@@ -513,6 +569,9 @@ export function Sidebar() {
 
       {/* Mobile sidebar */}
       <aside
+        id="sikap-mobile-sidebar"
+        aria-label="Menu navigasi"
+        inert={!mobileOpen}
         className={cn(
           "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform duration-300",
           mobileOpen ? "translate-x-0" : "-translate-x-full"

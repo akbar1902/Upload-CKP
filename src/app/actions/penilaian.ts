@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
+import { fetchAllRows } from '@/lib/supabase/read';
 import { revalidatePath } from 'next/cache';
 import { notify, getUploadOwnerId, getUploadPeriodLabel } from '@/lib/notifications';
 import { rkGroupKey, isRkGroupScored, normalizeRkName } from '@/lib/rk-scoring';
@@ -34,6 +35,12 @@ export async function gradeRencanaKinerjaAction(
       return { success: false, error: 'Upload tidak valid' };
     }
 
+    // Validasi runtime `score`: null atau number finite 0..100.
+    // Tolak NaN/string/out-of-range yang bisa dikirim pemanggil jahat.
+    if (score !== null && (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 100)) {
+      return { success: false, error: 'Nilai tidak valid. Gunakan angka 0-100.' };
+    }
+
     // Kunci triwulan: >1 upload sekaligus ditolak agar rincian bulanan tidak hancur.
     // Penilaian triwulan harus dilakukan per bulan (satu upload per save).
     if (ids.length > 1) {
@@ -42,14 +49,15 @@ export async function gradeRencanaKinerjaAction(
 
     const adminClient = createAdminClient();
 
-    // Larangan nilai diri sendiri: ketua_tim tidak boleh menilai upload miliknya
-    // sendiri (dinilai pimpinan). Pimpinan/admin tetap boleh (jalur approval).
-    // Cek role pemanggil + pemilik upload SEBELUM update apa pun.
+    // Wajib reviewer: ketua_tim/pimpinan/admin. 'anggota' DITOLAK.
     const { data: callerRow } = await adminClient
       .from('users')
       .select('id, role')
       .eq('id', user.id)
       .maybeSingle();
+    if (!callerRow || !['ketua_tim', 'pimpinan', 'admin'].includes(callerRow.role)) {
+      return { success: false, error: 'Anda tidak berwenang menilai CKP.' };
+    }
     if (callerRow?.role === 'ketua_tim') {
       const { data: targetUploads } = await adminClient
         .from('ckp_uploads')
@@ -63,20 +71,17 @@ export async function gradeRencanaKinerjaAction(
     // Parse kunci grup — dukung 'id:<uuid>', 'legacy:<nama>', plus UUID mentah (kompat ketua_tim lama)
     const keyParam = (rkGroupKeyParam ?? '').trim();
     let rkId: string | null = null;
-    let isLegacyKey = false;
     let legacyNorm: string | null = null;
     if (keyParam) {
       if (keyParam.startsWith('id:')) {
         rkId = keyParam.slice(3).trim() || null;
       } else if (keyParam.startsWith('legacy:')) {
-        isLegacyKey = true;
         legacyNorm = keyParam.slice(7).trim() || null;
       } else {
         const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
         if (uuidRe.test(keyParam)) {
           rkId = keyParam;
         } else {
-          isLegacyKey = true;
           legacyNorm = normalizeRkName(keyParam) || null;
         }
       }
@@ -89,6 +94,46 @@ export async function gradeRencanaKinerjaAction(
     // Tolak bila keduanya kosong: tidak ada id RK dan tidak ada nama RK
     if (!rkId && (isUnknownName || !rkNameNorm)) {
       return { success: false, error: 'Rencana Kinerja kosong' };
+    }
+
+    // Verifikasi kepemilikan RK untuk KETUA TIM:
+    //  - data baru: rk_ketua_tim_mapping.id = rkId harus milik caller;
+    //  - data lama: harus ada mapping aktif dengan nama ternormalisasi = legacy
+    //    (atau nama RK) dan ketua_tim_id = caller.
+    // Pimpinan/admin bebas.
+    if (callerRow.role === 'ketua_tim') {
+      let owns = false;
+      if (rkId) {
+        const { data: mapping, error: mapErr } = await adminClient
+          .from('rk_ketua_tim_mapping')
+          .select('id, ketua_tim_id')
+          .eq('id', rkId)
+          .maybeSingle();
+        if (mapErr) {
+          console.error('[gradeRencanaKinerjaAction] Gagal verifikasi mapping:', mapErr);
+          return { success: false, error: 'Gagal memverifikasi kepemilikan RK.' };
+        }
+        owns = !!mapping && mapping.ketua_tim_id === user.id;
+      } else {
+        const lookupNorm = legacyNorm || rkNameNorm;
+        if (lookupNorm) {
+          const { data: myMappings, error: myMapErr } = await adminClient
+            .from('rk_ketua_tim_mapping')
+            .select('rencana_kinerja')
+            .eq('ketua_tim_id', user.id)
+            .eq('is_active', true);
+          if (myMapErr) {
+            console.error('[gradeRencanaKinerjaAction] Gagal verifikasi mapping legacy:', myMapErr);
+            return { success: false, error: 'Gagal memverifikasi kepemilikan RK.' };
+          }
+          owns = (myMappings || []).some(
+            (m: any) => normalizeRkName(m.rencana_kinerja) === lookupNorm
+          );
+        }
+      }
+      if (!owns) {
+        return { success: false, error: 'Anda tidak berwenang menilai RK ini' };
+      }
     }
 
     // Gunakan adminClient agar tidak terblokir oleh RLS pada field sub-RK
@@ -108,7 +153,8 @@ export async function gradeRencanaKinerjaAction(
       }
       const { error } = await query;
       if (error) {
-        return { success: false, error: error.message };
+        console.error('[gradeRencanaKinerjaAction] Update nilai error:', error);
+        return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
       }
     } else {
       // Data lama: filter by normalized rencana_kinerja + rk_ketua_tim_id IS NULL.
@@ -118,17 +164,18 @@ export async function gradeRencanaKinerjaAction(
       if (legacyNorm && legacyNorm !== rkNameNorm) {
         return { success: false, error: 'Kunci grup tidak cocok dengan nama RK' };
       }
-      const { data: candidates, error: fetchError } = await adminClient
-        .from('ckp_entries')
-        .select('id, rencana_kinerja')
-        .in('upload_id', ids)
-        .is('rk_ketua_tim_id', null);
-      if (fetchError) {
-        return { success: false, error: fetchError.message };
-      }
-      const targetIds = (candidates || [])
-        .filter((c: any) => normalizeRkName(c.rencana_kinerja) === rkNameNorm)
-        .map((c: any) => c.id);
+      const candidates = await fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
+        adminClient
+          .from('ckp_entries')
+          .select('id, rencana_kinerja')
+          .in('upload_id', ids)
+          .is('rk_ketua_tim_id', null)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+      const targetIds = candidates
+        .filter((c) => normalizeRkName(c.rencana_kinerja) === rkNameNorm)
+        .map((c) => c.id);
       if (targetIds.length > 0) {
         const { error } = await adminClient
           .from('ckp_entries')
@@ -138,7 +185,8 @@ export async function gradeRencanaKinerjaAction(
           })
           .in('id', targetIds);
         if (error) {
-          return { success: false, error: error.message };
+          console.error('[gradeRencanaKinerjaAction] Update nilai legacy error:', error);
+          return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
         }
       }
     }
@@ -153,13 +201,21 @@ export async function gradeRencanaKinerjaAction(
     for (const upload of uploads || []) {
       if (upload.status !== 'submitted' && upload.status !== 'scored') continue;
 
-      const { data: entries } = await adminClient
-        .from('ckp_entries')
-        .select('nilai, rencana_kinerja, rk_ketua_tim_id')
-        .eq('upload_id', upload.id);
+      const entries = await fetchAllRows<{
+        nilai: number | null;
+        rencana_kinerja: string | null;
+        rk_ketua_tim_id: string | null;
+      }>((from, to) =>
+        adminClient
+          .from('ckp_entries')
+          .select('nilai, rencana_kinerja, rk_ketua_tim_id')
+          .eq('upload_id', upload.id)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
 
       let allScored = false;
-      if (entries && entries.length > 0) {
+      if (entries.length > 0) {
         const groups = new Map<string, { nilai: number | null }[]>();
         for (const e of entries) {
           const k = rkGroupKey(e as { rk_ketua_tim_id?: string | null; rencana_kinerja?: string | null });
@@ -171,10 +227,14 @@ export async function gradeRencanaKinerjaAction(
       const newStatus = allScored ? 'scored' : 'submitted';
 
       if (upload.status !== newStatus) {
-        await adminClient
+        const { error: statusErr } = await adminClient
           .from('ckp_uploads')
           .update({ status: newStatus })
           .eq('id', upload.id);
+        if (statusErr) {
+          console.error('[gradeRencanaKinerjaAction] Gagal update status upload:', statusErr);
+          return { success: false, error: 'Nilai tersimpan, tetapi status CKP gagal diperbarui. Coba simpan ulang.' };
+        }
 
         // Notifikasi 'sudah dinilai' ke pemilik saat semua entri selesai dinilai
         if (newStatus === 'scored') {
@@ -204,7 +264,8 @@ export async function gradeRencanaKinerjaAction(
 
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Server error' };
+    console.error('[gradeRencanaKinerjaAction] Error:', err);
+    return { success: false, error: 'Terjadi kesalahan saat menyimpan nilai. Silakan coba lagi.' };
   }
 }
 
@@ -219,17 +280,44 @@ export async function approveAction(uploadId: string, action: string, catatan: s
     }
 
     const adminClient = createAdminClient();
+
+    // Wajib pimpinan/admin (baca DB users — jangan percaya metadata sesi).
+    const { data: callerRow } = await adminClient
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (!callerRow || !['pimpinan', 'admin'].includes(callerRow.role)) {
+      return { success: false, error: 'Hanya pimpinan/admin yang dapat memproses persetujuan CKP.' };
+    }
+
+    // Validasi whitelist aksi.
+    const validActions = ['approved', 'rejected', 'revision_required', 'reopened'];
+    if (!validActions.includes(action)) {
+      return { success: false, error: 'Aksi persetujuan tidak valid.' };
+    }
+
+    // Catatan wajib untuk penolakan/revisi (dicek server-side).
+    const catatanTrim = (catatan || '').trim();
+    if ((action === 'rejected' || action === 'revision_required') && !catatanTrim) {
+      return { success: false, error: 'Catatan wajib diisi untuk aksi tolak/revisi.' };
+    }
+
     let newStatus = action;
 
     if (action === 'reopened') {
       // Reopening an approved CKP should allow re-evaluation and re-approval.
       // If all entries already have scores, status is 'scored', otherwise 'submitted'.
-      const { data: entries } = await adminClient
-        .from('ckp_entries')
-        .select('nilai')
-        .eq('upload_id', uploadId);
+      const entries = await fetchAllRows<{ nilai: number | null }>((from, to) =>
+        adminClient
+          .from('ckp_entries')
+          .select('nilai')
+          .eq('upload_id', uploadId)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
 
-      const allScored = entries && entries.length > 0 && entries.every(e => e.nilai !== null);
+      const allScored = entries.length > 0 && entries.every(e => e.nilai !== null);
       newStatus = allScored ? 'scored' : 'submitted';
     }
 
@@ -237,7 +325,7 @@ export async function approveAction(uploadId: string, action: string, catatan: s
 
     const updateData: Record<string, unknown> = {
       status: newStatus,
-      catatan_pimpinan: catatan || null,
+      catatan_pimpinan: catatanTrim || null,
     };
     
     if (isApproved) {
@@ -254,25 +342,34 @@ export async function approveAction(uploadId: string, action: string, catatan: s
       .eq('id', uploadId);
 
     if (updateError) {
-      return { success: false, error: updateError.message };
+      console.error('[approveAction] Update upload error:', updateError);
+      return { success: false, error: 'Gagal memperbarui status CKP. Silakan coba lagi.' };
     }
 
     // Insert approval history
-    await adminClient.from('approvals').insert({ 
+    const { error: approvalErr } = await adminClient.from('approvals').insert({ 
       upload_id: uploadId, 
       reviewer_id: user.id, 
       action: action as any, 
-      catatan 
+      catatan: catatanTrim || null
     });
+    if (approvalErr) {
+      // Riwayat approval gagal dicatat — status sudah berubah, jangan gagalkan
+      // aksi, tetapi beri jejak jelas untuk audit manual.
+      console.error('[approveAction] Insert approval history error:', approvalErr);
+    }
 
     // Insert audit log
-    await adminClient.from('audit_logs').insert({
+    const { error: auditErr } = await adminClient.from('audit_logs').insert({
       user_id: user.id, 
       action: `${action}_ckp`,
       entity_type: 'ckp_uploads', 
       entity_id: uploadId,
-      new_data: { status: newStatus, catatan },
+      new_data: { status: newStatus, catatan: catatanTrim || null },
     });
+    if (auditErr) {
+      console.error('[approveAction] Insert audit log error:', auditErr);
+    }
 
     revalidatePath('/penilaian/[upload_id]', 'page');
     revalidatePath('/pimpinan');
@@ -286,8 +383,8 @@ export async function approveAction(uploadId: string, action: string, catatan: s
       if (ownerId) {
         const period = await getUploadPeriodLabel(uploadId);
         const body = period
-          ? `CKP periode ${period}${catatan ? ` — catatan: ${catatan}` : ''}`
-          : (catatan || undefined);
+          ? `CKP periode ${period}${catatanTrim ? ` — catatan: ${catatanTrim}` : ''}`
+          : (catatanTrim || undefined);
         await notify({
           userId: ownerId,
           type: copy.type,
@@ -301,7 +398,8 @@ export async function approveAction(uploadId: string, action: string, catatan: s
 
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message || 'Server error' };
+    console.error('[approveAction] Error:', err);
+    return { success: false, error: 'Terjadi kesalahan saat memproses persetujuan. Silakan coba lagi.' };
   }
 }
 
@@ -315,88 +413,106 @@ export async function getRkDetailAction(rkId: string, bulan: string | number, ta
 
     const adminClient = createAdminClient();
 
+    // Wajib reviewer: ketua_tim/pimpinan/admin. Anggota ditolak.
+    const { data: callerRow } = await adminClient
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (!callerRow || !['ketua_tim', 'pimpinan', 'admin'].includes(callerRow.role)) {
+      return { success: false, error: 'Anda tidak berwenang melihat data penilaian ini.' };
+    }
+
     // 1. Get RK Ketua Tim mapping info
     const { data: mappingData, error: mapError } = await adminClient
       .from('rk_ketua_tim_mapping')
       .select('*')
       .eq('id', rkId)
-      .single();
+      .maybeSingle();
 
     if (mapError) throw mapError;
-    if (!mappingData) throw new Error('Rencana Kinerja tidak ditemukan');
+    if (!mappingData) {
+      return { success: false, error: 'Rencana Kinerja tidak ditemukan' };
+    }
+
+    // Ketua tim hanya boleh membuka RK yang di-mapping ke dirinya.
+    if (callerRow.role === 'ketua_tim' && mappingData.ketua_tim_id !== user.id) {
+      return { success: false, error: 'Anda tidak berwenang melihat RK ini.' };
+    }
 
     const rkName = mappingData.rencana_kinerja;
 
     // 2. All RK IDs with same name (handle duplicates per tim_kerja)
-    const { data: allRKsWithSameName } = await adminClient
-      .from('rk_ketua_tim_mapping')
-      .select('id')
-      .eq('rencana_kinerja', rkName)
-      .eq('is_active', true);
-    const allRkIds = Array.from(new Set([rkId, ...(allRKsWithSameName?.map((r: any) => r.id) || [])]));
+    const sameNameRows = await fetchAllRows<{ id: string }>((from, to) =>
+      adminClient
+        .from('rk_ketua_tim_mapping')
+        .select('id')
+        .eq('rencana_kinerja', rkName)
+        .eq('is_active', true)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    const allRkIds = Array.from(new Set([rkId, ...sameNameRows.map((r) => r.id)]));
 
-    // 3. Fetch uploads in this period
-    let uploadsQuery = adminClient
-      .from('ckp_uploads')
-      .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
-      .eq('tahun', tahun)
-      .in('status', ['submitted', 'scored', 'approved', 'revision_required']);
+    // 3. Fetch uploads in this period (paginasi)
+    const buildUploadsQuery = () => {
+      let q = adminClient
+        .from('ckp_uploads')
+        .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+        .eq('tahun', tahun)
+        .in('status', ['submitted', 'scored', 'approved', 'revision_required']);
 
-    if (typeof bulan === 'string' && bulan.startsWith('T')) {
-      const triwulanMap: Record<string, number[]> = {
-        'T1': [1, 2, 3], 'T2': [4, 5, 6], 'T3': [7, 8, 9], 'T4': [10, 11, 12]
-      };
-      uploadsQuery = uploadsQuery.in('bulan', triwulanMap[bulan] || []);
-    } else {
-      uploadsQuery = uploadsQuery.eq('bulan', bulan);
-    }
+      if (typeof bulan === 'string' && bulan.startsWith('T')) {
+        const triwulanMap: Record<string, number[]> = {
+          'T1': [1, 2, 3], 'T2': [4, 5, 6], 'T3': [7, 8, 9], 'T4': [10, 11, 12]
+        };
+        q = q.in('bulan', triwulanMap[bulan] || []);
+      } else {
+        q = q.eq('bulan', bulan);
+      }
+      return q;
+    };
 
-    const { data: uploadsData, error: uploadsError } = await uploadsQuery;
-    if (uploadsError) throw uploadsError;
+    const uploadsData = await fetchAllRows<any>((from, to) =>
+      buildUploadsQuery().order('id', { ascending: true }).range(from, to)
+    );
 
-    const allUploadIds = (uploadsData || []).map((u: any) => u.id);
+    const allUploadIds = uploadsData.map((u: any) => u.id);
     if (allUploadIds.length === 0) {
       return { success: true, data: { rk: mappingData, entries: [], uploads: [] } };
     }
 
-    // 4. Fetch entries with dual strategy
-    let entriesData: any[] = [];
+    // 4. Fetch entries with dual strategy (paginasi penuh per batch)
+    const entriesData: any[] = [];
     const batchSize = 50;
 
     for (let i = 0; i < allUploadIds.length; i += batchSize) {
       const batchIds = allUploadIds.slice(i, i + batchSize);
-      let from = 0;
-      const limit = 999;
 
       // A) Data lama: rencana_kinerja = rkName
-      while (true) {
-        const { data: chunk, error: e1 } = await adminClient
+      const byName = await fetchAllRows<any>((from, to) =>
+        adminClient
           .from('ckp_entries')
           .select('*')
           .in('upload_id', batchIds)
           .eq('rencana_kinerja', rkName)
-          .range(from, from + limit);
-        if (e1) throw e1;
-        if (chunk) entriesData.push(...chunk);
-        if (!chunk || chunk.length <= limit) break;
-        from += limit + 1;
-      }
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+      entriesData.push(...byName);
 
       // B) Data baru: rk_ketua_tim_id IN allRkIds
-      from = 0;
-      while (true) {
-        const { data: chunk2, error: e2 } = await adminClient
+      const byId = await fetchAllRows<any>((from, to) =>
+        adminClient
           .from('ckp_entries')
           .select('*')
           .in('upload_id', batchIds)
           .in('rk_ketua_tim_id', allRkIds)
           .neq('rencana_kinerja', rkName)
-          .range(from, from + limit);
-        if (e2) throw e2;
-        if (chunk2) entriesData.push(...chunk2);
-        if (!chunk2 || chunk2.length <= limit) break;
-        from += limit + 1;
-      }
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+      entriesData.push(...byId);
     }
 
     const entryMap = new Map<string, any>();
@@ -404,7 +520,7 @@ export async function getRkDetailAction(rkId: string, bulan: string | number, ta
     const finalEntries = Array.from(entryMap.values());
 
     const entryUploadIds = new Set(finalEntries.map((e: any) => e.upload_id));
-    const relevantUploads = (uploadsData || [])
+    const relevantUploads = uploadsData
       .filter((u: any) => entryUploadIds.has(u.id))
       .map((u: any) => ({ ...u, user: u.user })) as any[];
 
@@ -418,7 +534,7 @@ export async function getRkDetailAction(rkId: string, bulan: string | number, ta
     };
   } catch (err: any) {
     console.error('[getRkDetailAction] Error:', err);
-    return { success: false, error: err.message || 'Gagal memuat data RK' };
+    return { success: false, error: 'Gagal memuat data RK. Silakan muat ulang halaman.' };
   }
 }
 

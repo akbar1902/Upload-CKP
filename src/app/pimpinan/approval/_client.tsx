@@ -19,7 +19,13 @@ import {
   RefreshCw, WifiOff, MessageSquare
 } from 'lucide-react';
 import { ApprovalModal } from '@/components/ckp/approval-modal';
+import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from '@/components/ui/dialog';
 import type { ApprovalAction } from '@/types/database';
+
+// Baris daftar persetujuan: hasil transformasi query + gate penilaian.
+type QuickApprovalRow = CKPUpload & { user: User; allScored: boolean; pendingRkCount: number };
 
 export default function PimpinanQuickApprovalClient() {
   const { user: authUser, loading: authLoading } = useAuth();
@@ -40,6 +46,8 @@ export default function PimpinanQuickApprovalClient() {
   const [selectedUpload, setSelectedUpload] = useState<{ id: string, name: string, period: string } | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const setPeriod = usePeriodParams();
 
@@ -124,14 +132,17 @@ export default function PimpinanQuickApprovalClient() {
             if (!groups.has(k)) groups.set(k, []);
             groups.get(k)!.push({ nilai: e.nilai ?? null });
           }
-          const allScored = groups.size > 0 && Array.from(groups.values()).every(isRkGroupScored);
+          const groupValues = Array.from(groups.values());
+          const pendingRkCount = groupValues.filter(g => !isRkGroupScored(g)).length;
+          const allScored = groups.size > 0 && pendingRkCount === 0;
 
           return {
             ...u,
             user: u.user as User,
             allScored,
+            pendingRkCount,
           };
-        }) as (CKPUpload & { user: User, allScored: boolean })[];
+        }) as QuickApprovalRow[];
       }),
     enabled: !!authUser && !authLoading,
     placeholderData: keepPreviousData,
@@ -160,6 +171,10 @@ export default function PimpinanQuickApprovalClient() {
     );
   }, [uploads, searchQuery]);
 
+  // Baris yang lolos gate "semua RK sudah dinilai" — sasaran bulk approve.
+  const readyUploads = useMemo(() => filteredUploads.filter(u => u.allScored), [filteredUploads]);
+  const readyCount = readyUploads.length;
+
   const handleApprove = async (uploadId: string, action: ApprovalAction, catatan: string) => {
     if (!authUser) return;
     setProcessingId(uploadId);
@@ -185,6 +200,56 @@ export default function PimpinanQuickApprovalClient() {
       setProcessingId(null);
       setSelectedUpload(null);
     }
+  };
+
+  // Bulk approve: hilangkan baris optimistis, proses berurutan lewat
+  // approveAction(uploadId, 'approved', ''), lalu muat ulang data asli.
+  const handleBulkApprove = async () => {
+    if (!authUser || readyUploads.length === 0 || bulkProcessing) return;
+
+    const targets = readyUploads.map(u => ({ id: u.id, name: u.user?.full_name || 'Pegawai' }));
+    const targetIds = new Set(targets.map(t => t.id));
+
+    setBulkProcessing(true);
+    const toastId = toast.loading(`Menyetujui ${targets.length} CKP...`);
+
+    // Tandai baris hilang optimistis dari cache daftar.
+    queryClient.setQueryData<QuickApprovalRow[]>(['quick-approval', bulan, tahun], (old) => {
+      if (!old) return old;
+      return old.filter(u => !targetIds.has(u.id));
+    });
+
+    let success = 0;
+    const failed: string[] = [];
+    for (const target of targets) {
+      try {
+        const res = await approveAction(target.id, 'approved', '');
+        if (res.success) {
+          success += 1;
+        } else {
+          failed.push(target.name);
+        }
+      } catch {
+        failed.push(target.name);
+      }
+    }
+
+    if (failed.length === 0) {
+      toast.success(`${success} CKP berhasil disetujui`, { id: toastId });
+    } else if (success > 0) {
+      toast.warning(`${success} CKP berhasil, ${failed.length} gagal disetujui: ${failed.join(', ')}`, {
+        id: toastId,
+        duration: 8000,
+      });
+    } else {
+      toast.error('Gagal menyetujui semua CKP. Data dimuat ulang.', { id: toastId });
+    }
+
+    // Kembalikan data asli (baris yang gagal akan muncul lagi).
+    queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
+    setBulkProcessing(false);
+    setShowBulkConfirm(false);
+    refetch();
   };
 
   const getPeriodName = (p: string | number) => {
@@ -245,7 +310,7 @@ export default function PimpinanQuickApprovalClient() {
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-3 mb-5">
+        <div className="flex flex-col md:flex-row md:items-center gap-3 mb-5">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4" style={{ color: 'var(--text-tertiary)' }} />
             <input
@@ -253,10 +318,24 @@ export default function PimpinanQuickApprovalClient() {
               placeholder="Cari nama atau NIP pegawai..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Cari nama atau NIP pegawai"
               className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
               style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
           </div>
+          <button
+            onClick={() => setShowBulkConfirm(true)}
+            disabled={readyCount === 0 || bulkProcessing}
+            className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl text-[13px] font-semibold transition-all md:ml-auto disabled:cursor-not-allowed disabled:opacity-60 hover:brightness-95"
+            style={{
+              background: readyCount === 0 ? 'var(--sand-subtle)' : 'var(--success)',
+              color: readyCount === 0 ? 'var(--text-tertiary)' : '#fff',
+            }}
+            title={readyCount === 0 ? 'Belum ada CKP yang seluruh RK-nya sudah dinilai' : `Setujui ${readyCount} CKP sekaligus`}
+          >
+            {bulkProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Setujui Semua yang Siap ({readyCount})
+          </button>
         </div>
 
         <div className="relative rounded-xl overflow-hidden" style={{ border: '1px solid var(--border)', background: 'var(--card-bg)' }}>
@@ -310,32 +389,41 @@ export default function PimpinanQuickApprovalClient() {
                          </span>
                       </td>
                       <td className="py-3 px-4 text-center">
-                         <div className="flex items-center justify-center gap-2">
-                            <button
-                               onClick={() => {
-                                 setSelectedUpload({ id: upload.id, name: upload.user.full_name, period: `${getPeriodName(bulan)} ${tahun}` });
-                                 setShowApprovalModal(true);
-                               }}
-                               disabled={processingId === upload.id || !upload.allScored}
-                               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                                 !upload.allScored 
-                                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800' 
-                                 : 'bg-[var(--success)] hover:brightness-95 text-white shadow-sm hover:shadow-md'
-                               }`}
-                               title={!upload.allScored ? "Tidak bisa disetujui, Ketua Tim belum selesai menilai semua RK" : "Proses Persetujuan"}
-                            >
-                               {processingId === upload.id ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-                               Approve
-                            </button>
-                            
-                            <button
-                               onClick={() => window.open(`/penilaian/${upload.id}`, '_blank')}
-                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-[var(--primary-soft)] text-[var(--primary)] hover:brightness-95"
-                               title="Lihat Detail CKP di tab baru"
-                            >
-                               <Search className="h-3.5 w-3.5" />
-                               Detail
-                            </button>
+                         <div className="flex flex-col items-center gap-1.5">
+                           <div className="flex items-center justify-center gap-2">
+                              <button
+                                 onClick={() => {
+                                   setSelectedUpload({ id: upload.id, name: upload.user.full_name, period: `${getPeriodName(bulan)} ${tahun}` });
+                                   setShowApprovalModal(true);
+                                 }}
+                                 disabled={processingId === upload.id || !upload.allScored}
+                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                   !upload.allScored
+                                   ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800'
+                                   : 'bg-[var(--success)] hover:brightness-95 text-white shadow-sm hover:shadow-md'
+                                 }`}
+                                 title={!upload.allScored ? "Tidak bisa disetujui, Ketua Tim belum selesai menilai semua RK" : "Proses Persetujuan"}
+                              >
+                                 {processingId === upload.id ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                 Approve
+                              </button>
+
+                              <button
+                                 onClick={() => window.open(`/penilaian/${upload.id}`, '_blank')}
+                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors bg-[var(--primary-soft)] text-[var(--primary)] hover:brightness-95"
+                                 title="Lihat Detail CKP di tab baru"
+                              >
+                                 <Search className="h-3.5 w-3.5" />
+                                 Detail
+                              </button>
+                           </div>
+                           {!upload.allScored && (
+                              <span className="text-[11px] font-medium" style={{ color: 'var(--text-tertiary)' }}>
+                                 {upload.pendingRkCount > 0
+                                   ? `${upload.pendingRkCount} RK belum dinilai`
+                                   : 'Penilaian RK belum lengkap'}
+                              </span>
+                           )}
                          </div>
                       </td>
                     </tr>
@@ -360,6 +448,40 @@ export default function PimpinanQuickApprovalClient() {
           defaultAction="approved"
         />
       )}
+
+      <Dialog
+        open={showBulkConfirm}
+        onClose={() => { if (!bulkProcessing) setShowBulkConfirm(false); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Setujui Semua yang Siap?</DialogTitle>
+            <DialogDescription>
+              {readyCount} CKP dengan seluruh RK sudah dinilai akan langsung disetujui.
+              Tindakan ini tidak dapat dibatalkan.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setShowBulkConfirm(false)}
+              disabled={bulkProcessing}
+              className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors disabled:opacity-50"
+              style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleBulkApprove}
+              disabled={bulkProcessing}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:brightness-95 disabled:opacity-60"
+              style={{ background: 'var(--success)' }}
+            >
+              {bulkProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+              {bulkProcessing ? 'Memproses...' : `Setujui ${readyCount} CKP`}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

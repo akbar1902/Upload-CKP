@@ -40,13 +40,39 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const pct = Math.min(upload.avg_progres || 0, 100);
   const progressClass = getProgressClass(pct);
   const canDelete = upload.status !== 'approved';
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Bersihkan timer saat unmount agar tidak setState setelah komponen hilang.
+  useEffect(() => {
+    return () => {
+      if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    };
+  }, []);
+
+  const resetConfirmDelete = () => {
+    if (confirmTimerRef.current) {
+      clearTimeout(confirmTimerRef.current);
+      confirmTimerRef.current = null;
+    }
+    setShowConfirmDelete(false);
+  };
+
+  // Konfirmasi dua langkah (pola activity-card): tombol berubah jadi
+  // "Yakin hapus?" + Batal, dan otomatis kembali setelah 5 detik.
+  const handleAskDelete = () => {
+    setShowConfirmDelete(true);
+    if (confirmTimerRef.current) clearTimeout(confirmTimerRef.current);
+    confirmTimerRef.current = setTimeout(() => {
+      confirmTimerRef.current = null;
+      setShowConfirmDelete(false);
+    }, 5000);
+  };
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault(); // prevent navigation if wrapped in link or similar
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data CKP ini? Semua entri kegiatan akan ikut terhapus.')) {
-      return;
-    }
-    
+    resetConfirmDelete();
+
     // 1. Optimistic Delete (Remove from UI instantly)
     const toastId = toast.loading('Menghapus CKP...');
     
@@ -113,16 +139,39 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           Lihat Detail <ArrowRight size={13} />
         </Link>
         {canDelete && (
-          <button
-            onClick={handleDelete}
-            title="Hapus CKP"
-            className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200 disabled:opacity-50"
-            style={{ color: 'var(--danger)' }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
-          >
-            <Trash2 size={15} />
-          </button>
+          showConfirmDelete ? (
+            <div className="flex-shrink-0 flex items-center gap-1.5">
+              <span className="hidden sm:inline text-[11px] font-medium" style={{ color: 'var(--text-secondary)' }}>
+                Yakin hapus?
+              </span>
+              <button
+                onClick={resetConfirmDelete}
+                className="px-2.5 py-1.5 rounded-full text-[11px] font-medium transition-colors"
+                style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ background: 'var(--danger)' }}
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={handleAskDelete}
+              title="Hapus CKP"
+              aria-label="Hapus CKP"
+              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200"
+              style={{ color: 'var(--danger)' }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+            >
+              <Trash2 size={15} />
+            </button>
+          )
         )}
       </div>
     </div>
@@ -197,8 +246,11 @@ export default function PegawaiDashboard() {
   }, [uploadsArr]);
 
   // Stats
+  // `totalPeriods` = jumlah upload unik per bulan-tahun (tanpa duplikat versi),
+  // dipakai sebagai penyebut KPI "Disetujui" agar sebanding dengan pembilangnya.
   const stats = useMemo(() => ({
     total: uploadsArr.length,
+    totalPeriods: uniqueUploads.length,
     approved: uniqueUploads.filter(u => u.status === 'approved').length,
     pending: uniqueUploads.filter(u => u.status === 'submitted' || u.status === 'scored').length,
     rejected: uniqueUploads.filter(u => u.status === 'rejected' || u.status === 'revision_required').length,
@@ -246,7 +298,7 @@ export default function PegawaiDashboard() {
   const kpiCards = [
     { icon: <FileText size={18} style={{ color: 'var(--primary)' }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: 'var(--primary-soft)' },
     { icon: <TrendingUp size={18} style={{ color: 'var(--success)' }} />, value: `${stats.avgProgres}%`, label: 'Rata-rata Progres', sub: 'semua kegiatan', iconBg: 'var(--success-soft)' },
-    { icon: <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />, value: stats.approved, label: 'Disetujui', sub: `dari ${stats.total} upload`, iconBg: 'var(--success-soft)' },
+    { icon: <CheckCircle2 size={18} style={{ color: 'var(--success)' }} />, value: stats.approved, label: 'Disetujui', sub: `dari ${stats.totalPeriods} upload`, iconBg: 'var(--success-soft)' },
     { icon: <Clock size={18} style={{ color: 'var(--warning)' }} />, value: stats.pending, label: 'Menunggu Review', sub: 'belum diproses', iconBg: 'var(--warning-soft)' },
   ];
 

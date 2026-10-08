@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Logo } from '@/components/ui/logo';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { resetPasswordDirectAction } from '@/app/actions/auth';
+import { requestPasswordResetAction } from '@/app/actions/auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, LogIn, AlertCircle, CheckCircle2, ArrowLeft, Mail, Lock } from 'lucide-react';
@@ -20,8 +20,6 @@ export default function LoginPage() {
   // Lupa Password states
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [resetEmail, setResetEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [showNewPassword, setShowNewPassword] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [resetError, setResetError] = useState('');
@@ -80,7 +78,7 @@ export default function LoginPage() {
       // redirect berdasarkan role dari database (cover admin/pimpinan/
       // ketua_tim/pegawai). Redirect manual pakai user_metadata bisa salah
       // role dan bikin loading nyangkut kalau navigasi lambat.
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan yang tidak terduga.');
       setLoading(false);
     }
@@ -89,23 +87,25 @@ export default function LoginPage() {
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setResetError('');
-    setResetLoading(true);
 
-    if (newPassword.length < 6) {
-      setResetError('Password baru minimal 6 karakter.');
-      setResetLoading(false);
+    const email = resetEmail.trim();
+    if (!email) {
+      setResetError('Masukkan email Anda terlebih dahulu.');
       return;
     }
 
+    setResetLoading(true);
+
     try {
-      const res = await resetPasswordDirectAction(resetEmail, newPassword);
+      const res = await requestPasswordResetAction(email);
 
       if (!res.success) {
         setResetError(res.error || 'Terjadi kesalahan.');
       } else {
+        // Pesan netral: tidak membocorkan apakah email terdaftar.
         setResetSuccess(true);
       }
-    } catch (err) {
+    } catch {
       setResetError('Terjadi kesalahan yang tidak terduga.');
     } finally {
       setResetLoading(false);
@@ -127,23 +127,27 @@ export default function LoginPage() {
 
           <div className="flex-1 flex flex-col justify-center">
             {resetSuccess ? (
-              /* ── Success State ──────────────────── */
+              /* ── Success State (netral, anti-enumeration) ── */
               <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)] ">
                   <CheckCircle2 className="h-8 w-8" style={{ color: primaryColor }} />
                 </div>
                 <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
-                  Password Berhasil Diubah!
+                  Cek Email Anda
                 </h3>
-                <p className="text-[14px] max-w-sm mb-8 text-[var(--text-secondary)]">
-                  Password untuk akun <span className="font-semibold text-[var(--text-primary)]">{resetEmail}</span> telah berhasil diubah. Silakan masuk menggunakan password baru Anda.
+                <p className="text-[14px] max-w-sm mb-3 text-[var(--text-secondary)]">
+                  Jika <span className="font-semibold text-[var(--text-primary)]">{resetEmail}</span> terdaftar,
+                  kami telah mengirim tautan untuk mengatur ulang password.
+                </p>
+                <p className="text-[13px] max-w-sm mb-8 text-[var(--text-tertiary)]">
+                  Buka tautan pada email tersebut, lalu buat password baru Anda.
+                  Jangan lupa periksa folder spam jika email tidak muncul.
                 </p>
                 <Button
                   onClick={() => {
                     setIsForgotPassword(false);
                     setResetSuccess(false);
                     setResetEmail('');
-                    setNewPassword('');
                   }}
                   className="w-full h-12 rounded-xl font-semibold"
                   style={{ backgroundColor: primaryColor }}
@@ -163,7 +167,7 @@ export default function LoginPage() {
                     Lupa Password?
                   </h2>
                   <p className="text-[14px] text-[var(--text-secondary)]">
-                    Masukkan email Anda untuk mereset password.
+                    Masukkan email Anda. Kami akan mengirim tautan untuk mengatur ulang password.
                   </p>
                 </div>
 
@@ -196,33 +200,6 @@ export default function LoginPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="new-password" className="block text-[13px] font-bold mb-2 text-[var(--text-primary)]">
-                      Password Baru
-                    </label>
-                    <div className="relative">
-                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-                        <Lock className="h-5 w-5" />
-                      </div>
-                      <Input
-                        id="new-password"
-                        type={showNewPassword ? 'text' : 'password'}
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
-                      >
-                        {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                  </div>
-
                   <div className="pt-4 space-y-3">
                     <Button
                       type="submit"
@@ -230,7 +207,7 @@ export default function LoginPage() {
                       className="w-full h-12 rounded-xl font-semibold hover:opacity-90 transition-opacity"
                       style={{ backgroundColor: primaryColor }}
                     >
-                      Ubah Password
+                      Kirim Tautan Reset
                     </Button>
                     <Button
                       type="button"

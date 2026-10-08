@@ -14,6 +14,7 @@ import {
   FileSpreadsheet,
   RefreshCw,
   ArrowRightLeft,
+  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -91,7 +92,7 @@ export function RkManagementView({
   const [yearStats, setYearStats] = useState<any>(null);
   const [isDeletingYear, setIsDeletingYear] = useState(false);
 
-  const { data, isPending, isFetching, refetch } = useQuery({
+  const { data, isPending, isFetching, error, refetch } = useQuery({
     queryKey: ['rk-management-data', selectedYear],
     queryFn: () =>
       withTimeoutRetry(
@@ -114,6 +115,11 @@ export function RkManagementView({
   const years: number[] = useMemo(() => data?.years || [selectedYear], [data, selectedYear]);
   const activeYear: number = data?.activeYear ?? selectedYear;
   const isArchiveView = selectedYear !== activeYear;
+
+  // Bedakan gagal-memuat vs data kosong. initialData dari server bisa membawa success:false
+  // (query belum pernah jalan) — jangan tampilkan empty state "Tidak ada Rencana Kinerja".
+  const dataFailed = !isPending && (!!error || data?.success === false);
+  const dataErrorMessage = error?.message || (data as { error?: string } | undefined)?.error || 'Gagal memuat data dari server.';
 
   const q = search.trim().toLowerCase();
 
@@ -314,6 +320,22 @@ export function RkManagementView({
           )}
         </div>
 
+        {/* ===== Info mode lihat-saja (non-admin) ===== */}
+        {!canEdit && (
+          <div
+            className="flex items-start gap-3 rounded-2xl px-4 py-3 text-[13px]"
+            style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)', color: 'var(--text-secondary)' }}
+          >
+            <Eye size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
+            <span>
+              Mode <strong style={{ color: 'var(--text-primary)' }}>lihat-saja</strong> — penambahan, perubahan, dan
+              penghapusan Rencana Kinerja hanya dapat dilakukan oleh{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>admin</strong>. Hubungi admin bila ada RK yang perlu
+              diperbarui.
+            </span>
+          </div>
+        )}
+
         {/* ===== Statistik ===== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
@@ -426,7 +448,29 @@ export function RkManagementView({
         )}
 
         {/* ===== Konten ===== */}
-        {isPending ? (
+        {dataFailed ? (
+          <div
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed p-16 text-center"
+            style={{ borderColor: 'var(--border)' }}
+          >
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-1" style={{ background: 'var(--danger-soft)' }}>
+              <AlertTriangle size={20} style={{ color: 'var(--danger)' }} />
+            </div>
+            <p className="text-[15px] font-medium" style={{ color: 'var(--text-primary)' }}>
+              Gagal memuat data Rencana Kinerja
+            </p>
+            <p className="text-[13px] max-w-md" style={{ color: 'var(--text-secondary)' }}>
+              {dataErrorMessage}
+            </p>
+            <button
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="btn-secondary mt-2 text-[13px] disabled:opacity-60"
+            >
+              <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} /> {isFetching ? 'Memuat...' : 'Coba Lagi'}
+            </button>
+          </div>
+        ) : isPending ? (
           <div className="flex flex-col items-center justify-center gap-3 p-16" style={{ color: 'var(--text-secondary)' }}>
             <RefreshCw className="h-6 w-6 animate-spin" style={{ color: 'var(--primary)' }} />
             <span className="text-[13px]">Memuat data RK...</span>
