@@ -527,6 +527,15 @@ export default function ImportRKPage() {
                   ))}
                 </div>
 
+                {importReport.ketuaPreserved > 0 && (
+                  <div className="rounded-lg border p-3" style={{ borderColor: 'var(--border)', background: 'var(--sand-subtle)' }}>
+                    <p className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                      <strong style={{ color: 'var(--text-primary)' }}>{importReport.ketuaPreserved} RK</strong>{' '}
+                      ketua timnya dipertahankan (tidak ditimpa dataset).
+                    </p>
+                  </div>
+                )}
+
                 {importReport.missingEmployees.length > 0 && (
                   <div className="rounded-lg border p-3 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-900/50">
                     <p className="text-[12px] font-medium text-amber-700 dark:text-amber-300 mb-1">
@@ -598,6 +607,13 @@ export default function ImportRKPage() {
                     </span>
                   </li>
                 )}
+                <li className="flex items-start gap-2">
+                  <CheckCircle2 size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--success)' }} />
+                  <span>
+                    Ketua tim yang <strong style={{ color: 'var(--text-primary)' }}>sudah diatur manual</strong> tidak akan ditimpa —
+                    dataset hanya mengisi ketua pada RK baru atau yang masih kosong.
+                  </span>
+                </li>
                 <li className="flex items-start gap-2">
                   <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: 'var(--warning)' }} />
                   <span>

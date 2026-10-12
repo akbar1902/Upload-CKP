@@ -23,6 +23,8 @@ export interface DatasetImportReport {
   assignments: number;
   missingEmployees: string[];
   warnings: string[];
+  /** Jumlah RK yang ketua timnya DIPERTAHANKAN (tidak ditimpa dataset). */
+  ketuaPreserved: number;
   perTeam: {
     teamName: string;
     ketuaNama: string | null;
@@ -148,9 +150,33 @@ export async function importDatasetRkAction(
       assignments: 0,
       missingEmployees: [],
       warnings: [...(dataset.warnings ?? [])],
+      ketuaPreserved: 0,
       perTeam: [],
     };
     const missing = new Set<string>();
+
+    // Ketua tim yang sudah diatur manual (mis. lewat "Ganti Ketua Tim")
+    // DIPERTAHANKAN — dataset hanya mengisi bila baris baru / ketua kosong.
+    // Peta kunci upsert "<rencana_kinerja>|||<tim_kerja>" -> ketua_tim_id saat ini.
+    const existingRows = await fetchAllRows<{
+      rencana_kinerja: string;
+      tim_kerja: string | null;
+      ketua_tim_id: string | null;
+    }>((from, to) =>
+      admin
+        .from('rk_ketua_tim_mapping')
+        .select('rencana_kinerja, tim_kerja, ketua_tim_id')
+        .eq('tahun', tahun)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+    const existingKetuaByKey = new Map<string, string | null>();
+    for (const r of existingRows) {
+      existingKetuaByKey.set(
+        `${r.rencana_kinerja}|||${r.tim_kerja ?? ''}`,
+        r.ketua_tim_id ?? null
+      );
+    }
 
     // Catatan: DEAKTIVASI tahun lama dilakukan SETELAH impor sukses
     // (lihat akhir fungsi) supaya kalau impor gagal, tahun lama tetap aktif.
@@ -173,6 +199,13 @@ export async function importDatasetRkAction(
         teamParents++;
         report.parents++;
 
+        // Pertahankan ketua tim yang sudah ada; isi dari dataset hanya bila
+        // baris baru atau ketua saat ini kosong.
+        const mappingKey = `${parent.rk}|||${team.teamName}`;
+        const existingKetua = existingKetuaByKey.get(mappingKey);
+        const ketuaTimId = existingKetua ?? ketuaUser?.id ?? null;
+        if (existingKetua) report.ketuaPreserved++;
+
         let parentId: string | null = null;
         if (!dryRun) {
           const { data: up, error: upErr } = await admin
@@ -181,7 +214,7 @@ export async function importDatasetRkAction(
               {
                 rencana_kinerja: parent.rk,
                 tim_kerja: team.teamName,
-                ketua_tim_id: ketuaUser?.id ?? null,
+                ketua_tim_id: ketuaTimId,
                 tahun,
                 is_active: false, // diaktifkan sekaligus setelah seluruh impor sukses
                 created_by: user.id,
@@ -287,6 +320,7 @@ export async function importDatasetRkAction(
           sub_rks: report.subRks,
           assignments: report.assignments,
           missing_count: report.missingEmployees.length,
+          ketua_preserved: report.ketuaPreserved,
         },
       });
 
