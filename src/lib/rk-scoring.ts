@@ -45,3 +45,57 @@ export function formatScore1(n: number | null | undefined): string {
   if (n === null || n === undefined) return '-';
   return Number(n).toFixed(1);
 }
+
+// ─────────────────────────────────────────────────────────────
+// Filter "RK milik ketua tim" — SATU sumber untuk server & client.
+//
+// Halaman Detail CKP menyaring entri agar hanya menampilkan RK milik ketua
+// tim yang direview. Dulu server membandingkan NAMA parent vs `rencana_kinerja`
+// entri (yang berisi nama Sub-RK) sementara client membandingkan
+// `rk_ketua_tim_id` — akibatnya hasil server 0 dan di-hydrate ke client
+// (staleTime 5 menit) sehingga daftar RK tampak kosong. Gunakan helper ini
+// di MANA PUN agar filter tidak pernah berbeda perilaku lagi.
+// ─────────────────────────────────────────────────────────────
+
+/** Nilai untuk argumen `.or(...)` PostgREST: mapping milik ketua tim (dan penilai). */
+export function rkMappingOwnerFilter(
+  ketuaTimId: string,
+  reviewerId?: string | null,
+): string {
+  const parts = [`ketua_tim_id.eq.${ketuaTimId}`];
+  if (reviewerId) parts.push(`ketua_tim_id.eq.${reviewerId}`);
+  return parts.join(',');
+}
+
+export interface RkOwnerMapping {
+  id: string;
+  rencana_kinerja: string | null;
+}
+
+/**
+ * Saring entri CKP agar hanya menyisakan milik RK ketua tim tsb.
+ * - Data baru: cocokkan `rk_ketua_tim_id` ke id mapping.
+ * - Data lama: fallback cocokkan nama parent (dinormalisasi).
+ * Mengembalikan array kosong bila mapping kosong (perilaku server lama).
+ */
+export function filterEntriesByOwnRk<
+  T extends {
+    rk_ketua_tim_id?: string | null;
+    rencana_kinerja?: string | null;
+  },
+>(entries: T[], mappings: RkOwnerMapping[] | null | undefined): T[] {
+  if (!mappings || mappings.length === 0) return [];
+  const ownIds = new Set(
+    mappings.map((m) => m.id).filter((id): id is string => Boolean(id)),
+  );
+  const ownNorms = new Set(
+    mappings.map((m) => normalizeRkName(m.rencana_kinerja)),
+  );
+  return entries.filter(
+    (e) =>
+      (e.rk_ketua_tim_id && ownIds.has(e.rk_ketua_tim_id)) ||
+      (!e.rk_ketua_tim_id &&
+        e.rencana_kinerja &&
+        ownNorms.has(normalizeRkName(e.rencana_kinerja))),
+  );
+}

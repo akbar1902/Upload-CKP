@@ -577,72 +577,107 @@ export async function toggleEmployeeStatus(userId: string, currentStatus: boolea
   }
 }
 
-export async function replaceKetuaTim(oldUserId: string, newUserId: string) {
+/**
+ * Ganti ketua tim BERBASIS TIM (bukan berbasis user).
+ *
+ * Kenapa berbasis tim: tombol lama hanya muncul pada baris user yang
+ * `role = 'ketua_tim'`, sehingga tim yang ketuanya (di rk_ketua_tim_mapping)
+ * sudah bukan ketua_tim lagi — mis. masih menunjuk user yang sudah jadi
+ * anggota — TIDAK BISA diganti sama sekali dari UI.
+ *
+ * Perilaku:
+ *  - Semua RK aktif milik tim tsb dipindahkan ke pengganti.
+ *  - Pengganti dinaikkan jadi ketua_tim HANYA bila sebelumnya masih anggota
+ *    (pimpinan/admin dibiarkan).
+ *  - Ketua lama diturunkan jadi anggota HANYA bila ia tidak lagi memimpin
+ *    tim aktif lain (jangan sampai mencabut peran yang masih dipakai).
+ */
+export async function replaceKetuaTimByTeam(teamName: string, newUserId: string) {
   const guard = await requireAdmin();
   if (!guard.ok) return { success: false, error: guard.error };
 
   try {
-    // 1. Ambil data ketua tim lama untuk mewariskan unit_kerja (nama tim)
-    const { data: oldUser, error: oldUserErr } = await adminDb()
-      .from('users')
-      .select('unit_kerja')
-      .eq('id', oldUserId)
-      .single();
-    if (oldUserErr || !oldUser) {
-      console.error('[replaceKetuaTim] Ketua tim lama tidak ditemukan:', oldUserErr);
-      return { success: false, error: 'Ketua tim lama tidak ditemukan.' };
-    }
-    const oldUnitKerja = oldUser?.unit_kerja || null;
+    const team = String(teamName || '').trim();
+    if (!team) return { success: false, error: 'Tim wajib dipilih.' };
+    if (!newUserId) return { success: false, error: 'Pegawai pengganti wajib dipilih.' };
 
-    // 2. Ambil nama ketua tim baru untuk log atau verifikasi
+    // 1. Validasi pengganti
     const { data: newUser, error: fetchError } = await adminDb()
       .from('users')
-      .select('full_name, role')
+      .select('id, full_name, role')
       .eq('id', newUserId)
       .single();
-
     if (fetchError || !newUser) {
-      return { success: false, error: 'Pengganti tidak ditemukan' };
+      return { success: false, error: 'Pengganti tidak ditemukan.' };
     }
 
-    // 2. Update rk_ketua_tim_mapping (HANYA tahun aktif, agar arsip tidak berubah)
+    // 2. Ketua lama pada tim ini (bisa >1 bila data pernah tidak konsisten)
+    const { data: teamRows, error: teamError } = await adminDb()
+      .from('rk_ketua_tim_mapping')
+      .select('ketua_tim_id')
+      .eq('is_active', true)
+      .eq('tim_kerja', team);
+    if (teamError) throw teamError;
+    const oldKetuaIds = Array.from(
+      new Set(
+        (teamRows || [])
+          .map((r: { ketua_tim_id: string | null }) => r.ketua_tim_id)
+          .filter((id: string | null): id is string => !!id)
+      )
+    );
+
+    // 3. Pindahkan seluruh RK aktif tim ini ke pengganti
     const { error: updateMappingError } = await adminDb()
       .from('rk_ketua_tim_mapping')
-      .update({ ketua_tim_id: newUserId })
-      .eq('ketua_tim_id', oldUserId)
-      .eq('is_active', true);
-
+      .update({ ketua_tim_id: newUserId, updated_at: new Date().toISOString() })
+      .eq('is_active', true)
+      .eq('tim_kerja', team);
     if (updateMappingError) throw updateMappingError;
 
-    // 3. Jadikan ketua tim lama sebagai anggota (jika belum dideaktifasi)
-    const { error: demoteError } = await adminDb()
-      .from('users')
-      .update({ role: 'anggota' })
-      .eq('id', oldUserId)
-      .eq('role', 'ketua_tim');
-    
-    if (demoteError) throw demoteError;
+    // 4. Jadikan pengganti ketua tim (hanya bila sebelumnya masih anggota)
+    if (newUser.role === 'anggota') {
+      const { error: promoteError } = await adminDb()
+        .from('users')
+        .update({ role: 'ketua_tim' })
+        .eq('id', newUserId);
+      if (promoteError) throw promoteError;
+      await adminDb().auth.admin
+        .updateUserById(newUserId, { user_metadata: { role: 'ketua_tim' } })
+        .catch((err) => console.warn('Could not sync auth metadata:', err?.message));
+    }
 
-    // 4. Jadikan penggantinya sebagai ketua tim dan warisi nama tim (unit_kerja)
-    const { error: promoteError } = await adminDb()
-      .from('users')
-      .update({ role: 'ketua_tim', unit_kerja: oldUnitKerja })
-      .eq('id', newUserId);
+    // 5. Turunkan ketua lama HANYA bila tidak lagi memimpin tim aktif lain.
+    for (const oldId of oldKetuaIds) {
+      if (oldId === newUserId) continue;
 
-    if (promoteError) throw promoteError;
+      const { data: stillLeads, error: leadErr } = await adminDb()
+        .from('rk_ketua_tim_mapping')
+        .select('id')
+        .eq('is_active', true)
+        .eq('ketua_tim_id', oldId)
+        .limit(1);
+      if (leadErr) throw leadErr;
+      if (stillLeads && stillLeads.length > 0) continue;
 
-    // 5. Update auth metadata for the new ketua_tim so their session reflects the new role
-    // and also for old user.
-    const meta1 = await adminDb().auth.admin.updateUserById(newUserId, { user_metadata: { role: 'ketua_tim' } });
-    if (meta1.error) throw meta1.error;
-    const meta2 = await adminDb().auth.admin.updateUserById(oldUserId, { user_metadata: { role: 'anggota' } });
-    if (meta2.error) throw meta2.error;
+      const { error: demoteError } = await adminDb()
+        .from('users')
+        .update({ role: 'anggota' })
+        .eq('id', oldId)
+        .eq('role', 'ketua_tim');
+      if (demoteError) throw demoteError;
+      await adminDb().auth.admin
+        .updateUserById(oldId, { user_metadata: { role: 'anggota' } })
+        .catch((err) => console.warn('Could not sync auth metadata:', err?.message));
+    }
 
     revalidatePath('/admin/pegawai');
     revalidatePath('/admin/rk');
+    revalidatePath('/ketua_tim');
+    revalidatePath('/pimpinan');
+    revalidatePath('/');
     return { success: true };
   } catch (error: any) {
-    console.error('[replaceKetuaTim] Error:', error);
+    console.error('[replaceKetuaTimByTeam] Error:', error);
     return { success: false, error: DB_ERROR_MESSAGE };
   }
 }

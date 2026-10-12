@@ -2,6 +2,7 @@ import { Suspense } from 'react';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
 import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import PenilaianCKPDetailClient from './_client';
 
@@ -125,16 +126,12 @@ export default async function PenilaianCKPDetailPage({
       if (source === 'ketua_tim' && currentUserData?.role === 'pimpinan' && employeeData.role === 'ketua_tim') {
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
-          .select('rencana_kinerja')
-          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${user.id}`)
+          .select('id, rencana_kinerja')
+          .or(rkMappingOwnerFilter(employeeData.id, user.id))
           .eq('is_active', true);
-          
-        if (rkMapping && rkMapping.length > 0) {
-          const ownRks = rkMapping.map(m => m.rencana_kinerja);
-          entriesData = entriesData.filter(e => e.rencana_kinerja && ownRks.includes(e.rencana_kinerja));
-        } else {
-          entriesData = [];
-        }
+
+        // Logika bersama (sama persis dengan client) — lihat src/lib/rk-scoring.ts
+        entriesData = filterEntriesByOwnRk(entriesData, rkMapping);
       }
 
       let finalUpload = uploadData as CKPUpload;

@@ -104,7 +104,7 @@ export default function PimpinanDashboard() {
           uploadsQuery.abortSignal(signal),
           supabase
             .from('users')
-            .select('id, email, full_name, nip, role, unit_kerja, is_active')
+            .select('id, email, full_name, nip, role, unit_kerja, is_active, rk_ketua_tim_mapping!rk_ketua_tim_mapping_ketua_tim_id_fkey(tim_kerja)')
             .in('role', ['anggota', 'ketua_tim'])
             .eq('is_active', true)
             .order('full_name')
@@ -119,7 +119,14 @@ export default function PimpinanDashboard() {
           user: u.user as User | undefined,
         })) as (CKPUpload & { user?: User })[];
 
-        const newUsers = usersRes.data as User[] || [];
+        type UserWithMapping = User & {
+          rk_ketua_tim_mapping?: { tim_kerja: string | null }[] | null;
+        };
+        const newUsers = ((usersRes.data as UserWithMapping[] | null) || []).map((u) => {
+          const mappings = u.rk_ketua_tim_mapping ?? [];
+          const timKerja = mappings.find((m) => m.tim_kerja)?.tim_kerja ?? null;
+          return { ...u, unit_kerja: timKerja || u.unit_kerja || null } as User;
+        });
 
         return { uploads: newUploads, users: newUsers };
       }),

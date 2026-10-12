@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
 import { Search, Plus, Trash2, Key, RefreshCw, ShieldCheck, Briefcase, Mail, XCircle, CheckCircle, ArrowRightLeft, Pencil } from 'lucide-react';
-import { createEmployee, deleteEmployee, resetPassword, toggleEmployeeStatus, replaceKetuaTim, updateEmployeeProfile } from '@/app/actions/admin';
+import { createEmployee, deleteEmployee, resetPassword, toggleEmployeeStatus, replaceKetuaTimByTeam, updateEmployeeProfile } from '@/app/actions/admin';
 import { toast } from 'sonner';
 
 export default function AdminPegawaiClient({ initialUsers }: { initialUsers: User[] }) {
@@ -19,9 +19,9 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Ganti Ketua Tim state
+  // Ganti Ketua Tim (berbasis TIM) state
   const [showReplaceModal, setShowReplaceModal] = useState(false);
-  const [replaceOldUserId, setReplaceOldUserId] = useState('');
+  const [replaceTeam, setReplaceTeam] = useState('');
   const [replaceNewUserId, setReplaceNewUserId] = useState('');
 
   // Confirmation Modal State
@@ -61,7 +61,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
     password: '',
     full_name: '',
     nip: '',
-    unit_kerja: 'BPS Kabupaten Belitung',
+    unit_kerja: '',
     role: 'anggota',
     jabatan: '',
     golongan: '',
@@ -115,7 +115,39 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
     retry: false,
   });
 
+  // Daftar tim aktif + ketua saat ini (sumber: rk_ketua_tim_mapping).
+  // Dipakai untuk pemilih "Ganti Ketua Tim" berbasis tim.
+  const { data: teamsData, refetch: refetchTeams } = useQuery({
+    queryKey: ['admin-teams'],
+    queryFn: () =>
+      runSafeRead(async (supabase) => {
+        const { data, error } = await supabase
+          .from('rk_ketua_tim_mapping')
+          .select('tim_kerja, ketua_tim_id')
+          .eq('is_active', true);
+        if (error) throw error;
+
+        const byTeam = new Map<string, string | null>();
+        (data || []).forEach((m: { tim_kerja: string | null; ketua_tim_id: string | null }) => {
+          if (!m.tim_kerja) return;
+          const existing = byTeam.get(m.tim_kerja);
+          if (existing === undefined) byTeam.set(m.tim_kerja, m.ketua_tim_id ?? null);
+          else if (!existing && m.ketua_tim_id) byTeam.set(m.tim_kerja, m.ketua_tim_id);
+        });
+        return Array.from(byTeam.entries())
+          .map(([tim_kerja, ketua_tim_id]) => ({ tim_kerja, ketua_tim_id }))
+          .sort((a, b) => a.tim_kerja.localeCompare(b.tim_kerja, 'id'));
+      }),
+    retry: false,
+  });
+
   const users = usersData || [];
+  const teams = teamsData || [];
+  const userNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    (usersData || []).forEach((u) => map.set(u.id, u.full_name));
+    return map;
+  }, [usersData]);
   const filteredUsers = useMemo(() => {
     let result = users;
     if (search.trim()) {
@@ -148,7 +180,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       if (res.success) {
         toast.success("Pegawai berhasil ditambahkan");
         setShowAddModal(false);
-        setFormData({ email: '', password: '', full_name: '', nip: '', unit_kerja: 'BPS Kabupaten Belitung', role: 'anggota', jabatan: '', golongan: '' });
+        setFormData({ email: '', password: '', full_name: '', nip: '', unit_kerja: '', role: 'anggota', jabatan: '', golongan: '' });
         refetch();
       } else {
         toast.error("Gagal menambahkan pegawai: " + res.error);
@@ -164,7 +196,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       full_name: u.full_name || '',
       nip: u.nip || '',
       email: u.email || '',
-      unit_kerja: u.unit_kerja || 'BPS Kabupaten Belitung',
+      unit_kerja: u.unit_kerja || '',
       role: u.role || 'anggota',
       jabatan: u.jabatan || '',
       golongan: u.golongan || '',
@@ -273,17 +305,19 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
 
   const handleReplaceSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!replaceTeam) return toast.error('Pilih tim terlebih dahulu');
     if (!replaceNewUserId) return toast.error('Pilih pegawai pengganti');
-    
+
     setIsReplacing(true);
     try {
-      const res = await replaceKetuaTim(replaceOldUserId, replaceNewUserId);
+      const res = await replaceKetuaTimByTeam(replaceTeam, replaceNewUserId);
       if (res.success) {
         toast.success('Ketua Tim berhasil diganti');
         setShowReplaceModal(false);
-        setReplaceOldUserId('');
+        setReplaceTeam('');
         setReplaceNewUserId('');
         refetch();
+        refetchTeams();
       } else {
         toast.error('Gagal mengganti ketua tim: ' + res.error);
       }
@@ -317,6 +351,12 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
+            <button
+              onClick={() => { setReplaceTeam(''); setReplaceNewUserId(''); setShowReplaceModal(true); }}
+              className="h-10 px-4 rounded-xl font-medium text-[13px] border border-slate-200 dark:border-slate-700 bg-white dark:bg-[var(--card-bg)] text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all shadow-sm flex items-center justify-center gap-2"
+            >
+              <ArrowRightLeft size={16} /> Ganti Ketua Tim
+            </button>
             <button onClick={() => setShowAddModal(true)} className="h-10 px-4 rounded-xl font-medium text-[13px] text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] transition-all shadow-md shadow-[var(--primary-ring)] flex items-center justify-center gap-2">
               <Plus size={16} /> Tambah Pegawai
             </button>
@@ -371,7 +411,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
                             <Pencil size={16} strokeWidth={2.5} />
                           </button>
                           {u.role === 'ketua_tim' && u.is_active && (
-                            <button onClick={() => { setReplaceOldUserId(u.id); setShowReplaceModal(true); }} title="Ganti Ketua Tim" className="p-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
+                            <button onClick={() => { setReplaceTeam(u.managed_teams || u.unit_kerja || ''); setReplaceNewUserId(''); setShowReplaceModal(true); }} title="Ganti Ketua Tim" className="p-2 rounded-xl hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-400 text-slate-400 transition-all hover:scale-105 active:scale-95">
                               <ArrowRightLeft size={16} strokeWidth={2.5} />
                             </button>
                           )}
@@ -459,26 +499,50 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
         </div>
       )}
 
-      {showReplaceModal && (() => {
-        const oldUserObj = users.find(u => u.id === replaceOldUserId);
-        const teamName = oldUserObj?.managed_teams || oldUserObj?.unit_kerja || '';
-        return (
+      {showReplaceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-md bg-white dark:bg-[var(--card-bg)] rounded-3xl p-7 shadow-2xl border border-slate-100 dark:border-slate-800 scale-in">
-            <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100 uppercase">
-              Ganti Ketua Tim {teamName}
+            <h3 className="text-xl font-bold mb-2 text-slate-800 dark:text-slate-100">
+              Ganti Ketua Tim
             </h3>
             <p className="text-[13px] mb-6 text-slate-500 leading-relaxed">
-              Pilih pegawai yang akan menggantikan Ketua Tim ini. Semua Rencana Kinerja akan dipindahkan ke penggantinya.
+              Pilih tim lalu pilih pegawai penggantinya. Semua Rencana Kinerja tim ini akan dipindahkan ke pengganti.
             </p>
             <form onSubmit={handleReplaceSubmit} className="space-y-4 text-[13px]">
               <div>
-                <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pilih Pengganti</label>
-                <select value={replaceNewUserId} onChange={e => setReplaceNewUserId(e.target.value)} required className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200">
-                  <option value="">-- Pilih Pegawai Aktif --</option>
-                  {users.filter(u => u.is_active && u.id !== replaceOldUserId).map(u => (
-                    <option key={u.id} value={u.id}>{u.full_name} ({u.unit_kerja || '-'})</option>
+                <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pilih Tim</label>
+                <select
+                  value={replaceTeam}
+                  onChange={e => setReplaceTeam(e.target.value)}
+                  required
+                  className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                >
+                  <option value="">-- Pilih Tim --</option>
+                  {teams.map(t => (
+                    <option key={t.tim_kerja} value={t.tim_kerja}>
+                      {t.tim_kerja}
+                      {t.ketua_tim_id ? ` — saat ini: ${userNameById.get(t.ketua_tim_id) || '?'}` : ' — belum ada ketua'}
+                    </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block mb-1.5 font-medium text-slate-600 dark:text-slate-400">Pegawai Pengganti</label>
+                <select
+                  value={replaceNewUserId}
+                  onChange={e => setReplaceNewUserId(e.target.value)}
+                  required
+                  className="w-full border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-[var(--primary-ring)] focus:bg-white dark:focus:bg-slate-900 transition-all text-slate-800 dark:text-slate-200"
+                >
+                  <option value="">-- Pilih Pegawai Aktif --</option>
+                  {users
+                    .filter(u => u.is_active && u.id !== (teams.find(t => t.tim_kerja === replaceTeam)?.ketua_tim_id ?? ''))
+                    .map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name}
+                        {u.role === 'ketua_tim' ? ' (Ketua Tim)' : u.role === 'pimpinan' ? ' (Pimpinan)' : u.role === 'admin' ? ' (Admin)' : ''}
+                      </option>
+                    ))}
                 </select>
               </div>
               <div className="flex gap-3 justify-end mt-8 pt-2">
@@ -488,8 +552,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
             </form>
           </div>
         </div>
-        );
-      })()}
+      )}
 
       {/* Confirmation Modal */}
       {confirmModal.isOpen && (

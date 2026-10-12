@@ -17,6 +17,20 @@ export interface PegawaiCardProps {
   tahun?: number;
 }
 
+// unit_kerja yang isinya hanya nama instansi (bukan unit/tim kerja sebenarnya)
+// dianggap kosong agar kartu jatuh ke NIP — supaya konsisten antar pegawai.
+const GENERIC_UNIT_KERJA = new Set([
+  'bps kabupaten belitung',
+  'badan pusat statistik',
+  'badan pusat statistik kabupaten belitung',
+]);
+
+function subtitleUnit(user: User): string {
+  const unit = (user.unit_kerja || '').trim();
+  if (unit && !GENERIC_UNIT_KERJA.has(unit.toLowerCase())) return unit;
+  return user.nip || '—';
+}
+
 export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
   const { user, upload } = row;
   const initials = user.full_name
@@ -52,7 +66,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
                  style={{ color: 'var(--text-primary)' }}
                  title={user.full_name}>{user.full_name}</p>
               <p className="text-[11px] sm:text-[12px] mt-0.5 truncate"
-                 style={{ color: 'var(--text-secondary)' }}>{user.unit_kerja || user.nip || '—'}</p>
+                 style={{ color: 'var(--text-secondary)' }}>{subtitleUnit(user)}</p>
               
               {/* Badge on Mobile (Centered under name) */}
               <div className="mt-1.5 sm:hidden inline-block">

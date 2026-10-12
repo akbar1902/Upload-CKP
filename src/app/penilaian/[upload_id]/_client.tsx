@@ -25,7 +25,7 @@ import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
-import { rkGroupKey, isRkGroupScored, rkGroupAvg, formatScore1, normalizeRkName } from '@/lib/rk-scoring';
+import { rkGroupKey, isRkGroupScored, rkGroupAvg, formatScore1, normalizeRkName, filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
 import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
@@ -418,20 +418,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const { data: rkMapping } = await supabase
           .from('rk_ketua_tim_mapping')
           .select('id, rencana_kinerja')
-          .or(`ketua_tim_id.eq.${employeeData.id},ketua_tim_id.eq.${currentUser?.id}`)
+          .or(rkMappingOwnerFilter(employeeData.id, currentUser?.id))
           .eq('is_active', true)
           .abortSignal(signal);
 
-        if (rkMapping && rkMapping.length > 0) {
-          const ownRkIds = new Set(rkMapping.map((m: any) => m.id).filter(Boolean));
-          const ownRkNorms = new Set(rkMapping.map((m: any) => normalizeRkName(m.rencana_kinerja)));
-          entriesData = entriesData.filter((e: any) =>
-            (e.rk_ketua_tim_id && ownRkIds.has(e.rk_ketua_tim_id)) ||
-            (!e.rk_ketua_tim_id && e.rencana_kinerja && ownRkNorms.has(normalizeRkName(e.rencana_kinerja)))
-          );
-        } else {
-          entriesData = [];
-        }
+        // Logika bersama (sama persis dengan server) — lihat src/lib/rk-scoring.ts
+        entriesData = filterEntriesByOwnRk(entriesData, rkMapping);
       }
 
       let finalUpload = uploadData as CKPUpload;
