@@ -1469,6 +1469,7 @@ input, textarea, select {
    tercetak sebagai opacity < 1 / tergeser. */
 @media print {
   .motion-page-enter,
+  .motion-rise-in,
   .animate-fade-in,
   .animate-fade-up,
   .animate-scale-in,
@@ -1482,6 +1483,9 @@ input, textarea, select {
   .motion-palette-out,
   .motion-pop,
   .motion-chart-fade,
+  .motion-status-fade,
+  .motion-crossfade,
+  .motion-alert-in,
   .motion-remove {
     animation: none !important;
     opacity: 1 !important;
@@ -1532,7 +1536,8 @@ input, textarea, select {
   }
   .motion-chart-fade,
   .motion-status-fade,
-  .motion-crossfade {
+  .motion-crossfade,
+  .motion-alert-in {
     animation: fadeIn var(--duration-press) linear both !important;
   }
 

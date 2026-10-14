@@ -666,3 +666,98 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
 1. `next.config.ts`: hapus `viewTransition: true`.
 2. `page-transition.tsx`: ganti isi menjadi `<div className="motion-page-enter">{children}</div>`.
 3. Opsional: hapus blok `::view-transition-*` di `globals.css` + `src/types/react-canary.d.ts`.
+
+---
+
+## Hasil Gelombang 2 (fix round + Fase 3–5)
+
+> Diisi oleh pelaksana gelombang 2 (branch `feat/motion-ux`). Ringkas: yang selesai,
+> deviasi/keputusan, dan sisa yang belum bisa diverifikasi live.
+
+### Fix round gelombang 1 (commit paling awal gelombang 2)
+
+1. **Bug reduced-motion exit diperbaiki** — kelas EXIT (`.motion-panel-out`, `.motion-overlay-out`,
+   `.motion-dropdown-out`, `.motion-remove`) kini `fadeOut`, kelas ENTER tetap `fadeIn`
+   (lihat butir 12 apendiks Fase 0).
+2. **Command palette enter 160ms** via kelas baru `.motion-palette-in`/`.motion-palette-out`
+   (SPEC §C1); `.motion-dropdown-in/out` tetap 180/120ms untuk bell (SPEC §C5) — kelas dipisah,
+   nilai elemen lain tidak diubah.
+3. **Token baru mengikuti konvensi §B1**: `--duration-panel-enter: 220ms`, `--duration-drawer-out:
+   250ms` (+ `--duration-row-out: 200ms` untuk collapse-out baris/kartu) dan cerminannya di
+   `src/lib/motion.ts` (`MOTION.panelEnter/drawerOut/rowOut`) — nilai visual tidak berubah.
+4. **Dropdown notification-bell** diberi `origin-top-right` (SPEC §C5 — origin di trigger).
+
+### Fase 3 — Dashboard (`src/components/dashboard/*`)
+
+- `filter-loading.tsx`: gerak `FetchingBar` kini CSS keyframe `.fetching-bar-track` (loop JS framer
+  dihapus; durasi 1.05s dan rentang geser identik); `FetchingOverlay` memakai preset kanonik
+  `SPRING.crisp` + token durasi §B1; offset transform mati saat reduced-motion.
+- `charts.tsx`: entrance SVG dengan prop `animateEnter` — TrendLines fade 200ms
+  (`.motion-chart-fade`), StatusDonut draw-in `stroke-dasharray` per slice + stagger 50ms
+  (`.motion-donut-draw`), MiniBars grow `scaleX` 480ms (`.motion-bar-grow` + `.motion-progress`, G2).
+- `activity-card.tsx`: expand memakai pola grid-rows (`.motion-collapse-wrap`, 200ms) menggantikan
+  max-height `card-expanded-content`; hapus kartu = collapse-out 200ms **sebelum** mutasi cache
+  (+rollback tetap); chevron rotate 180ms; progress bar → scaleX.
+- `pegawai-card.tsx`: progress bar → scaleX + token — sengaja **tanpa** kelas `motion-*` karena
+  kartu ini ikut target screenshot `#export-pegawai-section` (G4).
+- `change-password-modal.tsx`: entri sukses memakai `.motion-pop` (bukan inline `scaleIn 0.3s`).
+- `status-filter.tsx`, `kpi-card.tsx`, `stat-card.tsx`: penyelarasan token + type-safety
+  (tanpa perubahan visual).
+
+### Fase 4 — halaman per route group (SPEC §E)
+
+- **Migrasi ke `Dialog` bersama**: 4 modal `admin/pegawai` (tambah / ganti ketua tim / edit /
+  konfirmasi), modal pindah RK `penilaian/[upload_id]`, modal "Tandai Perlu Diperbaiki"
+  `ketua_tim/rk/[id]`, dan helper `Modal` di `components/rk/rk-management-view.tsx` (dipakai 5 modal).
+  Backdrop `backdrop-blur-sm` di semuanya hilang (G3) dan exit animasi mengikuti Dialog.
+- **Expand/collapse → grid-rows (P2#10)**: activity-card, `pegawai/ckp/[id]`, `ketua_tim/rk/[id]`,
+  RKCard `penilaian/[upload_id]`, accordion `monitoring-penilaian` (2 level), sub-RK
+  `rk-management-view`; konten panel yang tertutup diberi `inert` (a11y keyboard).
+- **Exit (P2#8)**: baris approval collapse-out sebelum mutasi; batch approve keluar bertahap 40ms
+  (C9 #2); kartu hapus di `pegawai` (grid card) & activity-card collapse-out 200ms.
+- **Wizard upload (P2#9)**: step crossfade 180ms (`.motion-crossfade`), progress modal tanpa blur
+  (scrim 45%), momen sukses `.motion-pop` + tahan 800ms sebelum redirect (C9 #1, `MOTION.successHold`).
+- **Sticky bar penilaian (P1#6)**: blur dihapus (soliditas `color-mix` 92%→97%), entrance sekali
+  (`motion-page-enter`), progres scaleX 480ms, pop saat `allScored` (keyed span).
+- **Stagger sekali-paint**: hook baru `useStaggerOnce` (`src/lib/motion.ts`) dipakai di dashboard
+  `pegawai`, `ketua_tim` (+`_pimpinan_client`), `pimpinan/pegawai` — kelas `card-list` dilepas 700ms
+  setelah paint pertama, jadi ganti filter/periode tidak re-stagger (SPEC §B5/C2).
+- **Guardrail G4 / export (TEMUAN-3)**: `animate-fade-in` dihapus dari **semua** wrapper halaman
+  (dobel dengan entrance `template.tsx`) dan dari `#export-monitoring-section`; `card-list` dihapus
+  dari grid di dalam `#export-pegawai-section`; `ScreenshotButton` kini membekukan seluruh
+  animasi/transisi target via `data-motion="none"` selama capture.
+- `admin/rk/import`: indikator underline tab slide 180ms + konten tab crossfade.
+- `admin/periode`: crossfade status "Terkunci/Terbuka" 150ms (teks + ikon).
+- `login`/`reset-password`: kartu form rise 220ms (`.motion-rise-in`), alert error fade+rise 4px
+  (`.motion-alert-in`), panel ilustrasi login float ±5px/7s (C9 #5, `.motion-float`).
+- Badge notifikasi: pop saat jumlah naik, tanpa animasi saat turun (C9 #4).
+- Kerapian: `animate-pulse` dekoratif di dot kalender dihapus; sweep `transition-all` &
+  `duration-200/300/500` di `src/**/*.tsx` → **0 kemunculan** (target SPEC §F tercapai).
+
+### Fase 5 — verifikasi
+
+- `npx tsc --noEmit` → **0 error**.
+- `npm run build` → **hijau** (≥2 run, termasuk setelah semua edit terakhir).
+- `npm run lint` → **270 error** repo-wide (baseline gelombang 1: 284) — tidak ada error **baru** di
+  file yang disentuh; beberapa file justru turun (mis. `admin/pegawai` 9→1, `pegawai/_client` 1→0,
+  `pegawai/upload` 26→25). Sisa error seluruhnya di file luar scope motion.
+- Smoke publik (dev/prod, port 3001): `/login`, `/reset-password` merender tanpa error konsol.
+
+### Deviasi / keputusan (untuk koordinator)
+
+1. **Donut draw-in** memakai grow `stroke-dasharray` (bukan `stroke-dashoffset` — offset sudah
+   terpakai untuk posisi slice); nilai akhir identik dengan atribut elemen.
+2. **Crossfade list eksplisit** tidak dipasang di dashboard yang filternya client-side (ubah filter
+   = instant, sesuai §C4); yang dipatuhi adalah "tidak re-stagger" (§B5/C2). Halaman ber-refetch
+   (approval, monitoring, ketua_tim, pimpinan) tetap memakai `FetchingBar`/`FetchingOverlay`.
+3. **Spinner `animate-spin`** milik tombol refresh tetap ada di dalam `#export-monitoring-section` —
+   feedback loading esensial (G1), dibekukan saat capture via `data-motion="none"`; entrance
+   section-nya sendiri sudah dihapus.
+4. **`rk-management-view` Modal**: sudah memakai `Dialog` bersama, namun exit-animation belum
+   berjalan penuh karena call-site meng-unmount modal secara kondisional (perbaikan penuh =
+   selalu-render + prop `open`; ditunda demi diff kecil).
+5. **TopLoader** dipertahankan (indikator navigasi tunggal, §C1). `@tanstack/react-table` (dep mati)
+   belum dihapus — keputusan user, di luar scope motion.
+6. **`proxy.ts` / `sw.js`** tidak disentuh (isu pre-existing, menunggu keputusan user).
+7. **Belum terverifikasi live**: semua halaman terautentikasi (tanpa kredensial), Safari/Firefox/Edge,
+   dan kualitas visual (sesi tanpa screenshot).

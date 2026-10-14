@@ -125,15 +125,19 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
                         {getBulanName(p.bulan)} {p.tahun}
                       </h3>
                       <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Status: {p.is_locked ? 'Terkunci' : 'Terbuka'}
+                        Status:{' '}
+                        {/* Crossfade status 150ms saat berubah (SPEC §E /admin/periode) */}
+                        <span key={p.is_locked ? 'locked' : 'open'} className="motion-status-fade">
+                          {p.is_locked ? 'Terkunci' : 'Terbuka'}
+                        </span>
                       </p>
                     </div>
                     {p.is_locked ? (
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100 text-red-600">
+                      <div key="icon-locked" className="motion-status-fade w-10 h-10 rounded-full flex items-center justify-center bg-red-100 text-red-600">
                         <Lock size={18} />
                       </div>
                     ) : (
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-[var(--success-text)]">
+                      <div key="icon-open" className="motion-status-fade w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-[var(--success-text)]">
                         <Unlock size={18} />
                       </div>
                     )}
