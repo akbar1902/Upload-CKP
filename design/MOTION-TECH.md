@@ -823,3 +823,112 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
 (51→51 error; warning 47→42 — 5 unused hilang); `npm run build` → hijau (exit 0, tanpa pipe,
 22/22 static pages). Catatan: exit-animation modal tetap belum diverifikasi live (halaman
 terautentikasi) — jaminan = pola referensi `penilaian/[upload_id]` yang sudah benar + tsc/build.
+
+---
+
+## Implementasi Tier Ekspresif P0 (gelombang 3)
+
+> Diisi oleh pelaksana gelombang 3 (branch `feat/motion-ux`). Kontrak = `design/MOTION-SPEC-EXPRESSIVE.md`
+> (addendum). Ruang lingkup = **item P0 saja** (§F2 P0-1…P0-5) + token §C + blok reduced-motion §D.
+> P1–P2 **tidak** dikerjakan (gelombang berikutnya). Wiring navigasi (View Transitions:
+> `page-transition.tsx`, `template.tsx`, `next.config.ts`) **tidak disentuh** sesuai permintaan
+> koordinator (diagnosis mekanisme navigasi berjalan paralel).
+
+### Yang selesai (nilai persis addendum)
+
+| # | Item | Implementasi | File |
+|---|---|---|---|
+| P0-1 | §B-1 VT halaman (nilai saja) | enter fade + rise **14px** + **scale 0.992→1** **260ms**; exit fade + naik **8px** **170ms** via keyframe baru `pageExit`; fallback `.motion-page-enter` pakai token `--duration-enter` | `globals.css` |
+| P0-2 | §B-2 stagger/entrance kartu | `fadeUp` travel **16px** (`--motion-rise-card`), **260ms**, step **65ms** (cap 6 → delay akhir 390ms, total ±650ms); timer `useStaggerOnce` **800ms** | `globals.css`, `lib/motion.ts` |
+| P0-3 | §B-3 hover lift kartu | lift **-4px**, transform **240ms** `--ease-out-strong`, shadow tetap 300ms, **border → `--border-hover`**; `ui/card.tsx` pakai kelas `.card-hover` | `globals.css`, `ui/card.tsx` |
+| P0-3 | §B-4 tekan tombol | scale **0.96** seragam; masuk **100ms** `--ease-out-strong` (`--duration-press-in`), lepas **180ms** `--ease-apple`; `--duration-press` **tetap 120ms** | `globals.css`, `ui/button.tsx`, `lib/motion.ts` |
+| P0-4 | §B-5 dialog spring | panel `SPRING.settle {400, 24, mass 1}` + scale **0.94→1**; exit scale→**0.96** **170ms** apple; backdrop **black/50** enter **220ms** / exit **170ms** | `ui/dialog.tsx`, `lib/motion.ts` |
+| P0-5 | §B-7 indikator sidebar geser | satu elemen `.sidebar-indicator` per track (`[data-nav-track]`) yang meluncur via `transform` terukur, **3×24px**, **280ms** `--duration-glide`, re-measure **200ms**, penempatan pertama lompat instan | `layout/sidebar.tsx`, `globals.css` |
+| — | §C token & konstanta | §C1: `--duration-enter` 260ms, `--duration-exit` 170ms, `--duration-panel-enter` 280ms, `--motion-rise` 14px, `--motion-rise-sm` 8px, `--stagger-step` 65ms. §C2: `--motion-rise-card` 16px, `--duration-press-in` 100ms, `--duration-glide` 280ms. §C3: `MOTION.pressIn` 100, `MOTION.enter` 260, `MOTION.panelEnter` 280, `MOTION.exit` 170, `SPRING.settle`; `useStaggerOnce` 800ms | `globals.css`, `lib/motion.ts` |
+| — | §D reduced-motion | anak `.stagger`/`.card-list` → **fadeIn 120ms** (celah ditutup: tidak lagi translate 16px); press `:active` → tanpa transform; `.sidebar-indicator`/`.motion-glide` → lompat instan; `.motion-check-draw` disiapkan (P2) | `globals.css` |
+
+### Temuan smoke (prod lokal port 3001, sesi login nyata) & perbaikannya
+
+1. **Lapisan NEUMORPHISM menimpa nilai eksekutif §B-3/§B-4.** Blok soft-UI di akhir `globals.css`
+   menulis `transform: translateY(-2px)` pada `.kpi-card/.activity-card/.pegawai-card:hover` dan
+   `translateY(1px)` pada `.btn-primary/.btn-secondary:active` — menang karena berada paling akhir →
+   lift **-4px** & press **scale 0.96** tidak akan pernah terlihat. Transform dihapus dari lapisan
+   soft-UI (single source = blok motion §B-3/§B-4); shadow neu/cekung tetap.
+2. **ResizeObserver tidak melaporkan track `display:none` → visible.** Terbukti di Chrome (0 callback
+   saat viewport melewati breakpoint `lg`) → indikator tak muncul di rail yang baru terlihat.
+   Ditambah pemicu `window.resize`.
+3. **Perubahan tinggi item saat webfont swap tak terdeteksi.** Saat submenu tertutup (track ter-clip
+   tinggi 0), tinggi item berubah setelah Poppins dimuat tanpa mengubah ukuran track → penempatan
+   stale (indikator meleset ±6px). Ditambah observasi container item (`[data-nav-track-items]`).
+4. **Tailwind v4 memakai properti `scale`, bukan `transform`.** Utility `active:scale-[…]` menulis
+   `scale: .96`: (a) press tidak teranimasi karena `scale` tak ada di daftar transisi, dan (b) aturan
+   RM `transform: none` (§D #4) tidak menjangkaunya; `scale: … !important` dari `globals.css` juga
+   **dibuang minifier CSS Next** (lightningcss menggabungkannya menjadi `transform: scale(1)`).
+   Solusi: tombol primitif §B-4 memakai `[transform:scale(0.96)]` + easing di daftar transisi →
+   `transform: none` RM berlaku penuh (terverifikasi live).
+
+### Verifikasi (dijalankan di tree final)
+
+- `npx tsc --noEmit` → **0 error**; `npm run build` (`next build --webpack`) → **hijau, exit 0**
+  (✓ Compiled successfully, 22/22 static pages).
+- eslint file yang disentuh → **0 error baru** (`sidebar.tsx` 7 warning baseline; lainnya 0).
+- Smoke produksi `next start -p 3001` (dev server pemilik di :3000 **tidak disentuh**):
+  - VT halaman: `pageEnter` **260ms** + `pageExit` **170ms** teramati sebagai animasi pseudo-element
+    (`::view-transition-new/-old`) saat navigasi.
+  - Indikator sidebar: posisi pas (selisih pusat vs item **-0,07px**), `3×24px`, `left:12px` di track
+    submenu; navigasi antar item → transisi `transform: 280ms` teramati (9px → 16,8 → … → 55px),
+    termasuk setelah viewport melewati breakpoint (fix #2) dan saat submenu dibuka (fix #3).
+  - Dialog: skala panel **0.94 → 1**, overshoot puncak **1,00568** (≈ +0,57% ≈ "overshoot ~0,6%"
+    addendum), settle ±350ms; backdrop `bg-black/50` dengan animasi opacity **220ms**.
+  - Hover kartu `.card-hover`: `translateY(-4px)` + border `--border-hover`; transisi
+    `box-shadow 300ms / border-color 300ms / transform 240ms`.
+  - Press tombol: `scale(0.96)`, durasi **0.1s** (`--duration-press-in`) + `--ease-out-strong`;
+    lepas 180ms `--ease-apple`.
+  - **Reduced-motion (emulasi CDP)**: anak `.stagger` → `fadeIn 120ms` (bukan translate), indikator
+    `transition: none`, press `transform: none`, hover kartu `transform: none` (border-color tetap),
+    VT `pageEnter/pageExit` **0ms**, dialog tanpa scale (opacity tetap berjalan).
+
+### Deviasi / keputusan (untuk koordinator)
+
+1. **`pageEnter` menyertakan `scale(0.992)`.** Addendum menamai hanya satu keyframe baru (`pageExit`)
+   dan scale VT tidak bisa dipasang tanpa keyframe, jadi scale masuk ke keyframe bersama `pageEnter`
+   sehingga `::view-transition-new(.page-enter)`, fallback `.motion-page-enter`, **dan**
+   `.motion-rise-in` (kartu login — konsumen keyframe yang sama, §C1) mendapat scale 0.992.
+   Untuk kartu login efeknya praktis tak terlihat (0,8% skala, 280ms). Dial §C4 ("scale VT … 1 = mati")
+   tetap berlaku.
+2. **Dua elemen indikator per rail** (track nav utama + track submenu), bukan satu elemen yang pindah
+   antar keduanya: §B-7 hanya memutar `translateY`+`height`, sedangkan submenu ber-indent (`pl-3`)
+   sehingga x berbeda. Indikator submenu otomatis tak terlihat saat submenu tertutup (ter-clip grid 0fr).
+3. **Durasi literal yang memang tak punya token** (dipakai persis seperti addendum): transform hover
+   kartu **240ms** (§B-3) dan enter backdrop dialog **220ms** (§B-5 — `--duration-panel-enter` naik ke
+   280ms untuk panel non-dialog).
+4. **`MOTION.enter` 210 → 260** (cermin token `--duration-enter`) walau saat ini tanpa konsumen, agar
+   file konstanta tetap jujur sebagai cerminan token.
+5. **Token/konstanta P1–P2 sengaja belum ditulis** (menunggu konsumen): `--duration-pop`,
+   `--motion-pop-scale`, `MOTION.pop`, `MOTION.countUp`, `SPRING.glide` — menghindari token mati.
+   `SPRING.glide` (opsional §C3) juga tidak dipakai karena indikator memakai transisi CSS `transform`,
+   bukan framer (larangan `layoutId`/layout-projection).
+6. **`.motion-indicator-in` kini tanpa pemakai** (span indikator per-item dihapus dari sidebar). Kelas
+   + aturan reduced-motion-nya dibiarkan karena disebut §D #12; kandidat pembersihan setelah P2.
+7. **Glide antar route-group belum terlihat**: tiap route-group punya `layout.tsx` sendiri sehingga
+   `<Sidebar>` remount saat pindah group (indikator ikut mount ulang → lompat, bukan meluncur). Di dalam
+   satu group (`/pegawai/*`) glide berjalan. Ingin glide lintas group? Perlu keputusan memindahkan
+   `<Sidebar>` ke root layout — di luar scope P0 (menyentuh wiring).
+8. **Celah sisa (bukan regresi baru, dicatat):** tombol lama di file halaman yang memakai
+   `active:scale-[0.97/0.98]` Tailwind (mis. `admin/pegawai`, `pimpinan/approval`, `pegawai/upload`,
+   `status-filter`) tetap memakai properti `scale` → getaran press masih berjalan pada reduced-motion
+   dan tidak ikut `--duration-press-in` (properti `scale` tak ada di daftar transisinya). Tombol
+   primitif (`ui/Button`, `.btn-primary`, `.btn-secondary`) sudah bersih. Menyeragamkan seluruh tombol
+   = kandidat gelombang berikutnya.
+9. **Belum diverifikasi live**: halaman per-role lain (admin/pimpinan/ketua_tim) di luar alur
+   `/pegawai/*` yang diuji; Safari/Firefox/Edge (hanya Chrome tersedia); penilaian visual subjektif
+   ("kesan 10 detik pemakaian normal") = checkpoint pemilik (§F2 no.5).
+
+### Sisa gelombang berikutnya (P1–P2, belum dikerjakan)
+
+- **P1:** count-up KPI (§B-10), submenu hidup (§B-8: expand 240ms, chevron 220ms, stagger item 25ms),
+  toast slide (§B-6), glide segmented & underline (§B-9 — kelas `.motion-glide` sudah disiapkan di blok
+  reduced-motion).
+- **P2:** bar grow (§B-11), pop badge/check/allScored (§B-12/13 — kelas `.motion-check-draw` sudah
+  disiapkan di blok reduced-motion), "Tersimpan" rise 8px (§B-14), exit baris -8px + batch 60ms
+  (§B-15), float login ±8px/9s (§B-16).
