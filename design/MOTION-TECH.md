@@ -924,6 +924,80 @@ terautentikasi) — jaminan = pola referensi `penilaian/[upload_id]` yang sudah 
    `/pegawai/*` yang diuji; Safari/Firefox/Edge (hanya Chrome tersedia); penilaian visual subjektif
    ("kesan 10 detik pemakaian normal") = checkpoint pemilik (§F2 no.5).
 
+### Fix ronde 2 — temuan verifikasi live: hover lift ditimpa animasi entrance (§B-3)
+
+> Ditemukan koordinator saat verifikasi live branch ini (CDP `CSS.forcePseudoState` + `getComputedStyle`
+> + `el.getAnimations()`), dikonfirmasi ulang & diperbaiki oleh pelaksana. Commit
+> `fix(motion): hover lift tidak lagi ditimpa animasi entrance (fill after-phase)`.
+
+**Gejala.** Hover lift §B-3 tidak bereaksi pada kartu yang masih memegang animasi entrance: force-hover
+`.kpi-card` di grid `.stagger` → `transform` tetap `matrix(1, 0, 0, 1, 0, 0)`; `.activity-card` (tanpa
+animasi lingering) normal `matrix(1, 0, 0, 1, 0, -4)`. Hanya `transform` yang terkunci — `border-color`
+(0,09 → 0,28 alpha) dan `box-shadow` tetap ikut hover.
+
+**Root cause.** Animasi CSS yang masih *in effect* — termasuk di fase *after* berkat fill-mode `both` —
+menang atas deklarasi `:hover` di cascade. `@keyframes fadeUp` menganimasikan `transform`, jadi
+`to { transform: translateY(0) }` yang ditahan selamanya menutup satu-satunya jalur hover lift; properti
+yang tidak ada di keyframe tetap lolos. Bukti pembalik (tanpa mengubah CSS sama sekali):
+`el.getAnimations().forEach(a => a.cancel())` → hover pada elemen yang sama langsung `matrix(1, 0, 0, 1, 0, -4)`.
+
+**Perbaikan.** fill-mode seluruh kelas **entrance** `both` → `backwards` di `globals.css` (28 deklarasi —
+15 kelas utilitas entrance + 13 baris `.stagger > *` / `.card-list > *`). Entrance sekali-pakai memang
+hanya butuh
+`backwards`: `from` ditahan selama *delay* (anak `.stagger`/`.card-list` tetap "hidden" saat menunggu
+jadwalnya), lalu properti jatuh kembali ke deklarasi normal elemen. Syarat bebas-flash diaudit: `to`
+setiap keyframe entrance = state natural (opacity 1 + transform identitas). Preseden pola ini sudah ada
+di file yang sama (`.motion-bar-grow`). Override `!important` **ditolak** sebagai alternatif karena
+`!important` justru menang atas animasi → kartu yang di-hover saat entrance akan melompat ke -4px dan
+tidak lagi "hidden" selama delay (melanggar kontrak entrance itu sendiri).
+
+**Audit kelas entrance × elemen ber-transform interaktif** (diperiksa di built CSS produksi):
+
+| Kelas entrance | Keyframe animasi `transform`? | Konsumen ber-hover / `:active` | Fill sekarang |
+|---|---|---|---|
+| `.stagger > *:nth-child(1..6)` | `fadeUp` ya | `.kpi-card` — `pegawai/_client.tsx:435`, `pegawai/ckp/[id]/_client.tsx:667` | **backwards** (fix) |
+| `.card-list > *:nth-child(1..7)` | `fadeUp` ya | `.activity-card` (pegawai, ckp/[id], pimpinan/pegawai), `.card-hover` (`ketua_tim:682`), PegawaiCard (`ketua_tim/_pimpinan_client:468`) | **backwards** (fix) |
+| `.animate-fade-up` | `fadeUp` ya | `EmptyState` (tanpa hover transform) | **backwards** (fix) |
+| `.animate-scale-in`, `.motion-page-enter`, `.motion-rise-in`, `.motion-panel-in`, `.motion-pop`, `.motion-indicator-in`, `.motion-alert-in`, `.motion-dropdown-in`, `.motion-palette-in` | ya (scale/translate) | elemen itu sendiri — tidak ada hover transform | **backwards** (fix, kontrak seragam) |
+| `.animate-fade-in`, `.motion-overlay-in`, `.motion-status-fade`, `.motion-crossfade`, `.motion-chart-fade` | tidak (opacity saja) | — | backwards (aman) |
+| `.motion-bar-grow` | ya | — | sudah `backwards` (preseden) |
+| `.motion-donut-draw` | tidak (`stroke-dasharray`) | — | tetap `both` |
+| `.motion-remove`, `.motion-panel/overlay/dropdown/palette-out` | ya | — (elemen sedang keluar) | tetap `both` (wajib menahan state akhir) |
+| `.motion-float`, `.fetching-bar-track` | ya (loop) | — | tetap (fill tak relevan) |
+| Blok `@media (prefers-reduced-motion: reduce)` | tidak (fade) | §D #3/#9 sudah mematikan hover & press transform | tetap `both !important` |
+
+Catatan audit: `.pegawai-card` (CSS) **tanpa konsumen** saat ini — `components/dashboard/pegawai-card.tsx`
+memakai `.kpi-card`; tidak ada tombol yang menjadi anak langsung `.stagger`/`.card-list` (tombol selalu di
+dalam kartu) sehingga press §B-4 tidak pernah lewat jalur ini. `grep` bersih untuk `animation:` inline,
+`animate-[…]` Tailwind, dan framer-motion yang membawa kelas hover-lift → seluruh permukaan tertutup
+perubahan CSS ini.
+
+**Verifikasi ulang (prod build isolat, port 3001, sesi login nyata, CDP — sebelum → sesudah):**
+
+| Uji | Sebelum | Sesudah |
+|---|---|---|
+| Force-hover `.stagger > .kpi-card` (settle 600ms) | `matrix(1, 0, 0, 1, 0, 0)` ❌ — anims `fadeUp｜finished｜fill=both｜progress=1` | `matrix(1, 0, 0, 1, 0, -4)` ✔ + `border` 0,09→0,28 |
+| Force-hover anak ke-4 `.stagger` | `matrix(1, 0, 0, 1, 0, 0)` ❌ | `matrix(1, 0, 0, 1, 0, -4)` ✔ |
+| Force-hover `.card-list > .activity-card` (kelas di-apply ulang) | `matrix(1, 0, 0, 1, 0, 0)` ❌ | `matrix(1, 0, 0, 1, 0, -4)` ✔ |
+| Transisi hover (sample ~70ms) | — | `transform: 240ms cubic-bezier(0.23, 1, 0.32, 1)` mid-flight -3,26…-3,63 ✔ (§B-3 utuh) |
+| Entrance anak `.stagger:nth-child(3)` (sampler rAF 60fps) | 11 frame opacity 0 + `translateY(16px)` selama delay 130ms; opacity 1 pada 392ms | 11 frame opacity 0 + `translateY(16px)` selama delay 130ms; opacity 1 pada 390ms ✔ **tanpa** penurunan opacity setelahnya (= tanpa flash) |
+| Fill entrance (computed style) | `both` | `backwards` ✔ |
+| Exit `.motion-remove` | `collapseOut｜fill=both`; opacity tetap 0 setelah selesai | identik ✔ (tidak disentuh) |
+| Reduced-motion (emulasi CDP `prefers-reduced-motion: reduce`) | anak `.stagger`/`.card-list` → `fadeIn 120ms`; hover `transform: none` | identik ✔ |
+| Guardrail `[data-motion="none"]` | `animation: none; transition: none` | identik ✔ |
+| Sweep 4 halaman (`/pegawai`, `/rencana_kinerja`, `/pegawai/evaluasi-penilaian`, `/pegawai/upload`) | — | 0 elemen tersisa yang menahan animasi `transform`; semua target hover lift `-4px` ✔ |
+
+Gate di tree final: `npx tsc --noEmit` **0 error**; `npm run lint` **270 error** repo-wide (identik
+baseline gelombang 3 → 0 error baru; `globals.css` sendiri tidak dilint eslint); `npm run build`
+(`next build --webpack`) **hijau, exit 0**. Build + server verifikasi dijalankan pada **copy byte-identik**
+tree ini (junction `node_modules`) di direktori scratch supaya `.next` milik server milik user di `:3000`
+**tidak ditimpa** (server itu `next start` atas `.next` yang sama, bukan dev) — server verifikasi `:3001`
+dimatikan setelah selesai, tidak ada proses tertinggal.
+
+Sisa risiko (disengaja): hover pada elemen yang **sedang** menjalani entrance (± ≤650ms pertama) tetap
+tidak melift karena animasi masih *in effect* — entrance menang selama berjalan, dan pada momen itu kartu
+belum "diam" untuk di-hover.
+
 ### Sisa gelombang berikutnya (P1–P2, belum dikerjakan)
 
 - **P1:** count-up KPI (§B-10), submenu hidup (§B-8: expand 240ms, chevron 220ms, stagger item 25ms),
