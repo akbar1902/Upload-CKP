@@ -518,16 +518,32 @@ body {
   100% { transform: scale(1.4); opacity: 0; }
 }
 
+/* ── Kebijakan fill-mode ENTRANCE vs EXIT (audit gelombang 3) ──────────────
+   Entrance sekali-pakai memakai `backwards`, bukan `both`: nilai `from` tetap
+   dipertahankan selama *delay* (anak `.stagger`/`.card-list` masih "hidden"
+   saat menunggu jadwalnya), lalu setelah animasi selesai properti JATUH KEMBALI
+   ke deklarasi normal elemen. Syarat yang sudah diaudit: `to` setiap keyframe
+   entrance = state natural elemen (opacity 1 + transform identitas = sama
+   seperti tanpa animasi) → tidak ada flash di akhir animasi.
+
+   Alasan (bug temuan verifikasi live): animasi yang masih "in effect" —
+   termasuk di fase *after* berkat fill `both`/`forwards` — MENANG atas
+   deklarasi `:hover`/`:active` di cascade. `fadeUp` yang menahan
+   `transform: translateY(0)` mematikan hover lift §B-3 di seluruh anak
+   `.stagger`/`.card-list`. Preseden di file ini: `.motion-bar-grow`.
+   Exit (`panelOut`/`fadeOut`/`collapseOut` → `.motion-remove`, semua `*-out`)
+   TETAP `both`: elemen wajib memegang state akhir (opacity 0) sampai unmount. */
+
 .animate-fade-up {
-  animation: fadeUp 0.4s var(--ease-apple) both;
+  animation: fadeUp 0.4s var(--ease-apple) backwards;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.35s var(--ease-apple) both;
+  animation: fadeIn 0.35s var(--ease-apple) backwards;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s var(--ease-apple) both;
+  animation: scaleIn 0.3s var(--ease-apple) backwards;
 }
 
 /* ── Kelas utilitas motion bersama (satu sumber; MOTION-SPEC §C/§F) ────────
@@ -536,42 +552,42 @@ body {
 /* Fallback entrance halaman (tanpa View Transitions) — nilai identik dengan
    `::view-transition-new(.page-enter)`: token §C1 (ekspresif §B-1). */
 .motion-page-enter {
-  animation: pageEnter var(--duration-enter) var(--ease-out-strong) both;
+  animation: pageEnter var(--duration-enter) var(--ease-out-strong) backwards;
 }
 .motion-panel-in {
-  animation: panelIn var(--duration-panel-enter) var(--ease-out-strong) both;
+  animation: panelIn var(--duration-panel-enter) var(--ease-out-strong) backwards;
 }
 .motion-panel-out {
   animation: panelOut var(--duration-exit) var(--ease-apple) both;
 }
 .motion-overlay-in {
-  animation: fadeIn var(--duration-fast) var(--ease-out-strong) both;
+  animation: fadeIn var(--duration-fast) var(--ease-out-strong) backwards;
 }
 .motion-overlay-out {
   animation: fadeOut var(--duration-exit) var(--ease-apple) both;
 }
 /* Dropdown/popover anchored (mis. notification bell): enter 180ms / exit 120ms (SPEC §C5). */
 .motion-dropdown-in {
-  animation: dropdownIn var(--duration-fast) var(--ease-out-strong) both;
+  animation: dropdownIn var(--duration-fast) var(--ease-out-strong) backwards;
 }
 .motion-dropdown-out {
   animation: fadeOut var(--duration-press) var(--ease-apple) both;
 }
 /* Command palette (SPEC §C1: enter 160ms, exit 120ms fade-only — frekuensi tinggi). */
 .motion-palette-in {
-  animation: dropdownIn 160ms var(--ease-out-strong) both;
+  animation: dropdownIn 160ms var(--ease-out-strong) backwards;
 }
 .motion-palette-out {
   animation: fadeOut var(--duration-press) var(--ease-apple) both;
 }
 .motion-pop {
-  animation: motionPop var(--duration-fast) var(--ease-spring) both;
+  animation: motionPop var(--duration-fast) var(--ease-spring) backwards;
 }
 .motion-remove {
   animation: collapseOut var(--duration-row-out) var(--ease-out-strong) both;
 }
 .motion-indicator-in {
-  animation: indicatorIn var(--duration-press) var(--ease-out-strong) both;
+  animation: indicatorIn var(--duration-press) var(--ease-out-strong) backwards;
 }
 
 /* Delight #5 (SPEC §C9, opsional): panel ilustrasi login — float halus
@@ -587,13 +603,13 @@ body {
 /* Entrance rise 280ms (kartu form login/reset-password — SPEC §E; nilai token
    §C1 tier ekspresif). */
 .motion-rise-in {
-  animation: pageEnter var(--duration-panel-enter) var(--ease-out-strong) both;
+  animation: pageEnter var(--duration-panel-enter) var(--ease-out-strong) backwards;
 }
 
 /* Status singkat ("Tersimpan", "Menyimpan…") — fade 170ms (SPEC §C3, nilai
    token --duration-exit tier ekspresif). */
 .motion-status-fade {
-  animation: fadeIn var(--duration-exit) var(--ease-out-strong) both;
+  animation: fadeIn var(--duration-exit) var(--ease-out-strong) backwards;
 }
 
 /* Alert/error kondisional (muncul saat state false→true) — fade + rise 4px
@@ -603,12 +619,12 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 .motion-alert-in {
-  animation: alertIn var(--duration-fast) var(--ease-out-strong) both;
+  animation: alertIn var(--duration-fast) var(--ease-out-strong) backwards;
 }
 
 /* Crossfade konten saat state/wizard berpindah (SPEC §C2/§E, 180ms linear). */
 .motion-crossfade {
-  animation: fadeIn var(--duration-fast) linear both;
+  animation: fadeIn var(--duration-fast) linear backwards;
 }
 
 /* Bar progres indeterminate (FetchingBar) — digerakkan CSS keyframe,
@@ -633,7 +649,7 @@ body {
 
 /* Entrance fade chart SVG (line chart — SPEC §E: 200ms). */
 .motion-chart-fade {
-  animation: fadeIn 200ms var(--ease-out-strong) both;
+  animation: fadeIn 200ms var(--ease-out-strong) backwards;
 }
 
 /* Draw-in donut (stroke-dasharray grow dari tepi awal tiap slice):
@@ -672,22 +688,26 @@ body {
 
 /* Staggered children — step dari token (ekspresif §C1: 65ms), cap 6 anak
    (MOTION-SPEC §B5). Durasi/easing entrance: token `--duration-enter` (260ms)
-   + `--ease-out-strong`; travel dari `--motion-rise-card` (§B-2). */
-.stagger > *:nth-child(1) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both 0ms; }
-.stagger > *:nth-child(2) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(1 * var(--stagger-step)); }
-.stagger > *:nth-child(3) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(2 * var(--stagger-step)); }
-.stagger > *:nth-child(4) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(3 * var(--stagger-step)); }
-.stagger > *:nth-child(5) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(4 * var(--stagger-step)); }
-.stagger > *:nth-child(6) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(5 * var(--stagger-step)); }
+   + `--ease-out-strong`; travel dari `--motion-rise-card` (§B-2); fill
+   `backwards` (lihat "Kebijakan fill-mode ENTRANCE vs EXIT" di atas) agar
+   hover lift §B-3 tidak lagi kalah dari animasi entrance yang menahan
+   `translateY(0)` di fase after. */
+
+.stagger > *:nth-child(1) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards 0ms; }
+.stagger > *:nth-child(2) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(1 * var(--stagger-step)); }
+.stagger > *:nth-child(3) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(2 * var(--stagger-step)); }
+.stagger > *:nth-child(4) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(3 * var(--stagger-step)); }
+.stagger > *:nth-child(5) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(4 * var(--stagger-step)); }
+.stagger > *:nth-child(6) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(5 * var(--stagger-step)); }
 
 /* Card list stagger — anak ke-7+ delay tetap = cap 390ms (6 × 65ms) */
-.card-list > *:nth-child(1)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both 0ms; }
-.card-list > *:nth-child(2)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(1 * var(--stagger-step)); }
-.card-list > *:nth-child(3)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(2 * var(--stagger-step)); }
-.card-list > *:nth-child(4)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(3 * var(--stagger-step)); }
-.card-list > *:nth-child(5)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(4 * var(--stagger-step)); }
-.card-list > *:nth-child(6)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(5 * var(--stagger-step)); }
-.card-list > *:nth-child(n+7) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) both calc(6 * var(--stagger-step)); }
+.card-list > *:nth-child(1)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards 0ms; }
+.card-list > *:nth-child(2)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(1 * var(--stagger-step)); }
+.card-list > *:nth-child(3)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(2 * var(--stagger-step)); }
+.card-list > *:nth-child(4)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(3 * var(--stagger-step)); }
+.card-list > *:nth-child(5)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(4 * var(--stagger-step)); }
+.card-list > *:nth-child(6)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(5 * var(--stagger-step)); }
+.card-list > *:nth-child(n+7) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(6 * var(--stagger-step)); }
 
 /* ─── Progress bar ───────────────────────────────────────── */
 /* Nilai progres: 480ms --ease-out-strong (MOTION-SPEC §B2/C8). Ideal scaleX
