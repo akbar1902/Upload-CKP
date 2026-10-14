@@ -365,7 +365,8 @@ Reduced motion = **lebih sedikit dan lebih halus**, bukan nol (transisi yang mem
 
   /* 5) Accordion/drawer/modal: fade saja, tanpa translate/scale */
   .motion-collapse-wrap { transition: none; }
-  .motion-panel-in, .motion-panel-out { animation: fadeIn 120ms linear both !important; }
+  .motion-panel-in  { animation: fadeIn 120ms linear both !important; }   /* ENTER */
+  .motion-panel-out { animation: fadeOut 120ms linear both !important; }  /* EXIT — arah fade terbalik */
 
   /* 6) Skeleton: statis (tanpa shimmer) */
   .skeleton { animation: none; }
