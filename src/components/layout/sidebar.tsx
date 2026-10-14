@@ -581,7 +581,7 @@ export function Sidebar() {
           "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform",
           mobileOpen
             ? "translate-x-0 duration-[var(--duration)] ease-[var(--ease-drawer)]"
-            : "-translate-x-full duration-[250ms] ease-[var(--ease-drawer)]"
+            : "-translate-x-full duration-[var(--duration-drawer-out)] ease-[var(--ease-drawer)]"
         )}
         style={{
           width: SIDEBAR_EXPANDED,

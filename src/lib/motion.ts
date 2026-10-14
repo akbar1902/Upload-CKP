@@ -14,8 +14,12 @@ export const MOTION = {
   fast: 180,
   /** --duration-enter: pola handoff entrance */
   enter: 210,
+  /** --duration-panel-enter: entrance panel dialog (SPEC §C5) */
+  panelEnter: 220,
   /** --duration: modal, drawer, expand besar */
   base: 300,
+  /** --duration-drawer-out: exit drawer mobile (SPEC §C5) */
+  drawerOut: 250,
   /** --duration-slow: progres/bar chart */
   slow: 480,
   /** --duration-exit: pola handoff exit */

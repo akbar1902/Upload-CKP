@@ -655,6 +655,11 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
     `tsc --noEmit` dan build produksi hijau.
 11. **Belum terverifikasi live**: halaman terautentikasi (tanpa kredensial), Safari/Firefox/Edge
     (hanya Chrome tersedia — docs menjamin degradasi anggun), kualitas visual (sesi tanpa screenshot).
+12. **Koreksi contoh di SPEC §G1 (fix round QA)**: contoh blok reduced-motion di MOTION-SPEC §G1
+    memetakan kelas **exit** (`.motion-panel-out` dkk.) ke `animation: fadeIn` — keliru (elemen yang
+    menutup jadi kedip 0→1). Implementasi di `globals.css` memisahkan ENTER (`fadeIn`, 120ms linear)
+    dan EXIT (`fadeOut`, 120ms linear). MOTION-SPEC.md **tidak** diubah dari lajur ini; koreksi teks
+    SPEC dijadwalkan lewat lajur Noir. Sumber kebenaran perilaku = implementasi.
 
 ### Cara cepat membatalkan
 

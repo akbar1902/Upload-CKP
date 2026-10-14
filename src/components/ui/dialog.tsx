@@ -161,7 +161,7 @@ function Dialog({ open, onClose, children }: DialogProps) {
             <motion.div
               className="relative z-50 flex flex-col w-full items-center justify-center p-4"
               initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1, transition: { duration: 0.22, ease: EASE.outStrong } }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: MOTION.panelEnter / 1000, ease: EASE.outStrong } }}
               exit={{ opacity: 0, scale: 0.98, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
             >
               {children}

@@ -505,7 +505,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       <div
         className={cn(
           'relative w-full max-w-[620px] rounded-[24px] overflow-hidden neu-raised-lg origin-top',
-          closing ? 'motion-dropdown-out' : 'motion-dropdown-in'
+          closing ? 'motion-palette-out' : 'motion-palette-in'
         )}
         role="dialog"
         aria-modal="true"

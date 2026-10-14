@@ -311,6 +311,8 @@
   --motion-rise-sm:     4px;    /* jarak rise menu/dropdown */
   --duration-exit:      150ms;  /* pola handoff (Next view-transitions.md) */
   --duration-enter:     210ms;  /* pola handoff (Next view-transitions.md) */
+  --duration-panel-enter: 220ms; /* entrance panel dialog (MOTION-SPEC §C5) */
+  --duration-drawer-out:  250ms; /* exit drawer mobile (MOTION-SPEC §C5) */
 }
 
 .dark {
@@ -517,7 +519,7 @@ body {
   animation: pageEnter 200ms var(--ease-out-strong) both;
 }
 .motion-panel-in {
-  animation: panelIn 220ms var(--ease-out-strong) both;
+  animation: panelIn var(--duration-panel-enter) var(--ease-out-strong) both;
 }
 .motion-panel-out {
   animation: panelOut var(--duration-exit) var(--ease-apple) both;
@@ -528,10 +530,18 @@ body {
 .motion-overlay-out {
   animation: fadeOut var(--duration-exit) var(--ease-apple) both;
 }
+/* Dropdown/popover anchored (mis. notification bell): enter 180ms / exit 120ms (SPEC §C5). */
 .motion-dropdown-in {
   animation: dropdownIn var(--duration-fast) var(--ease-out-strong) both;
 }
 .motion-dropdown-out {
+  animation: fadeOut var(--duration-press) var(--ease-apple) both;
+}
+/* Command palette (SPEC §C1: enter 160ms, exit 120ms fade-only — frekuensi tinggi). */
+.motion-palette-in {
+  animation: dropdownIn 160ms var(--ease-out-strong) both;
+}
+.motion-palette-out {
   animation: fadeOut var(--duration-press) var(--ease-apple) both;
 }
 .motion-pop {
@@ -1395,6 +1405,8 @@ input, textarea, select {
   .motion-overlay-out,
   .motion-dropdown-in,
   .motion-dropdown-out,
+  .motion-palette-in,
+  .motion-palette-out,
   .motion-pop,
   .motion-remove {
     animation: none !important;
@@ -1437,18 +1449,25 @@ input, textarea, select {
     animation: none !important;
   }
 
-  /* 5) Accordion/drawer/modal: fade saja, tanpa translate/scale */
+  /* 5) Accordion/drawer/modal: fade saja, tanpa translate/scale.
+     ENTER → fadeIn; EXIT → fadeOut (arah fade harus benar: elemen yang
+     menutup tidak boleh memakai fadeIn — contoh keliru di SPEC §G1;
+     implementasi memakai fadeOut, koreksi teks SPEC dijadwalkan lajur Noir). */
   .motion-collapse-wrap {
     transition: none;
   }
   .motion-panel-in,
-  .motion-panel-out,
   .motion-overlay-in,
-  .motion-overlay-out,
   .motion-dropdown-in,
-  .motion-dropdown-out,
-  .motion-remove {
+  .motion-palette-in {
     animation: fadeIn var(--duration-press) linear both !important;
+  }
+  .motion-panel-out,
+  .motion-overlay-out,
+  .motion-dropdown-out,
+  .motion-palette-out,
+  .motion-remove {
+    animation: fadeOut var(--duration-press) linear both !important;
   }
 
   /* 6) Skeleton: statis (tanpa shimmer) */

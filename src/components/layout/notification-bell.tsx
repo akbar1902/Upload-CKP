@@ -204,7 +204,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className={cn("absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50", closing ? "motion-dropdown-out" : "motion-dropdown-in")}
+          className={cn("absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 origin-top-right", closing ? "motion-dropdown-out" : "motion-dropdown-in")}
           style={{
             background: 'var(--card-bg)',
             border: '1px solid var(--sand-border)',
