@@ -15,7 +15,7 @@ export function KPICard({ icon, value, label, sub, iconBg, loading, tone = 'defa
   const unifiedIconBg = tone === 'attention' ? 'var(--accent-soft)' : 'var(--primary-soft)';
   const unifiedIconColor = tone === 'attention' ? 'var(--accent-strong)' : 'var(--primary)';
   const unifiedIcon = React.isValidElement(icon)
-    ? React.cloneElement(icon as React.ReactElement<any>, {
+    ? React.cloneElement(icon as React.ReactElement<{ style?: React.CSSProperties; className?: string }>, {
         style: { color: unifiedIconColor },
         className: ''
       })

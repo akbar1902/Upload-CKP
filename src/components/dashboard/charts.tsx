@@ -27,6 +27,8 @@ export interface TrendLinesProps {
   /** Suffix untuk tooltip (mis. '%'). */
   unit?: string;
   emptyText?: string;
+  /** Entrance fade 200ms saat mount (SPEC §E); matikan di halaman berat. */
+  animateEnter?: boolean;
 }
 
 const PADDING = { top: 18, right: 18, bottom: 34, left: 42 };
@@ -55,6 +57,7 @@ export function TrendLines({
   height = 240,
   unit = '',
   emptyText = 'Belum ada data untuk ditampilkan',
+  animateEnter = true,
 }: TrendLinesProps) {
   const width = VIEW_WIDTH;
   const innerW = width - PADDING.left - PADDING.right;
@@ -124,7 +127,7 @@ export function TrendLines({
 
       <svg
         viewBox={`0 0 ${width} ${height}`}
-        className="w-full h-auto"
+        className={`w-full h-auto${animateEnter ? ' motion-chart-fade' : ''}`}
         role="img"
         aria-label={`${label1}${hasSeries2 && label2 ? ` dan ${label2}` : ''} per periode`}
       >
@@ -229,6 +232,8 @@ export interface StatusDonutProps {
   thickness?: number;
   centerLabel?: string;
   emptyText?: string;
+  /** Draw-in slice via stroke-dasharray (480ms + stagger §B5) saat mount. */
+  animateEnter?: boolean;
 }
 
 export function StatusDonut({
@@ -237,6 +242,7 @@ export function StatusDonut({
   thickness = 24,
   centerLabel,
   emptyText = 'Belum ada data',
+  animateEnter = true,
 }: StatusDonutProps) {
   const total = data.reduce((sum, d) => sum + (Number.isFinite(d.value) ? d.value : 0), 0);
   const radius = (size - thickness) / 2;
@@ -284,7 +290,18 @@ export function StatusDonut({
                   strokeWidth={thickness}
                   strokeDasharray={`${visibleLength} ${circumference - visibleLength}`}
                   strokeDashoffset={dashOffset}
-                  style={{ stroke: slice.color || 'var(--primary)' }}
+                  className={animateEnter ? 'motion-donut-draw' : undefined}
+                  style={{
+                    stroke: slice.color || 'var(--primary)',
+                    ...(animateEnter
+                      ? ({
+                          '--donut-c': `${circumference}`,
+                          '--donut-visible': `${visibleLength}`,
+                          '--donut-rest': `${circumference - visibleLength}`,
+                          animationDelay: `calc(${i} * var(--stagger-step))`,
+                        } as React.CSSProperties)
+                      : null),
+                  }}
                 >
                   <title>{`${slice.label}: ${slice.value}`}</title>
                 </circle>
@@ -346,6 +363,8 @@ export interface MiniBarsProps {
   maxValue?: number;
   valueSuffix?: string;
   emptyText?: string;
+  /** Grow bar (scaleX 480ms, G2) sekali saat mount; perubahan nilai = transisi. */
+  animateEnter?: boolean;
 }
 
 export function MiniBars({
@@ -354,6 +373,7 @@ export function MiniBars({
   maxValue,
   valueSuffix = '',
   emptyText = 'Belum ada data',
+  animateEnter = true,
 }: MiniBarsProps) {
   if (data.length === 0) {
     return (
@@ -384,9 +404,13 @@ export function MiniBars({
               className="flex-1 h-2.5 rounded-full overflow-hidden min-w-[40px]"
               style={{ background: 'var(--bg-secondary)' }}
             >
+              {/* Nilai bar via transform: scaleX (G2 — bukan width). */}
               <span
-                className="block h-full rounded-full transition-all duration-300"
-                style={{ width: `${widthPercent}%`, background: item.color || color }}
+                className={`motion-progress block h-full w-full rounded-full${animateEnter ? ' motion-bar-grow' : ''}`}
+                style={{
+                  transform: `scaleX(${Math.max(0, widthPercent / 100).toFixed(4)})`,
+                  background: item.color || color,
+                }}
               />
             </span>
             <span

@@ -59,7 +59,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     setLoading(true);
 
     try {
-      let updateError = null;
+      let updateError: { message?: string } | null = null;
 
       // Supabase's updateUser sometimes hangs after a successful password update
       // due to session refresh issues, so we use Promise.race to prevent infinite loading.
@@ -69,10 +69,10 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       );
 
       try {
-        const result = await Promise.race([updatePromise, timeoutPromise]) as { error: any };
-        updateError = result?.error;
-      } catch (err: any) {
-        if (err.message === 'TIMEOUT') {
+        const result = await Promise.race([updatePromise, timeoutPromise]) as { error?: { message?: string } | null };
+        updateError = result?.error ?? null;
+      } catch (err) {
+        if (err instanceof Error && err.message === 'TIMEOUT') {
           console.warn('[ChangePassword] Request timed out. Assuming success as backend usually processes it.');
         } else {
           throw err;
@@ -97,8 +97,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
     <Dialog open={open} onClose={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         {isSuccess ? (
-          <div className="px-7 py-14 flex flex-col items-center justify-center text-center"
-               style={{ animation: 'scaleIn 0.3s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}>
+          <div className="px-7 py-14 flex flex-col items-center justify-center text-center motion-pop">
             <div className="relative mb-7">
               <div className="w-20 h-20 rounded-full flex items-center justify-center"
                    style={{ background: 'var(--success-soft)' }}>
@@ -147,7 +146,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Masukkan password baru"
-                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-all duration-200"
+                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                       style={{
                         background: 'var(--bg-secondary)',
                         border: '1px solid var(--border)',
@@ -188,7 +187,7 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Ulangi password baru"
-                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-all duration-200"
+                      className="w-full pl-4 pr-10 h-12 rounded-xl text-[15px] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                       style={{
                         background: 'var(--bg-secondary)',
                         border: '1px solid var(--border)',

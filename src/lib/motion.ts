@@ -20,6 +20,8 @@ export const MOTION = {
   base: 300,
   /** --duration-drawer-out: exit drawer mobile (SPEC §C5) */
   drawerOut: 250,
+  /** --duration-row-out: exit baris/kartu collapse-out (SPEC §C4) */
+  rowOut: 200,
   /** --duration-slow: progres/bar chart */
   slow: 480,
   /** --duration-exit: pola handoff exit */

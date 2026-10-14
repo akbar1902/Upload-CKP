@@ -313,6 +313,7 @@
   --duration-enter:     210ms;  /* pola handoff (Next view-transitions.md) */
   --duration-panel-enter: 220ms; /* entrance panel dialog (MOTION-SPEC §C5) */
   --duration-drawer-out:  250ms; /* exit drawer mobile (MOTION-SPEC §C5) */
+  --duration-row-out:     200ms; /* exit baris/kartu (collapse-out, SPEC §C4) */
 }
 
 .dark {
@@ -548,10 +549,47 @@ body {
   animation: motionPop var(--duration-fast) var(--ease-spring) both;
 }
 .motion-remove {
-  animation: collapseOut 200ms var(--ease-out-strong) both;
+  animation: collapseOut var(--duration-row-out) var(--ease-out-strong) both;
 }
 .motion-indicator-in {
   animation: indicatorIn var(--duration-press) var(--ease-out-strong) both;
+}
+
+/* Bar progres indeterminate (FetchingBar) — digerakkan CSS keyframe,
+   bukan animation loop JS. Visual sama: translateX -120% → 360%. */
+@keyframes fetchingBarSlide {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(360%); }
+}
+.fetching-bar-track {
+  animation: fetchingBarSlide 1.05s ease-in-out infinite;
+}
+
+/* Entrance "grow" untuk bar/meter (transform-only, G2): dari scaleX(0) ke
+   nilai transform inline elemen (keyframe akhir implisit). `backwards` agar
+   setelah selesai properti jatuh ke nilai inline (tidak menahan fill). */
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+}
+.motion-bar-grow {
+  animation: barGrow var(--duration-slow) var(--ease-out-strong) backwards;
+}
+
+/* Entrance fade chart SVG (line chart — SPEC §E: 200ms). */
+.motion-chart-fade {
+  animation: fadeIn 200ms var(--ease-out-strong) both;
+}
+
+/* Draw-in donut (stroke-dasharray grow dari tepi awal tiap slice):
+   nilai from/to di-set inline per slice (--donut-c radius penuh,
+   --donut-visible panjang arc, --donut-rest gap) agar animasi berakhir
+   tepat di nilai final (atribut stroke-dasharray). */
+@keyframes donutDraw {
+  from { stroke-dasharray: 0 var(--donut-c); }
+  to   { stroke-dasharray: var(--donut-visible) var(--donut-rest); }
+}
+.motion-donut-draw {
+  animation: donutDraw var(--duration-slow) var(--ease-out-strong) both;
 }
 
 /* Expand/collapse berbasis grid-template-rows (G2 — bukan max-height).
@@ -1408,6 +1446,7 @@ input, textarea, select {
   .motion-palette-in,
   .motion-palette-out,
   .motion-pop,
+  .motion-chart-fade,
   .motion-remove {
     animation: none !important;
     opacity: 1 !important;
@@ -1443,10 +1482,20 @@ input, textarea, select {
     transform: none;
   }
 
-  /* 4) Loop dekoratif → mati total */
+  /* 4) Loop dekoratif → mati total. Loader/spinner (bar indeterminate di
+     FetchingBar, spinner tombol) TETAP jalan — feedback esensial (G1). */
   .motion-float,
   .animate-pulse {
     animation: none !important;
+  }
+
+  /* 4b) Entrance bar/chart/donut → langsung di state final (tanpa grow/draw). */
+  .motion-bar-grow,
+  .motion-donut-draw {
+    animation: none !important;
+  }
+  .motion-chart-fade {
+    animation: fadeIn var(--duration-press) linear both !important;
   }
 
   /* 5) Accordion/drawer/modal: fade saja, tanpa translate/scale.
