@@ -33,7 +33,7 @@ import { StatusBadge } from '@/components/dashboard/status-badge';
 import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
 import { toast } from 'sonner';
-import { MOTION, useMotionSafe } from '@/lib/motion';
+import { MOTION, useMotionSafe, useStaggerOnce } from '@/lib/motion';
 
 // ── Grid card (alternate view) ─────────────────────────────
 function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
@@ -316,15 +316,8 @@ export default function PegawaiDashboard() {
   }, [uploadsArr, searchQuery, sortOrder, statusFilter]);
 
   // Stagger entrance hanya pada paint data pertama (SPEC §B5/C2): ganti
-  // filter/urutan TIDAK re-stagger list — kelas `card-list` dilepas setelah
-  // entrance pertama selesai (delay > total stagger maks 510ms).
-  const [staggerDone, setStaggerDone] = useState(false);
-  useEffect(() => {
-    if (isLoading) return;
-    const t = window.setTimeout(() => setStaggerDone(true), 700);
-    return () => window.clearTimeout(t);
-  }, [isLoading]);
-  const listStaggerClass = staggerDone ? '' : ' card-list';
+  // filter/urutan TIDAK re-stagger list — lihat `useStaggerOnce`.
+  const listStaggerClass = useStaggerOnce(!isLoading);
 
   // KPI cards config
   const kpiCards = [
