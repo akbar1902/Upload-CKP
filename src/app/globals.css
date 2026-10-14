@@ -1348,8 +1348,11 @@ input, textarea, select {
 .activity-card:hover,
 .pegawai-card:hover {
   box-shadow: var(--neu-raised-lg);
-  transform: translateY(-2px);
 }
+/* CATATAN: `transform` hover SENGAJA tidak ditulis di lapisan ini — blok
+   motion §B-3 (lift -4px, 240ms) yang memutuskan; lapisan soft-UI hanya
+   memutar shadow. Sebelumnya baris `transform: translateY(-2px)` di sini
+   menimpa nilai §B-3 (lapisan ini menang karena berada paling akhir). */
 
 /* ── Buttons ── */
 .btn-primary {
@@ -1359,8 +1362,9 @@ input, textarea, select {
   background: var(--primary-hover);
   box-shadow: var(--neu-raised);
 }
+/* Press: `transform` dari blok §B-4 (scale 0.96 + press-in --duration-press-in);
+   di sini hanya bayangan cekung — jangan tulis transform di sini. */
 .btn-primary:active {
-  transform: translateY(1px);
   box-shadow: var(--neu-pressed);
 }
 
@@ -1374,7 +1378,6 @@ input, textarea, select {
   box-shadow: var(--neu-raised);
 }
 .btn-secondary:active {
-  transform: translateY(1px);
   box-shadow: var(--neu-pressed);
 }
 

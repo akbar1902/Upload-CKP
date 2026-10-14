@@ -158,11 +158,16 @@ function NavIndicator({ pathname, submenuOpen }: { pathname: string; submenuOpen
 
     const observer = new ResizeObserver(() => follow());
     observer.observe(track);
+    // Rail bisa berubah `display: none` → visible saat viewport melewati
+    // breakpoint `lg`; ResizeObserver TIDAK melaporkan transisi itu (terbukti
+    // di smoke Chrome) → `resize` window jadi pemicu re-measure kedua.
+    window.addEventListener('resize', follow);
 
     return () => {
       cancelAnimationFrame(raf);
       el.style.removeProperty('--duration-glide');
       observer.disconnect();
+      window.removeEventListener('resize', follow);
     };
   }, [pathname, submenuOpen]);
 
