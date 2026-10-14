@@ -158,6 +158,11 @@ function NavIndicator({ pathname, submenuOpen }: { pathname: string; submenuOpen
 
     const observer = new ResizeObserver(() => follow());
     observer.observe(track);
+    // Container item ikut diobservasi: saat submenu tertutup (track ter-clip
+    // 0fr → tinggi 0) perubahan tinggi item — mis. setelah webfont swap —
+    // TIDAK mengubah ukuran track sehingga RO di track tidak lapor.
+    const items = track.querySelector<HTMLElement>('[data-nav-track-items]');
+    if (items) observer.observe(items);
     // Rail bisa berubah `display: none` → visible saat viewport melewati
     // breakpoint `lg`; ResizeObserver TIDAK melaporkan transisi itu (terbukti
     // di smoke Chrome) → `resize` window jadi pemicu re-measure kedua.
@@ -473,7 +478,7 @@ export function Sidebar() {
                   inert={!isDashboardOpen}
                 >
                   <NavIndicator pathname={pathname} submenuOpen={isDashboardOpen} />
-                  <div className="space-y-1">
+                  <div className="space-y-1" data-nav-track-items>
                     {dashboardSubItems.map((item) => {
                       const active = isActive(item.href);
                       return (
@@ -517,7 +522,7 @@ export function Sidebar() {
             indikator hanya saat sidebar terbuka (perilaku lama). */}
         <div className="relative" data-nav-track="main">
           {!collapsed && <NavIndicator pathname={pathname} submenuOpen={isDashboardOpen} />}
-          <div className="space-y-1">
+          <div className="space-y-1" data-nav-track-items>
             {navItems.map((item) => {
               const Icon = item.icon;
               const active = isActive(item.href);

@@ -1664,7 +1664,15 @@ input, textarea, select {
     animation-delay: 0s !important;
   }
 
-  /* 9) Tekan tombol: tanpa transform — feedback warna/opacity tetap (§D #4). */
+  /* 9) Tekan tombol: tanpa gerak — feedback warna/opacity tetap (§D #4).
+     CATATAN (temuan build): utility `active:scale-[…]` Tailwind v4 memakai
+     properti `scale`, BUKAN `transform`, sehingga `transform: none` saja tidak
+     menjangkaunya; dan deklarasi `scale: … !important` dari fail ini DIBUANG
+     minifier CSS Next (lightningcss menggabungkannya ke `transform: scale(1)`).
+     Karena itu tombol primitif §B-4 (ui/Button) kini memakai `transform`
+     (§B-4 di button.tsx), sehingga aturan ini cukup. Tombol lama lain yang
+     memakai `active:scale-[…]` Tailwind (luar daftar §D #4, di luar scope
+     gelombang ini) masih ikut `scale` — celah dicatat di apendiks gelombang 3. */
   button:active,
   .btn-primary:active,
   .btn-secondary:active,
