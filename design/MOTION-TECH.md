@@ -588,3 +588,76 @@ sed -n '321,336p' node_modules/next/dist/docs/01-app/02-guides/view-transitions.
   `.../03-api-reference/04-functions/use-router.md:44-45`,
   `.../03-api-reference/04-functions/use-link-status.md`,
   `.../02-guides/upgrading/version-16.md:398-406`
+
+---
+
+## Hasil Fase 0
+
+> Diisi oleh pelaksana gelombang 1 (branch `feat/motion-ux`, Fase 0–2) sebagai penutup
+> spike `experimental.viewTransition` (§1.7 / §3) + catatan jalur yang dipilih.
+
+### Keputusan: **GO — `experimental.viewTransition: true` DIPERTAHANKAN**
+
+Spike dijalankan di branch ini pada rute publik (`/reset-password → /login` — satu-satunya
+navigasi SPA antar-rute tanpa kredensial) dengan instrumentasi CDP (Chrome headless):
+`document.startViewTransition` terpanggil per navigasi SPA, layer bernama
+(`::view-transition-old/new(…)`) terbentuk dan beranimasi, **tanpa error JS** — di
+**dev (`next dev --webpack`)** maupun **build produksi (`npm run build && npm start`, PWA/sw aktif)**.
+Build hijau di kedua kondisi; ringkasan fitur build menampilkan `✓ viewTransition`.
+Emulasi `prefers-reduced-motion: reduce` juga aman (tanpa error, animasi dinolkan CSS Fase 0).
+
+**Fallback (tersedia, tidak terpakai):** ganti isi `src/components/layout/page-transition.tsx`
+menjadi `<div className="motion-page-enter">{children}</div>` (kelas CSS sudah ada sejak Fase 0),
+lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
+
+### Jalur implementasi final (Fase 1)
+
+- `src/app/{admin,analitik,ketua_tim,pegawai,penilaian,pimpinan,rencana_kinerja}/template.tsx` (baru)
+  → `<PageTransition>` (`<ViewTransition default="none" enter="page-enter" exit="page-exit">`).
+  Template di-remount per navigasi (semantik template Next) → entrance konten per pindah halaman;
+  layout/shell (Sidebar) berada di luar template sehingga persisten. Catatan: navigasi yang tidak
+  mengubah child-segment level group (mis. `/pegawai/ckp/A → /pegawai/ckp/B`) tidak remount —
+  edge case diterima, dicatat untuk koordinator.
+- `route-transition.tsx` **dihapus** (overlay scrim+blur, intercept klik global, `ROUTE_LABELS`) —
+  termasuk dari 7 layout rute; umpan balik navigasi = TopLoader (MOTION-SPEC §C1).
+- `globals.css`: `::view-transition-old(.page-exit)` fade 150ms `--ease-apple`;
+  `::view-transition-new(.page-enter)` fade+rise 210ms `--ease-out-strong`; **root di-`animation: none`**
+  (shell statis saat transisi); **header di-anchor** `viewTransitionName: 'site-header'` (resep panduan
+  lokal `view-transitions.md`, agar tidak ikut fade/rise konten); blok reduced-motion VT Fase 0 berlaku.
+- `src/types/react-canary.d.ts` — opt-in types canary (type-level saja; runtime = React vendored Next).
+
+### Catatan deviasi / keputusan (untuk koordinator)
+
+1. **Entrance baris per-row tabel tidak ditambahkan** — SPEC §C4 menyebut "tanpa animasi per-row";
+   `data-table.tsx` hanya diselaraskan token hover-nya.
+2. **Command palette item: tanpa animasi** (gate frekuensi SPEC A: "Tanpa animasi. Titik.") — saran
+   "stagger item hemat" di TECH tidak diambil. Enter panel `.motion-dropdown-in` (180ms, mendekati 160ms
+   SPEC), exit 120ms fade-only; backdrop tanpa blur (G3).
+3. **Sidebar indikator aktif**: animasi CSS mount (scaleY 0.6→1 + opacity, `.motion-indicator-in`) per
+   SPEC §C1 — bukan `layoutId` framer (SPEC eksplisit "tidak perlu layout-shared"; menghindari konflik
+   dengan transisi `width` collapse desktop — TECH §4.5 no.3).
+4. **Tombol `active:scale`**: 0.98 → **0.97** (nilai visual ikut SPEC §C3).
+5. **Drawer mobile**: enter `--duration` (300ms) / exit 250ms literal (SPEC §C5; belum ada token 250ms —
+   kandidat token baru bila disepakati); scrim fade 180ms/150ms dari token.
+6. **Dialog**: `AnimatePresence` (mekanisme TECH) — backdrop fade 180/150ms, panel enter 220ms / exit
+   150ms (SPEC §C5); `backdrop-blur-xl` dihapus total (G3 "0–8px" → dipilih 0). Focus-trap/ESC/scroll-lock
+   tidak disentuh.
+7. **`animate-fade-in` pada wrapper halaman (38 kemunculan) belum dihapus** — file halaman adalah scope
+   gelombang berikutnya; efek dobel (fade template + fade halaman) ringan; pembersihan menyusul per-halaman.
+8. **Migrasi 4 modal custom `admin/pegawai` + modal pindah RK (`penilaian`) → `Dialog` belum dikerjakan**
+   di gelombang ini (file halaman; tidak dapat diverifikasi live tanpa kredensial). `Dialog` sudah
+   dipusatkan (exit bersama) sehingga migrasi tinggal mengganti markup pemakai.
+9. **Known issue pre-existing (bukan dampak motion)**: `proxy.ts` tidak mengecualikan `*.js` di matcher →
+   `/sw.js` ter-redirect 307 ke `/login` saat belum login → registrasi Service Worker gagal (dev & prod).
+   Perlu keputusan terpisah (mis. kecualikan `sw.js`/`workbox-*` di matcher).
+10. **Lint**: 284 error repo-wide berada di file **di luar** scope motion (contoh: `hooks/use-auth.tsx`,
+    `lib/export/pdf-generator.ts`); seluruh file yang disentuh gelombang ini **0 error** (7 warning lama).
+    `tsc --noEmit` dan build produksi hijau.
+11. **Belum terverifikasi live**: halaman terautentikasi (tanpa kredensial), Safari/Firefox/Edge
+    (hanya Chrome tersedia — docs menjamin degradasi anggun), kualitas visual (sesi tanpa screenshot).
+
+### Cara cepat membatalkan
+
+1. `next.config.ts`: hapus `viewTransition: true`.
+2. `page-transition.tsx`: ganti isi menjadi `<div className="motion-page-enter">{children}</div>`.
+3. Opsional: hapus blok `::view-transition-*` di `globals.css` + `src/types/react-canary.d.ts`.
