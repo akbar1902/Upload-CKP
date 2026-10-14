@@ -22,7 +22,7 @@ export const MOTION = {
   exit: 150,
 } as const;
 
-type Bezier = readonly [number, number, number, number];
+type Bezier = [number, number, number, number];
 
 /** Easing cubic-bezier — sama dengan token CSS terkait. */
 export const EASE = {

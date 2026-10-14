@@ -92,7 +92,7 @@ export function TableRow({
   return (
     <tr
       className={cn(
-        "border-b last:border-b-0 transition-colors hover:bg-[var(--sand-subtle)]",
+        "border-b last:border-b-0 transition-colors duration-[var(--duration-fast)] ease-[var(--ease-apple)] hover:bg-[var(--sand-subtle)]",
         className
       )}
       style={{ borderColor: "var(--border)", ...style }}

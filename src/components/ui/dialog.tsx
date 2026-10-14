@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
+import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { MOTION, EASE } from "@/lib/motion";
 import { X } from "lucide-react";
 
 interface DialogContextType {
@@ -136,27 +138,38 @@ function Dialog({ open, onClose, children }: DialogProps) {
     };
   }, [open, mounted]);
 
-  if (!open || !mounted) return null;
+  if (!mounted) return null;
 
   return createPortal(
-    <DialogContext.Provider value={{ open, onClose, contentRef }}>
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-        {/* Backdrop — Apple glassmorphism */}
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xl"
-          style={{ animation: 'fadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
-          onClick={onClose}
-          aria-hidden="true"
-        />
-        {/* Content */}
-        <div
-          className="relative z-50 flex flex-col w-full items-center justify-center p-4"
-          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          key="sikap-dialog"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
         >
-          {children}
-        </div>
-      </div>
-    </DialogContext.Provider>,
+          <DialogContext.Provider value={{ open, onClose, contentRef }}>
+            {/* Backdrop — scrim datar (MOTION-SPEC §D G3: blur-x dihapus) */}
+            <motion.div
+              className="fixed inset-0 bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1, transition: { duration: MOTION.fast / 1000, ease: EASE.outStrong } }}
+              exit={{ opacity: 0, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
+              onClick={onClose}
+              aria-hidden="true"
+            />
+            {/* Content — enter 220ms / exit 150ms (MOTION-SPEC §C5) */}
+            <motion.div
+              className="relative z-50 flex flex-col w-full items-center justify-center p-4"
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1, transition: { duration: 0.22, ease: EASE.outStrong } }}
+              exit={{ opacity: 0, scale: 0.98, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
+            >
+              {children}
+            </motion.div>
+          </DialogContext.Provider>
+        </motion.div>
+      )}
+    </AnimatePresence>,
     document.body
   );
 }
@@ -180,7 +193,7 @@ function DialogContent({ className, children, ...props }: React.HTMLAttributes<H
         type="button"
         onClick={onClose}
         aria-label="Tutup"
-        className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--sand-subtle)] transition-all duration-200 z-10"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--sand-subtle)] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] z-10"
       >
         <X className="h-[18px] w-[18px]" />
       </button>
