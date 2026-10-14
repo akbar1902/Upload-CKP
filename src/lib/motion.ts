@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 /**
@@ -26,6 +27,8 @@ export const MOTION = {
   slow: 480,
   /** --duration-exit: pola handoff exit */
   exit: 150,
+  /** Delight #1 (SPEC §C9): tahan layar sukses upload sebelum redirect */
+  successHold: 800,
 } as const;
 
 type Bezier = [number, number, number, number];
@@ -61,4 +64,22 @@ export const SPRING = {
  */
 export function useMotionSafe(): boolean {
   return useReducedMotion() !== true;
+}
+
+/**
+ * Entrance list `card-list` (stagger) hanya sampai paint data pertama —
+ * SPEC §B5/C2: ganti filter/periode TIDAK re-stagger. Kelas dilepas setelah
+ * entrance pertama selesai (delay 700ms > total stagger maks 510ms).
+ *
+ * Pemakaian: `const listClass = useStaggerOnce(!isLoading);`
+ * lalu `className={`grid ...${listClass}`}`.
+ */
+export function useStaggerOnce(ready: boolean): string {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (!ready) return;
+    const t = setTimeout(() => setDone(true), 700);
+    return () => clearTimeout(t);
+  }, [ready]);
+  return done ? '' : ' card-list';
 }

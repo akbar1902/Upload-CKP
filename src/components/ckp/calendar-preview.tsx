@@ -69,7 +69,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                 key={m}
                 type="button"
                 onClick={() => setSelectedBulan(m)}
-                className="px-3 py-1 text-[12px] rounded-full font-medium transition-all"
+                className="px-3 py-1 text-[12px] rounded-full font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                 style={isActive
                   ? { background: 'var(--primary)', color: '#fff' }
                   : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
@@ -183,7 +183,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all"
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                       style={{
                         background: day.hasActivities ? 'var(--neu-surface)' : 'var(--neu-surface-2)',
                         boxShadow: day.hasActivities ? 'var(--neu-raised-sm)' : 'none',
@@ -219,14 +219,14 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                       key={idx}
                       type="button"
                       onClick={() => setSelectedDay(day)}
-                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer"
+                      className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] cursor-pointer"
                       style={{ background: 'var(--sand-strong)', boxShadow: 'var(--neu-raised-sm)', border: '1px solid transparent' }}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-semibold" style={{ color: 'var(--tertiary-text)' }}>
                           {day.dayOfMonth}
                         </span>
-                        <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: 'var(--tertiary-text)' }} />
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ background: 'var(--tertiary-text)' }} />
                       </div>
 
                       <div className="space-y-0.5">
@@ -249,7 +249,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                     key={idx}
                     type="button"
                     onClick={() => setSelectedDay(day)}
-                    className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-all cursor-pointer group"
+                    className="min-h-[68px] rounded-lg p-1.5 text-left flex flex-col justify-between transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] cursor-pointer group"
                     style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-raised-sm)', border: '1px solid transparent' }}
                   >
                     <div className="flex items-center justify-between">

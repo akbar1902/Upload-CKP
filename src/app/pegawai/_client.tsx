@@ -33,6 +33,7 @@ import { StatusBadge } from '@/components/dashboard/status-badge';
 import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
 import { toast } from 'sonner';
+import { MOTION, useMotionSafe } from '@/lib/motion';
 
 // ── Grid card (alternate view) ─────────────────────────────
 function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
@@ -41,7 +42,9 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const progressClass = getProgressClass(pct);
   const canDelete = upload.status !== 'approved';
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const motionSafe = useMotionSafe();
 
   // Bersihkan timer saat unmount agar tidak setState setelah komponen hilang.
   useEffect(() => {
@@ -69,8 +72,8 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
     }, 5000);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
-    e.preventDefault(); // prevent navigation if wrapped in link or similar
+  const runDelete = async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault(); // prevent navigation if wrapped in link or similar
     resetConfirmDelete();
 
     // 1. Optimistic Delete (Remove from UI instantly)
@@ -93,15 +96,30 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       } else {
         throw new Error(res.error || 'Gagal menghapus');
       }
-    } catch (err: any) {
+    } catch (err) {
       // 2. Rollback on failure
       queryClient.setQueryData(['pegawai-uploads', upload.user_id], previousUploads);
-      toast.error(err.message || 'Terjadi kesalahan saat menghapus', { id: toastId });
+      toast.error(err instanceof Error ? err.message : 'Terjadi kesalahan saat menghapus', { id: toastId });
     }
   };
 
+  // Exit card: collapse-out dulu (200ms, SPEC §C4 / checklist #11) baru mutasi.
+  // Reduced motion: langsung.
+  const handleDelete = (e: React.MouseEvent) => {
+    if (!motionSafe) {
+      void runDelete(e);
+      return;
+    }
+    e.preventDefault();
+    resetConfirmDelete();
+    setRemoving(true);
+    window.setTimeout(() => {
+      void runDelete();
+    }, MOTION.rowOut);
+  };
+
   return (
-    <div className="kpi-card p-4 sm:p-6 flex flex-col gap-3 animate-scale-in">
+    <div className={`kpi-card p-4 sm:p-6 flex flex-col gap-3${removing ? ' motion-remove' : ''}`}>
       <div className="flex items-center justify-between">
         <div className="date-block flex" style={{ minWidth: 'unset', padding: '8px 10px' }}>
           <span className="month" style={{ fontSize: '11px' }}>
@@ -126,14 +144,17 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           </span>
         </div>
         <div className="h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)' }}>
-          <div className={`h-full rounded-full progress-bar ${progressClass}`} style={{ width: `${pct}%` }} />
+          <div
+            className={`motion-progress h-full w-full rounded-full ${progressClass}`}
+            style={{ transform: `scaleX(${Math.max(0, Math.min(pct, 100) / 100).toFixed(4)})` }}
+          />
         </div>
       </div>
       <div className="flex items-center gap-2 mt-2">
         <Link
           href={`/pegawai/ckp/${upload.id}`}
           prefetch={true}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-medium transition-all duration-200"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-full text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
           style={{ background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' }}
         >
           Lihat Detail <ArrowRight size={13} />
@@ -164,7 +185,7 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               onClick={handleAskDelete}
               title="Hapus CKP"
               aria-label="Hapus CKP"
-              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-all duration-200"
+              className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
               style={{ color: 'var(--danger)' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
@@ -294,6 +315,17 @@ export default function PegawaiDashboard() {
     });
   }, [uploadsArr, searchQuery, sortOrder, statusFilter]);
 
+  // Stagger entrance hanya pada paint data pertama (SPEC §B5/C2): ganti
+  // filter/urutan TIDAK re-stagger list — kelas `card-list` dilepas setelah
+  // entrance pertama selesai (delay > total stagger maks 510ms).
+  const [staggerDone, setStaggerDone] = useState(false);
+  useEffect(() => {
+    if (isLoading) return;
+    const t = window.setTimeout(() => setStaggerDone(true), 700);
+    return () => window.clearTimeout(t);
+  }, [isLoading]);
+  const listStaggerClass = staggerDone ? '' : ' card-list';
+
   // KPI cards config
   const kpiCards = [
     { icon: <FileText size={18} style={{ color: 'var(--primary)' }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: 'var(--primary-soft)' },
@@ -328,7 +360,7 @@ export default function PegawaiDashboard() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 space-y-6">
 
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -366,7 +398,7 @@ export default function PegawaiDashboard() {
         {/* ── Alerts ────────────────────────────────── */}
         {!isLoading && !currentMonthUpload && (
           <div
-            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
+            className="flex items-center gap-3 p-4 rounded-2xl motion-alert-in"
             style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}
             role="alert"
           >
@@ -385,7 +417,7 @@ export default function PegawaiDashboard() {
 
         {!isLoading && stats.rejected > 0 && (
           <div
-            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
+            className="flex items-center gap-3 p-4 rounded-2xl motion-alert-in"
             style={{ background: 'var(--danger-soft)', border: '1px solid rgba(255,59,48,0.06)' }}
             role="alert"
           >
@@ -514,20 +546,20 @@ export default function PegawaiDashboard() {
               </p>
               {!searchQuery && (
                 <Link href="/pegawai/upload" prefetch={true}>
-                  <button className="px-5 py-2.5 rounded-full bg-[var(--primary)] text-white text-[13px] font-medium shadow-sm hover:shadow transition-all duration-200">
+                  <button className="px-5 py-2.5 rounded-full bg-[var(--primary)] text-white text-[13px] font-medium shadow-sm hover:shadow transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]">
                     Upload CKP Baru
                   </button>
                 </Link>
               )}
             </div>
           ) : viewMode === 'list' ? (
-            <div className="space-y-3 card-list">
+            <div className={`space-y-3${listStaggerClass}`}>
               {filteredUploads.map((upload) => (
                 <ActivityCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-list">
+            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4${listStaggerClass}`}>
               {filteredUploads.map((upload) => (
                 <ActivityGridCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}

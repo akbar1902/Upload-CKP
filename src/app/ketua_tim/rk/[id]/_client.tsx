@@ -8,6 +8,8 @@ import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-quer
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { getBulanName, formatDate, getDefaultPeriod } from '@/lib/utils';
 import { gradeRencanaKinerjaAction, getRkDetailAction } from '@/app/actions/penilaian';
 import { markEntryAction } from '@/app/actions/ckp';
@@ -295,7 +297,7 @@ function RkBarisRow({
                       Menyimpan…
                     </span>
                   ) : justSaved ? (
-                    <span className="text-[10px] font-semibold flex items-center gap-0.5 whitespace-nowrap animate-fade-in" style={{ color: 'var(--success-text)' }}>
+                    <span className="text-[10px] font-semibold flex items-center gap-0.5 whitespace-nowrap motion-status-fade" style={{ color: 'var(--success-text)' }}>
                       <CheckCircle2 size={10} /> Tersimpan
                     </span>
                   ) : null}
@@ -313,13 +315,24 @@ function RkBarisRow({
             aria-label="Tampilkan detail kegiatan"
             className="p-1 rounded-lg transition-colors bg-slate-50 hover:bg-slate-100 text-slate-400"
           >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <ChevronDown
+              size={14}
+              className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
+              style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+              aria-hidden="true"
+            />
           </button>
         </div>
       </div>
 
-      {/* Expanded entries — full-width row di bawah baris */}
-      {expanded && (
+      {/* Expanded entries — full-width row di bawah baris.
+          Pola grid-template-rows (SPEC §C1/C4), 200ms. */}
+      <div
+        className="motion-collapse-wrap"
+        data-open={expanded}
+        style={{ '--collapse-duration': 'var(--duration-row-out)' } as React.CSSProperties}
+      >
+        <div inert={!expanded}>
         <div className="border-t p-3.5 space-y-3" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
           {isTriwulan && monthlyScores.length > 0 && (
             <div className="flex items-stretch gap-2 mb-2">
@@ -393,7 +406,8 @@ function RkBarisRow({
             ))}
           </div>
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -774,7 +788,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6">
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors w-fit border border-slate-200 shadow-sm"
@@ -899,25 +913,18 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
       </div>
       
       {entryToMark && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in"
-          style={{ background: 'rgba(0,0,0,0.4)' }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="mark-entry-modal-title"
-          onClick={(e) => { if (e.target === e.currentTarget && !isMarking) setEntryToMark(null); }}
+        <Dialog
+          open={entryToMark !== null}
+          onClose={() => { if (!isMarking) setEntryToMark(null); }}
         >
-          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
-            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
-              <h3 id="mark-entry-modal-title" className="font-semibold text-lg flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
                 <AlertTriangle size={18} className="text-amber-500" />
                 Tandai Perlu Diperbaiki
-              </h3>
-              <button onClick={() => setEntryToMark(null)} className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Tutup dialog">
-                 <XCircle size={20} />
-              </button>
-            </div>
-            <div className="p-5 space-y-4">
+              </DialogTitle>
+            </DialogHeader>
+            <DialogBody className="space-y-4">
               <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm">
                 <p className="font-semibold mb-1" style={{ color: 'var(--primary)' }}>Kegiatan:</p>
                 <p className="text-slate-700">{entryToMark.kegiatan}</p>
@@ -925,10 +932,10 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
               <div>
                 <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Berikan Catatan Perbaikan</label>
-                <textarea 
+                <textarea
                   ref={markTextareaRef}
                   autoFocus
-                  className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none"
+                  className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                   style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
                   placeholder="Contoh: Kegiatan ini seharusnya masuk ke Rencana Kinerja X..."
                   rows={4}
@@ -939,17 +946,17 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
                   Catatan ini akan terlihat oleh pegawai saat mereka memperbaiki dan merevisi file Excel.
                 </p>
               </div>
-            </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setEntryToMark(null)}>
+            </DialogBody>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEntryToMark(null)} disabled={isMarking}>
                 Batal
-              </button>
-              <button className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors disabled:opacity-50" onClick={handleExecuteMarkEntry} disabled={isMarking}>
+              </Button>
+              <Button onClick={handleExecuteMarkEntry} disabled={isMarking} loading={isMarking}>
                 {isMarking ? 'Menyimpan...' : 'Simpan Catatan'}
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </>
   );

@@ -50,6 +50,9 @@ export function NotificationBell() {
   const boxRef = useRef<HTMLDivElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const motionSafe = useMotionSafe();
+  // Delight #4 (SPEC §C9): badge pop hanya saat jumlah naik — bukan turun.
+  const [badgePop, setBadgePop] = useState(false);
+  const prevUnreadRef = React.useRef(0);
 
   const openMenu = useCallback(() => {
     if (closeTimer.current) {
@@ -79,6 +82,15 @@ export function NotificationBell() {
   useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   const unread = items.filter((i) => !i.is_read).length;
+
+  React.useEffect(() => {
+    const prev = prevUnreadRef.current;
+    prevUnreadRef.current = unread;
+    if (unread <= prev) return;
+    setBadgePop(true);
+    const t = window.setTimeout(() => setBadgePop(false), 400);
+    return () => window.clearTimeout(t);
+  }, [unread]);
 
   // Muat 20 terbaru
   useEffect(() => {
@@ -194,7 +206,7 @@ export function NotificationBell() {
         <Bell size={16} />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-[var(--accent-strong)] text-white text-[9px] font-bold flex items-center justify-center"
+            className={`absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-[var(--accent-strong)] text-white text-[9px] font-bold flex items-center justify-center${badgePop ? ' motion-pop' : ''}`}
             aria-hidden="true"
           >
             {unread > 9 ? '9+' : unread}

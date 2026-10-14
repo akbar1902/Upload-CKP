@@ -14,6 +14,7 @@ import type { CKPUpload, User } from '@/types/database';
 import { toast } from 'sonner';
 import { approveAction } from '@/app/actions/penilaian';
 import { rkGroupKey, isRkGroupScored, formatScore1 } from '@/lib/rk-scoring';
+import { MOTION, useMotionSafe } from '@/lib/motion';
 import {
   ArrowLeft, CheckCircle2, Search,
   RefreshCw, WifiOff, MessageSquare
@@ -46,7 +47,9 @@ export default function PimpinanQuickApprovalClient() {
   const [selectedUpload, setSelectedUpload] = useState<{ id: string, name: string, period: string } | null>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [showBulkConfirm, setShowBulkConfirm] = useState(false);
+  const motionSafe = useMotionSafe();
   const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const setPeriod = usePeriodParams();
@@ -180,6 +183,13 @@ export default function PimpinanQuickApprovalClient() {
     setProcessingId(uploadId);
     setShowApprovalModal(false);
 
+    // Exit baris: collapse-out 200ms SEBELUM mutasi cache (SPEC §C4).
+    // Reduced motion: langsung.
+    if (motionSafe) {
+      setRemovingIds(prev => new Set(prev).add(uploadId));
+      await new Promise((resolve) => setTimeout(resolve, MOTION.rowOut));
+    }
+
     try {
       const result = await approveAction(uploadId, action, catatan || '');
       if (!result.success) throw new Error(result.error);
@@ -199,6 +209,12 @@ export default function PimpinanQuickApprovalClient() {
     } finally {
       setProcessingId(null);
       setSelectedUpload(null);
+      setRemovingIds(prev => {
+        if (!prev.has(uploadId)) return prev;
+        const next = new Set(prev);
+        next.delete(uploadId);
+        return next;
+      });
     }
   };
 
@@ -212,6 +228,17 @@ export default function PimpinanQuickApprovalClient() {
 
     setBulkProcessing(true);
     const toastId = toast.loading(`Menyetujui ${targets.length} CKP...`);
+
+    // Batch: baris keluar bertahap 40ms (SPEC §C9 #2) sebelum mutasi cache.
+    if (motionSafe) {
+      targets.forEach((t, i) => {
+        window.setTimeout(() => {
+          setRemovingIds(prev => new Set(prev).add(t.id));
+        }, i * 40);
+      });
+      await new Promise((resolve) => setTimeout(resolve, targets.length * 40 + MOTION.rowOut));
+      setRemovingIds(new Set());
+    }
 
     // Tandai baris hilang optimistis dari cache daftar.
     queryClient.setQueryData<QuickApprovalRow[]>(['quick-approval', bulan, tahun], (old) => {
@@ -281,7 +308,7 @@ export default function PimpinanQuickApprovalClient() {
   return (
     <>
       <Header />
-      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6">
         
         <FetchingBar show={isFiltering} />
 
@@ -319,14 +346,14 @@ export default function PimpinanQuickApprovalClient() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               aria-label="Cari nama atau NIP pegawai"
-              className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
+              className="w-full pl-9 h-10 text-[13px] rounded-xl transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
               style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
           </div>
           <button
             onClick={() => setShowBulkConfirm(true)}
             disabled={readyCount === 0 || bulkProcessing}
-            className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl text-[13px] font-semibold transition-all md:ml-auto disabled:cursor-not-allowed disabled:opacity-60 hover:brightness-95"
+            className="inline-flex items-center justify-center gap-2 px-4 h-10 rounded-xl text-[13px] font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] active:scale-[0.97] md:ml-auto disabled:cursor-not-allowed disabled:opacity-60 hover:brightness-95"
             style={{
               background: readyCount === 0 ? 'var(--sand-subtle)' : 'var(--success)',
               color: readyCount === 0 ? 'var(--text-tertiary)' : '#fff',
@@ -354,10 +381,10 @@ export default function PimpinanQuickApprovalClient() {
                 {loading && uploads.length === 0 ? (
                   [...Array(3)].map((_, i) => (
                     <tr key={i}>
-                      <td className="py-4 px-4"><div className="h-10 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-48"></div></td>
-                      <td className="py-4 px-4"><div className="h-6 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-24 mx-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-6 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-16 mx-auto"></div></td>
-                      <td className="py-4 px-4"><div className="h-8 bg-slate-100 dark:bg-slate-800 rounded animate-pulse w-32 mx-auto"></div></td>
+                      <td className="py-4 px-4"><div className="skeleton h-10 rounded w-48"></div></td>
+                      <td className="py-4 px-4"><div className="skeleton h-6 rounded w-24 mx-auto"></div></td>
+                      <td className="py-4 px-4"><div className="skeleton h-6 rounded w-16 mx-auto"></div></td>
+                      <td className="py-4 px-4"><div className="skeleton h-8 rounded w-32 mx-auto"></div></td>
                     </tr>
                   ))
                 ) : filteredUploads.length === 0 ? (
@@ -370,7 +397,7 @@ export default function PimpinanQuickApprovalClient() {
                   </tr>
                 ) : (
                   filteredUploads.map((upload) => (
-                    <tr key={upload.id} className="transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50">
+                    <tr key={upload.id} className={`transition-colors hover:bg-slate-50/50 dark:hover:bg-slate-800/50${removingIds.has(upload.id) ? ' motion-remove' : ''}`}>
                       <td className="py-3 px-4">
                         <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{upload.user.full_name}</div>
                         <div className="text-xs mt-0.5" style={{ color: 'var(--text-secondary)' }}>{upload.user.unit_kerja || upload.user.nip}</div>
@@ -397,7 +424,7 @@ export default function PimpinanQuickApprovalClient() {
                                    setShowApprovalModal(true);
                                  }}
                                  disabled={processingId === upload.id || !upload.allScored}
-                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] active:scale-[0.97] ${
                                    !upload.allScored
                                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed dark:bg-slate-800'
                                    : 'bg-[var(--success)] hover:brightness-95 text-white shadow-sm hover:shadow-md'
@@ -473,7 +500,7 @@ export default function PimpinanQuickApprovalClient() {
             <button
               onClick={handleBulkApprove}
               disabled={bulkProcessing}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:brightness-95 disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] active:scale-[0.97] hover:brightness-95 disabled:opacity-60"
               style={{ background: 'var(--success)' }}
             >
               {bulkProcessing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}

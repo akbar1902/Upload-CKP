@@ -555,6 +555,41 @@ body {
   animation: indicatorIn var(--duration-press) var(--ease-out-strong) both;
 }
 
+/* Delight #5 (SPEC §C9, opsional): panel ilustrasi login — float halus
+   ±5px / 7 dtk. Loop dekoratif; dimatikan total di reduced-motion (G1 #4). */
+@keyframes motionFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+.motion-float {
+  animation: motionFloat 7s var(--ease-in-out-strong) infinite;
+}
+
+/* Entrance rise 220ms (kartu form login/reset-password — SPEC §E). */
+.motion-rise-in {
+  animation: pageEnter var(--duration-panel-enter) var(--ease-out-strong) both;
+}
+
+/* Status singkat ("Tersimpan", "Menyimpan…") — fade 150ms (SPEC §C3). */
+.motion-status-fade {
+  animation: fadeIn var(--duration-exit) var(--ease-out-strong) both;
+}
+
+/* Alert/error kondisional (muncul saat state false→true) — fade + rise 4px
+   180ms (SPEC §C7). */
+@keyframes alertIn {
+  from { opacity: 0; transform: translateY(var(--motion-rise-sm)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.motion-alert-in {
+  animation: alertIn var(--duration-fast) var(--ease-out-strong) both;
+}
+
+/* Crossfade konten saat state/wizard berpindah (SPEC §C2/§E, 180ms linear). */
+.motion-crossfade {
+  animation: fadeIn var(--duration-fast) linear both;
+}
+
 /* Bar progres indeterminate (FetchingBar) — digerakkan CSS keyframe,
    bukan animation loop JS. Visual sama: translateX -120% → 360%. */
 @keyframes fetchingBarSlide {
@@ -672,9 +707,9 @@ body {
   transform: translateY(-2px);
 }
 
-/* Expanded card content */
+/* Expanded card content — kontainer visual. Entrance kini lewat pola
+   grid-template-rows `.motion-collapse-wrap` di pemakainya (Fase 4). */
 .card-expanded-content {
-  animation: slideDown var(--duration-enter) var(--ease-out-strong) both;
   overflow: hidden;
 }
 
@@ -1464,7 +1499,8 @@ input, textarea, select {
   .motion-indicator-in {
     animation: none !important;
   }
-  .motion-page-enter {
+  .motion-page-enter,
+  .motion-rise-in {
     animation: fadeIn var(--duration-press) linear both !important;
   }
 
@@ -1494,7 +1530,9 @@ input, textarea, select {
   .motion-donut-draw {
     animation: none !important;
   }
-  .motion-chart-fade {
+  .motion-chart-fade,
+  .motion-status-fade,
+  .motion-crossfade {
     animation: fadeIn var(--duration-press) linear both !important;
   }
 

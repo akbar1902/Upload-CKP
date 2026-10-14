@@ -9,7 +9,6 @@ import {
   Plus,
   Trash2,
   Search,
-  X,
   AlertTriangle,
   FileSpreadsheet,
   RefreshCw,
@@ -17,6 +16,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { withTimeoutRetry } from '@/lib/supabase/read';
 import {
@@ -295,7 +295,7 @@ export function RkManagementView({
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-7 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-7">
 
         {/* ===== Header ===== */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -505,7 +505,7 @@ export function RkManagementView({
                       {teamRks.length} RK &middot; {teamSubs} Sub-RK
                     </span>
                     <button onClick={() => toggleTeam(teamRks)} className="filter-btn ml-auto !py-1.5 !px-3 text-[12px]">
-                      <ChevronDown size={13} className={allOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                      <ChevronDown size={13} className={`transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]${allOpen ? ' rotate-180' : ''}`} />
                       {allOpen ? 'Tutup' : 'Buka semua'}
                     </button>
                   </div>
@@ -591,14 +591,18 @@ export function RkManagementView({
                               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[12.5px] font-medium transition-colors hover:bg-[var(--sand-subtle)]"
                               style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-soft)' }}
                             >
-                              <ChevronDown size={14} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                              <ChevronDown size={14} className={`transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]${isOpen ? ' rotate-180' : ''}`} />
                               {isOpen ? 'Sembunyikan kegiatan' : `Lihat ${subs.length} kegiatan`}
                             </button>
 
-                            {/* sub-rk */}
-                            {isOpen && (
+                            {/* sub-rk — accordion grid-template-rows (SPEC §C1/C4) */}
+                            <div
+                              className="motion-collapse-wrap mt-3"
+                              data-open={isOpen}
+                            >
+                              <div inert={!isOpen}>
                               <div
-                                className="mt-3 rounded-xl p-2"
+                                className="rounded-xl p-2"
                                 style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)' }}
                               >
                                 {subs.length > 0 ? (
@@ -653,7 +657,8 @@ export function RkManagementView({
                                   </p>
                                 )}
                               </div>
-                            )}
+                              </div>
+                            </div>
                           </div>
                         </article>
                       );
@@ -858,26 +863,17 @@ function Modal({
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  // Migrasi Fase 4: modal lokal → Dialog bersama (backdrop scrim datar tanpa
+  // blur, focus-trap/ESC/scroll-lock standar, enter/exit dari komponen Dialog).
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-      style={{ background: 'rgba(43, 42, 38, 0.45)', backdropFilter: 'blur(4px)' }}
-    >
-      <div
-        className="w-full max-w-md overflow-hidden rounded-2xl"
-        style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-elevated)' }}
-      >
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-          <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {title}
-          </h3>
-          <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">{children}</div>
-      </div>
-    </div>
+    <Dialog open onClose={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-[15px]">{title}</DialogTitle>
+        </DialogHeader>
+        <DialogBody className="space-y-4">{children}</DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }
 

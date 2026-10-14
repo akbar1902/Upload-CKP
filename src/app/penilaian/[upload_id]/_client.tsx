@@ -32,7 +32,7 @@ import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
   RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock, Calendar,
-  Briefcase, Search, ChevronDown, ChevronUp, Save, LayoutList, ArrowRightLeft, AlertTriangle,
+  Briefcase, Search, ChevronDown, Save, LayoutList, ArrowRightLeft, AlertTriangle,
   CalendarDays,
 } from 'lucide-react';
 
@@ -229,7 +229,7 @@ function RencanaKinerjaGroup({
                       Menyimpan…
                     </span>
                   ) : justSaved ? (
-                    <span className="text-[10px] font-semibold flex items-center justify-end gap-1 animate-fade-in" style={{ color: 'var(--success-text)' }}>
+                    <span className="text-[10px] font-semibold flex items-center justify-end gap-1 motion-status-fade" style={{ color: 'var(--success-text)' }}>
                       <CheckCircle2 size={11} /> Tersimpan
                     </span>
                   ) : null}
@@ -251,13 +251,23 @@ function RencanaKinerjaGroup({
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             aria-label={expanded ? 'Tutup' : 'Buka'}
           >
-            {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+            <ChevronDown
+              size={20}
+              className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
+              style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+              aria-hidden="true"
+            />
           </button>
         </div>
       </div>
 
-      {/* Expanded details */}
-      {expanded && (
+      {/* Expanded details — pola grid-template-rows (SPEC §C1/C4), 200ms */}
+      <div
+        className="motion-collapse-wrap"
+        data-open={expanded}
+        style={{ '--collapse-duration': 'var(--duration-row-out)' } as React.CSSProperties}
+      >
+        <div inert={!expanded}>
         <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
           {isTriwulan && monthlyScores && monthlyScores.length > 0 && (
             <div className="flex items-stretch gap-2.5">
@@ -320,7 +330,8 @@ function RencanaKinerjaGroup({
             ))}
           </div>
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -798,7 +809,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6">
         <button onClick={() => router.back()} className="flex items-center gap-2 text-[13px] font-medium transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}
@@ -923,7 +934,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                     onClick={() => setViewMode('list')}
                     aria-pressed={viewMode === 'list'}
                     title="Tampilan List"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                     style={{
                       background: viewMode === 'list' ? 'var(--primary)' : 'transparent',
                       color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
@@ -937,7 +948,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                     onClick={() => setViewMode('calendar')}
                     aria-pressed={viewMode === 'calendar'}
                     title="Tampilan Kalender"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                     style={{
                       background: viewMode === 'calendar' ? 'var(--primary)' : 'transparent',
                       color: viewMode === 'calendar' ? '#fff' : 'var(--text-secondary)',
@@ -1044,13 +1055,17 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           untuk tahu berapa RK belum dinilai / kenapa Approve disabled. */}
       {canReview && rkGroups.length > 0 && (
         <div
-          className="sticky bottom-4 z-30 mt-6 flex flex-col gap-3 rounded-2xl p-4 shadow-lg backdrop-blur-md animate-fade-in sm:flex-row sm:items-center"
-          style={{ background: 'color-mix(in srgb, var(--card-bg) 92%, transparent)', border: '1px solid var(--border)' }}
+          className="motion-page-enter sticky bottom-4 z-30 mt-6 flex flex-col gap-3 rounded-2xl p-4 shadow-lg sm:flex-row sm:items-center"
+          style={{ background: 'color-mix(in srgb, var(--card-bg) 97%, transparent)', border: '1px solid var(--border)' }}
           role="status"
           aria-label={`Progres penilaian: ${scoredRks.length} dari ${rkGroups.length} RK dinilai`}
         >
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
+            <span
+              key={allScored ? 'all-scored' : 'scoring'}
+              className={`text-[13px] font-bold whitespace-nowrap${allScored ? ' motion-pop' : ''}`}
+              style={{ color: 'var(--text-primary)' }}
+            >
               {scoredRks.length}/{rkGroups.length} RK
             </span>
             <div
@@ -1062,9 +1077,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
               aria-valuemax={rkGroups.length}
             >
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="motion-progress h-full w-full rounded-full"
                 style={{
-                  width: `${rkGroups.length > 0 ? (scoredRks.length / rkGroups.length) * 100 : 0}%`,
+                  transform: `scaleX(${rkGroups.length > 0 ? (scoredRks.length / rkGroups.length).toFixed(4) : '0'})`,
                   background: allScored ? 'var(--success)' : 'var(--primary)',
                 }}
               />
@@ -1142,56 +1157,51 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         </Dialog>
       )}
 
-      {/* Modal Pindah RK / Koreksi RK */}
-      {entryToMove && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
-          <div className="rounded-xl shadow-xl w-full max-w-md overflow-hidden border" style={{ background: 'var(--card-bg)', borderColor: 'var(--border)' }}>
-            <div className="p-5 flex justify-between items-center border-b" style={{ borderColor: 'var(--border)' }}>
-              <h3 className="font-semibold text-lg" style={{ color: 'var(--text-primary)' }}>Pindah/Koreksi Rencana Kinerja</h3>
-              <button onClick={() => setEntryToMove(null)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                 <XCircle size={20} />
-              </button>
+      {/* Modal Pindah RK / Koreksi RK — migrasi ke Dialog bersama (Fase 4) */}
+      <Dialog open={entryToMove !== null} onClose={() => setEntryToMove(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Pindah/Koreksi Rencana Kinerja</DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <div className="p-3 rounded-lg bg-[var(--primary-soft)] border border-[var(--primary-ring)]">
+              <p className="text-[11px] font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">Kegiatan</p>
+              <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entryToMove?.kegiatan}</p>
+              <p className="text-[11px] mt-2 font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">RK Awal (Salah)</p>
+              <p className="text-[13px] font-medium text-red-600 dark:text-red-400">{entryToMove?.rencana_kinerja}</p>
             </div>
-            <div className="p-5 space-y-4">
-              <div className="p-3 rounded-lg bg-[var(--primary-soft)] border border-[var(--primary-ring)]">
-                <p className="text-[11px] font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">Kegiatan</p>
-                <p className="text-[13px] font-medium" style={{ color: 'var(--text-primary)' }}>{entryToMove.kegiatan}</p>
-                <p className="text-[11px] mt-2 font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">RK Awal (Salah)</p>
-                <p className="text-[13px] font-medium text-red-600 dark:text-red-400">{entryToMove.rencana_kinerja}</p>
-              </div>
-              
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih RK Induk Baru</label>
-                <input 
-                  type="text" 
-                  list="master-rk-list"
-                  className="w-full text-sm rounded-lg h-10 px-3 outline-none focus:ring-2"
-                  style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-                  placeholder="Ketik atau pilih Rencana Kinerja..."
-                  value={targetMoveRk}
-                  onChange={(e) => setTargetMoveRk(e.target.value)}
-                />
-                <datalist id="master-rk-list">
-                  {masterRks.map((rk, idx) => (
-                    <option key={idx} value={rk.rencana_kinerja} />
-                  ))}
-                </datalist>
-                <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
-                  Pilih dari daftar RK yang ada atau ketik manual jika RK tidak ada di daftar. Kegiatan ini akan langsung dipindahkan ke grup RK yang baru.
-                </p>
-              </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Pilih RK Induk Baru</label>
+              <input
+                type="text"
+                list="master-rk-list"
+                className="w-full text-sm rounded-lg h-10 px-3 outline-none focus:ring-2 transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
+                style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                placeholder="Ketik atau pilih Rencana Kinerja..."
+                value={targetMoveRk}
+                onChange={(e) => setTargetMoveRk(e.target.value)}
+              />
+              <datalist id="master-rk-list">
+                {masterRks.map((rk, idx) => (
+                  <option key={idx} value={rk.rencana_kinerja} />
+                ))}
+              </datalist>
+              <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                Pilih dari daftar RK yang ada atau ketik manual jika RK tidak ada di daftar. Kegiatan ini akan langsung dipindahkan ke grup RK yang baru.
+              </p>
             </div>
-            <div className="p-5 flex justify-end gap-3 border-t" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
-              <button className="px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-200 transition-colors" onClick={() => setEntryToMove(null)}>
-                Batal
-              </button>
-              <button className="btn-primary" onClick={handleExecuteMoveEntry} disabled={isMovingEntry || !targetMoveRk.trim() || targetMoveRk === entryToMove.rencana_kinerja}>
-                {isMovingEntry ? 'Menyimpan...' : 'Simpan Perubahan'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntryToMove(null)}>
+              Batal
+            </Button>
+            <Button onClick={handleExecuteMoveEntry} disabled={isMovingEntry || !targetMoveRk.trim() || targetMoveRk === entryToMove?.rencana_kinerja} loading={isMovingEntry}>
+              {isMovingEntry ? 'Menyimpan...' : 'Simpan Perubahan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

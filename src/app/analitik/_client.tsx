@@ -166,7 +166,7 @@ export default function AnalitikClient() {
   return (
     <>
       <Header />
-      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6">
         <FetchingBar show={isFiltering} />
 
         {/* ── Hero + filter ─────────────────────────────── */}

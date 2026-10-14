@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import type { User } from '@/types/database';
 import { Search, ArrowRight, Users, Briefcase, Mail, ShieldCheck, WifiOff, RefreshCw } from 'lucide-react';
+import { useStaggerOnce } from '@/lib/motion';
 
 // ── Helpers ────────────────────────────────────────────────
 const AVATAR_GRADIENTS = [
@@ -26,13 +27,9 @@ function getInitials(name: string): string {
 }
 
 // ── Staff Card ─────────────────────────────────────────────
-function StaffCard({ u, index }: { u: User; index: number }) {
-  const delay = Math.min(index * 40, 320);
+function StaffCard({ u }: { u: User }) {
   return (
-    <div
-      className="activity-card animate-fade-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    <div className="activity-card">
       <div className="flex items-center gap-4 p-5">
 
         {/* Avatar */}
@@ -96,7 +93,7 @@ function StaffCard({ u, index }: { u: User; index: number }) {
         <Link
           href={`/pimpinan/pegawai/${u.id}`}
           prefetch={true}
-          className="flex items-center gap-2 flex-shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold transition-all"
+          className="flex items-center gap-2 flex-shrink-0 px-4 py-2 rounded-xl text-[13px] font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
           style={{
             background: 'var(--primary-soft)',
             color: 'var(--primary)',
@@ -190,6 +187,8 @@ export default function PimpinanPegawaiPage() {
   // `usersData` is undefined before first successful fetch. Once fetched (even empty []),
   // data is defined — so we only skeleton on the very first load, never on refetch.
   const loading = authLoading || (usersData === undefined && queryPending);
+  // Stagger entrance hanya paint pertama (SPEC §B5/C2) — cari/filter tidak re-stagger.
+  const listStaggerClass = useStaggerOnce(!loading);
 
   // Safe array alias for all downstream usage
   const users = usersData ?? [];
@@ -235,7 +234,7 @@ export default function PimpinanPegawaiPage() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 space-y-6">
 
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
@@ -310,9 +309,9 @@ export default function PimpinanPegawaiPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredUsers.map((u, i) => (
-              <StaffCard key={u.id} u={u} index={i} />
+          <div className={`space-y-3${listStaggerClass}`}>
+            {filteredUsers.map((u) => (
+              <StaffCard key={u.id} u={u} />
             ))}
           </div>
         )}

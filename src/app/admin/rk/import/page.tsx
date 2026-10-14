@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
 import {
@@ -51,6 +51,14 @@ export default function ImportRKPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [previewData, setPreviewData] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Underline tab: indikator bergeser (SPEC §E /admin/rk/import: slide 160–200ms).
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [tabIndicator, setTabIndicator] = useState({ left: 0, width: 0 });
+  useLayoutEffect(() => {
+    const el = tabsRef.current?.querySelector<HTMLButtonElement>(`[data-tab="${activeTab}"]`);
+    if (el) setTabIndicator({ left: el.offsetLeft, width: el.offsetWidth });
+  }, [activeTab]);
 
   // --- Dataset RK (.zip) state ---
   const [dataset, setDataset] = useState<ParsedDataset | null>(null);
@@ -248,7 +256,7 @@ export default function ImportRKPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in max-w-7xl mx-auto">
+      <div className="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
 
         <div className="flex items-center gap-4">
           <Link href="/admin/rk" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kembali">
@@ -268,22 +276,31 @@ export default function ImportRKPage() {
           <div className="bg-white dark:bg-[var(--card-bg)] rounded-2xl border p-6 shadow-sm" style={{ borderColor: 'var(--border)' }}>
 
             {/* Tabs */}
-            <div className="flex gap-4 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
+            <div ref={tabsRef} className="relative flex gap-4 mb-8 border-b" style={{ borderColor: 'var(--border)' }}>
+              {/* Indikator underline — slide 180ms (token §B1). */}
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-px h-[2px] rounded-full transition-[transform,width] duration-[var(--duration-fast)] ease-[var(--ease-out-strong)]"
+                style={{ background: 'var(--primary)', transform: `translateX(${tabIndicator.left}px)`, width: tabIndicator.width }}
+              />
               <button
                 onClick={() => setActiveTab('zip')}
-                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'zip' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                data-tab="zip"
+                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 border-transparent px-2 ${activeTab === 'zip' ? 'text-[var(--primary)]' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Dataset RK (.zip)
               </button>
               <button
                 onClick={() => setActiveTab('excel')}
-                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'excel' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                data-tab="excel"
+                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 border-transparent px-2 ${activeTab === 'excel' ? 'text-[var(--primary)]' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Upload via Excel
               </button>
               <button
                 onClick={() => setActiveTab('json')}
-                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 px-2 ${activeTab === 'json' ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                data-tab="json"
+                className={`pb-3 text-[14px] font-medium transition-colors border-b-2 border-transparent px-2 ${activeTab === 'json' ? 'text-[var(--primary)]' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
               >
                 Upload via JSON
               </button>
@@ -291,7 +308,7 @@ export default function ImportRKPage() {
 
             {/* ZIP Tab */}
             {activeTab === 'zip' && (
-              <div className="flex flex-col items-center justify-center text-center py-6">
+              <div key="tab-zip" className="motion-crossfade flex flex-col items-center justify-center text-center py-6">
                 <div className="w-16 h-16 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center mb-4">
                   <FileArchive size={28} />
                 </div>
@@ -328,7 +345,7 @@ export default function ImportRKPage() {
 
             {/* Excel Tab */}
             {activeTab === 'excel' && (
-              <div className="flex flex-col items-center justify-center text-center py-8">
+              <div key="tab-excel" className="motion-crossfade flex flex-col items-center justify-center text-center py-8">
                 <div className="w-16 h-16 rounded-full bg-[var(--primary-soft)] text-[var(--primary)] flex items-center justify-center mb-4">
                   <FileSpreadsheet size={28} />
                 </div>
@@ -351,7 +368,7 @@ export default function ImportRKPage() {
 
             {/* JSON Tab */}
             {activeTab === 'json' && (
-              <div className="flex flex-col items-center justify-center text-center py-8">
+              <div key="tab-json" className="motion-crossfade flex flex-col items-center justify-center text-center py-8">
                 <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[var(--primary)] flex items-center justify-center mb-4">
                   <FileJson size={28} />
                 </div>
