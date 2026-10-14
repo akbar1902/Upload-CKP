@@ -59,6 +59,11 @@ export const SPRING = {
   crisp: { type: 'spring' as const, stiffness: 380, damping: 30 },
   soft: { type: 'spring' as const, stiffness: 260, damping: 30 },
   pop: { type: 'spring' as const, stiffness: 500, damping: 28, mass: 0.8 },
+  /**
+   * Dialog (ekspresif §B-5/§C3): settle cepat tanpa bounce mainan —
+   * ζ≈0.6, settle ≤350ms, overshoot ~0,6% skala. Mass eksplisit 1.
+   */
+  settle: { type: 'spring' as const, stiffness: 400, damping: 24, mass: 1 },
 } as const;
 
 /**

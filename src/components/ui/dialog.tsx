@@ -4,8 +4,15 @@ import * as React from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { MOTION, EASE } from "@/lib/motion";
+import { MOTION, EASE, SPRING } from "@/lib/motion";
 import { X } from "lucide-react";
+
+/**
+ * Durasi fade backdrop dialog — addendum ekspresif §B-5 menetapkan 220ms
+ * (exit tetap `--duration-exit` 170ms). 220ms tidak punya token karena
+ * `--duration-panel-enter` naik ke 280ms untuk panel non-dialog (§C1).
+ */
+const DIALOG_BACKDROP_ENTER_MS = 220;
 
 interface DialogContextType {
   open: boolean;
@@ -158,21 +165,24 @@ function Dialog({ open, onClose, children }: DialogProps) {
           className="fixed inset-0 z-[9999] flex items-center justify-center"
         >
           <DialogContext.Provider value={{ open, onClose, contentRef, titleId, labelledById, setLabelledById }}>
-            {/* Backdrop — scrim datar (MOTION-SPEC §D G3: blur-x dihapus) */}
+            {/* Backdrop — scrim datar (MOTION-SPEC §D G3: blur-x dihapus).
+                Ekspresif §B-5: black/50, fade enter 220ms / exit 170ms. */}
             <motion.div
-              className="fixed inset-0 bg-black/40"
+              className="fixed inset-0 bg-black/50"
               initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: MOTION.fast / 1000, ease: EASE.outStrong } }}
+              animate={{ opacity: 1, transition: { duration: DIALOG_BACKDROP_ENTER_MS / 1000, ease: EASE.outStrong } }}
               exit={{ opacity: 0, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
               onClick={onClose}
               aria-hidden="true"
             />
-            {/* Content — enter 220ms / exit 150ms (MOTION-SPEC §C5) */}
+            {/* Content — enter spring settle (ekspresif §B-5: scale 0.94→1,
+                overshoot ~0,6%), exit scale→0.96 170ms apple (exit < enter).
+                Reduced-motion ditangani MotionConfig (framer skip scale). */}
             <motion.div
               className="relative z-50 flex flex-col w-full items-center justify-center p-4"
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1, transition: { duration: MOTION.panelEnter / 1000, ease: EASE.outStrong } }}
-              exit={{ opacity: 0, scale: 0.98, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1, transition: SPRING.settle }}
+              exit={{ opacity: 0, scale: 0.96, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
             >
               {children}
             </motion.div>

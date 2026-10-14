@@ -73,6 +73,102 @@ function getSidebarCollapsedServerSnapshot() {
   return false;
 }
 
+/**
+ * Indikator aktif yang MELUNCUR antar item dalam satu track (addendum
+ * ekspresif §B-7). Satu elemen per track (nav utama & submenu); posisi+tinggi
+ * diukur dari DOM lewat ref ke track-nya (`transform` terukur) dengan
+ * ResizeObserver + jendela rAF — TANPA `layoutId`/layout-projection framer
+ * (menghindari konflik transisi `width` collapse — MOTION-TECH §4.5 no.3).
+ *
+ * `navContent` dirender dua kali (rail mobile & desktop) sehingga tiap
+ * instance punya ref + pengukurannya sendiri.
+ *
+ * Perilaku:
+ * - penempatan pertama → lompat instan (tidak meluncur dari nol);
+ * - `pathname` berubah → glide `--duration-glide` (280ms);
+ * - collapse/submenu/resize berubah → re-measure 200ms (§B-7);
+ * - reduced-motion → `transition: none` dari blok §D (lompat instan).
+ */
+const GLIDE_REMEASURE_MS = 200;
+const GLIDE_REMEASURE_WINDOW_MS = 260;
+
+function NavIndicator({ pathname, submenuOpen }: { pathname: string; submenuOpen: boolean }) {
+  const ref = React.useRef<HTMLSpanElement | null>(null);
+  const placedPath = React.useRef<string | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    const track = el?.parentElement as HTMLElement | null;
+    if (!el || !track) return;
+
+    let raf = 0;
+
+    const place = (remeasure: boolean) => {
+      if (remeasure) {
+        el.style.setProperty('--duration-glide', `${GLIDE_REMEASURE_MS}ms`);
+      } else {
+        el.style.removeProperty('--duration-glide');
+        el.removeAttribute('data-glide');
+      }
+
+      const target = track.querySelector<HTMLElement>('[aria-current="page"]');
+      // Rail yang sedang `display: none` (mis. rail mobile di layar besar)
+      // tidak punya geometri → sembunyikan sampai ResizeObserver melapor.
+      if (!target || track.getBoundingClientRect().width === 0) {
+        el.setAttribute('data-visible', 'false');
+        return;
+      }
+
+      const y = target.offsetTop + (target.offsetHeight - el.offsetHeight) / 2;
+      el.style.transform = `translateY(${Math.round(y)}px)`;
+      el.setAttribute('data-visible', 'true');
+    };
+
+    // Ikuti layout yang sedang bergerak (collapse 180ms / collapse sidebar
+    // 240ms / buka submenu) selama satu jendela rAF, lalu hentikan.
+    const follow = () => {
+      const until = performance.now() + GLIDE_REMEASURE_WINDOW_MS;
+      const tick = () => {
+        place(true);
+        if (performance.now() < until) {
+          raf = requestAnimationFrame(tick);
+        } else {
+          raf = 0;
+          el.style.removeProperty('--duration-glide');
+        }
+      };
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(tick);
+    };
+
+    const firstPlacement = placedPath.current === null;
+    const targetChanged = placedPath.current !== pathname;
+    placedPath.current = pathname;
+
+    if (firstPlacement) {
+      // Elemen baru: tempatkan tanpa transisi agar tidak meluncur dari 0.
+      el.setAttribute('data-glide', 'off');
+      place(false);
+      raf = requestAnimationFrame(() => el.removeAttribute('data-glide'));
+    } else if (targetChanged) {
+      place(false); // glide 280ms dari posisi lama ke item aktif baru
+    } else {
+      follow(); // posisi item bergeser (collapse/submenu/resize)
+    }
+
+    const observer = new ResizeObserver(() => follow());
+    observer.observe(track);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      el.style.removeProperty('--duration-glide');
+      observer.disconnect();
+    };
+  }, [pathname, submenuOpen]);
+
+  return <span ref={ref} className="sidebar-indicator" aria-hidden="true" />;
+}
+
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
@@ -361,103 +457,108 @@ export function Sidebar() {
               )}
             </button>
             
-            {/* Sub-items — expand/collapse grid-rows 0fr⇄1fr (MOTION-SPEC §C1) */}
+            {/* Sub-items — expand/collapse grid-rows 0fr⇄1fr (MOTION-SPEC §C1).
+                Indikator geser (§B-7): satu elemen per track, x sejajar padding
+                pl-3 (lihat `.sidebar-indicator[data-nav-track="sub"]`). */}
             {!collapsed && (
               <div className="motion-collapse-wrap" data-open={isDashboardOpen}>
                 <div
-                  className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]"
+                  className="relative mt-1 ml-4 pl-3 border-l border-[var(--border)]"
+                  data-nav-track="sub"
                   inert={!isDashboardOpen}
                 >
-                  {dashboardSubItems.map((item) => {
-                    const active = isActive(item.href);
-                    return (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        prefetch={true}
-                        onClick={() => setMobileOpen(false)}
-                        className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
-                        style={
-                          active
-                            ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                            : { color: 'var(--sidebar-text-muted)' }
-                        }
-                        onMouseEnter={(e) => {
-                          if (!active) {
-                            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                  <NavIndicator pathname={pathname} submenuOpen={isDashboardOpen} />
+                  <div className="space-y-1">
+                    {dashboardSubItems.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          prefetch={true}
+                          onClick={() => setMobileOpen(false)}
+                          aria-current={active ? 'page' : undefined}
+                          className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+                          style={
+                            active
+                              ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
+                              : { color: 'var(--sidebar-text-muted)' }
                           }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!active) {
-                            (e.currentTarget as HTMLElement).style.background = 'transparent';
-                            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                          }
-                        }}
-                      >
-                        {/* Indikator terracotta: sub-item aktif (muncul halus, §C1) */}
-                        {active && (
-                          <span className="motion-indicator-in absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-                        )}
-                        <span>{item.label}</span>
-                      </Link>
-                    );
-                  })}
+                          onMouseEnter={(e) => {
+                            if (!active) {
+                              (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                              (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                            }
+                          }}
+                          onMouseLeave={(e) => {
+                            if (!active) {
+                              (e.currentTarget as HTMLElement).style.background = 'transparent';
+                              (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                            }
+                          }}
+                        >
+                          <span>{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* Other Items */}
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const active = isActive(item.href);
-          const isPlaceholder = item.href.startsWith('#');
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              prefetch={true}
-              onClick={() => setMobileOpen(false)}
-              title={item.label}
-              aria-label={item.label}
-              aria-current={active ? 'page' : undefined}
-              className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
-                collapsed && "justify-center px-3"
-              )}
-              style={
-                active
-                  ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                  : { color: 'var(--sidebar-text-muted)' }
-              }
-              onMouseEnter={(e) => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-                }
-                // Prefetch upload master data when hovering the Upload CKP link
-                if (item.href === '/pegawai/upload') {
-                  void prefetchUploadData();
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                }
-              }}
-            >
-              {/* Indikator terracotta: item aktif (muncul halus, §C1) */}
-              {active && !collapsed && (
-                <span className="motion-indicator-in absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-              )}
-              <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
-              {!collapsed && <span>{item.label}</span>}
-            </Link>
-          );
-        })}
+        {/* Other Items — satu track untuk indikator geser (§B-7); elemen
+            indikator hanya saat sidebar terbuka (perilaku lama). */}
+        <div className="relative" data-nav-track="main">
+          {!collapsed && <NavIndicator pathname={pathname} submenuOpen={isDashboardOpen} />}
+          <div className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.href);
+              const isPlaceholder = item.href.startsWith('#');
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={true}
+                  onClick={() => setMobileOpen(false)}
+                  title={item.label}
+                  aria-label={item.label}
+                  aria-current={active ? 'page' : undefined}
+                  className={cn(
+                    "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
+                    collapsed && "justify-center px-3"
+                  )}
+                  style={
+                    active
+                      ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
+                      : { color: 'var(--sidebar-text-muted)' }
+                  }
+                  onMouseEnter={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                      (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                    }
+                    // Prefetch upload master data when hovering the Upload CKP link
+                    if (item.href === '/pegawai/upload') {
+                      void prefetchUploadData();
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!active) {
+                      (e.currentTarget as HTMLElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                    }
+                  }}
+                >
+                  <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
+                  {!collapsed && <span>{item.label}</span>}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       </nav>
 
       {/* ── Bottom Actions ────────────────────────────── */}

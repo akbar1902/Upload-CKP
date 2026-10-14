@@ -1001,6 +1001,42 @@ body {
   background: var(--accent);
 }
 
+/* ─── Indikator aktif sidebar — GESER (ekspresif §B-7) ─────────────────
+   Satu elemen indikator per track yang MELUNCUR ke item aktif (bukan
+   muncul-di-tempat). Posisi diukur dari DOM oleh `NavIndicator`
+   (sidebar.tsx) lewat ref + ResizeObserver/rAF → transform terukur,
+   BUKAN layoutId/layout-projection framer (hindari konflik transisi
+   `width` collapse — MOTION-TECH §4.5 no.3). Ukuran 3×24px;
+   kecepatan token --duration-glide (280ms); re-measure 200ms di-set
+   inline oleh JS. */
+[data-nav-track] {
+  position: relative;
+}
+.sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--duration-glide) var(--ease-out-strong),
+              opacity var(--duration-fast) linear;
+}
+.sidebar-indicator[data-visible="true"] {
+  opacity: 1;
+}
+/* Penempatan pertama / lompat instan (elemen baru tidak meluncur dari 0). */
+.sidebar-indicator[data-glide="off"] {
+  transition: none;
+}
+/* Track submenu: x sejajar padding `pl-3` (posisi indikator lama). */
+[data-nav-track="sub"] .sidebar-indicator {
+  left: 12px;
+}
+
 /* Link sekunder penting: primary → terracotta saat hover */
 .lihat-tabel-link:hover {
   color: var(--accent-strong) !important;
@@ -1550,10 +1586,12 @@ input, textarea, select {
     animation: fadeIn var(--duration-press) linear both !important;
   }
 
-  /* 2) Stagger delay → 0 (semua anak muncul bersamaan) */
+  /* 2) Stagger: delay → 0 + entrance JADI FADE SAJA — perbaikan celah §D #2
+     (anak `.stagger`/`.card-list` tidak lagi translate 16px; menaikkan
+     amplitude §B-2 tanpa perbaikan ini = pelanggaran G1). */
   .stagger > *,
   .card-list > * {
-    animation-delay: 0ms !important;
+    animation: fadeIn var(--duration-press) linear both !important;
   }
 
   /* 3) Hover transform → mati (kartu & lift umum) */
@@ -1621,5 +1659,27 @@ input, textarea, select {
   ::view-transition-group(*) {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
+  }
+
+  /* 9) Tekan tombol: tanpa transform — feedback warna/opacity tetap (§D #4). */
+  button:active,
+  .btn-primary:active,
+  .btn-secondary:active,
+  .sidebar-nav-item:active {
+    transform: none !important;
+  }
+
+  /* 10) Elemen yang bergeser → lompat instan ke posisi baru, tanpa meluncur
+     (indikator sidebar §D #7; `.motion-glide` disiapkan untuk glide
+     segmented/underline P1 §D #9). */
+  .motion-glide,
+  .sidebar-indicator {
+    transition: none !important;
+  }
+
+  /* 11) Checkmark draw (§D #13 — kelas disiapkan untuk momen delight P2):
+     ikon tampil utuh tanpa menggambar. */
+  .motion-check-draw {
+    animation: none !important;
   }
 }
