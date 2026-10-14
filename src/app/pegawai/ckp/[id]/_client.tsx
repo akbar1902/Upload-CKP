@@ -16,7 +16,7 @@ import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2, AlertTriangle,
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, WifiOff, Trash2, AlertTriangle,
   LayoutList, CalendarDays,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -137,7 +137,12 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
                 className="p-1 rounded text-slate-400 hover:text-slate-600 transition-colors"
                 aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
               >
-                {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
+                <ChevronDown
+                  size={15}
+                  className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
+                  style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </div>
@@ -275,13 +280,23 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
             aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
           >
-            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            <ChevronDown
+              size={14}
+              className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
+              style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
+              aria-hidden="true"
+            />
           </button>
         </div>
       </div>
 
-      {/* ── Expanded detail ─────────────────────────── */}
-      {expanded && (
+      {/* ── Expanded detail — pola grid-template-rows (SPEC §C1/C4), 200ms ── */}
+      <div
+        className="motion-collapse-wrap"
+        data-open={expanded}
+        style={{ '--collapse-duration': 'var(--duration-row-out)' } as React.CSSProperties}
+      >
+        <div inert={!expanded}>
         <div
           className="card-expanded-content border-t px-5 py-4"
           style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
@@ -309,7 +324,10 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
                 style={{ color: 'var(--text-secondary)' }}>Progres (mobile)</p>
               <div className="flex items-center gap-2">
                 <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--sand-subtle)', maxWidth: 80 }}>
-                  <div className={`h-full rounded-full ${progressClass}`} style={{ width: `${pct}%` }} />
+                  <div
+                    className={`motion-progress h-full w-full rounded-full ${progressClass}`}
+                    style={{ transform: `scaleX(${Math.max(0, Math.min(pct, 100) / 100).toFixed(4)})` }}
+                  />
                 </div>
                 <span className="text-[13px] font-bold" style={{ color: 'var(--text-primary)' }}>{pct}%</span>
               </div>
@@ -326,7 +344,8 @@ function EntryCard({ entry, index }: { entry: CKPEntry; index: number }) {
             </p>
           )}
         </div>
-      )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -536,7 +555,7 @@ export default function CKPDetailPage() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6">
 
         {/* ── Back ──────────────────────────────────── */}
         <Link
@@ -676,7 +695,7 @@ export default function CKPDetailPage() {
                   onClick={() => setViewMode('list')}
                   aria-pressed={viewMode === 'list'}
                   title="Tampilan List"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                   style={{
                     background: viewMode === 'list' ? 'var(--primary)' : 'transparent',
                     color: viewMode === 'list' ? '#fff' : 'var(--text-secondary)',
@@ -690,7 +709,7 @@ export default function CKPDetailPage() {
                   onClick={() => setViewMode('calendar')}
                   aria-pressed={viewMode === 'calendar'}
                   title="Tampilan Kalender"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-all"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
                   style={{
                     background: viewMode === 'calendar' ? 'var(--primary)' : 'transparent',
                     color: viewMode === 'calendar' ? '#fff' : 'var(--text-secondary)',

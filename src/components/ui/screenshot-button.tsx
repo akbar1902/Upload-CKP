@@ -35,20 +35,39 @@ export function ScreenshotButton({
 
     try {
       setIsCapturing(true);
-      // Ambil nilai token bg-base dari tema aktif (light/dark) agar hasil
-      // screenshot konsisten; fallback ke warna earthy lama bila kosong.
-      const tokenBg = getComputedStyle(document.documentElement)
-        .getPropertyValue('--bg-base')
-        .trim();
-      const dataUrl = await htmlToImage.toPng(targetElement, {
-        quality: 1,
-        pixelRatio: 2, // High resolution
-        backgroundColor: tokenBg || '#F8F6EE', // match app bg (earthy)
-        style: {
-          transform: 'none', // Prevent some glitching
-        },
-        cacheBust: true, // Prevents caching issues with images
-      });
+      // Tunggu animasi/transisi settle sebelum capture (MOTION-SPEC §D G4 / §4.6):
+      // html-to-image menyalin computed style — frame tengah-animasi menghasilkan
+      // hasil transparan/tergeser. Timeout 1 dtk sebagai pengaman animasi tak berujung.
+      const running = targetElement.getAnimations({ subtree: true }).filter((a) => a.playState === 'running');
+      if (running.length > 0) {
+        await Promise.race([
+          Promise.all(running.map((a) => a.finished.catch(() => undefined))),
+          new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]);
+      }
+      // G4 (guardrail): bekukan semua animasi/transisi di dalam target selama
+      // capture via util `[data-motion="none"]` (globals.css) — animasi loop
+      // (spinner/pulse) yang tak pernah "finished" jadi deterministik.
+      targetElement.setAttribute('data-motion', 'none');
+      let dataUrl: string;
+      try {
+        // Ambil nilai token bg-base dari tema aktif (light/dark) agar hasil
+        // screenshot konsisten; fallback ke warna earthy lama bila kosong.
+        const tokenBg = getComputedStyle(document.documentElement)
+          .getPropertyValue('--bg-base')
+          .trim();
+        dataUrl = await htmlToImage.toPng(targetElement, {
+          quality: 1,
+          pixelRatio: 2, // High resolution
+          backgroundColor: tokenBg || '#F8F6EE', // match app bg (earthy)
+          style: {
+            transform: 'none', // Prevent some glitching
+          },
+          cacheBust: true, // Prevents caching issues with images
+        });
+      } finally {
+        targetElement.removeAttribute('data-motion');
+      }
 
       // Convert to image and download
       const link = document.createElement('a');

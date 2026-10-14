@@ -9,7 +9,6 @@ import {
   Plus,
   Trash2,
   Search,
-  X,
   AlertTriangle,
   FileSpreadsheet,
   RefreshCw,
@@ -17,6 +16,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody } from '@/components/ui/dialog';
 import Link from 'next/link';
 import { withTimeoutRetry } from '@/lib/supabase/read';
 import {
@@ -295,7 +295,7 @@ export function RkManagementView({
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-7 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-7">
 
         {/* ===== Header ===== */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
@@ -505,7 +505,7 @@ export function RkManagementView({
                       {teamRks.length} RK &middot; {teamSubs} Sub-RK
                     </span>
                     <button onClick={() => toggleTeam(teamRks)} className="filter-btn ml-auto !py-1.5 !px-3 text-[12px]">
-                      <ChevronDown size={13} className={allOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                      <ChevronDown size={13} className={`transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]${allOpen ? ' rotate-180' : ''}`} />
                       {allOpen ? 'Tutup' : 'Buka semua'}
                     </button>
                   </div>
@@ -591,12 +591,16 @@ export function RkManagementView({
                               className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl py-2 text-[12.5px] font-medium transition-colors hover:bg-[var(--sand-subtle)]"
                               style={{ color: 'var(--text-secondary)', border: '1px solid var(--border-soft)' }}
                             >
-                              <ChevronDown size={14} className={isOpen ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                              <ChevronDown size={14} className={`transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]${isOpen ? ' rotate-180' : ''}`} />
                               {isOpen ? 'Sembunyikan kegiatan' : `Lihat ${subs.length} kegiatan`}
                             </button>
 
-                            {/* sub-rk */}
-                            {isOpen && (
+                            {/* sub-rk — accordion grid-template-rows (SPEC §C1/C4) */}
+                            <div
+                              className="motion-collapse-wrap"
+                              data-open={isOpen}
+                            >
+                              <div inert={!isOpen}>
                               <div
                                 className="mt-3 rounded-xl p-2"
                                 style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)' }}
@@ -653,7 +657,8 @@ export function RkManagementView({
                                   </p>
                                 )}
                               </div>
-                            )}
+                              </div>
+                            </div>
                           </div>
                         </article>
                       );
@@ -667,8 +672,12 @@ export function RkManagementView({
       </div>
 
       {/* ================= Modal Tambah RK ================= */}
-      {canEdit && showAddMasterModal && (
-        <Modal title="Tambah RK Utama" onClose={() => setShowAddMasterModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showAddMasterModal}
+          title="Tambah RK Utama"
+          onClose={() => setShowAddMasterModal(false)}
+        >
           <div className="space-y-4">
             <Field label="Nama Rencana Kinerja">
               <textarea
@@ -710,15 +719,19 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Tambah Sub-RK ================= */}
-      {canEdit && showAddSubModal && selectedRkForSub && (
-        <Modal title="Tambah Sub-RK" onClose={() => setShowAddSubModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showAddSubModal && !!selectedRkForSub}
+          title="Tambah Sub-RK"
+          onClose={() => setShowAddSubModal(false)}
+        >
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--primary)' }}>
                 RK Induk
               </p>
               <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {selectedRkForSub.rencana_kinerja}
+                {selectedRkForSub?.rencana_kinerja}
               </p>
             </div>
             <Field label="Nama Kegiatan Anggota (Sub-RK)">
@@ -736,16 +749,20 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Konfirmasi Hapus ================= */}
-      {canEdit && deleteConfirm && (
-        <Modal title="Konfirmasi Hapus" onClose={() => setDeleteConfirm(null)}>
+      {canEdit && (
+        <Modal
+          open={deleteConfirm !== null}
+          title="Konfirmasi Hapus"
+          onClose={() => setDeleteConfirm(null)}
+        >
           <div className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             <AlertTriangle size={16} style={{ color: 'var(--danger)' }} className="mt-0.5 shrink-0" />
-            <span>Hapus {deleteConfirm.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?</span>
+            <span>Hapus {deleteConfirm?.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?</span>
           </div>
           <div className="p-3 rounded-xl" style={{ background: 'var(--danger-soft)' }}>
-            <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{deleteConfirm.name}</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{deleteConfirm?.name}</p>
           </div>
-          {deleteConfirm.type === 'master' && (
+          {deleteConfirm?.type === 'master' && (
             <p className="text-[12.5px]" style={{ color: 'var(--danger-text)' }}>
               Menghapus RK Utama akan menghapus seluruh Sub-RK di dalamnya.
             </p>
@@ -755,15 +772,19 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Pindah Sub-RK ================= */}
-      {canEdit && showMoveSubModal && selectedSubForMove && (
-        <Modal title="Pindah Induk RK" onClose={() => setShowMoveSubModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showMoveSubModal && !!selectedSubForMove}
+          title="Pindah Induk RK"
+          onClose={() => setShowMoveSubModal(false)}
+        >
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--primary)' }}>
                 Sub-RK Saat Ini
               </p>
               <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {selectedSubForMove.kegiatan_nama}
+                {selectedSubForMove?.kegiatan_nama}
               </p>
             </div>
             <Field label="Pilih RK Induk Baru">
@@ -775,7 +796,7 @@ export function RkManagementView({
               >
                 <option value="">-- Pilih RK Utama --</option>
                 {rks.map((r: any) => (
-                  <option key={r.id} value={r.id} disabled={r.id === selectedSubForMove.rk_id}>
+                  <option key={r.id} value={r.id} disabled={r.id === selectedSubForMove?.rk_id}>
                     {r.tim_kerja ? `[${r.tim_kerja}] ` : ''}
                     {r.rencana_kinerja}
                   </option>
@@ -788,8 +809,12 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Hapus Tahun ================= */}
-      {canEdit && showDeleteYearModal && (
-        <Modal title={`Hapus RK tahun ${selectedYear}`} onClose={() => setShowDeleteYearModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showDeleteYearModal}
+          title={`Hapus RK tahun ${selectedYear}`}
+          onClose={() => setShowDeleteYearModal(false)}
+        >
           {!yearStats ? (
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
               Menghitung data...
@@ -850,34 +875,29 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Modal({
+  open,
   title,
   onClose,
   children,
 }: {
+  open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
 }) {
+  // Migrasi Fase 4: modal lokal → Dialog bersama (backdrop scrim datar tanpa
+  // blur, focus-trap/ESC/scroll-lock standar, enter/exit dari komponen Dialog).
+  // Dialog SELALU ter-mount (prop `open`) agar exit-animation berjalan penuh
+  // (SPEC §C5/§A3) — konten di bawah wajib null-safe saat state penutupnya null.
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-      style={{ background: 'rgba(43, 42, 38, 0.45)', backdropFilter: 'blur(4px)' }}
-    >
-      <div
-        className="w-full max-w-md overflow-hidden rounded-2xl"
-        style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-elevated)' }}
-      >
-        <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: '1px solid var(--border-soft)' }}>
-          <h3 className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-            {title}
-          </h3>
-          <button onClick={onClose} className="transition-colors" style={{ color: 'var(--text-tertiary)' }}>
-            <X size={18} />
-          </button>
-        </div>
-        <div className="p-5 space-y-4">{children}</div>
-      </div>
-    </div>
+    <Dialog open={open} onClose={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-[15px]">{title}</DialogTitle>
+        </DialogHeader>
+        <DialogBody className="space-y-4">{children}</DialogBody>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -45,7 +45,7 @@ export class ErrorBoundary extends React.Component<{ children: React.ReactNode }
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-base)' }}>
+        <div className="min-h-screen flex items-center justify-center p-6 animate-fade-in" style={{ background: 'var(--bg-base)' }}>
           <div className="max-w-md w-full text-center">
             {/* Icon */}
             <div

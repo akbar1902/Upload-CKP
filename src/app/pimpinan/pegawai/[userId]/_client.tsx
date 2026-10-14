@@ -124,7 +124,7 @@ export default function PimpinanPegawaiDetailPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
         <button onClick={() => router.back()} className="flex items-center gap-1 text-sm transition-colors"
                 style={{ color: 'var(--text-secondary)' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'; }}

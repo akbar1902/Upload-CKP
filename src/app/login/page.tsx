@@ -91,7 +91,7 @@ export default function LoginPage() {
 
           <div className="flex-1 flex flex-col justify-center">
             {/* ── Normal Login Form ─────────────── */}
-            <div className="animate-fade-in">
+            <div className="motion-rise-in">
               <div className="text-center mb-6">
                 <div className="mx-auto flex justify-center mb-4">
                   <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
@@ -105,7 +105,7 @@ export default function LoginPage() {
               </div>
 
               {error && (
-                <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
+                <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl motion-alert-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
                   <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
                   <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
                 </div>
@@ -128,7 +128,7 @@ export default function LoginPage() {
                       placeholder="nama@bps.go.id"
                       required
                       autoFocus
-                      className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                      className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                     />
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                      className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                     />
                     <button
                       type="button"
@@ -201,7 +201,7 @@ export default function LoginPage() {
             di layar kotak/tinggi panel dibatasi lebar & ke-center vertikal.
             Isi pakai container query unit (cqw/cqh) supaya selalu proporsional. */}
         <div
-          className="login-panel relative shrink-0 overflow-hidden rounded-[32px]"
+          className="login-panel motion-float relative shrink-0 overflow-hidden rounded-[32px]"
           style={{
             width: 'min(50.6vw, calc((100vh - 96px) * 1.0196))',
             aspectRatio: '728 / 714',

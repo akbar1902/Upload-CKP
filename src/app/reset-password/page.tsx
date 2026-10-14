@@ -158,7 +158,7 @@ export default function ResetPasswordPage() {
           <div className="flex-1 flex flex-col justify-center">
             {status === 'checking' && (
               /* ── Memeriksa tautan ──────────────────── */
-              <div className="flex flex-col items-center justify-center py-10 animate-fade-in text-center">
+              <div className="flex flex-col items-center justify-center py-10 motion-rise-in text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)]">
                   <div
                     className="animate-spin w-7 h-7 border-2 border-t-transparent rounded-full"
@@ -176,7 +176,7 @@ export default function ResetPasswordPage() {
 
             {status === 'invalid' && (
               /* ── Tautan tidak valid ─────────────────── */
-              <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
+              <div className="flex flex-col items-center justify-center py-4 motion-rise-in text-center">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--danger-soft)]">
                   <AlertCircle className="h-8 w-8 text-[var(--danger)]" />
                 </div>
@@ -203,7 +203,7 @@ export default function ResetPasswordPage() {
 
             {status === 'ready' && (
               /* ── Form password baru ─────────────────── */
-              <div className="animate-fade-in">
+              <div className="motion-rise-in">
                 <div className="text-center mb-8">
                   <div className="mx-auto flex justify-center mb-4">
                     <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
@@ -217,7 +217,7 @@ export default function ResetPasswordPage() {
                 </div>
 
                 {error && (
-                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl motion-alert-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
                     <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
                     <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
                   </div>
@@ -241,7 +241,7 @@ export default function ResetPasswordPage() {
                         required
                         autoFocus
                         autoComplete="new-password"
-                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                       />
                       <button
                         type="button"
@@ -270,7 +270,7 @@ export default function ResetPasswordPage() {
                         placeholder="Ulangi password baru"
                         required
                         autoComplete="new-password"
-                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                       />
                       <button
                         type="button"

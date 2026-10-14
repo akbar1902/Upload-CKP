@@ -175,7 +175,7 @@ export function Header({
   const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <header className="header-glass sticky top-0 z-20" role="banner">
+    <header className="header-glass sticky top-0 z-20" style={{ viewTransitionName: 'site-header' }} role="banner">
       <div className="flex items-center gap-4 px-6 lg:px-8" style={{ height: '64px' }}>
 
         {/* Mobile spacer for hamburger */}
@@ -226,7 +226,7 @@ export function Header({
           {/* Command palette trigger */}
           <button
             onClick={openCommandPalette}
-            className="group flex items-center gap-2 rounded-full transition-all duration-200"
+            className="group flex items-center gap-2 rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
             style={{
               background: 'var(--neu-surface)',
               boxShadow: 'var(--neu-raised-sm)',

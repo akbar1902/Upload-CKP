@@ -87,7 +87,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: AuditLog
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>

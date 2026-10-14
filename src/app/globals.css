@@ -294,11 +294,31 @@
   --radius-button:  980px;
   --radius-badge:   980px;
 
-  /* Timing */
+  /* Timing (4 token lama DIPERTAHANKAN — kontrak design/MOTION-TECH.md) */
   --ease-apple:     cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-spring:    cubic-bezier(0.34, 1.56, 0.64, 1);
   --duration:       300ms;
   --duration-fast:  180ms;
+
+  /* Timing — EKSTENSI (design/MOTION-SPEC.md §B1; menambal celah, bukan sistem paralel) */
+  --ease-out-strong:    cubic-bezier(0.23, 1, 0.32, 1);   /* entrance & exit elemen */
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);  /* gerakan posisi antar view */
+  --ease-drawer:        cubic-bezier(0.32, 0.72, 0, 1);   /* drawer/sheet mobile (rasa iOS) */
+  --duration-press:     120ms;  /* feedback tekan tombol (TIDAK diubah tier ekspresif — exit palette/bell) */
+  --duration-slow:      480ms;  /* progres/width/bar chart */
+  --stagger-step:       65ms;   /* jeda antar anak list (ekspresif §C1: 50→65) */
+  --motion-rise:        14px;   /* jarak rise konten halaman (ekspresif §C1: 6→14) */
+  --motion-rise-sm:     8px;    /* jarak rise menu/dropdown (ekspresif §C1: 4→8) */
+  --duration-exit:      170ms;  /* pola handoff (ekspresif §C1: 150→170) */
+  --duration-enter:     260ms;  /* pola handoff (ekspresif §C1: 210→260) */
+  --duration-panel-enter: 280ms; /* entrance panel NON-dialog (ekspresif §C1: 220→280) */
+  --duration-drawer-out:  250ms; /* exit drawer mobile (MOTION-SPEC §C5) */
+  --duration-row-out:     200ms; /* exit baris/kartu (collapse-out, SPEC §C4) */
+
+  /* Timing — tier ekspresif (design/MOTION-SPEC-EXPRESSIVE.md §C2) */
+  --motion-rise-card:   16px;   /* travel item/kartu pada keyframe fadeUp (§B-2) */
+  --duration-press-in:  100ms;  /* press-in tombol (§B-4) — terpisah dari --duration-press */
+  --duration-glide:     280ms;  /* indikator sidebar geser (§B-7) */
 }
 
 .dark {
@@ -411,8 +431,10 @@ body {
 .dark ::-webkit-scrollbar-thumb:hover { background: rgba(214,201,180,0.32); }
 
 /* ─── Keyframe Animations ────────────────────────────────── */
+/* Travel item/kartu entrance (ekspresif §B-2: 12px → token --motion-rise-card 16px).
+   Durasi & step dari token §C1 (`--duration-enter`, `--stagger-step`). */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(var(--motion-rise-card)); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -421,14 +443,69 @@ body {
   to   { opacity: 1; }
 }
 
+/* slideDown: hanya opacity + transform (dulu menganimasikan max-height 0→600px —
+   animasi properti layout yang janky DAN meninggalkan max-height: 600px permanen
+   via fill-mode `both` (bug potong konten). Lihat MOTION-SPEC §B2/G2. */
 @keyframes slideDown {
-  from { opacity: 0; transform: translateY(-6px); max-height: 0; }
-  to   { opacity: 1; transform: translateY(0); max-height: 600px; }
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.96); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Keyframes & kelas utilitas motion bersama (MOTION-SPEC §B/§C/§F) ── */
+/* Enter halaman: fade + rise 14px + scale 0.992→1 (ekspresif §B-1; nilai dari
+   token §C1). Konsumen keyframe bersama: VT halaman, fallback
+   `.motion-page-enter`, dan `.motion-rise-in` (kartu login — addendum §C1). */
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(var(--motion-rise)) scale(0.992); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Exit halaman (keyframe BARU, ekspresif §B-1): fade + naik 8px — arah keluar
+   membuat konten "bertukar", bukan berkedip. */
+@keyframes pageExit {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(calc(-1 * var(--motion-rise-sm))); }
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes panelOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.98); }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(calc(-1 * var(--motion-rise-sm))) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes motionPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes collapseOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Indikator aktif sidebar: muncul halus (scaleY 0.6→1 + opacity) — tidak layout-shared. */
+@keyframes indicatorIn {
+  from { opacity: 0; scale: 1 0.6; }
+  to   { opacity: 1; scale: 1 1; }
 }
 
 @keyframes shimmer {
@@ -441,54 +518,221 @@ body {
   100% { transform: scale(1.4); opacity: 0; }
 }
 
+/* ── Kebijakan fill-mode ENTRANCE vs EXIT (audit gelombang 3) ──────────────
+   Entrance sekali-pakai memakai `backwards`, bukan `both`: nilai `from` tetap
+   dipertahankan selama *delay* (anak `.stagger`/`.card-list` masih "hidden"
+   saat menunggu jadwalnya), lalu setelah animasi selesai properti JATUH KEMBALI
+   ke deklarasi normal elemen. Syarat yang sudah diaudit: `to` setiap keyframe
+   entrance = state natural elemen (opacity 1 + transform identitas = sama
+   seperti tanpa animasi) → tidak ada flash di akhir animasi.
+
+   Alasan (bug temuan verifikasi live): animasi yang masih "in effect" —
+   termasuk di fase *after* berkat fill `both`/`forwards` — MENANG atas
+   deklarasi `:hover`/`:active` di cascade. `fadeUp` yang menahan
+   `transform: translateY(0)` mematikan hover lift §B-3 di seluruh anak
+   `.stagger`/`.card-list`. Preseden di file ini: `.motion-bar-grow`.
+   Exit (`panelOut`/`fadeOut`/`collapseOut` → `.motion-remove`, semua `*-out`)
+   TETAP `both`: elemen wajib memegang state akhir (opacity 0) sampai unmount. */
+
 .animate-fade-up {
-  animation: fadeUp 0.4s var(--ease-apple) both;
+  animation: fadeUp 0.4s var(--ease-apple) backwards;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.35s var(--ease-apple) both;
+  animation: fadeIn 0.35s var(--ease-apple) backwards;
 }
 
 .animate-scale-in {
-  animation: scaleIn 0.3s var(--ease-apple) both;
+  animation: scaleIn 0.3s var(--ease-apple) backwards;
 }
 
-/* Staggered children */
-.stagger > *:nth-child(1) { animation: fadeUp 0.4s var(--ease-apple) both 0ms; }
-.stagger > *:nth-child(2) { animation: fadeUp 0.4s var(--ease-apple) both 60ms; }
-.stagger > *:nth-child(3) { animation: fadeUp 0.4s var(--ease-apple) both 120ms; }
-.stagger > *:nth-child(4) { animation: fadeUp 0.4s var(--ease-apple) both 180ms; }
-.stagger > *:nth-child(5) { animation: fadeUp 0.4s var(--ease-apple) both 240ms; }
-.stagger > *:nth-child(6) { animation: fadeUp 0.4s var(--ease-apple) both 300ms; }
+/* ── Kelas utilitas motion bersama (satu sumber; MOTION-SPEC §C/§F) ────────
+   Dipakai lintas komponen: template halaman, panel/dropdown/overlay, hapus
+   item, progres, dan indikator. Semua nilai dari token §B1. */
+/* Fallback entrance halaman (tanpa View Transitions) — nilai identik dengan
+   `::view-transition-new(.page-enter)`: token §C1 (ekspresif §B-1). */
+.motion-page-enter {
+  animation: pageEnter var(--duration-enter) var(--ease-out-strong) backwards;
+}
+.motion-panel-in {
+  animation: panelIn var(--duration-panel-enter) var(--ease-out-strong) backwards;
+}
+.motion-panel-out {
+  animation: panelOut var(--duration-exit) var(--ease-apple) both;
+}
+.motion-overlay-in {
+  animation: fadeIn var(--duration-fast) var(--ease-out-strong) backwards;
+}
+.motion-overlay-out {
+  animation: fadeOut var(--duration-exit) var(--ease-apple) both;
+}
+/* Dropdown/popover anchored (mis. notification bell): enter 180ms / exit 120ms (SPEC §C5). */
+.motion-dropdown-in {
+  animation: dropdownIn var(--duration-fast) var(--ease-out-strong) backwards;
+}
+.motion-dropdown-out {
+  animation: fadeOut var(--duration-press) var(--ease-apple) both;
+}
+/* Command palette (SPEC §C1: enter 160ms, exit 120ms fade-only — frekuensi tinggi). */
+.motion-palette-in {
+  animation: dropdownIn 160ms var(--ease-out-strong) backwards;
+}
+.motion-palette-out {
+  animation: fadeOut var(--duration-press) var(--ease-apple) both;
+}
+.motion-pop {
+  animation: motionPop var(--duration-fast) var(--ease-spring) backwards;
+}
+.motion-remove {
+  animation: collapseOut var(--duration-row-out) var(--ease-out-strong) both;
+}
+.motion-indicator-in {
+  animation: indicatorIn var(--duration-press) var(--ease-out-strong) backwards;
+}
 
-/* Card list stagger */
-.card-list > *:nth-child(1)  { animation: fadeUp 0.4s var(--ease-apple) both 0ms; }
-.card-list > *:nth-child(2)  { animation: fadeUp 0.4s var(--ease-apple) both 50ms; }
-.card-list > *:nth-child(3)  { animation: fadeUp 0.4s var(--ease-apple) both 100ms; }
-.card-list > *:nth-child(4)  { animation: fadeUp 0.4s var(--ease-apple) both 150ms; }
-.card-list > *:nth-child(5)  { animation: fadeUp 0.4s var(--ease-apple) both 200ms; }
-.card-list > *:nth-child(6)  { animation: fadeUp 0.4s var(--ease-apple) both 250ms; }
-.card-list > *:nth-child(n+7) { animation: fadeUp 0.4s var(--ease-apple) both 300ms; }
+/* Delight #5 (SPEC §C9, opsional): panel ilustrasi login — float halus
+   ±5px / 7 dtk. Loop dekoratif; dimatikan total di reduced-motion (G1 #4). */
+@keyframes motionFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-5px); }
+}
+.motion-float {
+  animation: motionFloat 7s var(--ease-in-out-strong) infinite;
+}
+
+/* Entrance rise 280ms (kartu form login/reset-password — SPEC §E; nilai token
+   §C1 tier ekspresif). */
+.motion-rise-in {
+  animation: pageEnter var(--duration-panel-enter) var(--ease-out-strong) backwards;
+}
+
+/* Status singkat ("Tersimpan", "Menyimpan…") — fade 170ms (SPEC §C3, nilai
+   token --duration-exit tier ekspresif). */
+.motion-status-fade {
+  animation: fadeIn var(--duration-exit) var(--ease-out-strong) backwards;
+}
+
+/* Alert/error kondisional (muncul saat state false→true) — fade + rise 4px
+   180ms (SPEC §C7). */
+@keyframes alertIn {
+  from { opacity: 0; transform: translateY(var(--motion-rise-sm)); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.motion-alert-in {
+  animation: alertIn var(--duration-fast) var(--ease-out-strong) backwards;
+}
+
+/* Crossfade konten saat state/wizard berpindah (SPEC §C2/§E, 180ms linear). */
+.motion-crossfade {
+  animation: fadeIn var(--duration-fast) linear backwards;
+}
+
+/* Bar progres indeterminate (FetchingBar) — digerakkan CSS keyframe,
+   bukan animation loop JS. Visual sama: translateX -120% → 360%. */
+@keyframes fetchingBarSlide {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(360%); }
+}
+.fetching-bar-track {
+  animation: fetchingBarSlide 1.05s ease-in-out infinite;
+}
+
+/* Entrance "grow" untuk bar/meter (transform-only, G2): dari scaleX(0) ke
+   nilai transform inline elemen (keyframe akhir implisit). `backwards` agar
+   setelah selesai properti jatuh ke nilai inline (tidak menahan fill). */
+@keyframes barGrow {
+  from { transform: scaleX(0); }
+}
+.motion-bar-grow {
+  animation: barGrow var(--duration-slow) var(--ease-out-strong) backwards;
+}
+
+/* Entrance fade chart SVG (line chart — SPEC §E: 200ms). */
+.motion-chart-fade {
+  animation: fadeIn 200ms var(--ease-out-strong) backwards;
+}
+
+/* Draw-in donut (stroke-dasharray grow dari tepi awal tiap slice):
+   nilai from/to di-set inline per slice (--donut-c radius penuh,
+   --donut-visible panjang arc, --donut-rest gap) agar animasi berakhir
+   tepat di nilai final (atribut stroke-dasharray). */
+@keyframes donutDraw {
+  from { stroke-dasharray: 0 var(--donut-c); }
+  to   { stroke-dasharray: var(--donut-visible) var(--donut-rest); }
+}
+.motion-donut-draw {
+  animation: donutDraw var(--duration-slow) var(--ease-out-strong) both;
+}
+
+/* Expand/collapse berbasis grid-template-rows (G2 — bukan max-height).
+   Durasi bisa di-override lewat --collapse-duration (mis. 200ms untuk baris tabel). */
+.motion-collapse-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--collapse-duration, 180ms) var(--ease-out-strong);
+}
+.motion-collapse-wrap[data-open="true"] {
+  grid-template-rows: 1fr;
+}
+.motion-collapse-wrap > * {
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Progres berbasis transform (G2): elemen memakai transform: scaleX(var(--p)).
+   Nilai aria-valuenow tetap di-set dari state, bukan dari visual. */
+.motion-progress {
+  transform-origin: left;
+  transition: transform var(--duration-slow) var(--ease-out-strong);
+}
+
+/* Staggered children — step dari token (ekspresif §C1: 65ms), cap 6 anak
+   (MOTION-SPEC §B5). Durasi/easing entrance: token `--duration-enter` (260ms)
+   + `--ease-out-strong`; travel dari `--motion-rise-card` (§B-2); fill
+   `backwards` (lihat "Kebijakan fill-mode ENTRANCE vs EXIT" di atas) agar
+   hover lift §B-3 tidak lagi kalah dari animasi entrance yang menahan
+   `translateY(0)` di fase after. */
+
+.stagger > *:nth-child(1) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards 0ms; }
+.stagger > *:nth-child(2) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(1 * var(--stagger-step)); }
+.stagger > *:nth-child(3) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(2 * var(--stagger-step)); }
+.stagger > *:nth-child(4) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(3 * var(--stagger-step)); }
+.stagger > *:nth-child(5) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(4 * var(--stagger-step)); }
+.stagger > *:nth-child(6) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(5 * var(--stagger-step)); }
+
+/* Card list stagger — anak ke-7+ delay tetap = cap 390ms (6 × 65ms) */
+.card-list > *:nth-child(1)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards 0ms; }
+.card-list > *:nth-child(2)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(1 * var(--stagger-step)); }
+.card-list > *:nth-child(3)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(2 * var(--stagger-step)); }
+.card-list > *:nth-child(4)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(3 * var(--stagger-step)); }
+.card-list > *:nth-child(5)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(4 * var(--stagger-step)); }
+.card-list > *:nth-child(6)  { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(5 * var(--stagger-step)); }
+.card-list > *:nth-child(n+7) { animation: fadeUp var(--duration-enter) var(--ease-out-strong) backwards calc(6 * var(--stagger-step)); }
 
 /* ─── Progress bar ───────────────────────────────────────── */
+/* Nilai progres: 480ms --ease-out-strong (MOTION-SPEC §B2/C8). Ideal scaleX
+   sudah tersedia via .motion-progress — migrasi markup per-halaman menyusul. */
 .progress-bar {
-  transition: width 0.7s var(--ease-apple);
+  transition: width var(--duration-slow) var(--ease-out-strong);
 }
 
 /* ─── KPI Card ───────────────────────────────────────────── */
+/* Hover lift ekspresif §B-3: -4px, transform 240ms --ease-out-strong;
+   shadow tetap 300ms; border → --border-hover (warna, bukan gerak). */
 .kpi-card {
   background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   transition: box-shadow var(--duration) var(--ease-apple),
-              transform var(--duration) var(--ease-apple),
-              border-color var(--duration) var(--ease-apple);
+              border-color var(--duration) var(--ease-apple),
+              transform 240ms var(--ease-out-strong);
   cursor: default;
 }
 .kpi-card:hover {
   box-shadow: var(--shadow-hover);
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
 }
 
 /* ─── Activity Card ──────────────────────────────────────── */
@@ -497,20 +741,22 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
+  /* Hover lift ekspresif §B-3 (lihat .kpi-card). */
   transition: box-shadow var(--duration) var(--ease-apple),
               border-color var(--duration) var(--ease-apple),
-              transform var(--duration) var(--ease-apple);
+              transform 240ms var(--ease-out-strong);
   position: relative;
   overflow: hidden;
 }
 .activity-card:hover {
   box-shadow: var(--shadow-hover);
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
 }
 
-/* Expanded card content */
+/* Expanded card content — kontainer visual. Entrance kini lewat pola
+   grid-template-rows `.motion-collapse-wrap` di pemakainya (Fase 4). */
 .card-expanded-content {
-  animation: slideDown 0.3s var(--ease-apple) both;
   overflow: hidden;
 }
 
@@ -707,7 +953,11 @@ body {
   background: var(--primary-hover);
 }
 .btn-primary:active {
-  transform: scale(0.98);
+  /* Press-in ekspresif §B-4: scale 0.96 + durasi masuk --duration-press-in
+     (100ms). Lepas (tanpa :active) kembali ke --duration-fast 180ms apple
+     dari blok dasar di atas. */
+  transform: scale(0.96);
+  transition-duration: var(--duration-press-in);
 }
 
 .btn-secondary {
@@ -730,7 +980,9 @@ body {
   color: var(--text-primary);
 }
 .btn-secondary:active {
-  transform: scale(0.98);
+  /* Press-in ekspresif §B-4 — lihat .btn-primary:active. */
+  transform: scale(0.96);
+  transition-duration: var(--duration-press-in);
 }
 
 /* ─── Sidebar Nav ────────────────────────────────────────── */
@@ -769,19 +1021,60 @@ body {
   background: var(--accent);
 }
 
+/* ─── Indikator aktif sidebar — GESER (ekspresif §B-7) ─────────────────
+   Satu elemen indikator per track yang MELUNCUR ke item aktif (bukan
+   muncul-di-tempat). Posisi diukur dari DOM oleh `NavIndicator`
+   (sidebar.tsx) lewat ref + ResizeObserver/rAF → transform terukur,
+   BUKAN layoutId/layout-projection framer (hindari konflik transisi
+   `width` collapse — MOTION-TECH §4.5 no.3). Ukuran 3×24px;
+   kecepatan token --duration-glide (280ms); re-measure 200ms di-set
+   inline oleh JS. */
+[data-nav-track] {
+  position: relative;
+}
+.sidebar-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--accent);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform var(--duration-glide) var(--ease-out-strong),
+              opacity var(--duration-fast) linear;
+}
+.sidebar-indicator[data-visible="true"] {
+  opacity: 1;
+}
+/* Penempatan pertama / lompat instan (elemen baru tidak meluncur dari 0). */
+.sidebar-indicator[data-glide="off"] {
+  transition: none;
+}
+/* Track submenu: x sejajar padding `pl-3` (posisi indikator lama). */
+[data-nav-track="sub"] .sidebar-indicator {
+  left: 12px;
+}
+
 /* Link sekunder penting: primary → terracotta saat hover */
 .lihat-tabel-link:hover {
   color: var(--accent-strong) !important;
 }
 
 /* ─── Card hover (general) ───────────────────────────────── */
+/* Hover lift ekspresif §B-3: -4px, transform 240ms --ease-out-strong; shadow
+   tetap 300ms; border → --border-hover. Satu sumber untuk `ui/card.tsx` +
+   titik mati hover di blok reduced-motion §D. */
 .card-hover {
   transition: box-shadow var(--duration) var(--ease-apple),
-              transform var(--duration) var(--ease-apple);
+              border-color var(--duration) var(--ease-apple),
+              transform 240ms var(--ease-out-strong);
 }
 .card-hover:hover {
   box-shadow: var(--shadow-hover);
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
 }
 
 /* ─── Focus ring (accessible, Apple-style) ───────────────── */
@@ -870,12 +1163,15 @@ input, textarea, select {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
+  /* Hover lift ekspresif §B-3 (lihat .kpi-card). */
   transition: box-shadow var(--duration) var(--ease-apple),
-              transform var(--duration) var(--ease-apple);
+              border-color var(--duration) var(--ease-apple),
+              transform 240ms var(--ease-out-strong);
 }
 .pegawai-card:hover {
   box-shadow: var(--shadow-hover);
-  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
 }
 
 /* ─── Table row ──────────────────────────────────────────── */
@@ -1072,8 +1368,11 @@ input, textarea, select {
 .activity-card:hover,
 .pegawai-card:hover {
   box-shadow: var(--neu-raised-lg);
-  transform: translateY(-2px);
 }
+/* CATATAN: `transform` hover SENGAJA tidak ditulis di lapisan ini — blok
+   motion §B-3 (lift -4px, 240ms) yang memutuskan; lapisan soft-UI hanya
+   memutar shadow. Sebelumnya baris `transform: translateY(-2px)` di sini
+   menimpa nilai §B-3 (lapisan ini menang karena berada paling akhir). */
 
 /* ── Buttons ── */
 .btn-primary {
@@ -1083,8 +1382,9 @@ input, textarea, select {
   background: var(--primary-hover);
   box-shadow: var(--neu-raised);
 }
+/* Press: `transform` dari blok §B-4 (scale 0.96 + press-in --duration-press-in);
+   di sini hanya bayangan cekung — jangan tulis transform di sini. */
 .btn-primary:active {
-  transform: translateY(1px);
   box-shadow: var(--neu-pressed);
 }
 
@@ -1098,7 +1398,6 @@ input, textarea, select {
   box-shadow: var(--neu-raised);
 }
 .btn-secondary:active {
-  transform: translateY(1px);
   box-shadow: var(--neu-pressed);
 }
 
@@ -1221,11 +1520,197 @@ input, textarea, select {
   box-shadow: var(--neu-inset-sm);
 }
 
-/* ── Reduced motion: matikan translasi berlebih ── */
+/* ═══════════════════════════════════════════════════════════
+   VIEW TRANSITIONS — transisi konten halaman (Fase 1)
+   Kelas `page-enter`/`page-exit` dipasang <PageTransition>
+   (src/components/layout/page-transition.tsx) via <ViewTransition> React,
+   dari `template.tsx` tiap route-group. Snapshot dikelola browser
+   (compositor); durasi/easing dari token §B1 (+ tier ekspresif §C1:
+   enter 260ms fade+rise 14px+scale 0.992, exit 170ms fade+naik 8px).
+   Shell & header di-anchor statis — hanya konten halaman yang beranimasi.
+   ═══════════════════════════════════════════════════════════ */
+::view-transition-old(.page-exit) {
+  animation: var(--duration-exit) var(--ease-apple) both pageExit;
+}
+::view-transition-new(.page-enter) {
+  animation: var(--duration-enter) var(--ease-out-strong) both pageEnter;
+}
+/* Shell (sidebar/background) tidak ikut crossfade root — statis saat navigasi. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+/* Header di-anchor (panduan view-transitions.md §"Anchoring the header"):
+   tidak ikut rise/fade konten; swap instan, di atas konten yang beranimasi. */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   MOTION GUARDRAILS — reduced-motion, print, screenshot
+   (MOTION-SPEC §D G1/G4; MOTION-TECH §3.4)
+   ═══════════════════════════════════════════════════════════ */
+
+/* Util aman untuk area screenshot/export (html-to-image): membekukan semua
+   animasi/transisi pada target & turunannya agar hasil capture deterministik. */
+[data-motion="none"],
+[data-motion="none"] * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Jalur print (export penilaian dsb.): entrance yang belum selesai JANGAN
+   tercetak sebagai opacity < 1 / tergeser. */
+@media print {
+  .motion-page-enter,
+  .motion-rise-in,
+  .animate-fade-in,
+  .animate-fade-up,
+  .animate-scale-in,
+  .motion-panel-in,
+  .motion-panel-out,
+  .motion-overlay-in,
+  .motion-overlay-out,
+  .motion-dropdown-in,
+  .motion-dropdown-out,
+  .motion-palette-in,
+  .motion-palette-out,
+  .motion-pop,
+  .motion-chart-fade,
+  .motion-status-fade,
+  .motion-crossfade,
+  .motion-alert-in,
+  .motion-remove {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* ── prefers-reduced-motion: lebih sedikit & lebih halus, bukan nol ──
+   (G1: daftar persis apa yang dimatikan; spinner/toast/color tetap berjalan) */
 @media (prefers-reduced-motion: reduce) {
+  /* 1) Semua entrance berbasis gerak → fade ≤120ms */
+  .animate-fade-up,
+  .animate-scale-in,
+  .motion-pop,
+  .motion-indicator-in {
+    animation: none !important;
+  }
+  .motion-page-enter,
+  .motion-rise-in {
+    animation: fadeIn var(--duration-press) linear both !important;
+  }
+
+  /* 2) Stagger: delay → 0 + entrance JADI FADE SAJA — perbaikan celah §D #2
+     (anak `.stagger`/`.card-list` tidak lagi translate 16px; menaikkan
+     amplitude §B-2 tanpa perbaikan ini = pelanggaran G1). */
+  .stagger > *,
+  .card-list > * {
+    animation: fadeIn var(--duration-press) linear both !important;
+  }
+
+  /* 3) Hover transform → mati (kartu & lift umum) */
   .kpi-card:hover,
   .activity-card:hover,
-  .pegawai-card:hover {
+  .pegawai-card:hover,
+  .card-hover:hover {
     transform: none;
+  }
+
+  /* 4) Loop dekoratif → mati total. Loader/spinner (bar indeterminate di
+     FetchingBar, spinner tombol) TETAP jalan — feedback esensial (G1). */
+  .motion-float,
+  .animate-pulse {
+    animation: none !important;
+  }
+
+  /* 4b) Entrance bar/chart/donut → langsung di state final (tanpa grow/draw). */
+  .motion-bar-grow,
+  .motion-donut-draw {
+    animation: none !important;
+  }
+  .motion-chart-fade,
+  .motion-status-fade,
+  .motion-crossfade,
+  .motion-alert-in {
+    animation: fadeIn var(--duration-press) linear both !important;
+  }
+
+  /* 5) Accordion/drawer/modal: fade saja, tanpa translate/scale.
+     ENTER → fadeIn; EXIT → fadeOut (arah fade harus benar: elemen yang
+     menutup tidak boleh memakai fadeIn — contoh keliru di SPEC §G1;
+     implementasi memakai fadeOut, koreksi teks SPEC dijadwalkan lajur Noir). */
+  .motion-collapse-wrap {
+    transition: none;
+  }
+  .motion-panel-in,
+  .motion-overlay-in,
+  .motion-dropdown-in,
+  .motion-palette-in {
+    animation: fadeIn var(--duration-press) linear both !important;
+  }
+  .motion-panel-out,
+  .motion-overlay-out,
+  .motion-dropdown-out,
+  .motion-palette-out,
+  .motion-remove {
+    animation: fadeOut var(--duration-press) linear both !important;
+  }
+
+  /* 6) Skeleton: statis (tanpa shimmer) */
+  .skeleton {
+    animation: none;
+  }
+
+  /* 7) Progress: tidak ada animasi nilai — update langsung agar angka tetap akurat */
+  .progress-bar,
+  .motion-progress {
+    transition: none;
+  }
+
+  /* 8) View Transitions (resep resmi Next view-transitions.md): tanpa animasi. */
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+  }
+
+  /* 9) Tekan tombol: tanpa gerak — feedback warna/opacity tetap (§D #4).
+     CATATAN (temuan build): utility `active:scale-[…]` Tailwind v4 memakai
+     properti `scale`, BUKAN `transform`, sehingga `transform: none` saja tidak
+     menjangkaunya; dan deklarasi `scale: … !important` dari fail ini DIBUANG
+     minifier CSS Next (lightningcss menggabungkannya ke `transform: scale(1)`).
+     Karena itu tombol primitif §B-4 (ui/Button) kini memakai `transform`
+     (§B-4 di button.tsx), sehingga aturan ini cukup. Tombol lama lain yang
+     memakai `active:scale-[…]` Tailwind (luar daftar §D #4, di luar scope
+     gelombang ini) masih ikut `scale` — celah dicatat di apendiks gelombang 3. */
+  button:active,
+  .btn-primary:active,
+  .btn-secondary:active,
+  .sidebar-nav-item:active {
+    transform: none !important;
+  }
+
+  /* 10) Elemen yang bergeser → lompat instan ke posisi baru, tanpa meluncur
+     (indikator sidebar §D #7; `.motion-glide` disiapkan untuk glide
+     segmented/underline P1 §D #9). */
+  .motion-glide,
+  .sidebar-indicator {
+    transition: none !important;
+  }
+
+  /* 11) Checkmark draw (§D #13 — kelas disiapkan untuk momen delight P2):
+     ikon tampil utuh tanpa menggambar. */
+  .motion-check-draw {
+    animation: none !important;
   }
 }

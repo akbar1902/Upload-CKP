@@ -107,9 +107,15 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
         {hasUpload && (
           <div className="mt-3.5 flex items-center gap-2">
             <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-border)' }}>
+              {/* Nilai via transform: scaleX (G2); token --duration-slow.
+                  Bukan kelas motion-* — komponen ini ikut target screenshot
+                  #export-pegawai-section (guardrail G4). */}
               <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(avgProgres, 100)}%`, backgroundColor: barColor }}
+                className="h-full w-full rounded-full transition-transform duration-[var(--duration-slow)] ease-[var(--ease-out-strong)]"
+                style={{
+                  transform: `scaleX(${Math.max(0, Math.min(avgProgres, 100) / 100).toFixed(4)})`,
+                  backgroundColor: barColor,
+                }}
               />
             </div>
             {progressLabel && (
@@ -132,7 +138,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
               return s ? `?${s}` : '';
             })()}`}
             prefetch={true}
-            className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-all duration-200 w-full"
+            className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-semibold rounded-full py-2 sm:py-2.5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] w-full"
             style={{
               color: 'var(--primary)',
               background: 'var(--card-bg)',

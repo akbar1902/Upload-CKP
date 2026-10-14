@@ -10,6 +10,7 @@ import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
+import { useStaggerOnce } from '@/lib/motion';
 import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
@@ -234,6 +235,8 @@ export default function KetuaTimDashboardClient() {
   const loading = authLoading || queryPending;
   // Refetch di background (ganti periode / refresh) sementara data lama tetap tampil.
   const isFiltering = !loading && queryFetching;
+  // Stagger entrance hanya paint data pertama (SPEC §B5/C2).
+  const listStaggerClass = useStaggerOnce(!loading);
 
   // Beri tahu pengguna bila pemuatan periode gagal (data lama tetap tampil).
   useEffect(() => {
@@ -501,7 +504,7 @@ export default function KetuaTimDashboardClient() {
       href={`/ketua_tim/rk/${rk.id}?bulan=${bulan}&tahun=${tahun}`}
       prefetch={true}
       onMouseEnter={() => prefetchRkDetail(rk.id)}
-      className="neu-raised card-hover rounded-2xl p-5 transition-all duration-300 relative overflow-hidden group flex flex-col h-full cursor-pointer block"
+      className="neu-raised card-hover rounded-2xl p-5 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration)] relative overflow-hidden group flex flex-col h-full cursor-pointer block"
     >
       <div
         className="absolute top-0 left-0 w-1.5 h-full transition-colors"
@@ -558,7 +561,7 @@ export default function KetuaTimDashboardClient() {
         </div>
 
         <div
-          className="p-2.5 rounded-full transition-all duration-300 transform group-hover:translate-x-1"
+          className="p-2.5 rounded-full transition-transform duration-[var(--duration)] ease-[var(--ease-apple)] transform group-hover:translate-x-1"
           style={{ background: 'var(--neu-surface-2)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-inset-sm)' }}
         >
           <ArrowRight size={18} />
@@ -570,7 +573,7 @@ export default function KetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={0} />
-      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6">
         <FetchingBar show={isFiltering} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -624,7 +627,7 @@ export default function KetuaTimDashboardClient() {
                   placeholder="Cari Rencana Kinerja atau Tim Kerja..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="neu-field w-full pl-10 h-11 text-sm rounded-full transition-all"
+                  className="neu-field w-full pl-10 h-11 text-sm rounded-full transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
                   style={{ color: 'var(--text-primary)' }}
                 />
               </div>
@@ -676,7 +679,7 @@ export default function KetuaTimDashboardClient() {
               {filteredRKs.length > 0 && (
                 <div>
                   <h4 className="text-sm font-bold uppercase tracking-wider mb-4 pb-2" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-soft)' }}>Rencana Kinerja</h4>
-                  <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div key={`${bulan}-${tahun}`} className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4${listStaggerClass}`}>
                     {filteredRKs.map(renderRkCard)}
                   </div>
                 </div>
