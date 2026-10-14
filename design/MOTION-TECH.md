@@ -737,7 +737,7 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
 ### Fase 5 — verifikasi
 
 - `npx tsc --noEmit` → **0 error**.
-- `npm run build` → **hijau** (≥2 run, termasuk setelah semua edit terakhir).
+- `npm run build` → **hijau** — run final dijalankan tanpa pipe (`BUILD_EXIT=0`, ✓ Compiled successfully, 22/22 static pages). Catatan: satu run antara pernah merah (`useStaggerOnce` undefined) karena source sedang diedit saat build berjalan — bukan keadaan final; state final hijau.
 - `npm run lint` → **270 error** repo-wide (baseline gelombang 1: 284) — tidak ada error **baru** di
   file yang disentuh; beberapa file justru turun (mis. `admin/pegawai` 9→1, `pegawai/_client` 1→0,
   `pegawai/upload` 26→25). Sisa error seluruhnya di file luar scope motion.
