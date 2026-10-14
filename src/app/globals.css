@@ -1338,6 +1338,38 @@ input, textarea, select {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   VIEW TRANSITIONS — transisi konten halaman (Fase 1)
+   Kelas `page-enter`/`page-exit` dipasang <PageTransition>
+   (src/components/layout/page-transition.tsx) via <ViewTransition> React,
+   dari `template.tsx` tiap route-group. Snapshot dikelola browser
+   (compositor); durasi/easing dari token §B1. Shell & header di-anchor
+   statis — hanya konten halaman yang beranimasi.
+   ═══════════════════════════════════════════════════════════ */
+::view-transition-old(.page-exit) {
+  animation: var(--duration-exit) var(--ease-apple) both fadeOut;
+}
+::view-transition-new(.page-enter) {
+  animation: var(--duration-enter) var(--ease-out-strong) both pageEnter;
+}
+/* Shell (sidebar/background) tidak ikut crossfade root — statis saat navigasi. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+/* Header di-anchor (panduan view-transitions.md §"Anchoring the header"):
+   tidak ikut rise/fade konten; swap instan, di atas konten yang beranimasi. */
+::view-transition-group(site-header) {
+  animation: none;
+  z-index: 100;
+}
+::view-transition-old(site-header) {
+  display: none;
+}
+::view-transition-new(site-header) {
+  animation: none;
+}
+
+/* ═══════════════════════════════════════════════════════════
    MOTION GUARDRAILS — reduced-motion, print, screenshot
    (MOTION-SPEC §D G1/G4; MOTION-TECH §3.4)
    ═══════════════════════════════════════════════════════════ */

@@ -12,6 +12,9 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   experimental: {
+    // Transisi antar-halaman native (React <ViewTransition>) — lihat
+    // design/MOTION-TECH.md '## Hasil Fase 0' untuk keputusan go/no-go spike.
+    viewTransition: true,
     serverActions: {
       bodySizeLimit: '10mb',
     },

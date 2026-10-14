@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { runSafeRead, createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
 import { useAuth } from '@/hooks/use-auth';
+import { cn } from '@/lib/utils';
+import { MOTION, useMotionSafe } from '@/lib/motion';
 
 interface Notification {
   id: string;
@@ -43,8 +45,38 @@ export function NotificationBell() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const motionSafe = useMotionSafe();
+
+  const openMenu = useCallback(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+    setClosing(false);
+    setOpen(true);
+  }, []);
+
+  // Exit animation dropdown 120ms (MOTION-SPEC §C5) — hormati reduced motion.
+  const requestClose = useCallback(() => {
+    if (!motionSafe) {
+      setOpen(false);
+      return;
+    }
+    setClosing(true);
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => {
+      closeTimer.current = null;
+      setClosing(false);
+      setOpen(false);
+    }, MOTION.press);
+  }, [motionSafe]);
+
+  // Bersihkan timer exit saat unmount.
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   const unread = items.filter((i) => !i.is_read).length;
 
@@ -99,11 +131,11 @@ export function NotificationBell() {
   // Tutup saat klik di luar
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) requestClose();
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, []);
+  }, [requestClose]);
 
   const markAllRead = async () => {
     if (!user?.id || unread === 0) return;
@@ -147,7 +179,7 @@ export function NotificationBell() {
   return (
     <div ref={boxRef} className="relative">
       <button
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? requestClose() : openMenu())}
         className="relative p-2.5 rounded-full transition-colors"
         style={
           unread > 0
@@ -172,7 +204,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className="absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 animate-scale-in"
+          className={cn("absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50", closing ? "motion-dropdown-out" : "motion-dropdown-in")}
           style={{
             background: 'var(--card-bg)',
             border: '1px solid var(--sand-border)',

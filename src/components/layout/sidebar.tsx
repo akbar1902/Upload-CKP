@@ -324,7 +324,7 @@ export function Sidebar() {
                 setIsDashboardOpen(!isDashboardOpen);
               }}
               className={cn(
-                "relative flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+                "relative flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
                 collapsed && "justify-center px-3"
               )}
               style={
@@ -356,49 +356,54 @@ export function Sidebar() {
               {!collapsed && (
                 <ChevronDown 
                   size={16} 
-                  className={cn("transition-transform duration-200", isDashboardOpen ? "rotate-180" : "")} 
+                  className={cn("transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]", isDashboardOpen ? "rotate-180" : "")} 
                 />
               )}
             </button>
             
-            {/* Sub-items */}
-            {(!collapsed && isDashboardOpen) && (
-              <div className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]">
-                {dashboardSubItems.map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      prefetch={true}
-                      onClick={() => setMobileOpen(false)}
-                      className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
-                      style={
-                        active
-                          ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                          : { color: 'var(--sidebar-text-muted)' }
-                      }
-                      onMouseEnter={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+            {/* Sub-items — expand/collapse grid-rows 0fr⇄1fr (MOTION-SPEC §C1) */}
+            {!collapsed && (
+              <div className="motion-collapse-wrap" data-open={isDashboardOpen}>
+                <div
+                  className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]"
+                  inert={!isDashboardOpen}
+                >
+                  {dashboardSubItems.map((item) => {
+                    const active = isActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        prefetch={true}
+                        onClick={() => setMobileOpen(false)}
+                        className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+                        style={
+                          active
+                            ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
+                            : { color: 'var(--sidebar-text-muted)' }
                         }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.background = 'transparent';
-                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                        }
-                      }}
-                    >
-                      {/* Indikator terracotta: sub-item aktif */}
-                      {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-                      )}
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
+                        onMouseEnter={(e) => {
+                          if (!active) {
+                            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
+                            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!active) {
+                            (e.currentTarget as HTMLElement).style.background = 'transparent';
+                            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
+                          }
+                        }}
+                      >
+                        {/* Indikator terracotta: sub-item aktif (muncul halus, §C1) */}
+                        {active && (
+                          <span className="motion-indicator-in absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+                        )}
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -419,7 +424,7 @@ export function Sidebar() {
               aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
+                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
                 collapsed && "justify-center px-3"
               )}
               style={
@@ -444,9 +449,9 @@ export function Sidebar() {
                 }
               }}
             >
-              {/* Indikator terracotta: item aktif */}
+              {/* Indikator terracotta: item aktif (muncul halus, §C1) */}
               {active && !collapsed && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+                <span className="motion-indicator-in absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
               )}
               <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
               {!collapsed && <span>{item.label}</span>}
@@ -463,7 +468,7 @@ export function Sidebar() {
         <button
           onClick={() => setCollapsedPersisted(!collapsed)}
           className={cn(
-            "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+            "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
             collapsed && "justify-center"
           )}
           style={{ color: 'var(--text-tertiary)' }}
@@ -490,7 +495,7 @@ export function Sidebar() {
           title="Ganti Password"
           aria-label="Ganti password akun"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
             collapsed && "justify-center"
           )}
           style={{ color: 'var(--text-tertiary)' }}
@@ -516,7 +521,7 @@ export function Sidebar() {
           title="Keluar"
           aria-label="Keluar dari aplikasi"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]",
             signingOut ? "cursor-not-allowed opacity-50" : "",
             collapsed && "justify-center"
           )}
@@ -555,14 +560,17 @@ export function Sidebar() {
         <Menu size={16} />
       </button>
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30 lg:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Mobile overlay — fade 180ms masuk / 150ms keluar (MOTION-SPEC §C5) */}
+      <div
+        className={cn(
+          "fixed inset-0 z-40 bg-black/30 lg:hidden backdrop-blur-sm transition-opacity ease-[var(--ease-apple)]",
+          mobileOpen
+            ? "opacity-100 duration-[var(--duration-fast)]"
+            : "pointer-events-none opacity-0 duration-[var(--duration-exit)]"
+        )}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
 
       {/* Mobile sidebar */}
       <aside
@@ -570,8 +578,10 @@ export function Sidebar() {
         aria-label="Menu navigasi"
         inert={!mobileOpen}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform duration-300",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform",
+          mobileOpen
+            ? "translate-x-0 duration-[var(--duration)] ease-[var(--ease-drawer)]"
+            : "-translate-x-full duration-[250ms] ease-[var(--ease-drawer)]"
         )}
         style={{
           width: SIDEBAR_EXPANDED,
@@ -599,7 +609,7 @@ export function Sidebar() {
           width: sidebarW,
           background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--sidebar-border)',
-          transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          transition: 'width 240ms var(--ease-apple)',
         }}
       >
         {navContent}
@@ -608,7 +618,7 @@ export function Sidebar() {
       {/* Desktop spacer */}
       <div
         className="hidden lg:block lg:flex-shrink-0"
-        style={{ width: sidebarW, transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)' }}
+        style={{ width: sidebarW, transition: 'width 240ms var(--ease-apple)' }}
         aria-hidden="true"
       />
 
