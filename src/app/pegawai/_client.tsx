@@ -106,6 +106,9 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   // Exit card: collapse-out dulu (200ms, SPEC §C4 / checklist #11) baru mutasi.
   // Reduced motion: langsung.
   const handleDelete = (e: React.MouseEvent) => {
+    // Guard idempoten (QA ronde 2): selama jendela collapse-out kartu masih
+    // ter-mount ±200ms — klik kedua tidak boleh memicu mutasi/toast duplikat.
+    if (removing) return;
     if (!motionSafe) {
       void runDelete(e);
       return;
@@ -174,7 +177,8 @@ function ActivityGridCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               </button>
               <button
                 onClick={handleDelete}
-                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white transition-opacity hover:opacity-90"
+                disabled={removing}
+                className="px-2.5 py-1.5 rounded-full text-[11px] font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                 style={{ background: 'var(--danger)' }}
               >
                 Ya, Hapus

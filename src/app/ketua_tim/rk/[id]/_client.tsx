@@ -18,8 +18,8 @@ import { toast } from 'sonner';
 import * as XLSX from 'xlsx';
 import {
   ArrowLeft, FileText, TrendingUp, CheckCircle2, Download,
-  RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon,
-  XCircle, AlertTriangle, Layers, FolderOpen
+  RefreshCw, WifiOff, Search, ChevronDown, User as UserIcon,
+  AlertTriangle, Layers, FolderOpen
 } from 'lucide-react';
 
 function KPICard({ icon, value, label, sub, iconBg }: {
@@ -912,52 +912,52 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
         </div>
       </div>
       
-      {entryToMark && (
-        <Dialog
-          open={entryToMark !== null}
-          onClose={() => { if (!isMarking) setEntryToMark(null); }}
-        >
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <AlertTriangle size={18} className="text-amber-500" />
-                Tandai Perlu Diperbaiki
-              </DialogTitle>
-            </DialogHeader>
-            <DialogBody className="space-y-4">
-              <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm">
-                <p className="font-semibold mb-1" style={{ color: 'var(--primary)' }}>Kegiatan:</p>
-                <p className="text-slate-700">{entryToMark.kegiatan}</p>
-              </div>
+      {/* Modal "Tandai Perlu Diperbaiki" — SELALU ter-mount + prop `open` agar
+          exit-animation Dialog berjalan penuh (SPEC §C5/§A3); konten null-safe. */}
+      <Dialog
+        open={entryToMark !== null}
+        onClose={() => { if (!isMarking) setEntryToMark(null); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle id="mark-entry-modal-title" className="flex items-center gap-2">
+              <AlertTriangle size={18} className="text-amber-500" />
+              Tandai Perlu Diperbaiki
+            </DialogTitle>
+          </DialogHeader>
+          <DialogBody className="space-y-4">
+            <div className="p-3 rounded-lg border border-slate-200 bg-slate-50 text-sm">
+              <p className="font-semibold mb-1" style={{ color: 'var(--primary)' }}>Kegiatan:</p>
+              <p className="text-slate-700">{entryToMark?.kegiatan}</p>
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Berikan Catatan Perbaikan</label>
-                <textarea
-                  ref={markTextareaRef}
-                  autoFocus
-                  className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
-                  style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-                  placeholder="Contoh: Kegiatan ini seharusnya masuk ke Rencana Kinerja X..."
-                  rows={4}
-                  value={catatanKoreksi}
-                  onChange={(e) => setCatatanKoreksi(e.target.value)}
-                />
-                <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
-                  Catatan ini akan terlihat oleh pegawai saat mereka memperbaiki dan merevisi file Excel.
-                </p>
-              </div>
-            </DialogBody>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setEntryToMark(null)} disabled={isMarking}>
-                Batal
-              </Button>
-              <Button onClick={handleExecuteMarkEntry} disabled={isMarking} loading={isMarking}>
-                {isMarking ? 'Menyimpan...' : 'Simpan Catatan'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div>
+              <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>Berikan Catatan Perbaikan</label>
+              <textarea
+                ref={markTextareaRef}
+                autoFocus
+                className="w-full text-sm rounded-lg p-3 outline-none focus:ring-2 resize-none transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
+                style={{ border: '1px solid var(--border)', background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+                placeholder="Contoh: Kegiatan ini seharusnya masuk ke Rencana Kinerja X..."
+                rows={4}
+                value={catatanKoreksi}
+                onChange={(e) => setCatatanKoreksi(e.target.value)}
+              />
+              <p className="text-[11px] mt-2" style={{ color: 'var(--text-tertiary)' }}>
+                Catatan ini akan terlihat oleh pegawai saat mereka memperbaiki dan merevisi file Excel.
+              </p>
+            </div>
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntryToMark(null)} disabled={isMarking}>
+              Batal
+            </Button>
+            <Button onClick={handleExecuteMarkEntry} disabled={isMarking} loading={isMarking}>
+              {isMarking ? 'Menyimpan...' : 'Simpan Catatan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

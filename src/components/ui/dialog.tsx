@@ -11,12 +11,20 @@ interface DialogContextType {
   open: boolean;
   onClose: () => void;
   contentRef: React.RefObject<HTMLDivElement | null>;
+  /** id stabil untuk elemen judul bila `<DialogTitle>` tidak diberi id eksplisit. */
+  titleId: string;
+  /** id elemen `<DialogTitle>` yang sedang ter-mount → `aria-labelledby` (a11y). */
+  labelledById: string | null;
+  setLabelledById: (id: string | null) => void;
 }
 
 const DialogContext = React.createContext<DialogContextType>({
   open: false,
   onClose: () => {},
   contentRef: { current: null },
+  titleId: "",
+  labelledById: null,
+  setLabelledById: () => {},
 });
 
 const FOCUSABLE_SELECTOR = [
@@ -60,6 +68,8 @@ function Dialog({ open, onClose, children }: DialogProps) {
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const dialogId = React.useRef<symbol>(Symbol("dialog"));
   const onCloseRef = React.useRef(onClose);
+  const titleId = React.useId();
+  const [labelledById, setLabelledById] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     onCloseRef.current = onClose;
@@ -147,7 +157,7 @@ function Dialog({ open, onClose, children }: DialogProps) {
           key="sikap-dialog"
           className="fixed inset-0 z-[9999] flex items-center justify-center"
         >
-          <DialogContext.Provider value={{ open, onClose, contentRef }}>
+          <DialogContext.Provider value={{ open, onClose, contentRef, titleId, labelledById, setLabelledById }}>
             {/* Backdrop — scrim datar (MOTION-SPEC §D G3: blur-x dihapus) */}
             <motion.div
               className="fixed inset-0 bg-black/40"
@@ -174,14 +184,21 @@ function Dialog({ open, onClose, children }: DialogProps) {
   );
 }
 
-function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { onClose, contentRef } = React.useContext(DialogContext);
+function DialogContent({
+  className,
+  children,
+  "aria-labelledby": ariaLabelledBy,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  const { onClose, contentRef, labelledById } = React.useContext(DialogContext);
 
   return (
     <div
       ref={contentRef}
       role="dialog"
       aria-modal="true"
+      // Label aksesibel: prop eksplisit menang, jika tidak pakai id <DialogTitle> yang ter-mount.
+      aria-labelledby={ariaLabelledBy ?? labelledById ?? undefined}
       tabIndex={-1}
       className={cn(
         "w-full max-w-lg bg-[var(--card-bg)] rounded-3xl shadow-[var(--shadow-elevated)] border border-[var(--border)] max-h-[85vh] overflow-y-auto relative focus:outline-none",
@@ -208,9 +225,20 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   );
 }
 
-function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+function DialogTitle({ className, id, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  const { titleId, setLabelledById } = React.useContext(DialogContext);
+  // id eksplisit tetap didukung (mis. menjaga anchor lama); default = id stabil dari Dialog.
+  const resolvedId = id ?? titleId;
+
+  // Daftarkan ke Dialog → container dapat `aria-labelledby` ke judul ini.
+  React.useLayoutEffect(() => {
+    setLabelledById(resolvedId);
+    return () => setLabelledById(null);
+  }, [resolvedId, setLabelledById]);
+
   return (
     <h2
+      id={resolvedId}
       className={cn("text-xl font-semibold text-[var(--text-primary)] tracking-tight", className)}
       {...props}
     />

@@ -597,12 +597,12 @@ export function RkManagementView({
 
                             {/* sub-rk — accordion grid-template-rows (SPEC §C1/C4) */}
                             <div
-                              className="motion-collapse-wrap mt-3"
+                              className="motion-collapse-wrap"
                               data-open={isOpen}
                             >
                               <div inert={!isOpen}>
                               <div
-                                className="rounded-xl p-2"
+                                className="mt-3 rounded-xl p-2"
                                 style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)' }}
                               >
                                 {subs.length > 0 ? (
@@ -672,8 +672,12 @@ export function RkManagementView({
       </div>
 
       {/* ================= Modal Tambah RK ================= */}
-      {canEdit && showAddMasterModal && (
-        <Modal title="Tambah RK Utama" onClose={() => setShowAddMasterModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showAddMasterModal}
+          title="Tambah RK Utama"
+          onClose={() => setShowAddMasterModal(false)}
+        >
           <div className="space-y-4">
             <Field label="Nama Rencana Kinerja">
               <textarea
@@ -715,15 +719,19 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Tambah Sub-RK ================= */}
-      {canEdit && showAddSubModal && selectedRkForSub && (
-        <Modal title="Tambah Sub-RK" onClose={() => setShowAddSubModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showAddSubModal && !!selectedRkForSub}
+          title="Tambah Sub-RK"
+          onClose={() => setShowAddSubModal(false)}
+        >
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--primary)' }}>
                 RK Induk
               </p>
               <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {selectedRkForSub.rencana_kinerja}
+                {selectedRkForSub?.rencana_kinerja}
               </p>
             </div>
             <Field label="Nama Kegiatan Anggota (Sub-RK)">
@@ -741,16 +749,20 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Konfirmasi Hapus ================= */}
-      {canEdit && deleteConfirm && (
-        <Modal title="Konfirmasi Hapus" onClose={() => setDeleteConfirm(null)}>
+      {canEdit && (
+        <Modal
+          open={deleteConfirm !== null}
+          title="Konfirmasi Hapus"
+          onClose={() => setDeleteConfirm(null)}
+        >
           <div className="flex items-start gap-2 text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             <AlertTriangle size={16} style={{ color: 'var(--danger)' }} className="mt-0.5 shrink-0" />
-            <span>Hapus {deleteConfirm.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?</span>
+            <span>Hapus {deleteConfirm?.type === 'master' ? 'RK Utama' : 'Sub-RK'} berikut?</span>
           </div>
           <div className="p-3 rounded-xl" style={{ background: 'var(--danger-soft)' }}>
-            <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{deleteConfirm.name}</p>
+            <p className="text-sm font-medium" style={{ color: 'var(--danger-text)' }}>{deleteConfirm?.name}</p>
           </div>
-          {deleteConfirm.type === 'master' && (
+          {deleteConfirm?.type === 'master' && (
             <p className="text-[12.5px]" style={{ color: 'var(--danger-text)' }}>
               Menghapus RK Utama akan menghapus seluruh Sub-RK di dalamnya.
             </p>
@@ -760,15 +772,19 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Pindah Sub-RK ================= */}
-      {canEdit && showMoveSubModal && selectedSubForMove && (
-        <Modal title="Pindah Induk RK" onClose={() => setShowMoveSubModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showMoveSubModal && !!selectedSubForMove}
+          title="Pindah Induk RK"
+          onClose={() => setShowMoveSubModal(false)}
+        >
           <div className="space-y-4">
             <div className="p-3 rounded-xl" style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}>
               <p className="text-[10.5px] font-semibold uppercase tracking-[0.14em] mb-1" style={{ color: 'var(--primary)' }}>
                 Sub-RK Saat Ini
               </p>
               <p className="text-sm font-medium leading-snug" style={{ color: 'var(--text-primary)' }}>
-                {selectedSubForMove.kegiatan_nama}
+                {selectedSubForMove?.kegiatan_nama}
               </p>
             </div>
             <Field label="Pilih RK Induk Baru">
@@ -780,7 +796,7 @@ export function RkManagementView({
               >
                 <option value="">-- Pilih RK Utama --</option>
                 {rks.map((r: any) => (
-                  <option key={r.id} value={r.id} disabled={r.id === selectedSubForMove.rk_id}>
+                  <option key={r.id} value={r.id} disabled={r.id === selectedSubForMove?.rk_id}>
                     {r.tim_kerja ? `[${r.tim_kerja}] ` : ''}
                     {r.rencana_kinerja}
                   </option>
@@ -793,8 +809,12 @@ export function RkManagementView({
       )}
 
       {/* ================= Modal Hapus Tahun ================= */}
-      {canEdit && showDeleteYearModal && (
-        <Modal title={`Hapus RK tahun ${selectedYear}`} onClose={() => setShowDeleteYearModal(false)}>
+      {canEdit && (
+        <Modal
+          open={showDeleteYearModal}
+          title={`Hapus RK tahun ${selectedYear}`}
+          onClose={() => setShowDeleteYearModal(false)}
+        >
           {!yearStats ? (
             <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
               Menghitung data...
@@ -855,18 +875,22 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Modal({
+  open,
   title,
   onClose,
   children,
 }: {
+  open: boolean;
   title: string;
   onClose: () => void;
   children: React.ReactNode;
 }) {
   // Migrasi Fase 4: modal lokal → Dialog bersama (backdrop scrim datar tanpa
   // blur, focus-trap/ESC/scroll-lock standar, enter/exit dari komponen Dialog).
+  // Dialog SELALU ter-mount (prop `open`) agar exit-animation berjalan penuh
+  // (SPEC §C5/§A3) — konten di bawah wajib null-safe saat state penutupnya null.
   return (
-    <Dialog open onClose={onClose}>
+    <Dialog open={open} onClose={onClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="text-[15px]">{title}</DialogTitle>

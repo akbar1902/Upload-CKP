@@ -27,7 +27,7 @@ export interface TrendLinesProps {
   /** Suffix untuk tooltip (mis. '%'). */
   unit?: string;
   emptyText?: string;
-  /** Entrance fade 200ms saat mount (SPEC §E); matikan di halaman berat. */
+  /** Opt-in: entrance fade 200ms saat mount — hanya di halaman yang meminta (SPEC §E). */
   animateEnter?: boolean;
 }
 
@@ -57,7 +57,7 @@ export function TrendLines({
   height = 240,
   unit = '',
   emptyText = 'Belum ada data untuk ditampilkan',
-  animateEnter = true,
+  animateEnter = false,
 }: TrendLinesProps) {
   const width = VIEW_WIDTH;
   const innerW = width - PADDING.left - PADDING.right;
@@ -232,7 +232,7 @@ export interface StatusDonutProps {
   thickness?: number;
   centerLabel?: string;
   emptyText?: string;
-  /** Draw-in slice via stroke-dasharray (480ms + stagger §B5) saat mount. */
+  /** Opt-in: draw-in slice via stroke-dasharray (480ms + stagger §B5) saat mount. */
   animateEnter?: boolean;
 }
 
@@ -242,7 +242,7 @@ export function StatusDonut({
   thickness = 24,
   centerLabel,
   emptyText = 'Belum ada data',
-  animateEnter = true,
+  animateEnter = false,
 }: StatusDonutProps) {
   const total = data.reduce((sum, d) => sum + (Number.isFinite(d.value) ? d.value : 0), 0);
   const radius = (size - thickness) / 2;
@@ -363,7 +363,7 @@ export interface MiniBarsProps {
   maxValue?: number;
   valueSuffix?: string;
   emptyText?: string;
-  /** Grow bar (scaleX 480ms, G2) sekali saat mount; perubahan nilai = transisi. */
+  /** Opt-in: grow bar (scaleX 480ms, G2) sekali saat mount; perubahan nilai = transisi. */
   animateEnter?: boolean;
 }
 
@@ -373,7 +373,7 @@ export function MiniBars({
   maxValue,
   valueSuffix = '',
   emptyText = 'Belum ada data',
-  animateEnter = true,
+  animateEnter = false,
 }: MiniBarsProps) {
   if (data.length === 0) {
     return (

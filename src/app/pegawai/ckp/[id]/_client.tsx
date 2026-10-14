@@ -16,7 +16,7 @@ import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, MessageSquare,
-  RefreshCw, Search, SlidersHorizontal, ChevronDown, ChevronUp, WifiOff, Trash2, AlertTriangle,
+  RefreshCw, Search, SlidersHorizontal, ChevronDown, WifiOff, Trash2, AlertTriangle,
   LayoutList, CalendarDays,
 } from 'lucide-react';
 import Link from 'next/link';

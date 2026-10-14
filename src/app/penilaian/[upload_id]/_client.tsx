@@ -30,7 +30,7 @@ import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
 import {
-  ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
+  ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users,
   RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock, Calendar,
   Briefcase, Search, ChevronDown, Save, LayoutList, ArrowRightLeft, AlertTriangle,
   CalendarDays,

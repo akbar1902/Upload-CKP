@@ -9,7 +9,7 @@ import { usePeriodParams } from '@/hooks/use-period-params';
 import { withTimeoutRetry } from '@/lib/supabase/read';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import { getPendingScoringKetuaTim, type PendingScoringKetuaTim } from '@/app/actions/monitoring';
-import { ChevronDown, ChevronUp, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ScreenshotButton } from '@/components/ui/screenshot-button';

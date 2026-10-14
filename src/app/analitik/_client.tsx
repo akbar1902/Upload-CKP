@@ -278,6 +278,7 @@ export default function AnalitikClient() {
                     label2="Rata-rata Progres"
                     maxValue={100}
                     unit="%"
+                    animateEnter
                   />
                 )}
               </div>
@@ -292,7 +293,7 @@ export default function AnalitikClient() {
                 {showSkeleton ? (
                   <div className="skeleton h-[168px] w-[168px] rounded-full mx-auto" />
                 ) : (
-                  <StatusDonut data={donutData} centerLabel="Upload" />
+                  <StatusDonut data={donutData} centerLabel="Upload" animateEnter />
                 )}
               </div>
             </div>
@@ -342,7 +343,7 @@ export default function AnalitikClient() {
                     ))}
                   </div>
                 ) : (
-                  <MiniBars data={tunggakanBars} valueSuffix=" entri" emptyText="Tidak ada tunggakan pada periode ini 🎉" />
+                  <MiniBars data={tunggakanBars} valueSuffix=" entri" emptyText="Tidak ada tunggakan pada periode ini 🎉" animateEnter />
                 )}
               </div>
             </div>

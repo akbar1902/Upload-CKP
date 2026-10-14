@@ -64,6 +64,9 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   // Exit kartu: collapse-out dulu (collapseOut 200ms, SPEC §C4 / checklist #11)
   // baru mutasi — agar kartu tidak "lenyap mendadak". Reduced motion: langsung.
   const handleDelete = () => {
+    // Guard idempoten (QA ronde 2): selama jendela collapse-out kartu masih
+    // ter-mount ±200ms — klik kedua tidak boleh memicu mutasi/toast duplikat.
+    if (removing) return;
     if (!motionSafe) {
       void runDelete();
       return;
@@ -274,7 +277,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
                   </button>
                   <button
                     onClick={handleDelete}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-[var(--danger)] hover:opacity-90 transition-colors"
+                    disabled={removing}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-[var(--danger)] hover:opacity-90 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] disabled:opacity-60"
                   >
                     Ya, Hapus
                   </button>
