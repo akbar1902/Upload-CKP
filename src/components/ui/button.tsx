@@ -3,7 +3,9 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-[0_0_0_4px_var(--primary-ring)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.97]",
+  // Press ekspresif §B-4: scale 0.96 seragam; durasi masuk (--duration-press-in
+  // 100ms) saat :active, durasi lepas (--duration-fast 180ms) di kelas dasar.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-0 focus-visible:shadow-[0_0_0_4px_var(--primary-ring)] disabled:pointer-events-none disabled:opacity-50 cursor-pointer active:scale-[0.96] active:duration-[var(--duration-press-in)]",
   {
     variants: {
       variant: {

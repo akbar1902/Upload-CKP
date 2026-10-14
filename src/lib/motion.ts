@@ -9,14 +9,17 @@ import { useReducedMotion } from 'framer-motion';
 
 /** Durasi (ms) — sama dengan token CSS terkait. */
 export const MOTION = {
-  /** --duration-press: feedback tekan tombol */
+  /** --duration-press: feedback tekan tombol (TIDAK diubah tier ekspresif —
+   *  dipakai timer exit command palette & bell) */
   press: 120,
+  /** --duration-press-in: press-in tombol (ekspresif §B-4; terpisah dari `press`) */
+  pressIn: 100,
   /** --duration-fast: hover, tombol, dropdown, input */
   fast: 180,
-  /** --duration-enter: pola handoff entrance */
-  enter: 210,
-  /** --duration-panel-enter: entrance panel dialog (SPEC §C5) */
-  panelEnter: 220,
+  /** --duration-enter: pola handoff entrance (ekspresif §C1: 210→260) */
+  enter: 260,
+  /** --duration-panel-enter: entrance panel NON-dialog (ekspresif §C1: 220→280) */
+  panelEnter: 280,
   /** --duration: modal, drawer, expand besar */
   base: 300,
   /** --duration-drawer-out: exit drawer mobile (SPEC §C5) */
@@ -25,8 +28,8 @@ export const MOTION = {
   rowOut: 200,
   /** --duration-slow: progres/bar chart */
   slow: 480,
-  /** --duration-exit: pola handoff exit */
-  exit: 150,
+  /** --duration-exit: pola handoff exit (ekspresif §C1: 150→170) */
+  exit: 170,
   /** Delight #1 (SPEC §C9): tahan layar sukses upload sebelum redirect */
   successHold: 800,
 } as const;
@@ -69,7 +72,10 @@ export function useMotionSafe(): boolean {
 /**
  * Entrance list `card-list` (stagger) hanya sampai paint data pertama —
  * SPEC §B5/C2: ganti filter/periode TIDAK re-stagger. Kelas dilepas setelah
- * entrance pertama selesai (delay 700ms > total stagger maks 510ms).
+ * entrance pertama selesai.
+ *
+ * Timer 800ms (ekspresif §B-2/§C3: 700→800ms) > total stagger maks baru:
+ * delay akhir 6 × 65ms = 390ms + durasi 260ms = 650ms (cap 6 anak §B5).
  *
  * Pemakaian: `const listClass = useStaggerOnce(!isLoading);`
  * lalu `className={`grid ...${listClass}`}`.
@@ -78,7 +84,7 @@ export function useStaggerOnce(ready: boolean): string {
   const [done, setDone] = useState(false);
   useEffect(() => {
     if (!ready) return;
-    const t = setTimeout(() => setDone(true), 700);
+    const t = setTimeout(() => setDone(true), 800);
     return () => clearTimeout(t);
   }, [ready]);
   return done ? '' : ' card-list';
