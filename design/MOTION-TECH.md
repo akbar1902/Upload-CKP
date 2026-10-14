@@ -692,17 +692,23 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
 - `filter-loading.tsx`: gerak `FetchingBar` kini CSS keyframe `.fetching-bar-track` (loop JS framer
   dihapus; durasi 1.05s dan rentang geser identik); `FetchingOverlay` memakai preset kanonik
   `SPRING.crisp` + token durasi §B1; offset transform mati saat reduced-motion.
-- `charts.tsx`: entrance SVG dengan prop `animateEnter` — TrendLines fade 200ms
+- `charts.tsx`: entrance SVG **opt-in** lewat prop `animateEnter` (default `false`; sebelumnya
+  default `true` — dikoreksi di cleanup ronde 2, butir 6) — TrendLines fade 200ms
   (`.motion-chart-fade`), StatusDonut draw-in `stroke-dasharray` per slice + stagger 50ms
   (`.motion-donut-draw`), MiniBars grow `scaleX` 480ms (`.motion-bar-grow` + `.motion-progress`, G2).
+  Satu-satunya pemakai yang memang meminta animasi per SPEC §E = `analitik/_client.tsx`
+  (ketiga komponen kini pass `animateEnter` eksplisit).
 - `activity-card.tsx`: expand memakai pola grid-rows (`.motion-collapse-wrap`, 200ms) menggantikan
   max-height `card-expanded-content`; hapus kartu = collapse-out 200ms **sebelum** mutasi cache
   (+rollback tetap); chevron rotate 180ms; progress bar → scaleX.
 - `pegawai-card.tsx`: progress bar → scaleX + token — sengaja **tanpa** kelas `motion-*` karena
   kartu ini ikut target screenshot `#export-pegawai-section` (G4).
 - `change-password-modal.tsx`: entri sukses memakai `.motion-pop` (bukan inline `scaleIn 0.3s`).
-- `status-filter.tsx`, `kpi-card.tsx`, `stat-card.tsx`: penyelarasan token + type-safety
-  (tanpa perubahan visual).
+- `status-filter.tsx`, `kpi-card.tsx`: penyelarasan token + type-safety
+  (tanpa perubahan visual). **Koreksi (cleanup ronde 2)**: `stat-card.tsx` **tidak** ikut
+  diselaraskan di gelombang 2 — file itu tidak pernah tersentuh commit motion
+  (verifikasi `git log -- src/components/dashboard/stat-card.tsx`; sentuhan terakhirnya = commit
+  tema, di luar scope motion). Kalimat awal yang menyebutnya keliru.
 
 ### Fase 4 — halaman per route group (SPEC §E)
 
@@ -710,6 +716,8 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
   konfirmasi), modal pindah RK `penilaian/[upload_id]`, modal "Tandai Perlu Diperbaiki"
   `ketua_tim/rk/[id]`, dan helper `Modal` di `components/rk/rk-management-view.tsx` (dipakai 5 modal).
   Backdrop `backdrop-blur-sm` di semuanya hilang (G3) dan exit animasi mengikuti Dialog.
+  Exit-animation kini berjalan penuh di **semua** modal — call-site kondisional diperbaiki di
+  cleanup ronde 2 (butir 1).
 - **Expand/collapse → grid-rows (P2#10)**: activity-card, `pegawai/ckp/[id]`, `ketua_tim/rk/[id]`,
   RKCard `penilaian/[upload_id]`, accordion `monitoring-penilaian` (2 level), sub-RK
   `rk-management-view`; konten panel yang tertutup diberi `inert` (a11y keyboard).
@@ -753,11 +761,65 @@ lalu hapus flag — tanpa perubahan pada 7 `template.tsx`.
 3. **Spinner `animate-spin`** milik tombol refresh tetap ada di dalam `#export-monitoring-section` —
    feedback loading esensial (G1), dibekukan saat capture via `data-motion="none"`; entrance
    section-nya sendiri sudah dihapus.
-4. **`rk-management-view` Modal**: sudah memakai `Dialog` bersama, namun exit-animation belum
-   berjalan penuh karena call-site meng-unmount modal secara kondisional (perbaikan penuh =
-   selalu-render + prop `open`; ditunda demi diff kecil).
+4. **`rk-management-view` Modal — [TUNTAS di cleanup ronde 2]**: dulu sudah memakai `Dialog`
+   bersama, namun exit-animation belum berjalan penuh karena call-site meng-unmount modal secara
+   kondisional. Kini semua modal selalu-render + prop `open` (rk-management-view 5 call-site &
+   modal ketua_tim — lihat "Cleanup round — penutupan QA ronde 2" butir 1). Transparansi: butir
+   deviasi awal ini hanya menyebut `rk-management-view`, padahal pola kondisional identik juga ada
+   di modal "Tandai Perlu Diperbaiki" `ketua_tim/rk/[id]`; keduanya diperbaiki di ronde yang sama.
 5. **TopLoader** dipertahankan (indikator navigasi tunggal, §C1). `@tanstack/react-table` (dep mati)
    belum dihapus — keputusan user, di luar scope motion.
 6. **`proxy.ts` / `sw.js`** tidak disentuh (isu pre-existing, menunggu keputusan user).
 7. **Belum terverifikasi live**: semua halaman terautentikasi (tanpa kredensial), Safari/Firefox/Edge,
    dan kualitas visual (sesi tanpa screenshot).
+
+### Cleanup round — penutupan QA ronde 2
+
+> Verdict QA ronde 2: LULUS DENGAN CATATAN (tanpa P1). Seluruh butir P2/P3 ditutup di ronde ini
+> tanpa mengubah logika bisnis — hanya animasi, guard, a11y, dan hygiene.
+
+1. **[P2] Exit Dialog untuk modal kondisional — TUNTAS.** Modal yang dulu di-mount kondisional
+   (`{state && <Modal …/>}`) kini **selalu ter-render + prop `open`** sehingga exit-animation Dialog
+   berjalan penuh (SPEC §C5/§A3 "setiap masuk punya keluar"):
+   - `components/rk/rk-management-view.tsx` — 5 call-site (Tambah RK, Tambah Sub-RK, Konfirmasi
+     Hapus, Pindah Sub-RK, Hapus Tahun); helper `Modal` kini menerima prop `open`. Konten dibuat
+     null-safe (`deleteConfirm?.name`, `selectedRkForSub?.…`, dst.) sehingga aman saat state
+     penutupnya `null`; handler/submit tidak berubah (hanya animasi yang berubah).
+   - `ketua_tim/rk/[id]/_client.tsx` — modal "Tandai Perlu Diperbaiki": outer conditional
+     `{entryToMark && …}` dihapus (ia melepas mount sebelum exit), konten `entryToMark?.kegiatan`.
+   **Transparansi**: butir deviasi awal (No. 4) hanya menyebut `rk-management-view` padahal pola
+   kondisional identik juga ada di modal `ketua_tim`; keduanya baru diperbaiki di ronde ini.
+2. **[P3] Guard double-click hapus.** `activity-card.tsx` & `pegawai/_client.tsx`: `handleDelete`
+   kini idempoten (`if (removing) return;`) + tombol "Ya, Hapus" `disabled` selama jendela
+   collapse-out 200ms — klik kedua tidak lagi memicu mutasi/toast duplikat (pola mengikuti guard
+   approve di `pimpinan/approval/_client.tsx`).
+3. **[P3] Unused import sisa penggantian ikon dihapus (5)** — `ChevronUp` + `XCircle`
+   (`ketua_tim/rk/[id]`), `ChevronUp` (`pegawai/ckp/[id]`), `XCircle` (`penilaian/[upload_id]`),
+   `ChevronUp` (`pimpinan/monitoring-penilaian`); warning eslint kembali ke baseline.
+4. **[P3] Celah 12px accordion Sub-RK (`rk-management-view`).** `mt-3` dipindah dari wrapper
+   `.motion-collapse-wrap` (margin wrapper bocor 12px saat panel tertutup) ke konten di dalamnya
+   yang ikut ter-collapse — tertutup = gap 0, terbuka = tetap 12px. Diverifikasi empiris di
+   headless Chrome: margin di direct child mematahkan collapse, margin/padding di konten dalam
+   tidak.
+5. **[P3] a11y Dialog (`dialog.tsx`).** `DialogTitle` kini mendaftarkan id-nya lewat context
+   (`labelledById`) dan container `role="dialog"` otomatis memakai `aria-labelledby` ke judul;
+   modal `ketua_tim` memakai id eksplisit `mark-entry-modal-title` (parity dengan modal lama).
+   Dialog tanpa `DialogTitle` (4 modal `admin/pegawai`) tidak diberi label menggantung.
+6. **[P3] `animateEnter` benar-benar opt-in.** Default di `charts.tsx` diubah `true` → `false`
+   (framing di butir Fase 3 dikoreksi); `analitik/_client.tsx` — satu-satunya pemakai yang memang
+   meminta animasi per SPEC §E — kini pass `animateEnter` eksplisit di ketiga komponen.
+7. **[P3] Koreksi apendiks `stat-card.tsx`.** Kalimat Fase 3 yang menyebut `stat-card.tsx` ikut
+   diselaraskan di gelombang 2 **keliru** — verifikasi `git log` menunjukkan file itu tidak pernah
+   tersentuh commit motion (sentuhan terakhir = commit tema, di luar scope motion); daftar file
+   Fase 3 dikoreksi.
+
+**Keputusan sadar koordinator (dipertahankan, tidak diubah):**
+- (a) Badge notifikasi tetap pop saat muat-pertama 0→N (sekali, halus, informatif — C9 #4).
+- (b) Dua layer blur sisa dipertahankan: `filter-loading.tsx` `blur(2px)` (FetchingOverlay) &
+  `sidebar.tsx` `backdrop-blur-sm` (scrim drawer mobile) — intermiten, area kecil, tidak muncul
+  bersamaan.
+
+**Verifikasi ronde ini:** `npx tsc --noEmit` → 0 error; eslint 10 file terkait: 0 error baru
+(51→51 error; warning 47→42 — 5 unused hilang); `npm run build` → hijau (exit 0, tanpa pipe,
+22/22 static pages). Catatan: exit-animation modal tetap belum diverifikasi live (halaman
+terautentikasi) — jaminan = pola referensi `penilaian/[upload_id]` yang sudah benar + tsc/build.
