@@ -9,7 +9,6 @@ import { QueryProvider } from "@/components/providers/query-provider";
 import { RecoveryManager } from "@/components/providers/recovery-manager";
 import { KeepAliveManager } from "@/components/providers/keepalive-manager";
 import { ThemeProvider } from "@/components/providers/theme-provider";
-import { MotionProvider } from "@/components/providers/motion-provider";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import NextTopLoader from 'nextjs-toploader';
 
@@ -69,35 +68,33 @@ export default function RootLayout({
           shadow="0 0 8px rgba(15,118,110,0.3)"
         />
         <ErrorBoundary>
-          <MotionProvider>
-            <QueryProvider>
-              <AuthProvider>
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-                  <CommandPaletteProvider>
-                    <RecoveryManager>
-                      {children}
-                    </RecoveryManager>
-                    <KeepAliveManager />
-                    <Toaster
-                      position="top-right"
-                      closeButton
-                      toastOptions={{
-                        style: {
-                          fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
-                          borderRadius: '16px',
-                          fontSize: '14px',
-                          background: 'var(--card-bg)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border)',
-                          boxShadow: 'var(--shadow-card)',
-                        },
-                      }}
-                    />
-                  </CommandPaletteProvider>
-                </ThemeProvider>
-              </AuthProvider>
-            </QueryProvider>
-          </MotionProvider>
+          <QueryProvider>
+            <AuthProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+                <CommandPaletteProvider>
+                  <RecoveryManager>
+                    {children}
+                  </RecoveryManager>
+                  <KeepAliveManager />
+                  <Toaster
+                    position="top-right"
+                    closeButton
+                    toastOptions={{
+                      style: {
+                        fontFamily: "'Poppins', ui-sans-serif, system-ui, sans-serif",
+                        borderRadius: '16px',
+                        fontSize: '14px',
+                        background: 'var(--card-bg)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border)',
+                        boxShadow: 'var(--shadow-card)',
+                      },
+                    }}
+                  />
+                </CommandPaletteProvider>
+              </ThemeProvider>
+            </AuthProvider>
+          </QueryProvider>
         </ErrorBoundary>
       </body>
     </html>

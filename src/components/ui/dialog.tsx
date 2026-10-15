@@ -2,36 +2,19 @@
 
 import * as React from "react";
 import { createPortal } from "react-dom";
-import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { MOTION, EASE, SPRING } from "@/lib/motion";
 import { X } from "lucide-react";
-
-/**
- * Durasi fade backdrop dialog — addendum ekspresif §B-5 menetapkan 220ms
- * (exit tetap `--duration-exit` 170ms). 220ms tidak punya token karena
- * `--duration-panel-enter` naik ke 280ms untuk panel non-dialog (§C1).
- */
-const DIALOG_BACKDROP_ENTER_MS = 220;
 
 interface DialogContextType {
   open: boolean;
   onClose: () => void;
   contentRef: React.RefObject<HTMLDivElement | null>;
-  /** id stabil untuk elemen judul bila `<DialogTitle>` tidak diberi id eksplisit. */
-  titleId: string;
-  /** id elemen `<DialogTitle>` yang sedang ter-mount → `aria-labelledby` (a11y). */
-  labelledById: string | null;
-  setLabelledById: (id: string | null) => void;
 }
 
 const DialogContext = React.createContext<DialogContextType>({
   open: false,
   onClose: () => {},
   contentRef: { current: null },
-  titleId: "",
-  labelledById: null,
-  setLabelledById: () => {},
 });
 
 const FOCUSABLE_SELECTOR = [
@@ -75,8 +58,6 @@ function Dialog({ open, onClose, children }: DialogProps) {
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const dialogId = React.useRef<symbol>(Symbol("dialog"));
   const onCloseRef = React.useRef(onClose);
-  const titleId = React.useId();
-  const [labelledById, setLabelledById] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     onCloseRef.current = onClose;
@@ -155,60 +136,39 @@ function Dialog({ open, onClose, children }: DialogProps) {
     };
   }, [open, mounted]);
 
-  if (!mounted) return null;
+  if (!open || !mounted) return null;
 
   return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          key="sikap-dialog"
-          className="fixed inset-0 z-[9999] flex items-center justify-center"
+    <DialogContext.Provider value={{ open, onClose, contentRef }}>
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+        {/* Backdrop — Apple glassmorphism */}
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xl"
+          style={{ animation: 'fadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
+          onClick={onClose}
+          aria-hidden="true"
+        />
+        {/* Content */}
+        <div
+          className="relative z-50 flex flex-col w-full items-center justify-center p-4"
+          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
         >
-          <DialogContext.Provider value={{ open, onClose, contentRef, titleId, labelledById, setLabelledById }}>
-            {/* Backdrop — scrim datar (MOTION-SPEC §D G3: blur-x dihapus).
-                Ekspresif §B-5: black/50, fade enter 220ms / exit 170ms. */}
-            <motion.div
-              className="fixed inset-0 bg-black/50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1, transition: { duration: DIALOG_BACKDROP_ENTER_MS / 1000, ease: EASE.outStrong } }}
-              exit={{ opacity: 0, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
-              onClick={onClose}
-              aria-hidden="true"
-            />
-            {/* Content — enter spring settle (ekspresif §B-5: scale 0.94→1,
-                overshoot ~0,6%), exit scale→0.96 170ms apple (exit < enter).
-                Reduced-motion ditangani MotionConfig (framer skip scale). */}
-            <motion.div
-              className="relative z-50 flex flex-col w-full items-center justify-center p-4"
-              initial={{ opacity: 0, scale: 0.94 }}
-              animate={{ opacity: 1, scale: 1, transition: SPRING.settle }}
-              exit={{ opacity: 0, scale: 0.96, transition: { duration: MOTION.exit / 1000, ease: EASE.apple } }}
-            >
-              {children}
-            </motion.div>
-          </DialogContext.Provider>
-        </motion.div>
-      )}
-    </AnimatePresence>,
+          {children}
+        </div>
+      </div>
+    </DialogContext.Provider>,
     document.body
   );
 }
 
-function DialogContent({
-  className,
-  children,
-  "aria-labelledby": ariaLabelledBy,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const { onClose, contentRef, labelledById } = React.useContext(DialogContext);
+function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  const { onClose, contentRef } = React.useContext(DialogContext);
 
   return (
     <div
       ref={contentRef}
       role="dialog"
       aria-modal="true"
-      // Label aksesibel: prop eksplisit menang, jika tidak pakai id <DialogTitle> yang ter-mount.
-      aria-labelledby={ariaLabelledBy ?? labelledById ?? undefined}
       tabIndex={-1}
       className={cn(
         "w-full max-w-lg bg-[var(--card-bg)] rounded-3xl shadow-[var(--shadow-elevated)] border border-[var(--border)] max-h-[85vh] overflow-y-auto relative focus:outline-none",
@@ -220,7 +180,7 @@ function DialogContent({
         type="button"
         onClick={onClose}
         aria-label="Tutup"
-        className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--sand-subtle)] transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] z-10"
+        className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center text-[var(--text-tertiary)] hover:text-[var(--text-primary)] hover:bg-[var(--sand-subtle)] transition-all duration-200 z-10"
       >
         <X className="h-[18px] w-[18px]" />
       </button>
@@ -235,20 +195,9 @@ function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
   );
 }
 
-function DialogTitle({ className, id, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  const { titleId, setLabelledById } = React.useContext(DialogContext);
-  // id eksplisit tetap didukung (mis. menjaga anchor lama); default = id stabil dari Dialog.
-  const resolvedId = id ?? titleId;
-
-  // Daftarkan ke Dialog → container dapat `aria-labelledby` ke judul ini.
-  React.useLayoutEffect(() => {
-    setLabelledById(resolvedId);
-    return () => setLabelledById(null);
-  }, [resolvedId, setLabelledById]);
-
+function DialogTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h2
-      id={resolvedId}
       className={cn("text-xl font-semibold text-[var(--text-primary)] tracking-tight", className)}
       {...props}
     />

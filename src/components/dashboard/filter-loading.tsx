@@ -3,7 +3,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
-import { MOTION, SPRING, useMotionSafe } from '@/lib/motion';
 
 /**
  * Indeterminate progress bar yang muncul saat filter periode / refetch
@@ -12,11 +11,6 @@ import { MOTION, SPRING, useMotionSafe } from '@/lib/motion';
  * Kenapa perlu: perubahan filter kini hanya mengubah query key React Query
  * (tanpa navigasi server), sehingga TopLoader bawaan tidak ikut berjalan.
  * Bar ini memberi umpan balik visual yang jelas.
- *
- * Fase 3 (motion): gerak bar digerakkan CSS keyframe (`fetching-bar-track`) —
- * bukan animation loop JS framer; visual, durasi (1.05s), dan rentang geser
- * (-120% → 360%) dipertahankan persis. Fade wrapper tetap via AnimatePresence
- * dengan token durasi §B1.
  */
 export function FetchingBar({ show }: { show: boolean }) {
   return (
@@ -27,14 +21,16 @@ export function FetchingBar({ show }: { show: boolean }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: MOTION.fast / 1000 }}
+          transition={{ duration: 0.2 }}
           className="absolute top-0 left-0 right-0 z-30 h-[3px] overflow-hidden rounded-full"
           style={{ background: 'var(--primary-soft)' }}
           aria-hidden="true"
         >
-          <div
-            className="fetching-bar-track absolute inset-y-0 left-0 w-1/3 rounded-full"
+          <motion.div
+            className="absolute inset-y-0 left-0 w-1/3 rounded-full"
             style={{ background: 'var(--primary)' }}
+            animate={{ x: ['-120%', '360%'] }}
+            transition={{ duration: 1.05, repeat: Infinity, ease: 'easeInOut' }}
           />
         </motion.div>
       )}
@@ -47,17 +43,9 @@ export function FetchingBar({ show }: { show: boolean }) {
  * terlihat (keepPreviousData) sehingga tidak ada "flash" skeleton, tapi ada
  * gerakan/spinner yang menandakan sedang memuat.
  *
- * Pattern ini adalah primitive bersama untuk seluruh halaman (route-transition
- * lama sudah dipensiunkan di Fase 1 — tidak ada implementasi paralel lagi).
- * Nilai gerak memakai token/preset kanonik: `spring-crisp` (SPEC §B3) + durasi
- * `--duration-fast`; offset transform dimatikan saat reduced-motion (G1 —
- * fade tetap).
- *
  * Parent WAJIB memiliki `position: relative`.
  */
 export function FetchingOverlay({ show, label }: { show: boolean; label?: string }) {
-  const motionSafe = useMotionSafe();
-
   return (
     <AnimatePresence>
       {show && (
@@ -66,7 +54,7 @@ export function FetchingOverlay({ show, label }: { show: boolean; label?: string
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: MOTION.fast / 1000 }}
+          transition={{ duration: 0.18 }}
           className="absolute inset-0 z-20 flex items-start justify-center rounded-3xl pointer-events-none"
           style={{
             background: 'var(--overlay-scrim)',
@@ -78,10 +66,10 @@ export function FetchingOverlay({ show, label }: { show: boolean; label?: string
           aria-busy="true"
         >
           <motion.div
-            initial={{ y: motionSafe ? -10 : 0, opacity: 0, scale: motionSafe ? 0.96 : 1 }}
+            initial={{ y: -10, opacity: 0, scale: 0.96 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: motionSafe ? -10 : 0, opacity: 0 }}
-            transition={SPRING.crisp}
+            exit={{ y: -10, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
             className="mt-8 inline-flex items-center gap-2.5 rounded-full px-4 py-2.5"
             style={{
               background: 'var(--card-bg)',

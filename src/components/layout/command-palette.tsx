@@ -14,7 +14,6 @@ import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
 import { runSafeRead } from '@/lib/supabase/read';
-import { MOTION, useMotionSafe } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 import {
   ArrowDown,
@@ -207,27 +206,6 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const [uploads, setUploads] = useState<SearchUpload[]>([]);
   const [people, setPeople] = useState<SearchUser[]>([]);
   const [loadingData, setLoadingData] = useState(false);
-  const [closing, setClosing] = useState(false);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const motionSafe = useMotionSafe();
-
-  // Exit 120ms (MOTION-SPEC §C1/C5) — ESC & backdrop; item aksi tetap instan.
-  const requestClose = useCallback(() => {
-    if (!motionSafe) {
-      onClose();
-      return;
-    }
-    setClosing(true);
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => {
-      closeTimer.current = null;
-      setClosing(false);
-      onClose();
-    }, MOTION.press);
-  }, [motionSafe, onClose]);
-
-  // Bersihkan timer exit saat unmount.
-  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -486,7 +464,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       flat[activeIndex]?.run();
     } else if (e.key === 'Escape') {
       e.preventDefault();
-      requestClose();
+      onClose();
     }
   };
 
@@ -496,17 +474,16 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[10000] flex items-start justify-center p-4 sm:pt-[12vh]">
       {/* Backdrop */}
       <div
-        className={cn('fixed inset-0 bg-black/40', closing ? 'motion-overlay-out' : 'motion-overlay-in')}
-        onClick={requestClose}
+        className="fixed inset-0 bg-black/40 backdrop-blur-md"
+        style={{ animation: 'fadeIn 0.18s cubic-bezier(0.25,0.1,0.25,1) both' }}
+        onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <div
-        className={cn(
-          'relative w-full max-w-[620px] rounded-[24px] overflow-hidden neu-raised-lg origin-top',
-          closing ? 'motion-palette-out' : 'motion-palette-in'
-        )}
+        className="relative w-full max-w-[620px] rounded-[24px] overflow-hidden neu-raised-lg"
+        style={{ animation: 'scaleIn 0.2s cubic-bezier(0.25,0.1,0.25,1) both' }}
         role="dialog"
         aria-modal="true"
         aria-label="Pencarian cepat"
@@ -576,7 +553,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
                       onMouseMove={() => setActiveIndex(index)}
                       onClick={item.run}
                       className={cn(
-                        'w-full flex items-center gap-3 px-4 mx-2 rounded-xl text-left'
+                        'w-full flex items-center gap-3 px-4 mx-2 rounded-xl text-left transition-colors'
                       )}
                       style={{
                         width: 'calc(100% - 16px)',

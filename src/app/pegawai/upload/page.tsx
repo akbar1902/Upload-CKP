@@ -16,7 +16,6 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
-import { MOTION } from '@/lib/motion';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, ArrowRight, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
 import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
@@ -551,21 +550,18 @@ export default function UploadPage() {
       queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
       router.refresh();
       
-      // Delight #1 (SPEC §C9): pertahankan momen sukses ±800ms sebelum redirect
-      // (dulu 300ms — terasa "kedip").
       setTimeout(() => {
         setUploading(false);
         router.push(`/pegawai/ckp/${result.uploadId}`);
-      }, MOTION.successHold);
+      }, 300);
 
-    } catch (error) {
+    } catch (error: any) {
       uploadAbortRef.current = null;
-      const message = error instanceof Error ? error.message : 'Terjadi kesalahan saat upload data';
-      if (message.includes('dibatalkan')) {
+      if (error.message?.includes('dibatalkan')) {
         console.log('[Upload] Upload cancelled by user');
       } else {
         console.error('[Upload] Upload error:', error);
-        toast.error(message, { duration: 8000 });
+        toast.error(error.message || 'Terjadi kesalahan saat upload data', { duration: 8000 });
       }
       setUploading(false);
       setUploadStep(-1);
@@ -576,7 +572,7 @@ export default function UploadPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
         <Link href="/pegawai" prefetch={true}
           className="inline-flex items-center gap-1 text-[13px] font-medium transition-colors"
           style={{ color: 'var(--text-tertiary)' }}
@@ -644,7 +640,7 @@ export default function UploadPage() {
         </ol>
 
         {wizardStep === 1 && (
-        <Card className="motion-crossfade">
+        <Card>
           <CardHeader>
             <CardTitle className="text-base">1. Periode & File CKP</CardTitle>
             <CardDescription>Pilih bulan/tahun, lalu unggah file Excel CKP (.xlsx / .xls)</CardDescription>
@@ -784,11 +780,10 @@ export default function UploadPage() {
 
         {wizardStep === 2 && (
         <>
-        <div className="motion-crossfade space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <button
             onClick={() => setWizardStep(1)}
-            className="inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-4 py-2 transition-[color,background-color,box-shadow,transform] duration-[var(--duration-fast)] active:scale-[0.97]"
+            className="inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full px-4 py-2 transition-all"
             style={{ background: 'var(--neu-surface)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-raised-sm)' }}
           >
             <ArrowLeft className="h-4 w-4" /> Kembali / Upload Ulang
@@ -930,13 +925,12 @@ export default function UploadPage() {
             </CardContent>
           </Card>
         )}
-        </div>
         </>
         )}
       </div>
 
       {wizardStep === 3 && unmatchedRKs.length > 0 && (
-        <div className="motion-crossfade rounded-2xl shadow-xl w-full overflow-hidden flex flex-col" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
+        <div className="rounded-2xl shadow-xl w-full overflow-hidden flex flex-col animate-fade-in" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
             <div className="p-6 flex justify-between items-center" style={{ borderBottom: '1px solid var(--border)' }}>
               <div>
                 <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Mapping Tim Kerja</h3>
@@ -1015,11 +1009,11 @@ export default function UploadPage() {
 
       {/* Progress Modal */}
       {uploading && wizardStep !== 3 && uploadStep >= 0 && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 motion-overlay-in" style={{ background: 'rgba(0,0,0,0.45)' }}>
-          <div className="motion-panel-in rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center" style={{ background: 'var(--card-bg)' }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md animate-fade-in" style={{ background: 'rgba(0,0,0,0.4)' }}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-md p-8 flex flex-col items-center text-center" style={{ background: 'var(--card-bg)' }}>
             <div className="relative w-20 h-20 mb-6 flex items-center justify-center">
               {uploadProgress === 100 ? (
-                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center motion-pop">
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center animate-scale-in">
                   <CheckCircle2 className="w-8 h-8 text-[var(--success)]" />
                 </div>
               ) : (
@@ -1028,7 +1022,7 @@ export default function UploadPage() {
                     <circle cx="50" cy="50" r="45" fill="none" style={{ stroke: 'var(--bg-secondary)' }} strokeWidth="8" />
                     <circle 
                       cx="50" cy="50" r="45" fill="none" 
-                      className="transition-[stroke-dashoffset] duration-[var(--duration-slow)] ease-[var(--ease-out-strong)]"
+                      className="transition-all duration-500 ease-out" 
                       style={{ stroke: 'var(--primary)' }}
                       strokeWidth="8" 
                       strokeDasharray="283" 

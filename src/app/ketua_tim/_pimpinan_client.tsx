@@ -11,7 +11,6 @@ import { Header } from '@/components/layout/header';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, getDefaultPeriod } from '@/lib/utils';
-import { useStaggerOnce } from '@/lib/motion';
 import { exportRekapToExcel } from '@/lib/excel/exporter';
 import type { CKPUpload, UploadStatus, User } from '@/types/database';
 import { toast } from 'sonner';
@@ -137,8 +136,6 @@ export default function PimpinanKetuaTimDashboardClient() {
   });
 
   const loading = authLoading || queryPending;
-  // Stagger entrance hanya paint data pertama (SPEC §B5/C2).
-  const listStaggerClass = useStaggerOnce(!loading);
   // Refetch di background (ganti periode / refresh) sementara data lama tetap tampil.
   const isFiltering = !loading && queryFetching;
 
@@ -334,7 +331,7 @@ export default function PimpinanKetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
-      <div className="relative p-4 lg:p-8 space-y-6">
+      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
 
         <FetchingBar show={isFiltering} />
 
@@ -414,7 +411,7 @@ export default function PimpinanKetuaTimDashboardClient() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Cari pegawai"
-                className="w-full pl-9 h-10 text-[13px] rounded-xl transition-[color,background-color,border-color,box-shadow] duration-[var(--duration-fast)]"
+                className="w-full pl-9 h-10 text-[13px] rounded-xl transition-all duration-200"
                 style={{
                   background: 'var(--sand-subtle)',
                   border: '1px solid var(--border)',
@@ -434,7 +431,7 @@ export default function PimpinanKetuaTimDashboardClient() {
                 <button
                   key={st.id}
                   onClick={() => setStatusFilter(st.id)}
-                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--sand-subtle)]'}`}
+                  className={`px-3.5 py-2 rounded-xl text-[12px] font-medium transition-all duration-200 ${statusFilter === st.id ? 'shadow-sm' : 'hover:bg-[var(--sand-subtle)]'}`}
                   style={statusFilter === st.id 
                     ? { background: 'var(--primary-soft)', color: 'var(--primary)', border: '1px solid var(--primary-ring)' } 
                     : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
@@ -465,7 +462,7 @@ export default function PimpinanKetuaTimDashboardClient() {
               )}
             </div>
           ) : (
-            <div key={`${bulan}-${tahun}`} className={`grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4${listStaggerClass}`}>
+            <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => <PegawaiCard key={row.user.id} row={row} source="ketua_tim" bulan={bulan} tahun={tahun} />)}
             </div>
           )}

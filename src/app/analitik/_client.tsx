@@ -166,7 +166,7 @@ export default function AnalitikClient() {
   return (
     <>
       <Header />
-      <div className="relative p-4 lg:p-8 space-y-6">
+      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
         <FetchingBar show={isFiltering} />
 
         {/* ── Hero + filter ─────────────────────────────── */}
@@ -278,7 +278,6 @@ export default function AnalitikClient() {
                     label2="Rata-rata Progres"
                     maxValue={100}
                     unit="%"
-                    animateEnter
                   />
                 )}
               </div>
@@ -293,7 +292,7 @@ export default function AnalitikClient() {
                 {showSkeleton ? (
                   <div className="skeleton h-[168px] w-[168px] rounded-full mx-auto" />
                 ) : (
-                  <StatusDonut data={donutData} centerLabel="Upload" animateEnter />
+                  <StatusDonut data={donutData} centerLabel="Upload" />
                 )}
               </div>
             </div>
@@ -343,7 +342,7 @@ export default function AnalitikClient() {
                     ))}
                   </div>
                 ) : (
-                  <MiniBars data={tunggakanBars} valueSuffix=" entri" emptyText="Tidak ada tunggakan pada periode ini 🎉" animateEnter />
+                  <MiniBars data={tunggakanBars} valueSuffix=" entri" emptyText="Tidak ada tunggakan pada periode ini 🎉" />
                 )}
               </div>
             </div>

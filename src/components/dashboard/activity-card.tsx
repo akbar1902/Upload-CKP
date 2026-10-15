@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ArrowRight, FileCheck, FileText, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, ArrowRight, FileCheck, FileText, Trash2 } from 'lucide-react';
 import { getBulanName, formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import { StatusBadge } from './status-badge';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { MOTION, useMotionSafe } from '@/lib/motion';
-import { cn } from '@/lib/utils';
 
 const MONTH_ABBR = ['', 'JAN', 'FEB', 'MAR', 'APR', 'MEI', 'JUN', 'JUL', 'AGU', 'SEP', 'OKT', 'NOV', 'DES'];
 const MONTH_FULL = ['', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -29,11 +27,9 @@ export interface ActivityCardProps {
 export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
-  const [removing, setRemoving] = useState(false);
   const queryClient = useQueryClient();
-  const motionSafe = useMotionSafe();
 
-  const runDelete = async () => {
+  const handleDelete = async () => {
     // 1. Optimistic Delete
     const toastId = toast.loading('Menghapus CKP...');
     
@@ -51,31 +47,14 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       } else {
         throw new Error(res.error || 'Gagal menghapus CKP');
       }
-    } catch (e) {
+    } catch (e: any) {
       // 2. Rollback on failure
       queryClient.setQueryData(['pegawai-uploads', upload.user_id], previousUploads);
-      const msg = e instanceof Error ? e.message : 'Terjadi kesalahan saat menghapus';
-      toast.error(msg, { id: toastId });
+      toast.error(e.message || 'Terjadi kesalahan saat menghapus', { id: toastId });
     }
   };
 
   const canDelete = upload.status !== 'approved';
-
-  // Exit kartu: collapse-out dulu (collapseOut 200ms, SPEC §C4 / checklist #11)
-  // baru mutasi — agar kartu tidak "lenyap mendadak". Reduced motion: langsung.
-  const handleDelete = () => {
-    // Guard idempoten (QA ronde 2): selama jendela collapse-out kartu masih
-    // ter-mount ±200ms — klik kedua tidak boleh memicu mutasi/toast duplikat.
-    if (removing) return;
-    if (!motionSafe) {
-      void runDelete();
-      return;
-    }
-    setRemoving(true);
-    window.setTimeout(() => {
-      void runDelete();
-    }, MOTION.rowOut);
-  };
 
   // Date from uploaded_at
   const dt = new Date(upload.uploaded_at);
@@ -87,7 +66,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
   const progressClass = getProgressClass(pct);
 
   return (
-    <div className={cn("activity-card", removing && "motion-remove")} aria-expanded={expanded}>
+    <div className="activity-card" aria-expanded={expanded}>
       {/* ── Main card row ──────────────────────────── */}
       <div className="flex items-center gap-3 sm:gap-4 p-4 sm:p-6">
 
@@ -112,7 +91,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               style={{ background: 'var(--primary-soft)' }}
               aria-hidden="true"
             >
-              <FileCheck size={18} style={{ color: 'var(--primary)' }} className="group-hover:scale-110 transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]" />
+              <FileCheck size={18} style={{ color: 'var(--primary)' }} className="group-hover:scale-110 transition-transform" />
             </div>
 
             <div className="min-w-0 flex-1">
@@ -148,8 +127,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           </div>
           <div className="w-24 h-1 rounded-full overflow-hidden" style={{ background: 'var(--sand-border)' }}>
             <div
-              className={`motion-progress h-full w-full rounded-full ${progressClass}`}
-              style={{ transform: `scaleX(${Math.max(0, Math.min(pct, 100) / 100).toFixed(4)})` }}
+              className={`h-full rounded-full progress-bar ${progressClass}`}
+              style={{ width: `${pct}%` }}
               role="progressbar"
               aria-valuenow={pct}
               aria-valuemin={0}
@@ -166,7 +145,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           <StatusBadge status={upload.status} />
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] px-2.5 py-1 rounded-full"
+            className="flex items-center gap-1 text-[12px] font-medium transition-all duration-200 px-2.5 py-1 rounded-full"
             style={{ color: 'var(--text-tertiary)' }}
             onMouseEnter={(e) => {
               (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';
@@ -177,27 +156,15 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
             }}
             aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
-            aria-expanded={expanded}
           >
-            <ChevronDown
-              size={14}
-              className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
-              style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
-              aria-hidden="true"
-            />
+            {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             <span className="hidden sm:inline">{expanded ? 'Tutup' : 'Detail'}</span>
           </button>
         </div>
       </div>
 
-      {/* ── Expanded detail panel ─────────────────────
-          Pola grid-template-rows (SPEC §C1/C4) — bukan max-height; 200ms. */}
-      <div
-        className="motion-collapse-wrap"
-        data-open={expanded}
-        style={{ '--collapse-duration': 'var(--duration-row-out)' } as React.CSSProperties}
-      >
-        <div inert={!expanded}>
+      {/* ── Expanded detail panel ───────────────────── */}
+      {expanded && (
         <div
           className="card-expanded-content border-t px-6 py-5"
           style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}
@@ -277,8 +244,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
                   </button>
                   <button
                     onClick={handleDelete}
-                    disabled={removing}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-[var(--danger)] hover:opacity-90 transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] disabled:opacity-60"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium text-white bg-[var(--danger)] hover:opacity-90 transition-colors"
                   >
                     Ya, Hapus
                   </button>
@@ -297,8 +263,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             )}
           </div>
         </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }

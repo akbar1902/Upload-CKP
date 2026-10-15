@@ -34,7 +34,7 @@ export function StatusFilter({ selected, onChange, counts }: StatusFilterProps) 
             onClick={() => onChange(value)}
             aria-pressed={isActive}
             className={cn(
-              "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] ease-[var(--ease-apple)] active:scale-[0.98]",
+              "inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-[13px] font-medium transition-all duration-200",
               !isActive && "hover:bg-[var(--sand-subtle)]"
             )}
             style={isActive

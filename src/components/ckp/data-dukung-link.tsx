@@ -69,7 +69,7 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
         target="_blank"
         rel="noopener noreferrer"
         onClick={handlePreviewClick}
-        className="inline-flex items-center gap-1.5 text-[14px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] group cursor-pointer"
+        className="inline-flex items-center gap-1.5 text-[14px] font-medium transition-all duration-200 group cursor-pointer"
         style={{ color: 'var(--primary)' }}
         title={trimmed}
       >
@@ -83,13 +83,13 @@ export function DataDukungLink({ value }: DataDukungLinkProps) {
               <path d="M15.3 16.454l-3.2-5.546-3.333-2.076L12.433 3.286l6.134 10.622L15.3 16.454z" fill="#1967D2"/>
             </svg>
             <span className="truncate max-w-[120px] group-hover:underline">Bukti Dukung</span>
-            <Maximize2 className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[var(--duration-fast)]" />
+            <Maximize2 className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </>
         ) : (
           <>
             <FileText className="h-3.5 w-3.5 flex-shrink-0" />
             <span className="truncate max-w-[120px] group-hover:underline">Lihat Bukti</span>
-            <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[var(--duration-fast)]" />
+            <ExternalLink className="h-3 w-3 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
           </>
         )}
       </a>

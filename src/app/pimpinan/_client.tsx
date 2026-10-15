@@ -343,7 +343,7 @@ export default function PimpinanDashboard() {
   return (
     <>
       <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
-      <div className="relative p-4 lg:p-8 space-y-6">
+      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
 
         <FetchingBar show={isFiltering} />
 
@@ -368,7 +368,7 @@ export default function PimpinanDashboard() {
             {pendingCount > 0 && (
               <Link
                 href={`/pimpinan/approval?bulan=${bulan}&tahun=${tahun}`}
-                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] hover:-translate-y-0.5"
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
               >
                 <Zap className="h-4 w-4" fill="currentColor" />
                 Persetujuan Cepat
@@ -377,7 +377,7 @@ export default function PimpinanDashboard() {
             )}
             <Link
               href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-[var(--primary)] bg-[var(--card-bg)] border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] shadow-sm transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-[var(--primary)] bg-[var(--card-bg)] border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] shadow-sm transition-all duration-200"
             >
               <Users className="h-4 w-4 text-[var(--primary)]" />
               Monitoring Penilaian
@@ -409,9 +409,7 @@ export default function PimpinanDashboard() {
               title="Download semua file asli (ZIP)"
               aria-label="Download semua file asli (ZIP)"
             >
-              {isZipping
-                ? <RefreshCw className="h-4 w-4 animate-spin" />
-                : <Archive className="h-4 w-4" />}
+              <Archive className={`h-4 w-4 ${isZipping ? 'animate-pulse opacity-50' : ''}`} />
             </button>
           </div>
         </div>
@@ -451,7 +449,7 @@ export default function PimpinanDashboard() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 aria-label="Cari pegawai"
-                className="neu-field w-full pl-9 h-10 text-[13px] rounded-full transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+                className="neu-field w-full pl-9 h-10 text-[13px] rounded-full transition-all duration-200"
                 style={{ color: 'var(--text-primary)' }}
               />
             </div>
@@ -468,7 +466,7 @@ export default function PimpinanDashboard() {
                 <button
                   key={st.id}
                   onClick={() => setStatusFilter(st.id)}
-                  className="px-3.5 py-2 rounded-full text-[12px] font-medium transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+                  className="px-3.5 py-2 rounded-full text-[12px] font-medium transition-all duration-200"
                   style={statusFilter === st.id
                     ? (st.id === 'submitted' || st.id === 'revision_required'
                         ? { background: 'var(--accent-soft)', color: 'var(--accent-strong)', boxShadow: 'var(--neu-pressed)' }
@@ -510,7 +508,7 @@ export default function PimpinanDashboard() {
               )}
             </div>
           ) : (
-            <div key={`${bulan}-${tahun}`} className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+            <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => (
                 <PegawaiCard key={row.user.id} row={row} bulan={bulan} tahun={tahun} />
               ))}

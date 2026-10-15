@@ -99,7 +99,7 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
                   <button
                     key={a.value}
                     onClick={() => setAction(a.value)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)]"
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-200"
                     style={{
                       background: a.bg,
                       color: a.color,

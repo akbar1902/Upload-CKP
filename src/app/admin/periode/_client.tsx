@@ -85,7 +85,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6">
+      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
@@ -125,19 +125,15 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
                         {getBulanName(p.bulan)} {p.tahun}
                       </h3>
                       <p className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                        Status:{' '}
-                        {/* Crossfade status 150ms saat berubah (SPEC §E /admin/periode) */}
-                        <span key={p.is_locked ? 'locked' : 'open'} className="motion-status-fade">
-                          {p.is_locked ? 'Terkunci' : 'Terbuka'}
-                        </span>
+                        Status: {p.is_locked ? 'Terkunci' : 'Terbuka'}
                       </p>
                     </div>
                     {p.is_locked ? (
-                      <div key="icon-locked" className="motion-status-fade w-10 h-10 rounded-full flex items-center justify-center bg-red-100 text-red-600">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-red-100 text-red-600">
                         <Lock size={18} />
                       </div>
                     ) : (
-                      <div key="icon-open" className="motion-status-fade w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-[var(--success-text)]">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-100 text-[var(--success-text)]">
                         <Unlock size={18} />
                       </div>
                     )}
@@ -146,7 +142,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
                   <button
                     onClick={() => setConfirmTarget({ bulan: p.bulan, nextLocked: !p.is_locked })}
                     disabled={isProcessing}
-                    className={`w-full py-2 rounded-xl text-[13px] font-semibold transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
+                    className={`w-full py-2 rounded-xl text-[13px] font-semibold transition-all inline-flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed ${
                       p.is_locked
                         ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700'
                         : 'bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50'
@@ -189,7 +185,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
             <button
               onClick={handleToggleLock}
               disabled={processingBulan !== null}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration-fast)] hover:brightness-95 disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all hover:brightness-95 disabled:opacity-60"
               style={{ background: confirmTarget?.nextLocked ? 'var(--danger)' : 'var(--primary)' }}
             >
               {processingBulan !== null && <RefreshCw size={14} className="animate-spin" />}

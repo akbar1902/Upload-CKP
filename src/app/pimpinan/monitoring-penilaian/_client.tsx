@@ -9,23 +9,19 @@ import { usePeriodParams } from '@/hooks/use-period-params';
 import { withTimeoutRetry } from '@/lib/supabase/read';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import { getPendingScoringKetuaTim, type PendingScoringKetuaTim } from '@/app/actions/monitoring';
-import { ChevronDown, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, AlertCircle, RefreshCw, Users, FileText, CheckCircle2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { ScreenshotButton } from '@/components/ui/screenshot-button';
 
 function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
   const [expanded, setExpanded] = useState(false);
-  const panelId = `monitoring-panel-${data.ketuaTim.id}`;
 
   return (
-    <div className="bg-[var(--card-bg)] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-[box-shadow,border-color] duration-[var(--duration)] hover:shadow-md">
-      <button
-        type="button"
-        className="w-full text-left p-5 flex items-center justify-between cursor-pointer select-none"
+    <div className="bg-[var(--card-bg)] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+      <div
+        className="p-5 flex items-center justify-between cursor-pointer select-none"
         onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
-        aria-controls={panelId}
       >
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[var(--secondary-strong)] flex items-center justify-center text-white font-bold text-lg shadow-[var(--shadow-card)]">
@@ -46,28 +42,12 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
             </span>
           </div>
           <div className="w-8 h-8 rounded-full bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center text-slate-400 transition-colors">
-            <ChevronDown
-              size={20}
-              className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
-              style={{ transform: expanded ? 'rotate(180deg)' : 'none' }}
-              aria-hidden="true"
-            />
+            {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
           </div>
         </div>
-      </button>
+      </div>
 
-      {/* Accordion grid-template-rows (SPEC §C1/C4). Inline style — section ini
-          target screenshot (#export-monitoring-section), guardrail G4: tanpa
-          kelas entrance di dalam target. */}
-      <div
-        id={panelId}
-        style={{
-          display: 'grid',
-          gridTemplateRows: expanded ? '1fr' : '0fr',
-          transition: 'grid-template-rows var(--duration-row-out) var(--ease-out-strong)',
-        }}
-      >
-        <div inert={!expanded} style={{ overflow: 'hidden', minHeight: 0 }}>
+      {expanded && (
         <div className="border-t border-[var(--sand-border)] bg-[var(--sand-subtle)] p-5 space-y-4">
           <div className="text-[13px] font-bold text-[var(--success-text)] mb-3 flex items-center gap-2">
             <Users size={16} />
@@ -80,8 +60,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
             ))}
           </div>
         </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -91,11 +70,9 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
 
   return (
     <div className="bg-white  rounded-xl border border-slate-200/60 dark:border-slate-700/50 overflow-hidden">
-      <button
-        type="button"
-        className="w-full text-left p-3.5 flex items-center justify-between cursor-pointer hover:bg-[var(--success-soft)] transition-colors"
+      <div
+        className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-[var(--success-soft)] transition-colors"
         onClick={() => setExpanded(!expanded)}
-        aria-expanded={expanded}
       >
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 text-[11px] font-bold">
@@ -111,24 +88,11 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
             <FileText size={13} />
             {pegawai.pendingRkCount} RK
           </span>
-          <ChevronDown
-            size={16}
-            className="transition-transform duration-[var(--duration-fast)] ease-[var(--ease-apple)]"
-            style={{ transform: expanded ? 'rotate(180deg)' : 'none', color: expanded ? 'var(--success)' : 'var(--text-tertiary)' }}
-            aria-hidden="true"
-          />
+          {expanded ? <ChevronUp size={16} className="text-emerald-500" /> : <ChevronDown size={16} className="text-slate-400" />}
         </div>
-      </button>
+      </div>
 
-      {/* Accordion grid-template-rows — inline style (target screenshot, G4). */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateRows: expanded ? '1fr' : '0fr',
-          transition: 'grid-template-rows var(--duration-row-out) var(--ease-out-strong)',
-        }}
-      >
-        <div inert={!expanded} style={{ overflow: 'hidden', minHeight: 0 }}>
+      {expanded && (
         <div className="p-3 pt-0 bg-[var(--success-soft)]">
           <div className="pl-11 pr-2 pt-2">
             <ul className="space-y-1.5">
@@ -154,8 +118,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
             </ul>
           </div>
         </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -220,7 +183,7 @@ export default function MonitoringPenilaianClient() {
   return (
     <>
       <Header />
-      <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6">
+      <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
 
         <FetchingBar show={loading} />
         <FetchingOverlay show={loading && data.length > 0} label={`Memuat ${getBulanLabel()} ${tahun}…`} />

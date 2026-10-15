@@ -6,10 +6,7 @@ const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        // Hover lift dari kelas `.card-hover` (ekspresif §B-3: -4px, 240ms
-        // --ease-out-strong + border-hover) — satu sumber & ikut blok
-        // reduced-motion §D (bukan lagi Tailwind hover:-translate-y-0.5).
-        "card-hover rounded-[20px] border border-[var(--border)] bg-[var(--card-bg)] shadow-[var(--shadow-card)]",
+        "rounded-[20px] border border-[var(--border)] bg-[var(--card-bg)] shadow-[var(--shadow-card)] transition-all duration-300 hover:shadow-[var(--shadow-hover)] hover:-translate-y-0.5",
         className
       )}
       {...props}

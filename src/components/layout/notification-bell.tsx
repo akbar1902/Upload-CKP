@@ -1,14 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { runSafeRead, createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
 import { useAuth } from '@/hooks/use-auth';
-import { cn } from '@/lib/utils';
-import { MOTION, useMotionSafe } from '@/lib/motion';
 
 interface Notification {
   id: string;
@@ -45,52 +43,10 @@ export function NotificationBell() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
-  const [closing, setClosing] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const motionSafe = useMotionSafe();
-  // Delight #4 (SPEC §C9): badge pop hanya saat jumlah naik — bukan turun.
-  const [badgePop, setBadgePop] = useState(false);
-  const prevUnreadRef = React.useRef(0);
-
-  const openMenu = useCallback(() => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-    setClosing(false);
-    setOpen(true);
-  }, []);
-
-  // Exit animation dropdown 120ms (MOTION-SPEC §C5) — hormati reduced motion.
-  const requestClose = useCallback(() => {
-    if (!motionSafe) {
-      setOpen(false);
-      return;
-    }
-    setClosing(true);
-    if (closeTimer.current) clearTimeout(closeTimer.current);
-    closeTimer.current = setTimeout(() => {
-      closeTimer.current = null;
-      setClosing(false);
-      setOpen(false);
-    }, MOTION.press);
-  }, [motionSafe]);
-
-  // Bersihkan timer exit saat unmount.
-  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   const unread = items.filter((i) => !i.is_read).length;
-
-  React.useEffect(() => {
-    const prev = prevUnreadRef.current;
-    prevUnreadRef.current = unread;
-    if (unread <= prev) return;
-    setBadgePop(true);
-    const t = window.setTimeout(() => setBadgePop(false), 400);
-    return () => window.clearTimeout(t);
-  }, [unread]);
 
   // Muat 20 terbaru
   useEffect(() => {
@@ -143,11 +99,11 @@ export function NotificationBell() {
   // Tutup saat klik di luar
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) requestClose();
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
     };
     document.addEventListener('mousedown', onDown);
     return () => document.removeEventListener('mousedown', onDown);
-  }, [requestClose]);
+  }, []);
 
   const markAllRead = async () => {
     if (!user?.id || unread === 0) return;
@@ -191,7 +147,7 @@ export function NotificationBell() {
   return (
     <div ref={boxRef} className="relative">
       <button
-        onClick={() => (open ? requestClose() : openMenu())}
+        onClick={() => setOpen((o) => !o)}
         className="relative p-2.5 rounded-full transition-colors"
         style={
           unread > 0
@@ -206,7 +162,7 @@ export function NotificationBell() {
         <Bell size={16} />
         {unread > 0 && (
           <span
-            className={`absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-[var(--accent-strong)] text-white text-[9px] font-bold flex items-center justify-center${badgePop ? ' motion-pop' : ''}`}
+            className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-0.5 rounded-full bg-[var(--accent-strong)] text-white text-[9px] font-bold flex items-center justify-center"
             aria-hidden="true"
           >
             {unread > 9 ? '9+' : unread}
@@ -216,7 +172,7 @@ export function NotificationBell() {
 
       {open && (
         <div
-          className={cn("absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 origin-top-right", closing ? "motion-dropdown-out" : "motion-dropdown-in")}
+          className="absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 animate-scale-in"
           style={{
             background: 'var(--card-bg)',
             border: '1px solid var(--sand-border)',

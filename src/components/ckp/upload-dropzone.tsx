@@ -71,7 +71,7 @@ export function UploadDropzone({ onFileSelected, disabled, error }: UploadDropzo
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          "relative border-2 border-dashed rounded-2xl p-10 text-center transition-[color,background-color,border-color,box-shadow,opacity,transform] duration-[var(--duration)] cursor-pointer",
+          "relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 cursor-pointer",
           disabled && "opacity-50 cursor-not-allowed",
         )}
         style={{
