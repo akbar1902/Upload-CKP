@@ -32,7 +32,21 @@ const withPWA = withPWAInit({
         warnings: [] as string[],
       }),
     ],
+    runtimeCaching: [
+      {
+        // Panggilan API lintas-origin (Supabase) TIDAK boleh lewat NetworkFirst
+        // bawaan plugin: itu menambah satu lapisan service worker pada setiap
+        // query dan berisiko menyajikan respons lama dari cache. Teruskan
+        // langsung ke jaringan (tanpa cache). Nama cache "cross-origin"
+        // menimpa aturan bawaan.
+        urlPattern: ({ sameOrigin }: { sameOrigin: boolean }) => !sameOrigin,
+        handler: "NetworkOnly",
+        options: { cacheName: "cross-origin" },
+      },
+    ],
   },
+  // Tambahkan aturan runtimeCaching di atas TANPA membuang aturan bawaan plugin.
+  extendDefaultRuntimeCaching: true,
 });
 
 const nextConfig: NextConfig = {
