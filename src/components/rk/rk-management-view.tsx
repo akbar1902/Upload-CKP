@@ -14,7 +14,6 @@ import {
   FileSpreadsheet,
   RefreshCw,
   ArrowRightLeft,
-  Eye,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -319,22 +318,6 @@ export function RkManagementView({
             </div>
           )}
         </div>
-
-        {/* ===== Info mode lihat-saja (non-admin) ===== */}
-        {!canEdit && (
-          <div
-            className="flex items-start gap-3 rounded-2xl px-4 py-3 text-[13px]"
-            style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)', color: 'var(--text-secondary)' }}
-          >
-            <Eye size={16} className="mt-0.5 shrink-0" style={{ color: 'var(--text-tertiary)' }} />
-            <span>
-              Mode <strong style={{ color: 'var(--text-primary)' }}>lihat-saja</strong> — penambahan, perubahan, dan
-              penghapusan Rencana Kinerja hanya dapat dilakukan oleh{' '}
-              <strong style={{ color: 'var(--text-primary)' }}>admin</strong>. Hubungi admin bila ada RK yang perlu
-              diperbarui.
-            </span>
-          </div>
-        )}
 
         {/* ===== Statistik ===== */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
