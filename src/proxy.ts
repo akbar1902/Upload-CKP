@@ -13,7 +13,10 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public files with extensions
+     * - berkas statis/PWA (manifest, service worker, robots) — jangan
+     *   diproses middleware supaya tidak dialihkan ke /login (dulu
+     *   manifest.webmanifest kena 307 untuk pengguna yang belum login)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|workbox-|swe-worker-|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|webmanifest)$).*)',
   ],
 };

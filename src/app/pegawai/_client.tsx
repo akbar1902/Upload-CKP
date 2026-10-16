@@ -219,8 +219,12 @@ export default function PegawaiDashboard() {
       }),
     enabled: !!user && !authLoading,
     networkMode: 'always',
-    staleTime: 0,
-    refetchOnMount: 'always',
+    // Data dari render server (prefetchQuery di page.tsx) sudah fresh.
+    // JANGAN langsung query ulang ke Supabase saat mount — dulu ada
+    // `staleTime: 0` + `refetchOnMount: 'always'` yang membuang data hasil
+    // render server dan menambah satu round-trip ke Supabase setiap kali
+    // dashboard dibuka. Freshness diatur staleTime (selaras RecoveryManager).
+    staleTime: 30_000,
     // Show previous cached data while background-refetching — prevents skeleton flash
     placeholderData: keepPreviousData,
     retry: false,
