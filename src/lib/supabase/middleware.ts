@@ -70,10 +70,12 @@ export async function updateSession(request: NextRequest) {
     return res;
   }
 
-  // Not logged in → clear cached role and redirect if not public
+  // Not logged in → clear cached role and redirect. Halaman "/" juga langsung
+  // dialihkan ke /login di server (dulu lewat redirect sisi klien sehingga
+  // ada satu hop navigasi ekstra sebelum form login tampil).
   if (!user) {
     let response = NextResponse.next({ request });
-    if (!publicRoutes.includes(pathname)) {
+    if (pathname === '/' || !publicRoutes.includes(pathname)) {
       response = NextResponse.redirect(new URL('/login', request.url));
     }
     response.cookies.delete('ckp-role');

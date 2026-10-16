@@ -8,6 +8,16 @@ const withPWA = withPWAInit({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
+  // Jangan precache aset berat yang tidak dipakai saat runtime. Aset ini
+  // (~2,5 MB: ZIP logo, logo.png, dan folder PNG alternatif) dulu ikut
+  // diunduh service worker pada kunjungan pertama sehingga buka web terasa
+  // lambat. File-nya tetap bisa diakses lewat URL, hanya tidak di-precache.
+  publicExcludes: [
+    "!noprecache/**/*",
+    "!**/*.zip",
+    "!logo.png",
+    "!Logo Website SIKAP*/**",
+  ],
 });
 
 const nextConfig: NextConfig = {
