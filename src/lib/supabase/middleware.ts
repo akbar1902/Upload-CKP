@@ -70,12 +70,18 @@ export async function updateSession(request: NextRequest) {
     return res;
   }
 
-  // Not logged in → clear cached role and redirect. Halaman "/" juga langsung
-  // dialihkan ke /login di server (dulu lewat redirect sisi klien sehingga
-  // ada satu hop navigasi ekstra sebelum form login tampil).
+  // Not logged in → bersihkan role cache. Halaman "/" LANGSUNG disajikan
+  // sebagai halaman login (rewrite, bukan redirect) supaya membuka web tidak
+  // memerlukan satu hop permintaan ekstra. Path lain di luar daftar publik
+  // tetap dialihkan ke /login.
   if (!user) {
+    if (pathname === '/') {
+      const response = NextResponse.rewrite(new URL('/login', request.url));
+      response.cookies.delete('ckp-role');
+      return response;
+    }
     let response = NextResponse.next({ request });
-    if (pathname === '/' || !publicRoutes.includes(pathname)) {
+    if (!publicRoutes.includes(pathname)) {
       response = NextResponse.redirect(new URL('/login', request.url));
     }
     response.cookies.delete('ckp-role');
