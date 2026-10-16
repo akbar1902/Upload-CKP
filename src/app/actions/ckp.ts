@@ -1039,17 +1039,19 @@ export async function submitCkpUploadAction(formData: FormData) {
     });
 
     const serverMs = Date.now() - t0;
-    const timing = {
-      serverMs,
-      authMs: tAuth - t0,
-      readMs: tReads - tAuth,
-      storageMs: tStorage - tReads,
-      writeMs: tWrites - tStorage,
-      entriesMs: tEntries - tWrites,
-    };
-    console.log('[submitCkpUploadAction] timing', timing);
+    // Log ringkas ke server (Vercel logs) — berguna bila ada keluhan lambat lagi.
+    if (process.env.NODE_ENV !== 'production' || serverMs > 1000) {
+      console.log('[submitCkpUploadAction] timing', {
+        serverMs,
+        authMs: tAuth - t0,
+        readMs: tReads - tAuth,
+        storageMs: tStorage - tReads,
+        writeMs: tWrites - tStorage,
+        entriesMs: tEntries - tWrites,
+      });
+    }
 
-    return { success: true, uploadId: uploadData.id, timing };
+    return { success: true, uploadId: uploadData.id };
   } catch (error: any) {
     console.error('[submitCkpUploadAction] Error:', error);
     return { success: false, error: 'Terjadi kesalahan saat memproses upload. Silakan coba lagi.' };

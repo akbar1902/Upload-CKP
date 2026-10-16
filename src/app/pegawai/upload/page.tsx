@@ -48,8 +48,6 @@ export default function UploadPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadStep, setUploadStep] = useState(-1);
   const [uploadProgress, setUploadProgress] = useState(0);
-  // Diagnostik sementara: ringkasan waktu upload untuk investigasi performa.
-  const [uploadTiming, setUploadTiming] = useState<string>('');
   const [existingUpload, setExistingUpload] = useState<{
     id: string;
     version: number;
@@ -458,7 +456,6 @@ export default function UploadPage() {
     // Beri browser satu frame untuk menampilkan modal di 0% lebih dulu.
     await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-    const tProcStart = performance.now();
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
 
@@ -541,9 +538,7 @@ export default function UploadPage() {
 
       setUploadStep(3);
 
-      const tReqStart = performance.now();
       const result = await submitCkpUploadAction(formData);
-      const tReqEnd = performance.now();
       checkAborted();
 
       if (!result.success) {
@@ -556,14 +551,6 @@ export default function UploadPage() {
       setUploadProgress(100);
       toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
 
-      // Diagnostik: prep klien vs permintaan jaringan vs kerja server.
-      const reqMs = Math.round(tReqEnd - tReqStart);
-      const prepMs = Math.round(tReqStart - tProcStart);
-      const timing = (result as { timing?: { serverMs?: number } }).timing;
-      const timingText = `prep ${prepMs}ms · jaringan ${reqMs}ms · server ${timing?.serverMs ?? '?'}ms`;
-      setUploadTiming(timingText);
-      console.log('[upload] timing', { prepMs, reqMs, serverTiming: timing });
-
       queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
       queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
       router.refresh();
@@ -571,7 +558,7 @@ export default function UploadPage() {
       setTimeout(() => {
         setUploading(false);
         router.push(`/pegawai/ckp/${result.uploadId}`);
-      }, 2500);
+      }, 300);
 
     } catch (error: any) {
       uploadAbortRef.current = null;
@@ -1068,12 +1055,7 @@ export default function UploadPage() {
             <h3 className="text-xl font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
               {uploadProgress === 100 ? 'Upload Selesai!' : 'Memproses Upload...'}
             </h3>
-
-            {uploadProgress === 100 && uploadTiming && (
-              <p className="text-[11px] font-mono mb-2 px-3 py-1 rounded-lg" style={{ color: 'var(--text-secondary)', background: 'var(--bg-secondary)' }}>
-                {uploadTiming}
-              </p>
-            )}
+            
             
             <div className="w-full text-left mt-6 space-y-3">
               <div className="flex items-center text-sm">
