@@ -66,10 +66,23 @@ export default function LoginPage() {
         document.cookie = 'sikap-session=1; path=/; samesite=lax';
       }
 
-      // Sukses: JANGAN redirect manual di sini — useEffect di atas yang
-      // redirect berdasarkan role dari database (cover admin/pimpinan/
-      // ketua_tim/pegawai). Redirect manual pakai user_metadata bisa salah
-      // role dan bikin loading nyangkut kalau navigasi lambat.
+      // Navigasi SEGERA memakai role dari metadata sesi (sudah diverifikasi
+      // konsisten dengan role di database) supaya tidak perlu menunggu
+      // pengambilan profil dari DB sebelum halaman tujuan dibuka — ini yang
+      // membuat tombol "Masuk" terasa lama berputar.
+      // Middleware tetap memvalidasi dan mengoreksi bila role ternyata berbeda.
+      // Bila role tidak dikenali, biarkan useEffect di atas yang mengarahkan
+      // setelah profil dari database termuat.
+      const metaRole = data.user.user_metadata?.role as string | undefined;
+      const roleRoutes: Record<string, string> = {
+        admin: '/admin',
+        pimpinan: '/pimpinan',
+        ketua_tim: '/ketua_tim',
+        pegawai: '/pegawai',
+        anggota: '/pegawai',
+      };
+      const targetRoute = metaRole ? roleRoutes[metaRole] : undefined;
+      if (targetRoute) router.replace(targetRoute);
     } catch {
       setError('Terjadi kesalahan yang tidak terduga.');
       setLoading(false);
