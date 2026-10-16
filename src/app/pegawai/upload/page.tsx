@@ -346,11 +346,16 @@ export default function UploadPage() {
       }
 
       // NOW set uploading — all guards have passed
+      // Progres SELALU mulai dari 0. Animasi (useEffect PROGRESS ANIMATION di
+      // bawah) yang menaikkannya menuju batas tiap langkah. Dulu di sini nilai
+      // progres langsung di-set tinggi (5→15→75) dalam satu batch React, jadi
+      // frame pertama yang sempat digambar sudah 75% — itu yang diperbaiki.
       setUploading(true);
       setUploadStep(0);
-      setUploadProgress(5);
-      // Beri React satu tick untuk render progress modal SEBELUM logika berat
-      await new Promise<void>(r => setTimeout(r, 0));
+      setUploadProgress(0);
+      // Tunggu sampai modal benar-benar ter-paint di 0% sebelum logika berat
+      // memblokir main thread (double rAF = pasti ada satu frame tergambar).
+      await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
       let currentMasterRKs = masterRKs;
       let currentMasterKegiatan = masterKegiatan;
@@ -444,9 +449,12 @@ export default function UploadPage() {
       return;
     }
 
+    // Mulai dari 0; animasi yang menaikkan progres menuju batas langkah.
     setUploading(true);
     setUploadStep(0);
-    setUploadProgress(15);
+    setUploadProgress(0);
+    // Beri browser satu frame untuk menampilkan modal di 0% lebih dulu.
+    await new Promise<void>(r => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
     const abortController = new AbortController();
     uploadAbortRef.current = abortController;
@@ -467,7 +475,6 @@ export default function UploadPage() {
       const distinctMatchedRkIds = new Set<string>();
 
       setUploadStep(1);
-      setUploadProgress(30);
 
       const v2EntriesResolved = parseResult.entries.map((entry) => {
         // Resolver murni — tidak mutasi entry; rawRK dibaca langsung dari Excel.
@@ -518,7 +525,6 @@ export default function UploadPage() {
       checkAborted();
 
       setUploadStep(2);
-      setUploadProgress(50);
 
       // Package everything into FormData to upload via Server Action
       const formData = new FormData();
@@ -531,7 +537,6 @@ export default function UploadPage() {
       formData.append('validRKsToAssign', JSON.stringify(validRKsToAssign));
 
       setUploadStep(3);
-      setUploadProgress(75);
 
       const result = await submitCkpUploadAction(formData);
       checkAborted();
