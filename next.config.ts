@@ -18,6 +18,21 @@ const withPWA = withPWAInit({
     "!logo.png",
     "!Logo Website SIKAP*/**",
   ],
+  workboxOptions: {
+    // PENTING: jangan precache seluruh aset build (~3,45 MB — chunk untuk
+    // SEMUA rute, termasuk halaman yang belum pernah dibuka) pada kunjungan
+    // pertama. Dulu service worker mengunduh semuanya di latar dan berebut
+    // bandwidth tepat saat web baru dibuka.
+    // Chunk JS/CSS/font tetap tercache otomatis begitu dipakai lewat
+    // runtimeCaching bawaan plugin (next-static-js-assets, static-style-assets,
+    // static-font-assets), jadi kunjungan berikutnya tetap instan.
+    manifestTransforms: [
+      (entries: Array<{ url: string; revision: string | null; size: number }>) => ({
+        manifest: entries.filter((entry) => !entry.url.startsWith("/_next/static/")),
+        warnings: [] as string[],
+      }),
+    ],
+  },
 });
 
 const nextConfig: NextConfig = {
