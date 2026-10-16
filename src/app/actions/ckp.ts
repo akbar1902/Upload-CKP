@@ -595,6 +595,7 @@ export async function markEntryAction(entryId: string, catatanKoreksi: string | 
 }
 
 export async function submitCkpUploadAction(formData: FormData) {
+  const t0 = Date.now();
   try {
     // 0. WAJIB sesi login — jangan percaya userId dari FormData.
     const supabase = await createServerSupabaseClient();
@@ -669,6 +670,7 @@ export async function submitCkpUploadAction(formData: FormData) {
       userId = userIdFromForm;
     }
 
+    const tAuth = Date.now();
     // CEK SERVER-SIDE: periode dikunci? (jangan hanya andalkan client)
     // Ketiga pembacaan di bawah INDEPENDEN — jalankan bersamaan supaya total
     // waktu = round-trip terlama, bukan jumlah semuanya (dulu serial).
@@ -701,6 +703,7 @@ export async function submitCkpUploadAction(formData: FormData) {
         .maybeSingle(),
     ]);
 
+    const tReads = Date.now();
     if (periodeRes.data?.is_locked) {
       return { success: false, error: 'Periode CKP ini sedang dikunci oleh Admin. Upload tidak diizinkan.' };
     }
@@ -777,6 +780,7 @@ export async function submitCkpUploadAction(formData: FormData) {
     ]);
     existingEntries = fetchedExistingEntries;
 
+    const tStorage = Date.now();
     const { error: storageError } = storageResult;
     if (storageError) {
       console.error('[submitCkpUploadAction] Storage upload error:', storageError);
@@ -823,6 +827,7 @@ export async function submitCkpUploadAction(formData: FormData) {
     const uploadData = insertRes.data;
     const uploadError = insertRes.error;
 
+    const tWrites = Date.now();
     if (uploadError || !uploadData) {
       console.error('[submitCkpUploadAction] Insert upload error:', uploadError);
       return { success: false, error: 'Gagal menyimpan informasi upload. Silakan coba lagi.' };
@@ -953,6 +958,7 @@ export async function submitCkpUploadAction(formData: FormData) {
     revalidatePath(`/pegawai/ckp/${uploadData.id}`);
     revalidatePath('/', 'layout');
 
+    const tEntries = Date.now();
     // 8. Tugas non-kritis (mapping, assignment, audit log, notifikasi) dijalankan
     //    SETELAH respons dikirim — user tidak lagi menunggu pekerjaan ini.
     //    Tidak ada yang memengaruhi hasil upload, jadi kegagalannya cukup di-warn.
@@ -1032,7 +1038,18 @@ export async function submitCkpUploadAction(formData: FormData) {
       }
     });
 
-    return { success: true, uploadId: uploadData.id };
+    const serverMs = Date.now() - t0;
+    const timing = {
+      serverMs,
+      authMs: tAuth - t0,
+      readMs: tReads - tAuth,
+      storageMs: tStorage - tReads,
+      writeMs: tWrites - tStorage,
+      entriesMs: tEntries - tWrites,
+    };
+    console.log('[submitCkpUploadAction] timing', timing);
+
+    return { success: true, uploadId: uploadData.id, timing };
   } catch (error: any) {
     console.error('[submitCkpUploadAction] Error:', error);
     return { success: false, error: 'Terjadi kesalahan saat memproses upload. Silakan coba lagi.' };
