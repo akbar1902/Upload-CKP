@@ -3,6 +3,7 @@
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/read';
 import { revalidatePath } from 'next/cache';
+import { after } from 'next/server';
 import { notify, getReviewerIds } from '@/lib/notifications';
 import { getBulanName } from '@/lib/utils';
 import { normalizeRkName } from '@/lib/rk-scoring';
@@ -669,26 +670,40 @@ export async function submitCkpUploadAction(formData: FormData) {
     }
 
     // CEK SERVER-SIDE: periode dikunci? (jangan hanya andalkan client)
-    const { data: periode } = await supabaseAdmin
-      .from('periode_ckp')
-      .select('is_locked')
-      .eq('bulan', bulan)
-      .eq('tahun', tahun)
-      .maybeSingle();
-    if (periode?.is_locked) {
+    // Ketiga pembacaan di bawah INDEPENDEN — jalankan bersamaan supaya total
+    // waktu = round-trip terlama, bukan jumlah semuanya (dulu serial).
+    const [periodeRes, rkMappingData, existingUploadRes] = await Promise.all([
+      supabaseAdmin
+        .from('periode_ckp')
+        .select('is_locked')
+        .eq('bulan', bulan)
+        .eq('tahun', tahun)
+        .maybeSingle(),
+      // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id.
+      // Paginasi penuh — jangan terpotong diam-diam di 1000 baris.
+      fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
+        supabaseAdmin
+          .from('rk_ketua_tim_mapping')
+          .select('id, rencana_kinerja')
+          .eq('is_active', true)
+          .order('id', { ascending: true })
+          .range(from, to)
+      ),
+      // 1. Check existing upload for versioning
+      supabaseAdmin
+        .from('ckp_uploads')
+        .select('id, version, status')
+        .eq('user_id', userId)
+        .eq('bulan', bulan)
+        .eq('tahun', tahun)
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (periodeRes.data?.is_locked) {
       return { success: false, error: 'Periode CKP ini sedang dikunci oleh Admin. Upload tidak diizinkan.' };
     }
-
-    // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id.
-    // Paginasi penuh — jangan terpotong diam-diam di 1000 baris.
-    const rkMappingData = await fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
-      supabaseAdmin
-        .from('rk_ketua_tim_mapping')
-        .select('id, rencana_kinerja')
-        .eq('is_active', true)
-        .order('id', { ascending: true })
-        .range(from, to)
-    );
 
     // Gagalkan eksplisit bila master kosong — jangan fail-open (semua rk_ketua_tim_id jadi NULL).
     if (rkMappingData.length === 0) {
@@ -702,16 +717,7 @@ export async function submitCkpUploadAction(formData: FormData) {
       rkNameToId.set(String(r.rencana_kinerja).toLowerCase(), String(r.id));
     });
 
-    // 1. Check existing upload for versioning
-    const { data: existingUpload } = await supabaseAdmin
-      .from('ckp_uploads')
-      .select('id, version, status')
-      .eq('user_id', userId)
-      .eq('bulan', bulan)
-      .eq('tahun', tahun)
-      .order('version', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const existingUpload = existingUploadRes.data;
 
     if (existingUpload?.status === 'approved') {
       return { success: false, error: 'CKP periode ini sudah disetujui. Tidak dapat mengupload ulang.' };
@@ -724,16 +730,6 @@ export async function submitCkpUploadAction(formData: FormData) {
     if (existingUpload) {
       newVersion = existingUpload.version + 1;
       previousUploadId = existingUpload.id;
-
-      // Paginasi penuh — upload lama bisa >1000 entri.
-      existingEntries = await fetchAllRows<CkpEntryRow>((from, to) =>
-        supabaseAdmin
-          .from('ckp_entries')
-          .select('*')
-          .eq('upload_id', existingUpload.id)
-          .order('id', { ascending: true })
-          .range(from, to)
-      );
     }
 
     // Validasi UUID matchedRkId SEBELUM upload storage / supersede versi lama,
@@ -748,35 +744,43 @@ export async function submitCkpUploadAction(formData: FormData) {
       }
     }
 
-    // 2. Upload file to Supabase Storage via admin client
+    // 2. Upload file to Supabase Storage via admin client — DIJALANKAN BERSAMAAN
+    //    dengan pengambilan entri versi lama (dua operasi jaringan independen),
+    //    sehingga durasi keduanya tidak saling menambah.
     const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '_');
     const storagePath = `${userId}/${tahun}/${bulan}/v${newVersion}_${Date.now()}_${sanitizedFileName}`;
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const storageUploadPromise = file.arrayBuffer().then((arrayBuffer) =>
+      supabaseAdmin.storage
+        .from('ckp-files')
+        .upload(storagePath, Buffer.from(arrayBuffer), {
+          upsert: true,
+          contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        })
+    );
 
-    const { error: storageError } = await supabaseAdmin.storage
-      .from('ckp-files')
-      .upload(storagePath, buffer, {
-        upsert: true,
-        contentType: file.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+    // Paginasi penuh — upload lama bisa >1000 entri.
+    const existingEntriesPromise: Promise<CkpEntryRow[]> = previousUploadId
+      ? fetchAllRows<CkpEntryRow>((from, to) =>
+          supabaseAdmin
+            .from('ckp_entries')
+            .select('*')
+            .eq('upload_id', previousUploadId)
+            .order('id', { ascending: true })
+            .range(from, to)
+        )
+      : Promise.resolve([]);
 
+    const [storageResult, fetchedExistingEntries] = await Promise.all([
+      storageUploadPromise,
+      existingEntriesPromise,
+    ]);
+    existingEntries = fetchedExistingEntries;
+
+    const { error: storageError } = storageResult;
     if (storageError) {
       console.error('[submitCkpUploadAction] Storage upload error:', storageError);
       return { success: false, error: 'Gagal mengunggah file ke penyimpanan. Silakan coba lagi.' };
-    }
-
-    // 3. Mark previous upload as superseded
-    if (previousUploadId) {
-      const { error: supersedeError } = await supabaseAdmin
-        .from('ckp_uploads')
-        .update({ status: 'superseded' })
-        .eq('id', previousUploadId);
-      if (supersedeError) {
-        console.error('[submitCkpUploadAction] Supersede error:', supersedeError);
-        return { success: false, error: 'Gagal menonaktifkan versi CKP lama. Silakan coba lagi.' };
-      }
     }
 
     // 4. Calculate total entries & avg progres
@@ -785,22 +789,39 @@ export async function submitCkpUploadAction(formData: FormData) {
       ? entries.reduce((s: number, e: UploadItem) => s + (Number((e.entry ?? e).progres) || 0), 0) / totalEntries
       : 0;
 
-    // 5. Create new ckp_uploads record
-    const { data: uploadData, error: uploadError } = await supabaseAdmin
-      .from('ckp_uploads')
-      .insert({
-        user_id: userId,
-        bulan,
-        tahun,
-        version: newVersion,
-        file_name: file.name,
-        storage_path: storagePath,
-        status: 'submitted',
-        total_entries: totalEntries,
-        avg_progres: avgProgres,
-      })
-      .select()
-      .single();
+    // 3 & 5. Tandai versi lama "superseded" DAN buat record upload baru —
+    //        dua operasi independen, dijalankan bersamaan.
+    const [supersedeRes, insertRes] = await Promise.all([
+      previousUploadId
+        ? supabaseAdmin
+            .from('ckp_uploads')
+            .update({ status: 'superseded' })
+            .eq('id', previousUploadId)
+        : Promise.resolve({ error: null }),
+      supabaseAdmin
+        .from('ckp_uploads')
+        .insert({
+          user_id: userId,
+          bulan,
+          tahun,
+          version: newVersion,
+          file_name: file.name,
+          storage_path: storagePath,
+          status: 'submitted',
+          total_entries: totalEntries,
+          avg_progres: avgProgres,
+        })
+        .select()
+        .single(),
+    ]);
+
+    if (supersedeRes.error) {
+      console.error('[submitCkpUploadAction] Supersede error:', supersedeRes.error);
+      return { success: false, error: 'Gagal menonaktifkan versi CKP lama. Silakan coba lagi.' };
+    }
+
+    const uploadData = insertRes.data;
+    const uploadError = insertRes.error;
 
     if (uploadError || !uploadData) {
       console.error('[submitCkpUploadAction] Insert upload error:', uploadError);
@@ -908,95 +929,108 @@ export async function submitCkpUploadAction(formData: FormData) {
       };
     });
 
-    // 7. Batch insert entries (chunk of 200)
+    // 7. Batch insert entries — beberapa chunk dijalankan BERSAMAAN (bukan satu
+    //    per satu) agar ribuan baris tidak menunggu round-trip berantai.
     const CHUNK_SIZE = 200;
+    const chunks: (typeof entriesToInsert)[] = [];
     for (let i = 0; i < entriesToInsert.length; i += CHUNK_SIZE) {
-      const chunk = entriesToInsert.slice(i, i + CHUNK_SIZE);
-      const { error: chunkErr } = await supabaseAdmin.from('ckp_entries').insert(chunk);
-      if (chunkErr) {
-        console.error('[submitCkpUploadAction] Insert chunk error:', chunkErr);
+      chunks.push(entriesToInsert.slice(i, i + CHUNK_SIZE));
+    }
+    const INSERT_CONCURRENCY = 6;
+    for (let i = 0; i < chunks.length; i += INSERT_CONCURRENCY) {
+      const batch = chunks.slice(i, i + INSERT_CONCURRENCY);
+      const results = await Promise.all(
+        batch.map((chunk) => supabaseAdmin.from('ckp_entries').insert(chunk))
+      );
+      const failed = results.find((r) => r.error);
+      if (failed?.error) {
+        console.error('[submitCkpUploadAction] Insert chunk error:', failed.error);
         return { success: false, error: 'Gagal menyimpan rincian kegiatan CKP. Silakan coba lagi.' };
       }
-    }
-
-    // 8. Non-critical tasks (mappings, RK assignment, audit)
-    try {
-      if (Object.keys(rkTeamMapping).length > 0) {
-        const newMappings = Object.keys(rkTeamMapping).map(rk => ({
-          user_id: userId,
-          rk_id: rkTeamMapping[rk]?.rk_id || null,
-          kegiatan_nama: rk,
-        })).filter(m => m.rk_id !== null && m.rk_id !== '');
-        if (newMappings.length > 0) {
-          const { error: mapInsertErr } = await supabaseAdmin
-            .from('master_kegiatan_anggota')
-            .insert(newMappings);
-          if (mapInsertErr) {
-            console.warn('[submitCkpUploadAction] Insert mapping warning:', mapInsertErr.message);
-          }
-        }
-      }
-
-      if (validRKsToAssign.length > 0) {
-        // validRKsToAssign berisi UUID mapping (dikirim client); nama lama tetap didukung utk kompat.
-        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        const assignmentsToInsert: Array<{ rk_id: string; user_id: string; assigned_by: string }> = [];
-        for (const rkItem of validRKsToAssign) {
-          const rkStr = String(rkItem || '').trim();
-          if (!rkStr) continue;
-          if (uuidRe.test(rkStr)) {
-            if (rkIdSet.has(rkStr)) {
-              assignmentsToInsert.push({ rk_id: rkStr, user_id: userId, assigned_by: userId });
-            }
-          } else {
-            const hitId = rkNameToId.get(rkStr.toLowerCase());
-            if (hitId) {
-              assignmentsToInsert.push({ rk_id: hitId, user_id: userId, assigned_by: userId });
-            }
-          }
-        }
-        if (assignmentsToInsert.length > 0) {
-          const { error: assignErr } = await supabaseAdmin
-            .from('user_rk_assignments')
-            .upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
-          if (assignErr) {
-            console.warn('[submitCkpUploadAction] Upsert assignment warning:', assignErr.message);
-          }
-        }
-      }
-
-      await supabaseAdmin.from('audit_logs').insert({
-        user_id: userId,
-        action: 'upload_ckp',
-        entity_type: 'ckp_uploads',
-        entity_id: uploadData.id,
-        new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
-      });
-    } catch (bgErr) {
-      console.warn('[submitCkpUploadAction] Background task warning:', bgErr);
     }
 
     revalidatePath('/pegawai');
     revalidatePath(`/pegawai/ckp/${uploadData.id}`);
     revalidatePath('/', 'layout');
 
-    // Notifikasi ke pimpinan/admin bahwa ada CKP baru menunggu review
-    const reviewers = await getReviewerIds();
+    // 8. Tugas non-kritis (mapping, assignment, audit log, notifikasi) dijalankan
+    //    SETELAH respons dikirim — user tidak lagi menunggu pekerjaan ini.
+    //    Tidak ada yang memengaruhi hasil upload, jadi kegagalannya cukup di-warn.
     const periodLabel = `${getBulanName(bulan)} ${tahun}`;
-    await Promise.all(
-      reviewers
-        .filter((rid) => rid !== userId)
-        .map((rid) =>
-          notify({
-            userId: rid,
-            type: 'submitted',
-            title: 'CKP baru menunggu review',
-            body: `Periode ${periodLabel} — versi ${newVersion}.`,
-            uploadId: uploadData.id,
-            actorId: userId,
-          })
-        )
-    );
+    after(async () => {
+      try {
+        if (Object.keys(rkTeamMapping).length > 0) {
+          const newMappings = Object.keys(rkTeamMapping).map(rk => ({
+            user_id: userId,
+            rk_id: rkTeamMapping[rk]?.rk_id || null,
+            kegiatan_nama: rk,
+          })).filter(m => m.rk_id !== null && m.rk_id !== '');
+          if (newMappings.length > 0) {
+            const { error: mapInsertErr } = await supabaseAdmin
+              .from('master_kegiatan_anggota')
+              .insert(newMappings);
+            if (mapInsertErr) {
+              console.warn('[submitCkpUploadAction] Insert mapping warning:', mapInsertErr.message);
+            }
+          }
+        }
+
+        if (validRKsToAssign.length > 0) {
+          // validRKsToAssign berisi UUID mapping (dikirim client); nama lama tetap didukung utk kompat.
+          const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const assignmentsToInsert: Array<{ rk_id: string; user_id: string; assigned_by: string }> = [];
+          for (const rkItem of validRKsToAssign) {
+            const rkStr = String(rkItem || '').trim();
+            if (!rkStr) continue;
+            if (uuidRe.test(rkStr)) {
+              if (rkIdSet.has(rkStr)) {
+                assignmentsToInsert.push({ rk_id: rkStr, user_id: userId, assigned_by: userId });
+              }
+            } else {
+              const hitId = rkNameToId.get(rkStr.toLowerCase());
+              if (hitId) {
+                assignmentsToInsert.push({ rk_id: hitId, user_id: userId, assigned_by: userId });
+              }
+            }
+          }
+          if (assignmentsToInsert.length > 0) {
+            const { error: assignErr } = await supabaseAdmin
+              .from('user_rk_assignments')
+              .upsert(assignmentsToInsert, { onConflict: 'user_id, rk_id' });
+            if (assignErr) {
+              console.warn('[submitCkpUploadAction] Upsert assignment warning:', assignErr.message);
+            }
+          }
+        }
+
+        await supabaseAdmin.from('audit_logs').insert({
+          user_id: userId,
+          action: 'upload_ckp',
+          entity_type: 'ckp_uploads',
+          entity_id: uploadData.id,
+          new_data: { bulan, tahun, version: newVersion, total_entries: entriesToInsert.length },
+        });
+
+        // Notifikasi ke pimpinan/admin bahwa ada CKP baru menunggu review
+        const reviewers = await getReviewerIds();
+        await Promise.all(
+          reviewers
+            .filter((rid) => rid !== userId)
+            .map((rid) =>
+              notify({
+                userId: rid,
+                type: 'submitted',
+                title: 'CKP baru menunggu review',
+                body: `Periode ${periodLabel} — versi ${newVersion}.`,
+                uploadId: uploadData.id,
+                actorId: userId,
+              })
+            )
+        );
+      } catch (bgErr) {
+        console.warn('[submitCkpUploadAction] Background task warning:', bgErr);
+      }
+    });
 
     return { success: true, uploadId: uploadData.id };
   } catch (error: any) {
