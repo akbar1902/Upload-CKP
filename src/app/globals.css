@@ -8,30 +8,33 @@
   --color-white: #FFFDF8;
   --color-black: #000000;
 
-  /* Netral hangat (ganti slate/biru-abu dingin) */
-  --color-slate-50: #FAF8F1;
-  --color-slate-100: #FBF9F4;
-  --color-slate-200: #F7F3EA;
-  --color-slate-300: #E2D5C0;
-  --color-slate-400: #A89C86;
-  --color-slate-500: #6E6759;
-  --color-slate-600: #57503F;
-  --color-slate-700: #3F3A30;
-  --color-slate-800: #2E2B25;
-  --color-slate-900: #1E1B16;
-  --color-slate-950: #171410;
+  /* Netral (slate & gray) — abu netral modern, SELARAS dengan token
+     --bg-base/--text-primary. Sebelumnya dipetakan ke krem/cokelat
+     (slate-50 = #FAF8F1) sehingga halaman yang memakai slate-* terlihat
+     lebih coklat daripada halaman lain. */
+  --color-slate-50: #F6F6F4;
+  --color-slate-100: #F1F1EE;
+  --color-slate-200: #E6E6E2;
+  --color-slate-300: #D6D6D1;
+  --color-slate-400: #8A8F98;
+  --color-slate-500: #5B6069;
+  --color-slate-600: #454A52;
+  --color-slate-700: #33373D;
+  --color-slate-800: #23262B;
+  --color-slate-900: #16181A;
+  --color-slate-950: #0C0D0F;
 
-  --color-gray-50: #FAF8F1;
-  --color-gray-100: #FBF9F4;
-  --color-gray-200: #F7F3EA;
-  --color-gray-300: #E2D5C0;
-  --color-gray-400: #A89C86;
-  --color-gray-500: #6E6759;
-  --color-gray-600: #57503F;
-  --color-gray-700: #3F3A30;
-  --color-gray-800: #2E2B25;
-  --color-gray-900: #1E1B16;
-  --color-gray-950: #171410;
+  --color-gray-50: #F6F6F4;
+  --color-gray-100: #F1F1EE;
+  --color-gray-200: #E6E6E2;
+  --color-gray-300: #D6D6D1;
+  --color-gray-400: #8A8F98;
+  --color-gray-500: #5B6069;
+  --color-gray-600: #454A52;
+  --color-gray-700: #33373D;
+  --color-gray-800: #23262B;
+  --color-gray-900: #16181A;
+  --color-gray-950: #0C0D0F;
 
   /* Sage / sukses (ganti emerald & green) */
   --color-emerald-50: #E9EFE3;
@@ -71,33 +74,35 @@
   --color-teal-900: #0B3B37;
   --color-teal-950: #052E2B;
 
-  /* Info dingin → primer/pasir (ganti blue & sky) */
-  --color-blue-50: #FCFBF7;
-  --color-blue-100: #F7F3EA;
-  --color-blue-200: #E2D5C0;
-  --color-blue-300: #83B3A3;
-  --color-blue-400: #3AA897;
+  /* Info → turunan primer (teal) dengan tint netral.
+     Sebelumnya blue-50 = #FCFBF7 dan blue-100 = #F7F3EA (krem/beige),
+     sehingga badge "info" tampak coklat, bukan biru/teal. */
+  --color-blue-50: #EEF7F5;
+  --color-blue-100: #DCEDE9;
+  --color-blue-200: #BCDAD4;
+  --color-blue-300: #8FC2BA;
+  --color-blue-400: #4FA79C;
   --color-blue-500: #0F766E;
   --color-blue-600: #0F766E;
-  --color-blue-700: #0B5B55;
-  --color-blue-800: #2E3B36;
-  --color-blue-900: #232D2A;
-  --color-blue-950: #171E1C;
+  --color-blue-700: #115E59;
+  --color-blue-800: #0B3B37;
+  --color-blue-900: #08302C;
+  --color-blue-950: #04211F;
 
-  --color-sky-50: #FCFBF7;
-  --color-sky-100: #F7F3EA;
-  --color-sky-200: #E2D5C0;
-  --color-sky-300: #83B3A3;
-  --color-sky-400: #3AA897;
+  --color-sky-50: #EEF7F5;
+  --color-sky-100: #DCEDE9;
+  --color-sky-200: #BCDAD4;
+  --color-sky-300: #8FC2BA;
+  --color-sky-400: #4FA79C;
   --color-sky-500: #0F766E;
   --color-sky-600: #0F766E;
-  --color-sky-700: #0B5B55;
-  --color-sky-800: #2E3B36;
-  --color-sky-900: #232D2A;
-  --color-sky-950: #171E1C;
+  --color-sky-700: #115E59;
+  --color-sky-800: #0B3B37;
+  --color-sky-900: #08302C;
+  --color-sky-950: #04211F;
 
-  --color-cyan-50: #FCFBF7;
-  --color-cyan-100: #F7F3EA;
+  --color-cyan-50: #EEF7F5;
+  --color-cyan-100: #DCEDE9;
   --color-cyan-500: #0F766E;
   --color-cyan-600: #0F766E;
 
@@ -145,16 +150,16 @@
   --color-rose-600: #A8442F;
   --color-rose-700: #86341F;
 
-  /* Taupe skor (ganti purple & violet) */
-  --color-purple-50: #EFE7DD;
-  --color-purple-100: #E3D9C6;
-  --color-purple-200: #D9C9B2;
-  --color-purple-500: #7A6A52;
-  --color-purple-700: #6B5A44;
+  /* Taupe skor → indigo lembut (netral modern, bukan coklat) */
+  --color-purple-50: #EFEFFB;
+  --color-purple-100: #E1E2F7;
+  --color-purple-200: #C9CBEF;
+  --color-purple-500: #6D6FC4;
+  --color-purple-700: #4C4EA0;
 
-  --color-violet-50: #EFE7DD;
-  --color-violet-100: #E3D9C6;
-  --color-violet-500: #6B5A44;
+  --color-violet-50: #F1EFFB;
+  --color-violet-100: #E5E1F8;
+  --color-violet-500: #7C6DC9;
 
   /* Indigo → primer */
   --color-indigo-50: #E7F0EC;
