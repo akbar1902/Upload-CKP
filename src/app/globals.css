@@ -192,37 +192,38 @@
 
 /* ─── Earthy Neumorphism Tokens ──────────────────────────── */
 :root {
-  /* ── Soft-UI (neumorphism) primitives ──
-     Surface dasar = warna yang sama dengan background; kedalaman dibentuk
-     oleh dua bayangan: gelap (kanan-bawah) + terang (kiri-atas). */
-  --neu-bg:            #EFEAE2;
-  --neu-surface:       #EFEAE2;
-  --neu-surface-2:     #E6DFD4;
-  --neu-shadow-dark:   rgba(163, 145, 116, 0.50);
-  --neu-shadow-light:  rgba(255, 255, 255, 0.95);
-  --neu-raised:        8px 8px 18px var(--neu-shadow-dark), -8px -8px 18px var(--neu-shadow-light);
-  --neu-raised-sm:     4px 4px 10px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light);
-  --neu-raised-lg:     14px 14px 34px var(--neu-shadow-dark), -14px -14px 34px var(--neu-shadow-light);
-  --neu-inset:         inset 5px 5px 12px var(--neu-shadow-dark), inset -5px -5px 12px var(--neu-shadow-light);
-  --neu-inset-sm:      inset 3px 3px 7px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light);
-  --neu-pressed:       inset 6px 6px 14px var(--neu-shadow-dark), inset -6px -6px 14px var(--neu-shadow-light);
+  /* ── Elevation modern ──
+     Bukan lagi neumorphism dua arah (bayangan gelap + highlight putih).
+     Sekarang: permukaan putih bersih + bayangan tipis netral bertingkat,
+     seperti antarmuka dashboard modern. Nama variabel lama dipertahankan
+     agar seluruh komponen ikut berubah tanpa disentuh satu per satu. */
+  --neu-bg:            #F6F6F4;
+  --neu-surface:       #FFFFFF;
+  --neu-surface-2:     #F1F1EE;
+  --neu-shadow-dark:   rgba(16, 24, 40, 0.10);
+  --neu-shadow-light:  rgba(255, 255, 255, 0);
+  --neu-raised:        0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 14px -4px rgba(16, 24, 40, 0.10);
+  --neu-raised-sm:     0 1px 2px rgba(16, 24, 40, 0.05), 0 2px 6px -2px rgba(16, 24, 40, 0.08);
+  --neu-raised-lg:     0 2px 4px rgba(16, 24, 40, 0.04), 0 12px 28px -8px rgba(16, 24, 40, 0.14);
+  --neu-inset:         inset 0 1px 2px rgba(16, 24, 40, 0.06);
+  --neu-inset-sm:      inset 0 1px 2px rgba(16, 24, 40, 0.05);
+  --neu-pressed:       inset 0 1px 3px rgba(16, 24, 40, 0.12);
 
-  /* Surface — background app lebih terang (#FAFAF5); kartu & sidebar tetap
-     neumorfik #EFEAE2 (--neu-surface / --neu-bg) sehingga tampak menonjol. */
-  --bg-base:        #FAFAF5;
-  --bg-secondary:   var(--neu-surface-2);
-  --card-bg:        var(--neu-surface);
-  --bg-hover:       var(--neu-surface-2);
-  --bg-active:      #DED6C9;
+  /* Surface — halaman abu netral, kartu putih bersih (kontras lebih tegas). */
+  --bg-base:        #F6F6F4;
+  --bg-secondary:   #F1F1EE;
+  --card-bg:        #FFFFFF;
+  --bg-hover:       #F1F1EE;
+  --bg-active:      #E8E8E4;
 
   /* Scrim untuk overlay loading saat filter/refetch dashboard */
-  --overlay-scrim:  rgba(250, 250, 245, 0.62);
+  --overlay-scrim:  rgba(246, 246, 244, 0.62);
 
   /* Primary — DIPERTAHANKAN (Teal SIKAP) */
   --primary:        #0F766E; /* Teal 700 */
   --primary-hover:  #115E59; /* Teal 800 */
   --primary-soft:   rgba(15, 118, 110, 0.08);
-  --primary-ring:   rgba(15, 118, 110, 0.15);
+  --primary-ring:   rgba(15, 118, 110, 0.28);
   --primary-bright: #0F766E; /* di light = primary; di dark = teal terang utk teks/ikon */
 
   /* Secondary — sage */
@@ -234,12 +235,12 @@
 
   /* Tertiary — beige / sand: AKsen 10%, BUKAN permukaan utama.
      Pecah 3 turunan: border (50-60%), subtle (tint tipis), strong (elemen kecil) */
-  --tertiary:        #E2D5C0;
-  --sand-border:     rgba(169, 146, 118, 0.34);  /* border/divider — dilembutkan utk soft-UI */
-  --sand-subtle:     var(--neu-surface-2);       /* hover & muted sangat halus */
-  --sand-strong:     #E2D5C0;                    /* chip aktif, badge netral, avatar placeholder */
-  --tertiary-soft:   rgba(226, 213, 192, 0.35);
-  --tertiary-text:   #5F4527;                 /* teks di atas sand (5.47 OK) */
+  --tertiary:        #E9E9E4;
+  --sand-border:     #E6E6E2;                    /* border/divider netral */
+  --sand-subtle:     #F4F4F1;                    /* hover & muted sangat halus */
+  --sand-strong:     #EDEDE8;                    /* chip aktif, badge netral, avatar placeholder */
+  --tertiary-soft:   rgba(22, 24, 26, 0.04);
+  --tertiary-text:   #5B6069;                 /* teks di atas sand */
 
   /* Accent — terracotta (hemat) */
   --accent:          #C96F4F;
@@ -262,35 +263,34 @@
      Di light = putih; di dark permukaan tsb. justru terang → ink gelap. */
   --on-solid:       #FFFDF8;
 
-  /* Text */
-  --text-primary:   #2B2A26; /* hijau-cokelat sangat tua */
-  --text-secondary: #6E6759; /* cokelat keabu-abuan */
-  --text-tertiary:  #6E6759; /* label 10-13px — kontras >= 4.5 di kartu (light) */
+  /* Text — kontras dinaikkan agar lebih tegas & mudah dibaca */
+  --text-primary:   #16181A;
+  --text-secondary: #5B6069;
+  --text-tertiary:  #8A8F98;
 
-  /* Border — dilembutkan (neumorphism mengandalkan bayangan, bukan garis tegas) */
-  --border:         rgba(169, 146, 118, 0.34);
-  --border-soft:    rgba(169, 146, 118, 0.2);
-  --border-hover:   rgba(169, 146, 118, 0.5);
+  /* Border — garis tipis netral (menggantikan garis cokelat sand) */
+  --border:         #E6E6E2;
+  --border-soft:    #EFEFEB;
+  --border-hover:   #D6D6D1;
 
-  /* Sidebar — menyatu dengan surface, dibatasi bayangan + garis tipis */
-  --sidebar-bg:     var(--neu-bg);
-  --sidebar-hover:  var(--neu-surface-2);
-  --sidebar-active: rgba(15, 118, 110, 0.1);
-  --sidebar-text:   #2B2A26;
-  --sidebar-text-muted: #6E6759;
-  --sidebar-border: rgba(169, 146, 118, 0.28);
+  /* Sidebar — putih, dipisahkan garis tipis dari konten */
+  --sidebar-bg:     #FFFFFF;
+  --sidebar-hover:  #F4F4F1;
+  --sidebar-active: rgba(15, 118, 110, 0.08);
+  --sidebar-text:   #16181A;
+  --sidebar-text-muted: #5B6069;
+  --sidebar-border: #ECECE8;
 
-  /* Shadow → neumorphism (raised / inset) untuk elemen di atas permukaan */
-  --shadow-card:    var(--neu-raised);
-  --shadow-hover:   var(--neu-raised-lg);
-  /* Elemen mengambang (dialog/dropdown) di atas backdrop gelap: pakai drop
-     shadow biasa — highlight putih neumorfik justru tampak "glow". */
-  --shadow-elevated:0 24px 60px -16px rgba(60, 50, 35, 0.45), 0 6px 16px -8px rgba(60, 50, 35, 0.22);
+  /* Shadow → elevasi modern */
+  --shadow-card:    0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 14px -4px rgba(16, 24, 40, 0.10);
+  --shadow-hover:   0 2px 4px rgba(16, 24, 40, 0.04), 0 12px 28px -8px rgba(16, 24, 40, 0.14);
+  /* Elemen mengambang (dialog/dropdown) di atas backdrop gelap */
+  --shadow-elevated:0 24px 60px -16px rgba(16, 24, 40, 0.28), 0 6px 16px -8px rgba(16, 24, 40, 0.16);
 
-  /* Radius */
-  --radius-card:    20px;
-  --radius-panel:   24px;
-  --radius-input:   12px;
+  /* Radius — lebih rapi/modern (tidak terlalu bulat) */
+  --radius-card:    14px;
+  --radius-panel:   18px;
+  --radius-input:   10px;
   --radius-button:  980px;
   --radius-badge:   980px;
 
@@ -302,26 +302,28 @@
 }
 
 .dark {
-  /* ── Soft-UI primitives (dark) — highlight tipis, bayangan dalam ── */
-  --neu-bg:            #24211D;
-  --neu-surface:       #24211D;
-  --neu-surface-2:     #1D1B17;
-  --neu-shadow-dark:   rgba(0, 0, 0, 0.65);
-  --neu-shadow-light:  rgba(255, 255, 255, 0.05);
-  --neu-raised:        8px 8px 18px var(--neu-shadow-dark), -8px -8px 18px var(--neu-shadow-light);
-  --neu-raised-sm:     4px 4px 10px var(--neu-shadow-dark), -4px -4px 10px var(--neu-shadow-light);
-  --neu-raised-lg:     14px 14px 34px var(--neu-shadow-dark), -14px -14px 34px var(--neu-shadow-light);
-  --neu-inset:         inset 5px 5px 12px var(--neu-shadow-dark), inset -5px -5px 12px var(--neu-shadow-light);
-  --neu-inset-sm:      inset 3px 3px 7px var(--neu-shadow-dark), inset -3px -3px 7px var(--neu-shadow-light);
-  --neu-pressed:       inset 6px 6px 14px var(--neu-shadow-dark), inset -6px -6px 14px var(--neu-shadow-light);
+  /* ── Elevation modern (dark) — permukaan bertingkat + bayangan netral ── */
+  --neu-bg:            #1B1A18;
+  --neu-surface:       #232220;
+  --neu-surface-2:     #2C2A27;
+  --neu-shadow-dark:   rgba(0, 0, 0, 0.55);
+  --neu-shadow-light:  rgba(255, 255, 255, 0);
+  --neu-raised:        0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 14px -4px rgba(0, 0, 0, 0.50);
+  --neu-raised-sm:     0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.40);
+  --neu-raised-lg:     0 2px 4px rgba(0, 0, 0, 0.40), 0 12px 28px -8px rgba(0, 0, 0, 0.60);
+  --neu-inset:         inset 0 1px 2px rgba(0, 0, 0, 0.50);
+  --neu-inset-sm:      inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  --neu-pressed:       inset 0 1px 3px rgba(0, 0, 0, 0.60);
 
-  --bg-base:        var(--neu-bg);
-  --bg-secondary:   var(--neu-surface-2);
-  --card-bg:        var(--neu-surface);
-  --sand-subtle:    var(--neu-surface-2);
-  --overlay-scrim:  rgba(36, 33, 29, 0.62);
-  --sand-border:    rgba(214, 201, 180, 0.16);
-  --sand-strong:    #3A342C;
+  --bg-base:        #1B1A18;
+  --bg-secondary:   #2C2A27;
+  --card-bg:        #232220;
+  --bg-hover:       #2C2A27;
+  --bg-active:      #35332F;
+  --sand-subtle:    #2A2926;
+  --overlay-scrim:  rgba(27, 26, 24, 0.62);
+  --sand-border:    #33312E;
+  --sand-strong:    #33312E;
 
   /* Primary dark = DUA teal (hasil ukur kontras):
      --primary = teal DALAM utk tombol (putih di atasnya 4.53 OK)
@@ -338,9 +340,9 @@
   --secondary-text:   #DCE5D2;
   --secondary-strong: #A9C29A;
 
-  --tertiary:        #D9C9B2;
-  --tertiary-soft:   rgba(217, 201, 178, 0.1);
-  --tertiary-text:   #D6C9B4;
+  --tertiary:        #33312E;
+  --tertiary-soft:   rgba(255, 255, 255, 0.05);
+  --tertiary-text:   #D8D5CF;
 
   --accent:          #E09A73;
   --accent-soft:     rgba(224, 154, 115, 0.16);
@@ -357,29 +359,29 @@
   --danger-text:    #F5D9CD;
   --danger-soft:    rgba(216, 154, 130, 0.14);
 
-  --text-primary:   #EDE6D6;
-  --text-secondary: #B8AC96;   /* 7.90 OK di bg */
-  --text-tertiary:  #A89C86;   /* 5.93 OK di card; hanya label kecil/non-esensial */
+  --text-primary:   #F2F1EE;
+  --text-secondary: #A8A5A0;
+  --text-tertiary:  #8A8783;
 
   /* Teks "ink" utk permukaan solid yang terang di dark mode
      (danger, accent-strong, warning, success, secondary-strong) */
   --on-solid:       #2B1A12;
 
-  --border:         rgba(214, 201, 180, 0.16);
-  --border-soft:    rgba(214, 201, 180, 0.09);
-  --border-hover:   rgba(214, 201, 180, 0.28);
+  --border:         #33312E;
+  --border-soft:    #2A2926;
+  --border-hover:   #44423E;
 
-  --sidebar-bg:     #1E1B18;   /* sedikit lebih dalam dari surface */
-  --sidebar-hover:  var(--neu-surface-2);
-  --sidebar-active: rgba(31, 138, 125, 0.22);
-  --sidebar-text:   #EDE6D6;
-  --sidebar-text-muted: #B8AC96;
-  --sidebar-border: rgba(214, 201, 180, 0.12);
+  --sidebar-bg:     #171614;
+  --sidebar-hover:  #2C2A27;
+  --sidebar-active: rgba(31, 138, 125, 0.18);
+  --sidebar-text:   #F2F1EE;
+  --sidebar-text-muted: #A8A5A0;
+  --sidebar-border: #2A2926;
 
   --shadow-card:    var(--neu-raised);
   --shadow-hover:   var(--neu-raised-lg);
-  /* Drop shadow gelap untuk elemen mengambang (tanpa highlight putih) */
-  --shadow-elevated:0 24px 60px -16px rgba(0, 0, 0, 0.75), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  /* Drop shadow gelap untuk elemen mengambang */
+  --shadow-elevated:0 24px 60px -16px rgba(0, 0, 0, 0.72), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
 }
 
 /* ─── Base ───────────────────────────────────────────────── */
@@ -856,38 +858,44 @@ input, textarea, select {
   font-weight: 500;
 }
 
-/* ─── Header glass (Apple-style) ─────────────────────────── */
+/* ─── Header glass (modern) ──────────────────────────────── */
 .header-glass {
   background: var(--bg-base);
   border-bottom: 1px solid rgba(0,0,0,0.04);
 }
 @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
   .header-glass {
-    background: rgba(252,251,247,0.92);
+    background: rgba(246,246,244,0.82);
     backdrop-filter: saturate(180%) blur(20px);
     -webkit-backdrop-filter: saturate(180%) blur(20px);
   }
 }
 .dark .header-glass {
   background: var(--bg-base);
-  border-bottom: 1px solid rgba(217,201,178,0.12);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 @supports (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px)) {
   .dark .header-glass {
-    background: rgba(32,30,26,0.92);
+    background: rgba(27,26,24,0.82);
   }
 }
 
-/* ─── Skeleton shimmer (Apple-refined) ───────────────────── */
-.skeleton {
-  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(0,0,0,0.03) 50%, var(--bg-secondary) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.8s var(--ease-apple) infinite;
-  border-radius: 10px;
-}
-.dark .skeleton {
-  background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(214,201,180,0.08) 50%, var(--bg-secondary) 75%);
-  background-size: 200% 100%;
+/* ─── Skeleton shimmer ──────────────────────────────────────
+   Diletakkan di @layer components agar kelas utilitas Tailwind
+   (mis. rounded-xl) tetap MENANG atas radius bawaan — sebelumnya
+   berada di luar layer sehingga semua rounded-* pada skeleton
+   diabaikan dan tampil kaku 10px. */
+@layer components {
+  .skeleton {
+    background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(16,24,40,0.04) 50%, var(--bg-secondary) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s var(--ease-apple) infinite;
+    border-radius: 10px;
+  }
+  .dark .skeleton {
+    background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(255,255,255,0.06) 50%, var(--bg-secondary) 75%);
+    background-size: 200% 100%;
+  }
 }
 
 /* ─── Progress bar color variants (earthy) ──── */
@@ -1172,11 +1180,11 @@ input, textarea, select {
 
 /* ── Login page: panel ilustrasi kanan (ikut terang/gelap) ── */
 .login-panel {
-  background: linear-gradient(to bottom right, #E1F8E6 0%, #9BD1AC 50%, #59B17A 100%);
-  box-shadow: 0 36px 72px -24px rgba(26, 64, 44, 0.45), 0 10px 24px -14px rgba(26, 64, 44, 0.22);
+  background: linear-gradient(145deg, #E7FBEC 0%, #A7E4BC 42%, #4FB07A 100%);
+  box-shadow: 0 30px 64px -28px rgba(16, 64, 44, 0.38), 0 8px 20px -14px rgba(16, 64, 44, 0.20);
 }
 .dark .login-panel {
-  background: linear-gradient(to bottom right, #2F5140 0%, #1F3A2C 50%, #122318 100%);
+  background: linear-gradient(145deg, #234534 0%, #16321F 52%, #0D1F14 100%);
   box-shadow: 0 30px 70px -26px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.5);
 }
 
@@ -1231,12 +1239,12 @@ input, textarea, select {
 /* ── Badges — flat ── */
 .badge-pill { box-shadow: none; }
 
-/* ── Skeleton — inset ── */
-.skeleton { box-shadow: var(--neu-inset-sm); }
+/* ── Skeleton — flat (tanpa inset) ── */
+.skeleton { box-shadow: none; }
 
 /* ── Header — pemisah halus ── */
 .header-glass {
-  box-shadow: 0 8px 20px -14px rgba(90, 74, 52, 0.6);
+  box-shadow: 0 1px 0 rgba(16, 24, 40, 0.04);
 }
 .dark .header-glass {
   box-shadow: 0 8px 20px -14px rgba(0, 0, 0, 0.85);

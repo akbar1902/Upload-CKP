@@ -93,7 +93,7 @@ export default function LoginPage() {
   const primaryColor = 'var(--primary)'; // Selaras token tema (light/dark)
 
   return (
-    <div className="h-screen overflow-hidden flex bg-[#FAFAF5] dark:bg-[var(--bg-secondary)]">
+    <div className="h-screen overflow-hidden flex bg-[var(--bg-base)] dark:bg-[var(--bg-secondary)]">
 
       {/* ═══════════════════════════════════════════════ */}
       {/*  Left — Login Form                             */}
@@ -101,7 +101,7 @@ export default function LoginPage() {
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8 relative z-10">
 
         {/* Login Card */}
-        <div className="w-full max-w-[440px] rounded-[32px] p-8 flex flex-col relative z-10 bg-white border border-[#EDE8DF] shadow-[0_28px_70px_-32px_rgba(45,80,60,0.30)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
+        <div className="w-full max-w-[440px] rounded-[24px] p-8 flex flex-col relative z-10 bg-white border border-[var(--border)] shadow-[0_24px_60px_-28px_rgba(16,24,40,0.18)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
 
           <div className="flex-1 flex flex-col justify-center">
             {/* ── Normal Login Form ─────────────── */}
@@ -127,7 +127,7 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[#1C2520] text-[var(--text-secondary)]">
+                  <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
                     Email
                   </label>
                   <div className="relative">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="password" className="block text-[13px] font-bold mb-2 text-[#1C2520] text-[var(--text-secondary)]">
+                  <label htmlFor="password" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
                     Password
                   </label>
                   <div className="relative">
