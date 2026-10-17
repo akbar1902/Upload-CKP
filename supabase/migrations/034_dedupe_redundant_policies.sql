@@ -1,0 +1,34 @@
+-- ============================================================
+-- 034_dedupe_redundant_policies.sql
+-- Hapus policy RLS yang benar-benar REDUNDAN (kualifikasi identik,
+-- dan cakupan role sudah terwakili oleh policy lain).
+--
+-- Temuan advisor: "Multiple Permissive Policies" (38). Sebagian besar
+-- butuh penggabungan semantik (berisiko, tidak dilakukan di sini),
+-- tetapi 2 grup berikut identik sehingga aman dihapus:
+--
+--  1) audit_logs (SELECT)
+--       - audit_select_own           role {authenticated}  qual: user_id = auth.uid()
+--       - "Users can view own audit logs" role {public}     qual: user_id = auth.uid()
+--     {public} sudah mencakup {authenticated} dan kualifikasinya sama persis
+--     -> audit_select_own redundan.
+--
+--  2) users (SELECT)
+--       - "Anyone can view all users"        role {public} qual: auth.uid() IS NOT NULL
+--       - "Authenticated users can view all users" role {public} qual: sama persis
+--     -> duplikat identik, sisakan satu.
+--
+-- CATATAN KEAMANAN: untuk anon, auth.uid() bernilai NULL sehingga kedua
+-- policy tetap tidak membuka data apa pun ke pengguna anonim.
+--
+-- IDEMPOTENT: aman dijalankan berulang kali.
+--
+-- ROLLBACK:
+--   CREATE POLICY "audit_select_own" ON public.audit_logs
+--     FOR SELECT TO authenticated USING (user_id = auth.uid());
+--   CREATE POLICY "Anyone can view all users" ON public.users
+--     FOR SELECT TO public USING (auth.uid() IS NOT NULL);
+-- ============================================================
+
+DROP POLICY IF EXISTS "audit_select_own" ON public.audit_logs;
+DROP POLICY IF EXISTS "Anyone can view all users" ON public.users;
