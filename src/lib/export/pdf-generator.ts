@@ -1,5 +1,4 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type { jsPDF } from 'jspdf';
 import { getBulanName, getFormattedPenilaianPeriod } from '@/lib/utils';
 import type { PimpinanInfo } from '@/app/actions/export';
 import { groupEntriesByRK } from '@/lib/export/evaluasi-helper';
@@ -25,15 +24,21 @@ export interface ExportPdfParams {
   }[];
 }
 
-export function generateEvaluationPdf({
+/**
+ * jspdf + jspdf-autotable di-lazy-load: keduanya hanya dipakai saat mencetak
+ * PDF, bukan saat halaman dibuka.
+ */
+export async function generateEvaluationPdf({
   pegawai,
   pimpinan,
   bulan,
   tahun,
   tanggalCetak,
   entries,
-}: ExportPdfParams): jsPDF {
-  const doc = new jsPDF({
+}: ExportPdfParams): Promise<jsPDF> {
+  const { jsPDF: JsPDF } = await import('jspdf');
+  const autoTable = (await import('jspdf-autotable')).default;
+  const doc = new JsPDF({
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',

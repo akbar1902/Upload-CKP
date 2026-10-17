@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import { buildHeaderMapping } from './column-mapping';
 import type { CKPEntry } from '@/types/database';
 import { getBulanName } from '@/lib/utils';
@@ -32,6 +31,9 @@ export async function parseExcelFile(file: File, bulan?: number, tahun?: number)
   };
 
   try {
+    // Lazy-load xlsx (~400 KB) — hanya diunduh saat benar-benar ada file
+    // Excel yang diparse, bukan saat halaman upload dibuka.
+    const XLSX = await import('xlsx');
     const buffer = await file.arrayBuffer();
     const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
 

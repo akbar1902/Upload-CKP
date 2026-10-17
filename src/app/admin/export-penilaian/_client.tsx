@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
+import { loadJSZip } from '@/lib/lazy/jszip';
 import { 
   FileDown, Printer, FileSpreadsheet, ExternalLink, Calendar, 
   Users, CheckCircle2, AlertCircle, Loader2, Sparkles, Archive,
@@ -218,10 +218,10 @@ export default function ExportPenilaianClient({
   };
 
   // Download PDF Action
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     try {
       setDownloadingPdf(true);
-      const doc = generateEvaluationPdf({
+      const doc = await generateEvaluationPdf({
         pegawai: {
           full_name: currentSelectedUser.full_name,
           nip: currentSelectedUser.nip,
@@ -276,6 +276,7 @@ export default function ExportPenilaianClient({
           bulkParentMap = rkParentMap;
         }
       }
+      const JSZip = await loadJSZip();
       const zip = new JSZip();
       const folderName = `Evaluasi_Kinerja_Pegawai_${getBulanName(bulan)}_${tahun}`;
       const folder = zip.folder(folderName);
@@ -287,7 +288,7 @@ export default function ExportPenilaianClient({
         setBulkProgress(`Membuat PDF (${count}/${data.uploads.length}): ${upload.user?.full_name || 'Pegawai'}`);
 
         const empEntries = allEntriesMap[upload.id] || [];
-        const pdfDoc = generateEvaluationPdf({
+        const pdfDoc = await generateEvaluationPdf({
           pegawai: {
             full_name: upload.user?.full_name || 'Pegawai',
             nip: upload.user?.nip || null,

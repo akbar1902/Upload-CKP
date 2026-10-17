@@ -416,9 +416,9 @@ export default function CKPDetailPage() {
   const entries: CKPEntry[] = data?.entries || [];
   const approvals: Approval[] = data?.approvals || [];
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!upload || !user) return;
-    exportToExcel({ upload, entries, user });
+    await exportToExcel({ upload, entries, user });
     toast.success('File Excel berhasil diunduh');
   };
 

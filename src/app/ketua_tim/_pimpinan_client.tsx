@@ -302,8 +302,8 @@ export default function PimpinanKetuaTimDashboardClient() {
     return getBulanName(p as number);
   };
 
-  const handleExportRekap = () => {
-    exportRekapToExcel(uploads, bulan, tahun);
+  const handleExportRekap = async () => {
+    await exportRekapToExcel(uploads, bulan, tahun);
     toast.success('Rekap Excel berhasil diunduh');
   };
 

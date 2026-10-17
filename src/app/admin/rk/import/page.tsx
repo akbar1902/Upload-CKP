@@ -34,9 +34,8 @@ import {
   buildParsedDataset,
   type ParsedDataset,
 } from '@/lib/excel/dataset-rk';
+import { loadJSZip } from '@/lib/lazy/jszip';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
-import JSZip from 'jszip';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -62,7 +61,8 @@ export default function ImportRKPage() {
   const [showImportConfirm, setShowImportConfirm] = useState(false);
   const zipInputRef = useRef<HTMLInputElement>(null);
 
-  const handleDownloadTemplate = () => {
+  const handleDownloadTemplate = async () => {
+    const XLSX = await import('xlsx');
     const ws = XLSX.utils.json_to_sheet([
       {
         "Tim Kerja": "Statistik Sosial",
@@ -114,6 +114,7 @@ export default function ImportRKPage() {
         await parseJsonFile(file);
       } else {
         const data = await file.arrayBuffer();
+        const XLSX = await import('xlsx');
         const workbook = XLSX.read(data);
         const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
         const rows = XLSX.utils.sheet_to_json(firstSheet) as any[];
@@ -173,6 +174,7 @@ export default function ImportRKPage() {
     setDataset(null);
     setImportReport(null);
     try {
+      const JSZip = await loadJSZip();
       const zip = await JSZip.loadAsync(await file.arrayBuffer());
       const entries = Object.values(zip.files).filter(
         (f) =>
@@ -191,7 +193,7 @@ export default function ImportRKPage() {
       for (const entry of entries) {
         const buffer = await entry.async('arraybuffer');
         const baseName = entry.name.split('/').pop() || entry.name;
-        parts.push(parseDatasetRkWorkbook(baseName, buffer));
+        parts.push(await parseDatasetRkWorkbook(baseName, buffer));
       }
 
       const parsed = buildParsedDataset(parts);

@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Camera, Loader2 } from 'lucide-react';
-import * as htmlToImage from 'html-to-image';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -35,6 +34,8 @@ export function ScreenshotButton({
 
     try {
       setIsCapturing(true);
+      // Lazy-load html-to-image — hanya saat tombol screenshot dipakai.
+      const htmlToImage = await import('html-to-image');
       // Ambil nilai token bg-base dari tema aktif (light/dark) agar hasil
       // screenshot konsisten; fallback ke warna earthy lama bila kosong.
       const tokenBg = getComputedStyle(document.documentElement)

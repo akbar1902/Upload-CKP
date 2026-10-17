@@ -13,7 +13,6 @@ import { gradeRencanaKinerjaAction, getRkDetailAction } from '@/app/actions/peni
 import { markEntryAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, User } from '@/types/database';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import {
   ArrowLeft, FileText, TrendingUp, CheckCircle2, Download,
   RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon,
@@ -678,11 +677,12 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const bulanNama = getPeriodName(bulan);
   const isTriwulanMode = typeof bulan === 'string' && bulan.startsWith('T');
 
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!rk || filteredPegawaiSections.length === 0) {
       toast.error('Tidak ada data untuk diekspor');
       return;
     }
+    const XLSX = await import('xlsx');
     const headerRows = [
       ['REKAP NILAI RK ANGGOTA'],
       [rk.rencana_kinerja || ''],

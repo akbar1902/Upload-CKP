@@ -1,8 +1,8 @@
-import JSZip from 'jszip';
 import { saveAs } from 'file-saver';
 import { getBulanName } from '@/lib/utils';
 import type { CKPUpload, User } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
+import { loadJSZip } from '@/lib/lazy/jszip';
 
 export async function downloadAllCkpZip(
   uploads: (CKPUpload & { user?: User })[],
@@ -14,6 +14,8 @@ export async function downloadAllCkpZip(
   }
 
   const supabase = createClient();
+  // Lazy-load JSZip (~95 KB) — hanya saat fitur download ZIP dipakai.
+  const JSZip = await loadJSZip();
   const zip = new JSZip();
 
   // Create a folder inside the ZIP

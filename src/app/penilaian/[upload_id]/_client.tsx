@@ -683,9 +683,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
     }
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!upload || !employee) return;
-    exportToExcel({ upload, entries, user: employee });
+    await exportToExcel({ upload, entries, user: employee });
     toast.success('File Excel berhasil diunduh');
   };
 

@@ -314,8 +314,8 @@ export default function PimpinanDashboard() {
     }
   };
 
-  const handleExportRekap = () => {
-    exportRekapToExcel(isTriwulan ? uniqueUploads : uploads, bulan, tahun);
+  const handleExportRekap = async () => {
+    await exportRekapToExcel(isTriwulan ? uniqueUploads : uploads, bulan, tahun);
     toast.success('Rekap Excel berhasil diunduh');
   };
 

@@ -15,8 +15,6 @@
 // dan poinnya adalah RK Ketua Tim (yang dinilai Pimpinan). Ditangani sama.
 // ============================================================
 
-import * as XLSX from 'xlsx';
-
 export interface DatasetSubRk {
   text: string;
   nip: string | null;
@@ -213,11 +211,12 @@ export function parseDatasetRkSheet(
   return { team, warnings };
 }
 
-/** Parse satu file .xlsx menjadi struktur tim. */
-export function parseDatasetRkWorkbook(
+/** Parse satu file .xlsx menjadi struktur tim. xlsx di-lazy-load. */
+export async function parseDatasetRkWorkbook(
   fileName: string,
   data: ArrayBuffer | Uint8Array
-): { team: DatasetTeam; warnings: string[] } {
+): Promise<{ team: DatasetTeam; warnings: string[] }> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.read(data instanceof Uint8Array ? data : new Uint8Array(data), {
     type: 'array',
   });

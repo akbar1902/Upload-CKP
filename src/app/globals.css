@@ -470,6 +470,38 @@ body {
 .card-list > *:nth-child(6)  { animation: fadeUp 0.4s var(--ease-apple) both 250ms; }
 .card-list > *:nth-child(n+7) { animation: fadeUp 0.4s var(--ease-apple) both 300ms; }
 
+/* ─── Overlay transisi (pengganti framer-motion) ──────────── */
+/* Fade lembut + pill yang "pop" — dulu dianimasikan framer-motion
+   (~122 KB JS). Versi CSS ini identik secara visual dan bebas JS. */
+@keyframes sikapFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sikapFadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes sikapPopIn {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  60%  { opacity: 1; transform: translateY(1px) scale(1.005); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes sikapPopOut {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-10px) scale(0.99); }
+}
+@keyframes sikapSlideBar {
+  from { transform: translateX(-120%); }
+  to   { transform: translateX(360%); }
+}
+
+.sikap-fade-in  { animation: sikapFadeIn 0.18s ease-out both; }
+.sikap-fade-out { animation: sikapFadeOut 0.18s ease-in both; }
+.sikap-pop-in   { animation: sikapPopIn 0.28s cubic-bezier(0.22, 1.2, 0.36, 1) both; }
+.sikap-pop-out  { animation: sikapPopOut 0.18s ease-in both; }
+.sikap-bar-inner { animation: sikapSlideBar 1.05s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sikap-fade-in, .sikap-fade-out, .sikap-pop-in, .sikap-pop-out {
+    animation-duration: 0.01s;
+  }
+  .sikap-bar-inner { animation: none; transform: translateX(120%); }
+}
+
 /* ─── Progress bar ───────────────────────────────────────── */
 .progress-bar {
   transition: width 0.7s var(--ease-apple);

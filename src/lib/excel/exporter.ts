@@ -1,4 +1,3 @@
-import * as XLSX from 'xlsx';
 import type { CKPEntry, CKPUpload, User } from '@/types/database';
 import { getBulanName } from '@/lib/utils';
 
@@ -9,9 +8,11 @@ interface ExportData {
 }
 
 /**
- * Export CKP data to Excel file and trigger download
+ * Export CKP data to Excel file and trigger download.
+ * xlsx (~400 KB) di-lazy-load agar tidak ikut bundle awal halaman.
  */
-export function exportToExcel({ upload, entries, user }: ExportData): void {
+export async function exportToExcel({ upload, entries, user }: ExportData): Promise<void> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
 
   // Header info rows
@@ -97,7 +98,8 @@ export function exportToExcel({ upload, entries, user }: ExportData): void {
 /**
  * Export multiple uploads summary to Excel (for pimpinan)
  */
-export function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bulan: string | number, tahun: number): void {
+export async function exportRekapToExcel(uploads: (CKPUpload & { user?: User })[], bulan: string | number, tahun: number): Promise<void> {
+  const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
 
   const headerRows = [

@@ -11,7 +11,6 @@ import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getDefaultPeriod, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
-import * as XLSX from 'xlsx';
 import {
   Users, Clock, CheckCircle2, Search,
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
@@ -380,12 +379,14 @@ export default function KetuaTimDashboardClient() {
     return getBulanName(p as number);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!allRKStats || allRKStats.length === 0) {
       toast.error('Tidak ada data untuk diekspor');
       return;
     }
-    
+
+    const XLSX = await import('xlsx');
+
     const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
     
     const headerRows = [

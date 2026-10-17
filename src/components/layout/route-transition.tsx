@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2 } from 'lucide-react';
 
 // Label tujuan navigasi (exact + prefix). Prefix terpanjang yang menang.
@@ -38,23 +37,38 @@ function labelFor(path: string): string {
   return best ? ROUTE_LABELS[best] : '';
 }
 
+/** Durasi animasi keluar (harus sama dengan durasi CSS `sikap-fade-out`). */
+const EXIT_MS = 180;
+
 /**
  * Overlay transisi antar halaman: konten lama dibiarkan, ditimpa blur lembut
  * + pill "Memuat (tujuan)" — persis seperti feedback saat ganti filter bulan.
  * Muncul saat mengklik link internal, hilang saat pathname berubah.
+ *
+ * Catatan performa: animasi memakai CSS (`sikap-*`), bukan framer-motion.
+ * framer-motion dihapus dari bundle (~122 KB) karena hanya dipakai untuk
+ * efek fade/pop sederhana seperti ini; tampilannya dibuat identik.
  */
 export function RouteTransition() {
   const pathname = usePathname();
   const [pending, setPending] = useState<string | null>(null);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [leaving, setLeaving] = useState(false);
+  const safetyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRef = useRef<string | null>(null);
 
-  // Pathname berubah → navigasi selesai → tutup overlay.
+  // Pathname berubah → navigasi selesai → mainkan animasi keluar lalu lepas.
   useEffect(() => {
-    setPending(null);
-    if (timer.current) {
-      clearTimeout(timer.current);
-      timer.current = null;
-    }
+    if (!pendingRef.current) return;
+    setLeaving(true);
+    const timer = setTimeout(() => {
+      pendingRef.current = null;
+      setPending(null);
+      setLeaving(false);
+    }, EXIT_MS);
+    return () => clearTimeout(timer);
+    // Sengaja hanya bergantung pada pathname: `pending` dibaca lewat ref agar
+    // efek ini tidak ikut berjalan saat overlay baru muncul.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
   useEffect(() => {
@@ -92,9 +106,14 @@ export function RouteTransition() {
         (a.textContent || '').trim().slice(0, 40) ||
         'Halaman';
 
+      pendingRef.current = label;
+      setLeaving(false);
       setPending(label);
-      if (timer.current) clearTimeout(timer.current);
-      timer.current = setTimeout(() => setPending(null), 8000);
+      if (safetyTimer.current) clearTimeout(safetyTimer.current);
+      safetyTimer.current = setTimeout(() => {
+        pendingRef.current = null;
+        setPending(null);
+      }, 8000);
     };
 
     document.addEventListener('click', onClick, true);
@@ -103,49 +122,38 @@ export function RouteTransition() {
 
   useEffect(
     () => () => {
-      if (timer.current) clearTimeout(timer.current);
+      if (safetyTimer.current) clearTimeout(safetyTimer.current);
     },
     []
   );
 
+  if (!pending) return null;
+
   return (
-    <AnimatePresence>
-      {pending && (
-        <motion.div
-          key="route-transition"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          className="fixed inset-y-0 right-0 left-0 z-40 flex items-start justify-center pt-[35vh] pointer-events-none lg:left-[var(--sikap-sidebar-w,260px)]"
-          style={{
-            background: 'var(--overlay-scrim)',
-            backdropFilter: 'blur(2px)',
-            WebkitBackdropFilter: 'blur(2px)',
-          }}
-          role="status"
-          aria-live="polite"
-          aria-busy="true"
-        >
-          <motion.div
-            initial={{ y: -10, opacity: 0, scale: 0.96 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -10, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-            className="inline-flex items-center gap-2.5 rounded-full px-4 py-2.5"
-            style={{
-              background: 'var(--card-bg)',
-              boxShadow: 'var(--neu-raised-sm)',
-              border: '1px solid var(--border-soft)',
-            }}
-          >
-            <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
-            <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-              Memuat {pending}…
-            </span>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <div
+      className={`fixed inset-y-0 right-0 left-0 z-40 flex items-start justify-center pt-[35vh] pointer-events-none lg:left-[var(--sikap-sidebar-w,260px)] ${leaving ? 'sikap-fade-out' : 'sikap-fade-in'}`}
+      style={{
+        background: 'var(--overlay-scrim)',
+        backdropFilter: 'blur(2px)',
+        WebkitBackdropFilter: 'blur(2px)',
+      }}
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div
+        className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2.5 ${leaving ? 'sikap-pop-out' : 'sikap-pop-in'}`}
+        style={{
+          background: 'var(--card-bg)',
+          boxShadow: 'var(--neu-raised-sm)',
+          border: '1px solid var(--border-soft)',
+        }}
+      >
+        <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
+        <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+          Memuat {pending}…
+        </span>
+      </div>
+    </div>
   );
 }
