@@ -54,3 +54,6 @@ next-env.d.ts
 *.xlsx
 check*.js
 test_*.js
+
+# log lokal (mis. output `next start` untuk pengecekan manual)
+*.log
