@@ -180,21 +180,28 @@ export default function PimpinanQuickApprovalClient() {
     setProcessingId(uploadId);
     setShowApprovalModal(false);
 
+    // ── OPTIMISTIC UPDATE ──────────────────────────────────────────
+    // Baris dikeluarkan dari daftar SEKETIKA (sebelum menunggu jaringan),
+    // sehingga aksi terasa instan. Bila server menolak, daftar dikembalikan
+    // ke kondisi semula (rollback) dan pesan error ditampilkan.
+    const cacheKey = ['quick-approval', bulan, tahun];
+    const previous = queryClient.getQueryData(cacheKey);
+    queryClient.setQueryData(cacheKey, (old: unknown) => {
+      if (!Array.isArray(old)) return old;
+      return (old as Array<{ id: string }>).filter((u) => u.id !== uploadId);
+    });
+
     try {
       const result = await approveAction(uploadId, action, catatan || '');
       if (!result.success) throw new Error(result.error);
-      
+
       toast.success('CKP berhasil diproses!');
-      
-      // Update local cache so it disappears from the list instantly
-      queryClient.setQueryData(['quick-approval', bulan, tahun], (old: any) => {
-        if (!old) return old;
-        return old.filter((u: any) => u.id !== uploadId);
-      });
       // Invalidate dashboard to reflect changes
       queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
 
     } catch (err: any) {
+      // Rollback ke kondisi sebelum aksi
+      if (previous !== undefined) queryClient.setQueryData(cacheKey, previous);
       toast.error(err.message || 'Gagal menyetujui CKP');
     } finally {
       setProcessingId(null);

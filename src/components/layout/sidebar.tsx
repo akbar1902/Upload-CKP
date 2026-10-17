@@ -24,6 +24,7 @@ import {
   FileDown,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
+import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 
 interface NavItem {
   href: Route;
@@ -484,6 +485,9 @@ export function Sidebar() {
             : <><ChevronLeft size={15} /><span>Ciutkan</span></>
           }
         </button>
+
+        {/* Install sebagai aplikasi (muncul hanya bila browser mendukung) */}
+        <PwaInstallButton collapsed={collapsed} />
 
         {/* Change Password */}
         <button
