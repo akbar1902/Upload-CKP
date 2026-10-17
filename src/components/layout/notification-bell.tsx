@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
 import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { runSafeRead, createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
@@ -141,7 +142,7 @@ export function NotificationBell() {
         /* abaikan */
       }
     }
-    router.push(notifLink(n, user?.role));
+    router.push(notifLink(n, user?.role) as Route);
   };
 
   return (

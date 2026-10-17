@@ -11,6 +11,7 @@ import { KeepAliveManager } from "@/components/providers/keepalive-manager";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
 import NextTopLoader from 'nextjs-toploader';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: {
@@ -76,6 +77,8 @@ export default function RootLayout({
                     {children}
                   </RecoveryManager>
                   <KeepAliveManager />
+                  {/* Memantau kecepatan halaman nyata (tanpa cookie, tanpa data pribadi) */}
+                  <SpeedInsights />
                   <Toaster
                     position="top-right"
                     closeButton

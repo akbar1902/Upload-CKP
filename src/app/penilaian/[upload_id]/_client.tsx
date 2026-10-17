@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import type { Route } from 'next';
 import { useAuth } from '@/hooks/use-auth';
 import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
@@ -616,8 +617,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         // dan bisa dibatalkan saat komponen unmount.
         if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
         redirectTimerRef.current = setTimeout(() => {
-          const backUrl = (currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
-            `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`;
+          const backUrl = ((currentUser.role === 'pimpinan' || currentUser.role === 'admin' ? '/pimpinan' : '/ketua_tim') +
+            `?bulan=${paramBulan || upload.bulan}&tahun=${paramTahun || upload.tahun}`) as Route;
           router.push(backUrl);
         }, 1000);
       }

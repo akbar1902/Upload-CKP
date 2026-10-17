@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import type { Route } from 'next';
 import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
@@ -25,7 +26,7 @@ import {
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 
 interface NavItem {
-  href: string;
+  href: Route;
   label: string;
   icon: React.ElementType;
   

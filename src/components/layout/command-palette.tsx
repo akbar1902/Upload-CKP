@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/use-auth';
 import { runSafeRead } from '@/lib/supabase/read';
@@ -286,7 +287,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   const go = useCallback(
     (href: string) => {
       onClose();
-      router.push(href);
+      router.push(href as Route);
     },
     [onClose, router]
   );

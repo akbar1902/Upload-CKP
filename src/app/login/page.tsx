@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import type { Route } from 'next';
 import { Logo } from '@/components/ui/logo';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
@@ -74,7 +75,7 @@ export default function LoginPage() {
       // Bila role tidak dikenali, biarkan useEffect di atas yang mengarahkan
       // setelah profil dari database termuat.
       const metaRole = data.user.user_metadata?.role as string | undefined;
-      const roleRoutes: Record<string, string> = {
+      const roleRoutes: Record<string, Route> = {
         admin: '/admin',
         pimpinan: '/pimpinan',
         ketua_tim: '/ketua_tim',

@@ -50,10 +50,18 @@ const withPWA = withPWAInit({
 });
 
 const nextConfig: NextConfig = {
+  // React Compiler: mengoptimalkan render komponen otomatis (mengurangi
+  // re-render tanpa perlu banyak useMemo/useCallback manual).
+  // Bila suatu saat terasa ada perilaku aneh, cukup ubah menjadi `false`.
+  reactCompiler: true,
+  // Tautan diperiksa tipe saat build — salah ketik href langsung ketahuan.
+  typedRoutes: true,
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',
     },
+    // View Transitions bawaan browser untuk perpindahan halaman.
+    viewTransition: true,
     // Cache navigasi client (App Router). Default Next 15/16 untuk halaman
     // dinamis = 0 detik, sehingga SETIAP pindah menu memicu render server ulang
     // (terasa "loading"). Dengan nilai ini, RSC payload yang sudah pernah

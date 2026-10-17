@@ -3,6 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { Route } from 'next';
 import { useAuth } from '@/hooks/use-auth';
 import { Download, ChevronRight, Search } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
@@ -191,7 +192,7 @@ export function Header({
                   <ChevronRight size={11} className="breadcrumb-sep flex-shrink-0" aria-hidden="true" />
                 )}
                 {crumb.href ? (
-                  <Link href={crumb.href} prefetch={true}>{crumb.label}</Link>
+                  <Link href={crumb.href as Route} prefetch={true}>{crumb.label}</Link>
                 ) : (
                   <span>{crumb.label}</span>
                 )}
