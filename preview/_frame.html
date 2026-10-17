@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>SIKAP Preview — Frame</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #2A3531; }
+    .frame-note {
+      position: fixed; top: 8px; left: 8px; z-index: 10;
+      font: 600 11px/1.4 "Plus Jakarta Sans", system-ui, sans-serif;
+      color: #EFE7D4; background: rgba(10,21,18,.82);
+      padding: 6px 10px; border-radius: 8px; letter-spacing: .03em;
+    }
+    iframe { display: block; border: 0; background: #F4F2EB; }
+  </style>
+</head>
+<body>
+  <span class="frame-note" id="note">SIKAP — frame pratinjau</span>
+  <iframe id="frame" title="SIKAP preview frame"></iframe>
+  <script>
+    (function () {
+      var q = new URLSearchParams(location.search);
+      var w = parseInt(q.get('w') || '1440', 10);
+      var h = parseInt(q.get('h') || '1000', 10);
+      var s = q.get('s') || 'login';
+      var r = q.get('r') || 'anggota';
+      var frame = document.getElementById('frame');
+      frame.style.width = w + 'px';
+      frame.style.height = h + 'px';
+      frame.src = 'index.html#s=' + s + '&r=' + r;
+      document.getElementById('note').textContent = 'Frame ' + w + 'px — ' + s + ' (' + r + ')';
+    })();
+  </script>
+</body>
+</html>
