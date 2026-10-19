@@ -26,13 +26,13 @@ function getInitials(name: string): string {
 }
 
 // ── Staff Card ─────────────────────────────────────────────
-function StaffCard({ u, index }: { u: User; index: number }) {
-  const delay = Math.min(index * 40, 320);
+function StaffCard({ u }: { u: User }) {
   return (
-    <div
-      className="activity-card animate-fade-up"
-      style={{ animationDelay: `${delay}ms` }}
-    >
+    // Fade tanpa stagger per-kartu: 33 kartu yang datang satu per
+    // satu (delay index*40ms + translateY) terasa lambat dan
+    // mahal — tiap kartu jadi layer composite sendiri. Semua
+    // muncul serempak, halaman langsung utuh.
+    <div className="activity-card animate-fade-in">
       <div className="flex items-center gap-4 p-5">
 
         {/* Avatar */}
@@ -166,11 +166,11 @@ export default function PimpinanPegawaiPage() {
         if (usersRes.error) throw new Error(usersRes.error.message);
 
         const profileMap = new Map<string, { jabatan: string | null; golongan: string | null }>();
-        (profilesRes?.data || []).forEach((p: any) => {
+        (profilesRes?.data || []).forEach((p: { user_id: string; jabatan: string | null; golongan: string | null }) => {
           profileMap.set(p.user_id, p);
         });
 
-        const data = (usersRes.data || []).map((u: any) => ({
+        const data = (usersRes.data || []).map((u: User) => ({
           ...u,
           jabatan: profileMap.get(u.id)?.jabatan || null,
           golongan: profileMap.get(u.id)?.golongan || null,
@@ -311,8 +311,8 @@ export default function PimpinanPegawaiPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredUsers.map((u, i) => (
-              <StaffCard key={u.id} u={u} index={i} />
+            {filteredUsers.map((u) => (
+              <StaffCard key={u.id} u={u} />
             ))}
           </div>
         )}

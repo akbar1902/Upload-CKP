@@ -162,22 +162,39 @@ kalau reduced motion.
 
 **`AppShell` (baru)** — `components/layout/app-shell.tsx`. Menggantikan 7
 file layout yang identik. Sekarang satu tempat untuk Sidebar +
-RouteTransition + PageTransition.
+RouteTransition.
 
-**`PageTransition` (baru)** — `components/layout/page-transition.tsx`.
-Memakai **Web Animations API** (bukan key CSS) supaya:
+**Transisi navigasi disederhanakan (revisi setelah review visual).**
+Semula ada **tiga lapis efek bertumpuk** saat pindah menu:
 
-- animasi terulang tiap `pathname` berubah **tanpa remount** (remount
-  akan menghapus state client-side);
-- `useLayoutEffect` berjalan **sebelum paint** → tidak ada frame "terang"
-  yang berkedip sebelum animasi mulai.
+1. `animate-fade-in` pada wrapper halaman (otomatis tiap mount)
+2. `PageTransition` (WAAPI) pada **seluruh subtree** halaman
+3. Stagger per-kartu (33 kartu × delay 40 ms)
+
+Hasilnya konten datang merambat sampai **1,2 detik**. Dan karena
+`PageTransition` ikut menganimasikan seluruh subtree, tiap kartu jadi
+layer composite sendiri. Ditambah `backdrop-filter: blur(2px)`
+layar penuh, perpindahan menu terasa **patah** — justru lebih buruk
+daripada sebelum ada motion-nya.
+
+Perbaikannya: **satu** animasi masuk saja.
+
+| Sebelum | Sesudah |
+|---|---|
+| 3 lapis efek, ~1,2 detik | 1 lapis (fade 260 ms), ~0,6 detik |
+| Scrim + blur menutup layar penuh | **Cuma pill kecil di pojok**; konten lama tetap terlihat |
+| 33 kartu stagger (opacity + translateY) | Semua kartu fade **serempak** (opacity saja) |
+| `riseIn` = opacity + translateY + scale | opacity + translateY saja (tanpa scale) |
+| Stagger juga di blok besar | Stagger **hanya** di blok kecil (KPI 4 item) |
+| Stagger manual `index * 40ms` (Data Pegawai) | Dihapus — 33 kartu sekaligus = mahal & lambat |
+
+Prinsipnya: **mata tidak boleh kehilangan pijakan**. Saat pindah menu,
+konten lama tetap terlihat; yang berubah cuma isinya, dan itu masuk
+dengan satu gelombang.
 
 **Catatan penting soal View Transitions API:** `experimental.viewTransition`
 di `next.config.ts` **tidak bisa dipakai** — React `<ViewTransition>` baru
-ada di React 19.3, sedangkan repo ini masih 19.2.4. Solusinya
-dokumentasikan di kode: pakai Web Animations API yang tersedia di semua
-browser, plus CSS `::view-transition-*` sebagai lapisan native bila
-browser mendukung.
+ada di React 19.3, sedangkan repo ini masih 19.2.4 (lihat B11).
 
 ### 4.3 Gelombang 3 — Bahasa visual
 
@@ -299,6 +316,8 @@ Semua kini lolos AA (≥ 4.5:1).
 | `/pegawai`, `/ketua_tim`, `/analitik`, `/admin` | ✅ 200, tanpa error konsol |
 | Light + dark mode | ✅ satu keluarga warna, semua teks lolos AA |
 | Animasi chart | ✅ garis: `pathLength=1`, `stroke-dashoffset` 1→0 |
+| **Transisi menu (diukur)** | ✅ 1 lapis animasi, konten stabil ~0,6 s, 0 long task, frame terpanjang 22 ms |
+| **Timeline animasi saat pindah menu** | ✅ tidak ada lagi `riseIn`/`fadeUp`/`WAAPI` subtree; hanya `fadeIn` serempak + pill pojok |
 
 ---
 

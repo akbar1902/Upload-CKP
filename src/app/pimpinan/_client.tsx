@@ -426,10 +426,13 @@ export default function PimpinanDashboard() {
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgCapaian}%`} label="Rata-rata Capaian" sub="Tim bulan ini" iconBg="var(--primary-soft)" loading={loading} />
         </div>
 
-        {/* ── Rekap per Pegawai section ─────────────── */}
-        <div id="export-pegawai-section" className="neu-raised rounded-2xl p-4 sm:p-5 relative">
+        {/* ── Rekap per Pegawai section ───────────────
+            Tanpa kartu berlapis — sama seperti "Daftar Rencana Kinerja"
+            di dashboard ketua tim: section duduk langsung di kanvas,
+            jadi tidak ada kotak di dalam kotak. */}
+        <div id="export-pegawai-section" className="relative">
           <FetchingOverlay show={isFiltering} label={`Memuat ${getPeriodName(bulan)} ${tahun}…`} />
-          <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>
               <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{filteredRows.length} pegawai ditampilkan</p>

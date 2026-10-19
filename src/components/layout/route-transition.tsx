@@ -37,12 +37,21 @@ function labelFor(path: string): string {
   return best ? ROUTE_LABELS[best] : '';
 }
 
-/** Durasi animasi keluar (harus sama dengan durasi CSS `sikap-fade-out`). */
-const EXIT_MS = 180;
+/**
+ * Durasi animasi keluar (harus sama dengan durasi CSS `sikap-fade-out`).
+ * Pendek supaya overlay tidak menahan halaman baru yang sudah siap tampil.
+ */
+const EXIT_MS = 140;
 
 /**
- * Overlay transisi antar halaman: konten lama dibiarkan, ditimpa blur lembut
- * + pill "Memuat (tujuan)" — persis seperti feedback saat ganti filter bulan.
+ * Indikator transisi antar halaman.
+ *
+ * Hanya pill kecil di pojok — konten lama TIDAK ditutup scrim.
+ * Kalau layar ditutupabu saat pindah menu, mata kehilangan
+ * pijakan lalu konten melompat masuk: itu yang bikin navigasi
+ * terasa "patah". Dengan pill saja, konten lama tetap terlihat
+ * dan konten baru tinggal fade masuk 260 ms.
+ *
  * Muncul saat mengklik link internal, hilang saat pathname berubah.
  *
  * Catatan performa: animasi memakai CSS (`sikap-*`), bukan framer-motion.
@@ -130,30 +139,30 @@ export function RouteTransition() {
   if (!pending) return null;
 
   return (
+    // Cuma pill kecil di pojok — TIDAK ada scrim yang menutup layar.
+    //
+    // Dulu ada scrim penuh + blur(2px). Akibatnya saat pindah menu:
+    // konten lama ketutup Abu, muncul scrim, lalu konten baru
+    // melompat masuk. Itu yang bikin perpindahan terasa "patah".
+    //
+    // Sekarang konten lama tetap terlihat selama pemuatan, dan
+    // konten baru hanya perlu fade masuk 260 ms. Mata tidak pernah
+    // kehilangan pijakan.
     <div
-      className={`fixed inset-y-0 right-0 left-0 z-40 flex items-start justify-center pt-[35vh] pointer-events-none lg:left-[var(--sikap-sidebar-w,260px)] ${leaving ? 'sikap-fade-out' : 'sikap-fade-in'}`}
+      className={`fixed top-20 right-5 sm:right-8 z-40 flex items-center gap-2.5 rounded-full px-4 py-2.5 pointer-events-none ${leaving ? 'sikap-pop-out' : 'sikap-pop-in'}`}
       style={{
-        background: 'var(--overlay-scrim)',
-        backdropFilter: 'blur(2px)',
-        WebkitBackdropFilter: 'blur(2px)',
+        background: 'var(--card-bg)',
+        boxShadow: 'var(--neu-raised-sm)',
+        border: '1px solid var(--border-soft)',
       }}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
-      <div
-        className={`inline-flex items-center gap-2.5 rounded-full px-4 py-2.5 ${leaving ? 'sikap-pop-out' : 'sikap-pop-in'}`}
-        style={{
-          background: 'var(--card-bg)',
-          boxShadow: 'var(--neu-raised-sm)',
-          border: '1px solid var(--border-soft)',
-        }}
-      >
-        <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
-        <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-          Memuat {pending}…
-        </span>
-      </div>
+      <Loader2 className="h-4 w-4 animate-spin" style={{ color: 'var(--primary)' }} />
+      <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
+        Memuat {pending}…
+      </span>
     </div>
   );
 }

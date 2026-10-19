@@ -22,7 +22,7 @@ export interface AnimatedNumberProps {
 export function AnimatedNumber({
   value,
   format,
-  durationMs = 900,
+  durationMs = 650,
   className,
 }: AnimatedNumberProps) {
   const [display, setDisplay] = React.useState(0);

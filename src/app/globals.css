@@ -488,8 +488,8 @@ body {
 
 /* Naik + sedikit memendek: dipakai untuk konten yang masuk halaman. */
 @keyframes riseIn {
-  from { opacity: 0; transform: translateY(var(--rise-distance)) scale(0.985); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* Scale-in yang punya "berat" — sedikit mundur dulu sebelum settle. */
@@ -542,31 +542,39 @@ body {
 }
 
 .animate-rise-in {
-  animation: riseIn var(--duration-slow) var(--ease-emphasized) both;
+  animation: riseIn var(--duration-base) var(--ease-out) both;
 }
 
 .animate-shake {
   animation: shake 420ms var(--ease-in-out) both;
 }
 
-/* Staggered children — jarak antar item, bukan durasi, yang bikin
-   daftar terasa "mengalir" satu per satu. */
-.stagger > *:nth-child(1) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 0ms; }
-.stagger > *:nth-child(2) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 45ms; }
-.stagger > *:nth-child(3) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 90ms; }
-.stagger > *:nth-child(4) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 135ms; }
-.stagger > *:nth-child(5) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 180ms; }
-.stagger > *:nth-child(6) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 225ms; }
-.stagger > *:nth-child(n+7) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 270ms; }
+/* ── Animasi masuk konten ────────────────────────────────
+   Aturan: SATU animasi masuk per pergantian halaman.
 
-/* Card list stagger — versi lebih rapat untuk grid kartu */
-.card-list > *:nth-child(1)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 0ms; }
-.card-list > *:nth-child(2)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 40ms; }
-.card-list > *:nth-child(3)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 80ms; }
-.card-list > *:nth-child(4)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 120ms; }
-.card-list > *:nth-child(5)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 160ms; }
-.card-list > *:nth-child(6)  { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 200ms; }
-.card-list > *:nth-child(n+7) { animation: riseIn var(--duration-slow) var(--ease-emphasized) both 240ms; }
+   Dulu ada tiga lapis sekaligus saat pindah menu:
+     1. `animate-fade-in` pada wrapper halaman (otomatis tiap mount)
+     2. `PageTransition` (WAAPI) pada SELURUH subtree halaman
+     3. stagger per-kartu (33 kartu × delay 40ms)
+   Hasilnya konten datang merambat sampai ~1,2 detik dan terasa
+   "patah". Sekarang: halaman fade sekali (di bawah), daftar
+   panjang muncul serempak, dan hanya blok kecil (KPI) yang
+   stagger — ITULAH yang terasa hidup tanpa berat. */
+
+/* Stagger — hanya untuk blok kecil (KPI, 4–6 item) */
+.stagger > *:nth-child(1) { animation: riseIn var(--duration-base) var(--ease-out) both 0ms; }
+.stagger > *:nth-child(2) { animation: riseIn var(--duration-base) var(--ease-out) both 40ms; }
+.stagger > *:nth-child(3) { animation: riseIn var(--duration-base) var(--ease-out) both 80ms; }
+.stagger > *:nth-child(4) { animation: riseIn var(--duration-base) var(--ease-out) both 120ms; }
+.stagger > *:nth-child(5) { animation: riseIn var(--duration-base) var(--ease-out) both 160ms; }
+.stagger > *:nth-child(6) { animation: riseIn var(--duration-base) var(--ease-out) both 200ms; }
+.stagger > *:nth-child(n+7) { animation: riseIn var(--duration-base) var(--ease-out) both 240ms; }
+
+/* Card list — SEREMPAK, tanpa stagger.
+   Daftar 30+ kartu yang datang satu per satu terlihat lambat
+   (dan mahal: tiap item jadi layer composite sendiri). Semua
+   muncul bareng dalam satu gelombang, jauh lebih mulus. */
+.card-list > * { animation: fadeIn var(--duration-base) var(--ease-out) both; }
 
 /* ─── Overlay transisi (pengganti framer-motion) ──────────── */
 /* Fade lembut + pill yang "pop" — dulu dianimasikan framer-motion
@@ -588,19 +596,10 @@ body {
 }
 
 .sikap-fade-in  { animation: sikapFadeIn var(--duration-fast) ease-out both; }
-.sikap-fade-out { animation: sikapFadeOut var(--duration-fast) ease-in both; }
+.sikap-fade-out { animation: sikapFadeOut 140ms ease-in both; }
 .sikap-pop-in   { animation: sikapPopIn var(--duration-base) var(--ease-back) both; }
 .sikap-pop-out  { animation: sikapPopOut var(--duration-fast) ease-in both; }
 .sikap-bar-inner { animation: sikapSlideBar 1.05s ease-in-out infinite; }
-
-/* ─── Transisi halaman ─────────────────────────────────────
-   Konten baru "naik" halus saat rute berubah. Header tetap diam
-   (rujukan spasial), isi halaman yang bergerak. */
-@keyframes sikapPageIn {
-  from { opacity: 0; transform: translateY(var(--rise-distance)); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.sikap-page-in { animation: sikapPageIn var(--duration-slow) var(--ease-emphasized) both; }
 
 /* ─── Reveal (expand / collapse) ───────────────────────────
    Teknik grid-template-rows: 0fr → 1fr: tinggi mengikuti isi
