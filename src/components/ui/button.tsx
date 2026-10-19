@@ -7,7 +7,7 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-[var(--primary)] text-white rounded-full hover:bg-[var(--primary-hover)] shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
+        default: "bg-[var(--primary)] text-[var(--on-primary)] rounded-full hover:bg-[var(--primary-hover)] shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
         destructive: "bg-[var(--danger)] text-white rounded-full hover:opacity-90 shadow-[var(--neu-raised-sm)]",
         outline: "border border-[var(--border-soft)] bg-[var(--neu-surface)] text-[var(--primary)] rounded-full shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",
         secondary: "bg-[var(--neu-surface)] border border-[var(--border-soft)] text-[var(--primary)] rounded-full shadow-[var(--neu-raised-sm)] hover:shadow-[var(--neu-raised)]",

@@ -815,7 +815,7 @@
         showToast('Anda telah keluar (pratinjau).', 'info', 'Sampai jumpa');
         break;
       case 'install':
-        showToast('SIKAP siap dipasang sebagai aplikasi (PWA) pada browser yang mendukung.', 'info', 'Pasang aplikasi');
+        showToast('Ikuti dialog browser untuk memasang <b>SIKAP</b> sebagai aplikasi. Setelah terpasang, SIKAP bisa dibuka dari ikon di layar utama.', 'info', 'Pasang aplikasi (PWA)');
         break;
       case 'toggle-password': {
         var input = actionEl.parentElement.querySelector('input');

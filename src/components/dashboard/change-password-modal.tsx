@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useAuth } from '@/hooks/use-auth';
 import { createClient } from '@/lib/supabase/client';
 import {
   Dialog,
@@ -22,7 +21,6 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {
-  const { user } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -69,10 +67,13 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
       );
 
       try {
-        const result = await Promise.race([updatePromise, timeoutPromise]) as { error: any };
-        updateError = result?.error;
-      } catch (err: any) {
-        if (err.message === 'TIMEOUT') {
+        const result = (await Promise.race([updatePromise, timeoutPromise])) as {
+          error: { message: string } | null;
+        };
+        updateError = result?.error ?? null;
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : '';
+        if (message === 'TIMEOUT') {
           console.warn('[ChangePassword] Request timed out. Assuming success as backend usually processes it.');
         } else {
           throw err;
@@ -171,6 +172,8 @@ export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps)
                       className="absolute right-3 top-1/2 -translate-y-1/2 p-1 transition-colors"
                       style={{ color: 'var(--text-tertiary)' }}
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                      aria-pressed={showPassword}
                     >
                       {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>

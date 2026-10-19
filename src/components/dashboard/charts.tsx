@@ -164,7 +164,9 @@ export function TrendLines({
             strokeWidth={2.5}
             strokeLinejoin="round"
             strokeLinecap="round"
-            style={{ stroke: color1 }}
+            pathLength={1}
+            className="sikap-draw"
+            style={{ stroke: color1, animationDelay: `${i * 120}ms` }}
           />
         ))}
 
@@ -178,7 +180,9 @@ export function TrendLines({
             strokeDasharray="6 4"
             strokeLinejoin="round"
             strokeLinecap="round"
-            style={{ stroke: color2 }}
+            pathLength={1}
+            className="sikap-draw"
+            style={{ stroke: color2, animationDelay: `${180 + i * 120}ms` }}
           />
         ))}
 
@@ -284,7 +288,15 @@ export function StatusDonut({
                   strokeWidth={thickness}
                   strokeDasharray={`${visibleLength} ${circumference - visibleLength}`}
                   strokeDashoffset={dashOffset}
-                  style={{ stroke: slice.color || 'var(--primary)' }}
+                  className="sikap-donut-seg"
+                  style={
+                    {
+                      stroke: slice.color || 'var(--primary)',
+                      '--sweep-circ': String(circumference),
+                      '--sweep-len': String(visibleLength),
+                      '--sweep-delay': `${i * 90}ms`,
+                    } as unknown as React.CSSProperties
+                  }
                 >
                   <title>{`${slice.label}: ${slice.value}`}</title>
                 </circle>
@@ -385,8 +397,14 @@ export function MiniBars({
               style={{ background: 'var(--bg-secondary)' }}
             >
               <span
-                className="block h-full rounded-full transition-all duration-300"
-                style={{ width: `${widthPercent}%`, background: item.color || color }}
+                className="block h-full rounded-full transition-all duration-300 sikap-bar-grow"
+                style={
+                  {
+                    width: `${widthPercent}%`,
+                    background: item.color || color,
+                    '--grow-delay': `${i * 70}ms`,
+                  } as unknown as React.CSSProperties
+                }
               />
             </span>
             <span

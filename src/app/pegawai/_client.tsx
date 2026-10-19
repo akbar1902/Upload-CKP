@@ -525,13 +525,16 @@ export default function PegawaiDashboard() {
               )}
             </div>
           ) : viewMode === 'list' ? (
-            <div className="space-y-3 card-list">
+            /* `key` memaksa remount saat mode berubah → animasi stagger
+               ikut diputar ulang, jadi perpindahan list ⇄ grid terasa
+               "mengalir", bukan sekadar bertukar tata letak. */
+            <div key="list" className="space-y-3 card-list">
               {filteredUploads.map((upload) => (
                 <ActivityCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-list">
+            <div key="grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 card-list">
               {filteredUploads.map((upload) => (
                 <ActivityGridCard key={upload.id} upload={upload} onDeleteSuccess={() => handleDeleteSuccess(upload.id)} />
               ))}

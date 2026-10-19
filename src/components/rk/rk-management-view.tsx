@@ -4,6 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
+import { Collapsible } from '@/components/ui/collapsible';
 import {
   ChevronDown,
   Plus,
@@ -579,7 +580,7 @@ export function RkManagementView({
                             </button>
 
                             {/* sub-rk */}
-                            {isOpen && (
+                            <Collapsible open={isOpen}>
                               <div
                                 className="mt-3 rounded-xl p-2"
                                 style={{ background: 'var(--sand-subtle)', border: '1px solid var(--border-soft)' }}
@@ -636,7 +637,7 @@ export function RkManagementView({
                                   </p>
                                 )}
                               </div>
-                            )}
+                            </Collapsible>
                           </div>
                         </article>
                       );

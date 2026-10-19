@@ -37,9 +37,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Selaras dengan --bg-base di globals.css (light) dan --sidebar-bg (dark).
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F8F6EE" },
-    { media: "(prefers-color-scheme: dark)", color: "#201E1A" },
+    { media: "(prefers-color-scheme: light)", color: "#F6F6F4" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B2A24" },
   ],
 };
 
@@ -47,6 +48,7 @@ const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   display: "swap",
+  variable: "--sikap-sans",
 });
 
 export default function RootLayout({
@@ -55,8 +57,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" suppressHydrationWarning>
-      <body className={`${poppins.className} antialiased`}>
+    <html lang="id" className={poppins.variable} suppressHydrationWarning>
+      <body className="antialiased">
         <NextTopLoader
           color="#0F766E"
           initialPosition={0.08}

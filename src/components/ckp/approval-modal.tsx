@@ -31,7 +31,9 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
 
   // Sync action when defaultAction changes (different button triggered modal)
   React.useEffect(() => {
-    if (open) setAction(defaultAction);
+    if (!open) return;
+    const raf = requestAnimationFrame(() => setAction(defaultAction));
+    return () => cancelAnimationFrame(raf);
   }, [open, defaultAction]);
 
   const handleSubmit = async () => {
@@ -86,7 +88,7 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
 
         <DialogBody className="space-y-5">
           {/* Action selection */}
-          <div>
+          <div role="radiogroup" aria-label="Pilih tindakan">
             <label className="block text-[13px] font-medium mb-3"
                    style={{ color: 'var(--text-primary)' }}>
               Pilih Tindakan
@@ -98,12 +100,17 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
                 return (
                   <button
                     key={a.value}
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
                     onClick={() => setAction(a.value)}
-                    className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all duration-200"
+                    className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-[background-color,border-color,box-shadow,transform] duration-200 ease-out hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)]"
                     style={{
                       background: a.bg,
                       color: a.color,
-                      border: isActive ? `2px solid ${a.activeBorder}` : '2px solid transparent',
+                      // Border tetap 2px (transparan) supaya tidak "melompat"
+                      // saat pilihan berpindah — hanya warnanya yang berubah.
+                      border: `2px solid ${isActive ? a.activeBorder : 'transparent'}`,
                       boxShadow: isActive ? `0 0 0 4px ${a.bg}` : 'none',
                     }}
                   >
@@ -117,11 +124,12 @@ export function ApprovalModal({ open, onClose, onSubmit, employeeName, period, d
 
           {/* Notes */}
           <div>
-            <label className="block text-[13px] font-medium mb-2"
+            <label htmlFor="approval-catatan" className="block text-[13px] font-medium mb-2"
                    style={{ color: 'var(--text-primary)' }}>
               Catatan {action !== 'approved' && <span style={{ color: 'var(--danger)' }}>*</span>}
             </label>
             <Textarea
+              id="approval-catatan"
               value={catatan}
               onChange={(e) => setCatatan(e.target.value)}
               placeholder={

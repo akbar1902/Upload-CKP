@@ -169,19 +169,12 @@ export default function AnalitikClient() {
       <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
         <FetchingBar show={isFiltering} />
 
-        {/* ── Hero + filter ─────────────────────────────── */}
+        {/* ── Konteks + filter ─────────────────────────────
+            Judul "Analitik CKP" sudah ada di header (sticky). */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2
-              className="text-[22px] font-semibold tracking-tight"
-              style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}
-            >
-              Analitik CKP
-            </h2>
-            <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              {getBulanName(bulan)} {tahun} · ringkasan, tren, dan tunggakan penilaian
-            </p>
-          </div>
+          <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            Ringkasan, tren, dan tunggakan penilaian
+          </p>
           <div className="flex items-center gap-2">
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
             <button

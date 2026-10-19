@@ -71,7 +71,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                 onClick={() => setSelectedBulan(m)}
                 className="px-3 py-1 text-[12px] rounded-full font-medium transition-all"
                 style={isActive
-                  ? { background: 'var(--primary)', color: '#fff' }
+                  ? { background: 'var(--primary)', color: 'var(--on-primary)' }
                   : { background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
               >
                 {mName}

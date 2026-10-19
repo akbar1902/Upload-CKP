@@ -53,29 +53,71 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
+/** Durasi animasi keluar — harus sama dengan durasi CSS `sikap-pop-out`. */
+const EXIT_MS = 180;
+
+/** True kalau pengguna memilih "kurangi animasi" di sistem. */
+function prefersReducedMotion() {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+  );
+}
+
 function Dialog({ open, onClose, children }: DialogProps) {
   const mounted = useIsClient();
   const contentRef = React.useRef<HTMLDivElement | null>(null);
   const dialogId = React.useRef<symbol>(Symbol("dialog"));
   const onCloseRef = React.useRef(onClose);
 
+  // `rendered` = dialog masih ada di DOM. `exiting` = sedang keluar.
+  // Tanpa ini, dialog hilang INSTAN saat ditutup — tidak ada animasi
+  // keluar sama sekali, sehingga terasa "kaku".
+  const [rendered, setRendered] = React.useState(open);
+  const [exiting, setExiting] = React.useState(false);
+
   React.useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
 
+  // Buka → pasang. Tutup → biarkan animasi keluar selesai dulu.
+  React.useEffect(() => {
+    if (open) {
+      const raf = requestAnimationFrame(() => {
+        setRendered(true);
+        setExiting(false);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+    if (!rendered) return;
+
+    const raf = requestAnimationFrame(() => setExiting(true));
+    const delay = prefersReducedMotion() ? 0 : EXIT_MS;
+    const timer = setTimeout(() => {
+      setRendered(false);
+      setExiting(false);
+    }, delay);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
+  }, [open, rendered]);
+
   // Kunci scroll body saat terbuka, pulihkan nilai sebelumnya saat tutup.
   React.useEffect(() => {
-    if (!open) return;
+    if (!rendered) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previous;
     };
-  }, [open]);
+  }, [rendered]);
 
   // Fokus awal, focus trap (Tab/Shift+Tab), Escape, + restore fokus ke pemicu.
+  // Pakai `rendered` (bukan `open`) supaya fokus tetap terkunci selama
+  // animasi keluar berjalan, baru dikembalikan ke pemicunya.
   React.useEffect(() => {
-    if (!open || !mounted) return;
+    if (!rendered || !mounted) return;
     const id = dialogId.current;
     openDialogs.push(id);
     const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -134,24 +176,22 @@ function Dialog({ open, onClose, children }: DialogProps) {
       if (index !== -1) openDialogs.splice(index, 1);
       if (trigger && document.contains(trigger)) trigger.focus();
     };
-  }, [open, mounted]);
+  }, [rendered, mounted]);
 
-  if (!open || !mounted) return null;
+  if (!rendered || !mounted) return null;
 
   return createPortal(
     <DialogContext.Provider value={{ open, onClose, contentRef }}>
       <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-        {/* Backdrop — Apple glassmorphism */}
+        {/* Backdrop — blur lembut, ikut fade in/out */}
         <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xl"
-          style={{ animation: 'fadeIn 0.2s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
+          className={`fixed inset-0 bg-black/40 backdrop-blur-xl ${exiting ? 'sikap-fade-out' : 'sikap-fade-in'}`}
           onClick={onClose}
           aria-hidden="true"
         />
         {/* Content */}
         <div
-          className="relative z-50 flex flex-col w-full items-center justify-center p-4"
-          style={{ animation: 'scaleIn 0.25s cubic-bezier(0.25, 0.1, 0.25, 1) both' }}
+          className={`relative z-50 flex flex-col w-full items-center justify-center p-4 ${exiting ? 'sikap-pop-out' : 'sikap-pop-in'}`}
         >
           {children}
         </div>

@@ -300,15 +300,12 @@ export default function PimpinanQuickApprovalClient() {
         </button>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-tight flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
-              <CheckCircle2 className="h-6 w-6 text-[var(--success-text)]" />
-              Persetujuan Cepat CKP
-            </h2>
-            <p className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-[13px] flex items-start gap-2" style={{ color: 'var(--text-secondary)' }}>
+            <CheckCircle2 className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: 'var(--success-text)' }} />
+            <span>
               Lakukan review dan persetujuan dengan cepat untuk CKP {getPeriodName(bulan)} {tahun} yang berstatus Menunggu Review.
-            </p>
-          </div>
+            </span>
+          </p>
           <div className="flex items-center gap-2">
             <PeriodFilter bulan={bulan} tahun={tahun} onBulanChange={setBulan} onTahunChange={setTahun} />
             <button onClick={() => refetch()} className="filter-btn" title="Refresh">

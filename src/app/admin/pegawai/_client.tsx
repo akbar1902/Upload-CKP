@@ -331,14 +331,9 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
       <Header />
       <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-2">
-          <div>
-            <h2 className="text-[24px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Manajemen Kepegawaian
-            </h2>
-            <p className="text-[14px] mt-1 text-slate-500 dark:text-slate-400">
-              Kelola akun pegawai, tambah baru, hapus, atau reset password.
-            </p>
-          </div>
+          <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
+            Kelola akun pegawai, tambah baru, hapus, atau reset password.
+          </p>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="relative">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-[16px] w-[16px] text-slate-400" />

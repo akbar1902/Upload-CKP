@@ -5,6 +5,16 @@ Prototipe HTML statis untuk merombak tampilan **SIKAP (Sistem Informasi Capaian 
 > Berkas utama: **`preview/index.html`** — buka langsung di browser (klik dua kali) atau lewat server lokal:
 > `python -m http.server 5199 --directory preview` lalu buka `http://localhost:5199/index.html`
 
+> **Branch:** `ui/login-refresh` — berisi baseline 23 layar + penyempurnaan halaman login ("CKP sudah diunggah, Hati Tenang") dan tombol pasang PWA di sidebar.
+
+---
+
+## 0. Catatan revisi branch `ui/login-refresh`
+
+- **Halaman login** mengikuti komposisi panel gelap: logo SIKAP + label "Portal Internal", dua kartu laporan mengambang (Capaian Kinerja & Sudah Dinilai), seal progres 26/32 dengan cincin 81%, orbit berputar halus, kartu melayang, dan bar yang terisi saat dibuka.
+- **Slogan panel login hanya satu kalimat**: *"CKP sudah diunggah, Hati Tenang"* — tanpa teks tambahan apa pun di area itu. Di layar kecil panel ilustrasi disembunyikan dan slogan muncul di atas kartu login.
+- **Tombol pasang PWA ada di sidebar** (`Pasang Aplikasi · PWA · Gratis · App`) — selalu terlihat, berubah jadi ikon saja saat sidebar diciutkan.
+
 ---
 
 ## 1. Ringkas: apa yang berubah

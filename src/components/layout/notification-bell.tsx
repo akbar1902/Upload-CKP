@@ -8,6 +8,7 @@ import { Bell, CheckCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { runSafeRead, createReadClient, withTimeoutRetry } from '@/lib/supabase/read';
 import { useAuth } from '@/hooks/use-auth';
+import { useDelayedUnmount } from '@/hooks/use-delayed-unmount';
 
 interface Notification {
   id: string;
@@ -44,8 +45,12 @@ export function NotificationBell() {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [open, setOpen] = useState(false);
+  // `mounted` menahan panel sebentar saat ditutup supaya animasi keluar
+  // sempat dimainkan (sebelumnya panel hilang seketika).
+  const { mounted: present, leaving: exiting } = useDelayedUnmount(open, 180);
   const [items, setItems] = useState<Notification[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   const unread = items.filter((i) => !i.is_read).length;
 
@@ -97,14 +102,27 @@ export function NotificationBell() {
     };
   }, [user?.id, supabase]);
 
-  // Tutup saat klik di luar
+  // Tutup saat klik di luar, atau saat tekan Escape (dengan mengembalikan
+  // fokus ke tombol lonceng — keyboard user tidak boleh "terjebak" di panel).
   useEffect(() => {
+    if (!open) return;
+
     const onDown = (e: MouseEvent) => {
       if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
+    };
     document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, []);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open]);
 
   const markAllRead = async () => {
     if (!user?.id || unread === 0) return;
@@ -148,8 +166,9 @@ export function NotificationBell() {
   return (
     <div ref={boxRef} className="relative">
       <button
+        ref={triggerRef}
         onClick={() => setOpen((o) => !o)}
-        className="relative p-2.5 rounded-full transition-colors"
+        className="relative p-2.5 rounded-full transition-[background-color,color,transform] duration-200 active:scale-95"
         style={
           unread > 0
             ? { background: 'var(--accent-soft)', color: 'var(--accent-strong)' }
@@ -171,9 +190,9 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
+      {present && (
         <div
-          className="absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 animate-scale-in"
+          className={`absolute right-0 mt-2 w-[340px] max-w-[85vw] rounded-2xl overflow-hidden z-50 ${exiting ? 'sikap-pop-out' : 'sikap-pop-in'}`}
           style={{
             background: 'var(--card-bg)',
             border: '1px solid var(--sand-border)',

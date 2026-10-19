@@ -335,22 +335,23 @@ export default function PimpinanKetuaTimDashboardClient() {
 
         <FetchingBar show={isFiltering} />
 
-        {/* ── Page hero ─────────────────────────────── */}
+        {/* ── Konteks halaman ───────────────────────────
+            Judul sudah ada di header (sticky). */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-tight"
-                style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              {user?.role === 'admin' ? 'Monitoring CKP (Admin)' : 'Dashboard Ketua Tim'}
-            </h2>
-            <p className="text-[13px] mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                  style={{ color: 'var(--text-tertiary)' }}>
+              Periode
+            </span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               {getPeriodName(bulan)} {tahun}
-              {!isCurrentPeriod && (
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                      style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
-                  Filter aktif
-                </span>
-              )}
-            </p>
+            </span>
+            {!isCurrentPeriod && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'var(--warning-soft)', color: 'var(--warning)' }}>
+                Filter aktif
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <PeriodFilter

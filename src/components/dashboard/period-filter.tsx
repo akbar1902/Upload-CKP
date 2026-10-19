@@ -30,9 +30,10 @@ export function PeriodFilter({ bulan, tahun, onBulanChange, onTahunChange }: Per
   }));
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-3" role="group" aria-label="Filter periode">
       <div className="min-w-[140px]">
         <Select
+          aria-label="Pilih bulan atau triwulan"
           options={bulanOptions}
           value={String(bulan)}
           onChange={(e) => {
@@ -43,6 +44,7 @@ export function PeriodFilter({ bulan, tahun, onBulanChange, onTahunChange }: Per
       </div>
       <div className="min-w-[100px]">
         <Select
+          aria-label="Pilih tahun"
           options={tahunOptions}
           value={String(tahun)}
           onChange={(e) => onTahunChange(Number(e.target.value))}

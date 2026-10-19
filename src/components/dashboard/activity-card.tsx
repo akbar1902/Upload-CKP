@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp, ArrowRight, FileCheck, FileText, Trash2 } from 'lucide-react';
-import { getBulanName, formatDateTime } from '@/lib/utils';
+import { formatDateTime } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import { StatusBadge } from './status-badge';
+import { Collapsible } from '@/components/ui/collapsible';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -47,10 +48,11 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       } else {
         throw new Error(res.error || 'Gagal menghapus CKP');
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       // 2. Rollback on failure
       queryClient.setQueryData(['pegawai-uploads', upload.user_id], previousUploads);
-      toast.error(e.message || 'Terjadi kesalahan saat menghapus', { id: toastId });
+      const message = e instanceof Error ? e.message : 'Terjadi kesalahan saat menghapus';
+      toast.error(message, { id: toastId });
     }
   };
 
@@ -145,17 +147,10 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           <StatusBadge status={upload.status} />
           <button
             onClick={() => setExpanded(e => !e)}
-            className="flex items-center gap-1 text-[12px] font-medium transition-all duration-200 px-2.5 py-1 rounded-full"
+            className="flex items-center gap-1 text-[12px] font-medium px-2.5 py-1 rounded-full transition-[background-color,color] duration-200 hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)]"
             style={{ color: 'var(--text-tertiary)' }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'var(--bg-secondary)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)';
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = 'transparent';
-              (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
-            }}
             aria-label={expanded ? 'Tutup detail' : 'Lihat detail'}
+            aria-expanded={expanded}
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             <span className="hidden sm:inline">{expanded ? 'Tutup' : 'Detail'}</span>
@@ -164,9 +159,9 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
       </div>
 
       {/* ── Expanded detail panel ───────────────────── */}
-      {expanded && (
+      <Collapsible open={expanded}>
         <div
-          className="card-expanded-content border-t px-6 py-5"
+          className="border-t px-6 py-5"
           style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-5">
@@ -252,10 +247,8 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
               ) : (
                 <button
                   onClick={() => setShowConfirmDelete(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] sm:text-[12px] font-medium transition-[background-color,opacity] duration-200 hover:opacity-80"
                   style={{ color: 'var(--danger)', border: '1px solid var(--danger-soft)', background: 'var(--danger-soft)' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8'; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1'; }}
                 >
                   <Trash2 size={13} /> Hapus
                 </button>
@@ -263,7 +256,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
             )}
           </div>
         </div>
-      )}
+      </Collapsible>
     </div>
   );
 }

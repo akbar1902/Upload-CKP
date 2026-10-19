@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Header } from '@/components/layout/header';
+import { Collapsible } from '@/components/ui/collapsible';
 import { PeriodFilter } from '@/components/dashboard/period-filter';
 import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
 import { usePeriodParams } from '@/hooks/use-period-params';
@@ -47,7 +48,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
         </div>
       </div>
 
-      {expanded && (
+      <Collapsible open={expanded}>
         <div className="border-t border-[var(--sand-border)] bg-[var(--sand-subtle)] p-5 space-y-4">
           <div className="text-[13px] font-bold text-[var(--success-text)] mb-3 flex items-center gap-2">
             <Users size={16} />
@@ -60,7 +61,7 @@ function MonitoringCard({ data }: { data: PendingScoringKetuaTim }) {
             ))}
           </div>
         </div>
-      )}
+      </Collapsible>
     </div>
   );
 }
@@ -92,7 +93,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
         </div>
       </div>
 
-      {expanded && (
+      <Collapsible open={expanded}>
         <div className="p-3 pt-0 bg-[var(--success-soft)]">
           <div className="pl-11 pr-2 pt-2">
             <ul className="space-y-1.5">
@@ -118,7 +119,7 @@ function PegawaiDetailCard({ pegawai }: { pegawai: PendingScoringKetuaTim['pegaw
             </ul>
           </div>
         </div>
-      )}
+      </Collapsible>
     </div>
   );
 }

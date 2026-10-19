@@ -1,8 +1,8 @@
-import { saveAs } from 'file-saver';
 import { getBulanName } from '@/lib/utils';
 import type { CKPUpload, User } from '@/types/database';
 import { createClient } from '@/lib/supabase/client';
 import { loadJSZip } from '@/lib/lazy/jszip';
+import { loadSaveAs } from '@/lib/lazy/file-saver';
 
 export async function downloadAllCkpZip(
   uploads: (CKPUpload & { user?: User })[],
@@ -70,6 +70,7 @@ export async function downloadAllCkpZip(
 
   // Generate the zip and trigger download
   const blob = await zip.generateAsync({ type: 'blob' });
+  const saveAs = await loadSaveAs();
   saveAs(blob, `${folderName}.zip`);
   
   if (failedFiles.length > 0) {

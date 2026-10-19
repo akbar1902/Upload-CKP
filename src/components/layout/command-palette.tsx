@@ -168,7 +168,9 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
   // Shortcut global: Ctrl/Cmd + K
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const isK = e.key.toLowerCase() === 'k';
+      // `e.key` bisa undefined pada event sintetis/beberapa IME —
+      // akses `.toLowerCase()` langsung pernah melempar TypeError.
+      const isK = typeof e.key === 'string' && e.key.toLowerCase() === 'k';
       if ((e.metaKey || e.ctrlKey) && isK) {
         e.preventDefault();
         setIsOpen((o) => !o);
@@ -219,6 +221,17 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const t = setTimeout(() => inputRef.current?.focus(), 30);
     return () => clearTimeout(t);
+  }, []);
+
+  // Kembalikan fokus ke elemen pemicu saat palette ditutup — tanpa ini
+  // pengguna keyboard kehilangan "pivot" dan harus klik lagi.
+  useEffect(() => {
+    const trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      if (trigger && document.contains(trigger)) {
+        requestAnimationFrame(() => trigger.focus());
+      }
+    };
   }, []);
 
   // Kunci scroll body
@@ -475,16 +488,14 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     <div className="fixed inset-0 z-[10000] flex items-start justify-center p-4 sm:pt-[12vh]">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-md"
-        style={{ animation: 'fadeIn 0.18s cubic-bezier(0.25,0.1,0.25,1) both' }}
+        className="fixed inset-0 bg-black/40 backdrop-blur-md sikap-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Panel */}
       <div
-        className="relative w-full max-w-[620px] rounded-[24px] overflow-hidden neu-raised-lg"
-        style={{ animation: 'scaleIn 0.2s cubic-bezier(0.25,0.1,0.25,1) both' }}
+        className="relative w-full max-w-[620px] rounded-[24px] overflow-hidden neu-raised-lg sikap-pop-in"
         role="dialog"
         aria-modal="true"
         aria-label="Pencarian cepat"

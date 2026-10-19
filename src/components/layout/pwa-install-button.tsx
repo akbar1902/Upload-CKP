@@ -36,7 +36,14 @@ export function PwaInstallButton({ collapsed = false }: { collapsed?: boolean })
     window.addEventListener('appinstalled', onInstalled);
 
     // Sudah dibuka sebagai aplikasi terpasang?
-    if (window.matchMedia?.('(display-mode: standalone)').matches) setInstalled(true);
+    if (window.matchMedia?.('(display-mode: standalone)').matches) {
+      const raf = requestAnimationFrame(() => setInstalled(true));
+      return () => {
+        cancelAnimationFrame(raf);
+        window.removeEventListener('beforeinstallprompt', onPrompt);
+        window.removeEventListener('appinstalled', onInstalled);
+      };
+    }
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onPrompt);
@@ -63,18 +70,32 @@ export function PwaInstallButton({ collapsed = false }: { collapsed?: boolean })
       title="Pasang aplikasi SIKAP di perangkat ini"
       aria-label="Pasang aplikasi SIKAP"
       className={
-        'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200' +
+        'group flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-semibold' +
+        ' transition-[background-color,color,border-color,transform] duration-200 ease-out' +
+        ' border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)]' +
         (collapsed ? ' justify-center' : '')
       }
-      style={{ color: 'var(--primary)' }}
+      style={{
+        color: 'var(--sidebar-text)',
+        background: 'rgba(224, 146, 108, 0.14)',
+        border: '1px solid rgba(224, 146, 108, 0.34)',
+      }}
       onMouseEnter={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'var(--primary-soft)';
+        (e.currentTarget as HTMLElement).style.background = 'rgba(224, 146, 108, 0.24)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(224, 146, 108, 0.55)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.background = 'transparent';
+        (e.currentTarget as HTMLElement).style.background = 'rgba(224, 146, 108, 0.14)';
+        (e.currentTarget as HTMLElement).style.borderColor = 'rgba(224, 146, 108, 0.34)';
       }}
     >
-      <Download size={15} />
+      <span
+        className="w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0"
+        style={{ background: 'var(--sidebar-accent)', color: '#0B2A24' }}
+        aria-hidden="true"
+      >
+        <Download size={13} />
+      </span>
       {!collapsed && <span>Pasang Aplikasi</span>}
     </button>
   );

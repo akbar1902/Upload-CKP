@@ -89,14 +89,9 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: AuditLog
       <Header />
       <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Log Aktivitas Sistem
-            </h2>
-            <p className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-              Pantau aktivitas penting yang dilakukan oleh pegawai dan pimpinan.
-            </p>
-          </div>
+          <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+            Pantau aktivitas penting yang dilakukan oleh pegawai dan pimpinan.
+          </p>
           <button onClick={() => refetch()} className="btn-secondary" disabled={isFetching}>
             <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
             {isFetching ? 'Memuat...' : 'Refresh'}

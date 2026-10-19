@@ -1,15 +1,6 @@
 import React from 'react';
-import { Sidebar } from '@/components/layout/sidebar';
-import { RouteTransition } from '@/components/layout/route-transition';
+import { AppShell } from '@/components/layout/app-shell';
 
 export default function PenilaianLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
-      <Sidebar />
-      <RouteTransition />
-      <div className="flex-1 min-w-0">
-        {children}
-      </div>
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

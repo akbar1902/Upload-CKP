@@ -154,48 +154,76 @@ window.ui = (function () {
     return '' +
     '<div class="login">' +
       '<div class="login__art">' +
+        '<div class="art-aurora" aria-hidden="true"></div>' +
+        '<div class="art-beam" aria-hidden="true"></div>' +
+        '<div class="art-vignette" aria-hidden="true"></div>' +
+
         '<div class="login__art-top">' +
           '<img src="assets/sikap-logo-cream.svg" alt="SIKAP — BPS Kabupaten Belitung" />' +
           '<span class="login__art-tag">Portal Internal</span>' +
         '</div>' +
+
         '<div class="login__stage">' +
-          '<div class="art-orbit" aria-hidden="true"></div>' +
-          '<div class="art-card art-card--a" aria-hidden="true">' +
+          '<div class="art-orbit" aria-hidden="true">' +
+            '<span class="art-orbit__dot art-orbit__dot--a"></span>' +
+            '<span class="art-orbit__dot art-orbit__dot--b"></span>' +
+          '</div>' +
+
+          '<article class="art-card art-card--a" aria-hidden="true">' +
             '<div class="art-card__head">' +
               '<span class="art-card__eyebrow">CKP September 2026</span>' +
-              '<span class="badge badge--approved">' + ic('check-circle') + 'Disetujui</span>' +
+              '<span class="art-card__pill art-card__pill--ok">' +
+                '<svg class="i"><use href="#i-check-circle"/></svg>Disetujui</span>' +
             '</div>' +
-            '<div class="art-card__title">Capaian Kinerja</div>' +
+            '<h3 class="art-card__title">Capaian Kinerja</h3>' +
             '<div class="art-card__rows">' +
-              '<div class="art-row"><span class="art-row__val" style="width:44px">38 keg.</span><span class="art-row__bar"><span style="width:96%"></span></span></div>' +
-              '<div class="art-row"><span class="art-row__val" style="width:44px">Nilai</span><span class="art-row__bar art-row__bar--gold"><span style="width:91%"></span></span><span class="art-row__val">91</span></div>' +
-              '<div class="art-row"><span class="art-row__val" style="width:44px">Revisi</span><span class="art-row__bar art-row__bar--coral"><span style="width:28%"></span></span><span class="art-row__val">0</span></div>' +
+              '<div class="art-row"><span class="art-row__val art-row__val--start">38 keg.</span>' +
+                '<span class="art-row__bar"><span class="art-row__fill" style="width:96%"></span></span></div>' +
+              '<div class="art-row"><span class="art-row__val art-row__val--start">Nilai</span>' +
+                '<span class="art-row__bar art-row__bar--gold"><span class="art-row__fill" style="width:91%"></span></span>' +
+                '<span class="art-row__val">91</span></div>' +
+              '<div class="art-row"><span class="art-row__val art-row__val--start">Revisi</span>' +
+                '<span class="art-row__bar art-row__bar--coral"><span class="art-row__fill" style="width:14%"></span></span>' +
+                '<span class="art-row__val">0</span></div>' +
             '</div>' +
-            '<div class="art-card__note">Tim Statistik Sosial &middot; 5 Rencana Kinerja</div>' +
-          '</div>' +
-          '<div class="art-card art-card--b" aria-hidden="true">' +
+            '<p class="art-card__note">Tim Statistik Sosial &middot; 5 Rencana Kinerja</p>' +
+          '</article>' +
+
+          '<article class="art-card art-card--b" aria-hidden="true">' +
             '<div class="art-card__head">' +
-              '<span class="art-card__eyebrow">Sudah dinilai</span>' +
-              '<span class="badge badge--scored">' + ic('spark') + 'Rata-rata 89,4</span>' +
+              '<span class="art-card__eyebrow">Sudah Dinilai</span>' +
+              '<span class="art-card__pill art-card__pill--gold">' +
+                '<svg class="i"><use href="#i-spark"/></svg>Rata-rata 89,4</span>' +
             '</div>' +
-            '<div class="art-card__rows">' +
-              '<div class="art-row"><span class="art-row__bar"><span style="width:92%"></span></span><span class="art-row__val">92</span></div>' +
-              '<div class="art-row"><span class="art-row__bar"><span style="width:88%"></span></span><span class="art-row__val">88</span></div>' +
-              '<div class="art-row"><span class="art-row__bar"><span style="width:90%"></span></span><span class="art-row__val">90</span></div>' +
+            '<div class="art-card__rows art-card__rows--scores">' +
+              '<div class="art-row"><span class="art-row__bar"><span class="art-row__fill" style="width:92%"></span></span><span class="art-row__val">92</span></div>' +
+              '<div class="art-row"><span class="art-row__bar"><span class="art-row__fill" style="width:88%"></span></span><span class="art-row__val">88</span></div>' +
+              '<div class="art-row"><span class="art-row__bar"><span class="art-row__fill" style="width:90%"></span></span><span class="art-row__val">90</span></div>' +
             '</div>' +
-            '<span class="art-stamp">' + ic('shield') + 'Siap disetujui pimpinan</span>' +
+            '<p class="art-card__note art-card__note--ok">' +
+              '<svg class="i"><use href="#i-shield"/></svg>Siap disetujui pimpinan</p>' +
+          '</article>' +
+
+          '<div class="art-seal" aria-hidden="true">' +
+            '<span class="art-seal__ring"></span>' +
+            '<span class="art-seal__dash"></span>' +
+            '<span class="art-seal__core">' +
+              '<strong>26<span>/32</span></strong>' +
+              '<small>Pegawai Melapor</small>' +
+            '</span>' +
           '</div>' +
-          '<div class="art-seal" aria-hidden="true"><strong>26<span>/32</span></strong><small>pegawai melapor</small></div>' +
         '</div>' +
+
         '<div class="login__quote">' +
-          '<div class="eyebrow eyebrow--cream">Satu ruang untuk seluruh capaian</div>' +
-          '<h2 style="margin-top:12px">CKP sudah diunggah,<br /><em>hati tenang.</em></h2>' +
-          '<p>Unggah, pantau penilaian, dan simpan bukti kinerja bulanan Anda dalam satu tempat yang runut.</p>' +
+          '<span class="login__quote-rule" aria-hidden="true"></span>' +
+          '<h2>CKP sudah diunggah,<br /><em>Hati Tenang</em></h2>' +
         '</div>' +
       '</div>' +
 
       '<div class="login__panel">' +
         '<div class="login-card">' +
+          '<div class="login-mobile-slogan"><span class="rule" aria-hidden="true"></span>' +
+            '<p>CKP sudah diunggah, <em>Hati Tenang</em></p></div>' +
           '<div class="login-card__brand"><img src="assets/sikap-logo-light.svg" alt="SIKAP" /></div>' +
           '<span class="badge badge--teal">' + ic('shield') + 'Akses pegawai BPS Kabupaten Belitung</span>' +
           '<h1>Selamat datang<br /><em>kembali.</em></h1>' +

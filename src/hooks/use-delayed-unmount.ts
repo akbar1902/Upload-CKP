@@ -9,14 +9,18 @@ import { useEffect, useState } from "react";
  * Ini pengganti ringan `AnimatePresence` dari framer-motion (framer-motion
  * dihapus dari bundle karena bobotnya ~122 KB dan hanya dipakai untuk efek
  * fade/pop sederhana).
+ *
+ * `mounted` naik pada frame berikutnya (bukan langsung), supaya elemen baru
+ * yang muncul sempat dirender dalam keadaan "belum tampil" — tanpa itu,
+ * animasi masuk tidak punya state awal dan tidak bisa dimainkan.
  */
 export function useDelayedUnmount(show: boolean, exitMs: number) {
   const [mounted, setMounted] = useState(show);
 
   useEffect(() => {
     if (show) {
-      setMounted(true);
-      return;
+      const raf = requestAnimationFrame(() => setMounted(true));
+      return () => cancelAnimationFrame(raf);
     }
     const timer = setTimeout(() => setMounted(false), exitMs);
     return () => clearTimeout(timer);

@@ -574,19 +574,22 @@ export default function KetuaTimDashboardClient() {
       <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
         <FetchingBar show={isFiltering} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Dashboard Ketua Tim</h2>
-            <p className="text-sm mt-0.5 flex items-center gap-2" style={{ color: 'var(--text-secondary)' }}>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-bold uppercase tracking-[0.12em]"
+                  style={{ color: 'var(--text-tertiary)' }}>
+              Periode
+            </span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>
               {getPeriodName(bulan)} {tahun}
-              {!isCurrentPeriod && (
-                <span
-                  className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
-                  style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}
-                >
-                  Filter aktif
-                </span>
-              )}
-            </p>
+            </span>
+            {!isCurrentPeriod && (
+              <span
+                className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                style={{ background: 'var(--warning-soft)', color: 'var(--warning-text)' }}
+              >
+                Filter aktif
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={handleExport} className="btn-secondary flex items-center gap-2 h-10 px-4 mr-2" disabled={loading}>

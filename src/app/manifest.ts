@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Sistem Rekap Capaian Kinerja Pegawai BPS Kabupaten Belitung',
     start_url: '/',
     display: 'standalone',
-    background_color: '#F8F6EE',
-    theme_color: '#0F766E',
+    background_color: '#F6F6F4',
+    theme_color: '#0B2A24',
     icons: [
       {
         src: '/icons/icon-192.png',

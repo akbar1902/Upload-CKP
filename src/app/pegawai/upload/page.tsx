@@ -623,7 +623,7 @@ export default function UploadPage() {
                   className="flex h-7 w-7 items-center justify-center rounded-full text-[12px] font-bold transition-colors"
                   style={
                     wizardStep === s.n
-                      ? { background: 'var(--primary)', color: '#fff' }
+                      ? { background: 'var(--primary)', color: 'var(--on-primary)' }
                       : wizardStep > s.n
                         ? { background: 'var(--success-soft)', color: 'var(--success)' }
                         : { background: 'var(--sand-subtle)', color: 'var(--text-tertiary)' }

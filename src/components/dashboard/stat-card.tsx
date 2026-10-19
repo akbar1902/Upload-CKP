@@ -28,7 +28,7 @@ const colorMap = {
 };
 
 export function StatCard({ title, value, subtitle, icon: Icon, color, trend, loading }: StatCardProps) {
-  const colors = colorMap['blue']; // unified primary color
+  const colors = colorMap[color] ?? colorMap.blue;
 
   return (
     <div className="kpi-card p-6 min-w-0 overflow-hidden">

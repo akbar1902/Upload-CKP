@@ -9,8 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { saveAs } from 'file-saver';
 import { loadJSZip } from '@/lib/lazy/jszip';
+import { loadSaveAs } from '@/lib/lazy/file-saver';
 import { 
   FileDown, Printer, FileSpreadsheet, ExternalLink, Calendar, 
   Users, CheckCircle2, AlertCircle, Loader2, Sparkles, Archive,
@@ -311,6 +311,7 @@ export default function ExportPenilaianClient({
 
       setBulkProgress('Mengompres file ZIP...');
       const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const saveAs = await loadSaveAs();
       saveAs(zipBlob, `Evaluasi_Kinerja_Semua_Pegawai_${getBulanName(bulan)}_${tahun}.zip`);
       toast.success(`Berhasil mendownload berkas penilaian untuk ${data.uploads.length} pegawai!`);
     } catch (err: any) {

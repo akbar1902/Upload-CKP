@@ -7,7 +7,6 @@ import type { Route } from 'next';
 import { useAuth } from '@/hooks/use-auth';
 import { useQueryClient } from '@tanstack/react-query';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
-import { Logo } from '@/components/ui/logo';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
@@ -22,6 +21,7 @@ import {
   Zap,
   Lock,
   FileDown,
+  type LucideIcon,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
 import { PwaInstallButton } from '@/components/layout/pwa-install-button';
@@ -29,27 +29,11 @@ import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 interface NavItem {
   href: Route;
   label: string;
-  icon: React.ElementType;
-  
+  icon: LucideIcon;
 }
 
-const pegawaiNav: NavItem[] = [
-  { href: '/pegawai',        label: 'Dashboard Anggota',  icon: LayoutDashboard },
-  { href: '/pegawai/upload', label: 'Upload CKP', icon: Upload },
-  { href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users },
-];
-
-const pimpinanNav: NavItem[] = [
-  { href: '/pimpinan',         label: 'Dashboard Pimpinan',    icon: LayoutDashboard },
-  { href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users },
-];
-
-const ketuaTimNav: NavItem[] = [
-  { href: '/ketua_tim', label: 'Dashboard Ketua Tim', icon: LayoutDashboard },
-];
-
-const SIDEBAR_EXPANDED = 260;
-const SIDEBAR_COLLAPSED = 72;
+const SIDEBAR_EXPANDED = 264;
+const SIDEBAR_COLLAPSED = 76;
 const SIDEBAR_STORAGE_KEY = 'sikap-sidebar-collapsed';
 const SIDEBAR_STORAGE_EVENT = 'sikap:sidebar-collapsed';
 
@@ -75,6 +59,19 @@ function getSidebarCollapsedServerSnapshot() {
   return false;
 }
 
+/**
+ * Sidebar aplikasi.
+ *
+ * Prinsip visual:
+ *  - Hijau pinus gelap sebagai "bingkai" navigasi → konten utama
+ *    (kertas terang) jadi fokus mata, dan aplikasi terasa punya
+ *    kedalaman, bukan sekadar daftar tautan.
+ *  - Setiap state punya transisi (sub-menu, hover, item aktif)
+ *    supaya tidak ada yang "melompat".
+ *  - Semua hover memakai varian Tailwind (hover:/focus-visible:),
+ *    bukan mutasi `element.style` — supaya efeknya juga terlihat
+ *    saat navigasi dengan keyboard.
+ */
 export function Sidebar() {
   const { user, signOut } = useAuth();
   const pathname = usePathname();
@@ -84,6 +81,7 @@ export function Sidebar() {
   const [signingOut, setSigningOut] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [prefetchedUpload, setPrefetchedUpload] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
 
   // Persist preferensi collapsed via localStorage (tanpa setState di effect).
   const collapsed = React.useSyncExternalStore(
@@ -123,8 +121,6 @@ export function Sidebar() {
     });
   }, [queryClient, prefetchedUpload]);
 
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
-
   // Terima permintaan buka modal ganti password dari Command Palette
   useEffect(() => {
     const handler = () => setChangePasswordOpen(true);
@@ -135,7 +131,7 @@ export function Sidebar() {
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
   const isAdmin = user?.role === 'admin';
   const isKetuaTim = user?.role === 'ketua_tim' || isPimpinan;
-  
+
   // Dashboard Sub-items based on role
   let dashboardSubItems: NavItem[] = [];
   if (isPimpinan) {
@@ -167,7 +163,7 @@ export function Sidebar() {
     navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
     navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
   }
-  
+
   if (!isAdmin) {
     if (!isPimpinan) {
       navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
@@ -225,8 +221,8 @@ export function Sidebar() {
     if (href === '/pimpinan/pegawai') return pathname.startsWith('/pimpinan/pegawai');
     return pathname.startsWith(href);
   };
-  
-  const isDashboardActive = ['/pimpinan', '/ketua_tim', '/pegawai'].some(href => pathname === href);
+
+  const isDashboardActive = ['/pimpinan', '/ketua_tim', '/pegawai'].some((href) => pathname === href);
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -240,65 +236,90 @@ export function Sidebar() {
     .join('')
     .toUpperCase() || 'U';
 
-  const roleLabel = isAdmin ? 'Admin' : (isPimpinan ? 'Pimpinan' : (user?.role === 'ketua_tim' ? 'Ketua Tim' : 'Pegawai'));
+  const roleLabel = isAdmin
+    ? 'Admin'
+    : isPimpinan
+      ? 'Pimpinan'
+      : user?.role === 'ketua_tim'
+        ? 'Ketua Tim'
+        : 'Pegawai';
+
+  /* ── Item navigasi ───────────────────────────────────────── */
+  const navItemClass = (active: boolean) =>
+    cn(
+      'group relative flex items-center gap-3 w-full min-w-0 rounded-xl text-[14px] font-medium',
+      'transition-[background-color,color,transform] duration-200 ease-out',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--sidebar-bg)]',
+      collapsed ? 'justify-center px-3 py-2.5' : 'px-3 py-2.5',
+      active
+        ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-text)] font-semibold'
+        : 'text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)] active:scale-[0.98]'
+    );
 
   const navContent = (
-    <div className="flex flex-col h-full select-none">
+    <div className="flex flex-col h-full w-full min-w-0 select-none overflow-hidden">
 
       {/* ── Brand / Logo ─────────────────────────────── */}
       <div className={cn(
-        "flex items-center justify-center px-5 py-5 w-full",
-        collapsed && "px-3 py-5"
+        "flex items-center justify-center px-5 pt-6 pb-5 w-full min-w-0 transition-[padding] duration-300",
+        collapsed && "px-3"
       )}>
-        <img
-          src="/SIKAP-text-and-tagline.svg"
-          alt="SIKAP Logo"
-          className="w-full h-auto object-contain drop-shadow-sm dark:hidden"
-        />
-        <img
-          src="/SIKAP-text-and-tagline-beige.svg"
-          alt="SIKAP Logo"
-          className="w-full h-auto object-contain drop-shadow-sm hidden dark:block"
-        />
+        {collapsed ? (
+          <img
+            src="/SIKAP-logo-only-beige.svg"
+            alt="SIKAP"
+            className="h-8 w-auto max-w-full object-contain"
+          />
+        ) : (
+          <img
+            src="/SIKAP-text-and-tagline-beige.svg"
+            alt="SIKAP — Sistem Informasi Rekap Capaian Kinerja Pegawai"
+            className="w-full h-auto max-w-full object-contain"
+          />
+        )}
       </div>
 
       {/* ── Divider ───────────────────────────────────── */}
-      <div className="mx-4 h-px" style={{ background: 'var(--border)' }} />
+      <div className="mx-4 h-px flex-shrink-0" style={{ background: 'var(--sidebar-border)' }} />
 
       {/* ── User Profile Card ─────────────────────────── */}
       {!collapsed && user && (
         <div className="mx-3 mt-4 mb-1 p-3 rounded-2xl flex items-center gap-3"
-             style={{ background: 'var(--sidebar-bg)', boxShadow: 'var(--neu-raised)' }}>
+             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid var(--sidebar-border)' }}>
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold flex-shrink-0"
-            style={{ background: 'var(--primary)', boxShadow: 'var(--neu-inset-sm)' }}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+            style={{ background: 'var(--sidebar-accent)', color: '#0B2A24' }}
             aria-hidden="true"
           >
             {initials}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[13px] font-medium truncate"
-               style={{ color: 'var(--text-primary)' }}
+            <p className="text-[13px] font-semibold truncate"
+               style={{ color: 'var(--sidebar-text)' }}
                title={user.full_name || 'User'}>
               {user.full_name || 'User'}
             </p>
             <p className="text-[11px] truncate mt-0.5"
-               style={{ color: 'var(--text-secondary)' }}
+               style={{ color: 'var(--sidebar-text-muted)' }}
                title={user.jabatan ? `${user.jabatan} (${roleLabel})` : roleLabel}>
               {user.jabatan || roleLabel}
             </p>
           </div>
-          {/* Online indicator */}
-          <div className="flex-shrink-0 w-2 h-2 rounded-full" style={{ background: 'var(--success)' }} title="Online" />
+          {/* Online indicator — denyut halus, bukan statis */}
+          <span className="relative flex-shrink-0 w-2 h-2" title="Online">
+            <span className="absolute inset-0 rounded-full animate-[pulse-ring_2.4s_ease-out_infinite]"
+                  style={{ background: '#7FD3A6' }} aria-hidden="true" />
+            <span className="relative block w-2 h-2 rounded-full" style={{ background: '#7FD3A6' }} />
+          </span>
         </div>
       )}
 
       {collapsed && user && (
         <div className="flex justify-center mt-3 mb-1">
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-[13px] font-semibold"
-            style={{ background: 'var(--primary)' }}
-            title={user.full_name}
+            className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold"
+            style={{ background: 'var(--sidebar-accent)', color: '#0B2A24' }}
+            title={`${user.full_name || 'User'} · ${roleLabel}`}
             aria-hidden="true"
           >
             {initials}
@@ -308,15 +329,15 @@ export function Sidebar() {
 
       {/* ── Nav Label ─────────────────────────────────── */}
       {!collapsed && (
-        <p className="px-5 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em]"
-           style={{ color: 'var(--text-tertiary)' }}>
+        <p className="px-5 pt-5 pb-2 text-[10px] font-bold uppercase tracking-[0.16em]"
+           style={{ color: 'var(--sidebar-text-muted)' }}>
           Menu
         </p>
       )}
 
       {/* ── Navigation Items ──────────────────────────── */}
-      <nav className="flex-1 px-3 py-1 space-y-1 overflow-y-auto" aria-label="Navigasi utama">
-        
+      <nav className="flex-1 min-w-0 px-3 py-1 space-y-1 overflow-y-auto overflow-x-hidden" aria-label="Navigasi utama">
+
         {/* Nested Dashboard Menu */}
         {!isAdmin && (
           <div>
@@ -325,82 +346,69 @@ export function Sidebar() {
                 if (collapsed) setCollapsedPersisted(false);
                 setIsDashboardOpen(!isDashboardOpen);
               }}
-              className={cn(
-                "relative flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
-                collapsed && "justify-center px-3"
-              )}
-              style={
-                isDashboardActive
-                  ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                  : { color: 'var(--sidebar-text-muted)' }
-              }
-              onMouseEnter={(e) => {
-                if (!isDashboardActive) {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isDashboardActive) {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                }
-              }}
+              className={cn(navItemClass(isDashboardActive), 'justify-between')}
+              aria-expanded={isDashboardOpen}
+              aria-controls="sikap-dashboard-submenu"
+              title={collapsed ? 'Dashboard' : undefined}
             >
-              <div className="flex items-center gap-3">
-                <LayoutDashboard size={18} className="flex-shrink-0" />
-                {!collapsed && <span>Dashboard</span>}
-              </div>
-              {/* Indikator terracotta: menu dashboard aktif */}
-              {isDashboardActive && !collapsed && (
-                <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-              )}
+              <span className="flex items-center gap-3 min-w-0">
+                <LayoutDashboard size={18} className="flex-shrink-0" aria-hidden="true" />
+                {!collapsed && <span className="truncate min-w-0">Dashboard</span>}
+              </span>
               {!collapsed && (
-                <ChevronDown 
-                  size={16} 
-                  className={cn("transition-transform duration-200", isDashboardOpen ? "rotate-180" : "")} 
+                <ChevronDown
+                  size={15}
+                  className={cn(
+                    'flex-shrink-0 transition-transform duration-300 ease-out',
+                    isDashboardOpen && 'rotate-180'
+                  )}
+                  aria-hidden="true"
                 />
               )}
             </button>
-            
-            {/* Sub-items */}
-            {(!collapsed && isDashboardOpen) && (
-              <div className="mt-1 ml-4 pl-3 space-y-1 border-l border-[var(--border)]">
-                {dashboardSubItems.map((item) => {
-                  const active = isActive(item.href);
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      prefetch={true}
-                      onClick={() => setMobileOpen(false)}
-                      className="relative flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium transition-all duration-200"
-                      style={
-                        active
-                          ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                          : { color: 'var(--sidebar-text-muted)' }
-                      }
-                      onMouseEnter={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!active) {
-                          (e.currentTarget as HTMLElement).style.background = 'transparent';
-                          (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                        }
-                      }}
-                    >
-                      {/* Indikator terracotta: sub-item aktif */}
-                      {active && (
-                        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
-                      )}
-                      <span>{item.label}</span>
-                    </Link>
-                  );
-                })}
+
+            {/* Sub-items — tinggi mengikuti isi, transisi mulus */}
+            {!collapsed && (
+              <div
+                id="sikap-dashboard-submenu"
+                className="sikap-reveal"
+                data-open={isDashboardOpen ? 'true' : 'false'}
+              >
+                <div>
+                  <div className="mt-1 ml-4 pl-3 space-y-1" style={{ borderLeft: '1px solid var(--sidebar-border)' }}>
+                    {dashboardSubItems.map((item) => {
+                      const active = isActive(item.href);
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          prefetch={true}
+                          onClick={() => setMobileOpen(false)}
+                          className={cn(
+                            'group relative flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium',
+                            'transition-[background-color,color] duration-200 ease-out',
+                            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)]',
+                            active
+                              ? 'bg-[var(--sidebar-active)] text-[var(--sidebar-text)] font-semibold'
+                              : 'text-[var(--sidebar-text-muted)] hover:bg-[var(--sidebar-hover)] hover:text-[var(--sidebar-text)]'
+                          )}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          {/* Indikator aktif: coral, tumbuh halus */}
+                          <span
+                            className={cn(
+                              'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full transition-all duration-300 ease-out',
+                              active ? 'h-5 opacity-100' : 'h-0 opacity-0'
+                            )}
+                            style={{ background: 'var(--sidebar-indicator)' }}
+                            aria-hidden="true"
+                          />
+                          <span className="truncate min-w-0">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -410,73 +418,55 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
-          const isPlaceholder = item.href.startsWith('#');
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch={true}
               onClick={() => setMobileOpen(false)}
-              title={item.label}
-              aria-label={item.label}
+              title={collapsed ? item.label : undefined}
+              aria-label={collapsed ? item.label : undefined}
               aria-current={active ? 'page' : undefined}
-              className={cn(
-                "relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium transition-all duration-200",
-                collapsed && "justify-center px-3"
-              )}
-              style={
-                active
-                  ? { background: 'var(--sidebar-active)', color: 'var(--primary-bright)' }
-                  : { color: 'var(--sidebar-text-muted)' }
-              }
-              onMouseEnter={(e) => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-                }
+              className={navItemClass(active)}
+              onMouseEnter={() => {
                 // Prefetch upload master data when hovering the Upload CKP link
-                if (item.href === '/pegawai/upload') {
-                  void prefetchUploadData();
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!active) {
-                  (e.currentTarget as HTMLElement).style.background = 'transparent';
-                  (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
-                }
+                if (item.href === '/pegawai/upload') void prefetchUploadData();
               }}
             >
-              {/* Indikator terracotta: item aktif */}
-              {active && !collapsed && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-full" style={{ background: 'var(--accent)' }} aria-hidden="true" />
+              {/* Indikator aktif: coral, tumbuh halus */}
+              {!collapsed && (
+                <span
+                  className={cn(
+                    'absolute left-0 top-1/2 -translate-y-1/2 w-[3px] rounded-full transition-all duration-300 ease-out',
+                    active ? 'h-5 opacity-100' : 'h-0 opacity-0'
+                  )}
+                  style={{ background: 'var(--sidebar-indicator)' }}
+                  aria-hidden="true"
+                />
               )}
               <Icon size={18} className="flex-shrink-0" aria-hidden="true" />
-              {!collapsed && <span>{item.label}</span>}
+              {!collapsed && <span className="truncate min-w-0">{item.label}</span>}
             </Link>
           );
         })}
       </nav>
 
       {/* ── Bottom Actions ────────────────────────────── */}
-      <div className="px-3 pb-5 pt-3 space-y-1"
-           style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="px-3 pb-5 pt-3 space-y-1 flex-shrink-0"
+           style={{ borderTop: '1px solid var(--sidebar-border)' }}>
 
         {/* Collapse toggle — desktop only */}
         <button
           onClick={() => setCollapsedPersisted(!collapsed)}
           className={cn(
-            "hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
-            collapsed && "justify-center"
+            'hidden lg:flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium',
+            'transition-[background-color,color] duration-200 ease-out',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)]',
+            collapsed && 'justify-center'
           )}
-          style={{ color: 'var(--text-tertiary)' }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
-          }}
+          style={{ color: 'var(--sidebar-text-muted)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)'; }}
           aria-label={collapsed ? 'Perluas sidebar' : 'Ciutkan sidebar'}
           aria-expanded={!collapsed}
         >
@@ -495,20 +485,16 @@ export function Sidebar() {
           title="Ganti Password"
           aria-label="Ganti password akun"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
-            collapsed && "justify-center"
+            'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium',
+            'transition-[background-color,color] duration-200 ease-out',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)]',
+            collapsed && 'justify-center'
           )}
-          style={{ color: 'var(--text-tertiary)' }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)';
-            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)';
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
-          }}
+          style={{ color: 'var(--sidebar-text-muted)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)'; }}
         >
-          <Lock size={15} className="flex-shrink-0" />
+          <Lock size={15} className="flex-shrink-0" aria-hidden="true" />
           {!collapsed && (
             <span>Ganti Password</span>
           )}
@@ -521,23 +507,25 @@ export function Sidebar() {
           title="Keluar"
           aria-label="Keluar dari aplikasi"
           className={cn(
-            "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200",
+            'flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-[13px] font-medium',
+            'transition-[background-color,color] duration-200 ease-out',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--sidebar-accent)]',
             signingOut ? "cursor-not-allowed opacity-50" : "",
             collapsed && "justify-center"
           )}
-          style={{ color: 'var(--text-tertiary)' }}
+          style={{ color: 'var(--sidebar-text-muted)' }}
           onMouseEnter={(e) => {
             if (!signingOut) {
-              (e.currentTarget as HTMLElement).style.background = 'var(--danger-soft)';
-              (e.currentTarget as HTMLElement).style.color = 'var(--danger)';
+              (e.currentTarget as HTMLElement).style.background = 'rgba(224, 146, 108, 0.16)';
+              (e.currentTarget as HTMLElement).style.color = '#F3B694';
             }
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = 'transparent';
-            (e.currentTarget as HTMLElement).style.color = 'var(--text-tertiary)';
+            (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)';
           }}
         >
-          <LogOut size={15} className="flex-shrink-0" />
+          <LogOut size={15} className="flex-shrink-0" aria-hidden="true" />
           {!collapsed && (
             <span>{signingOut ? 'Keluar...' : 'Keluar'}</span>
           )}
@@ -551,7 +539,7 @@ export function Sidebar() {
       {/* Mobile toggle button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-2xl shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-2xl shadow-lg transition-transform duration-200 active:scale-95"
         style={{ background: 'var(--card-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
         aria-label="Buka menu navigasi"
         aria-expanded={mobileOpen}
@@ -560,14 +548,16 @@ export function Sidebar() {
         <Menu size={16} />
       </button>
 
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/30 lg:hidden backdrop-blur-sm"
-          onClick={() => setMobileOpen(false)}
-          aria-hidden="true"
-        />
-      )}
+      {/* Mobile overlay — muncul dengan fade, bukan langsung */}
+      <div
+        className={cn(
+          'fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden',
+          'transition-opacity duration-300 ease-out',
+          mobileOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={() => setMobileOpen(false)}
+        aria-hidden="true"
+      />
 
       {/* Mobile sidebar */}
       <aside
@@ -575,21 +565,22 @@ export function Sidebar() {
         aria-label="Menu navigasi"
         inert={!mobileOpen}
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform duration-300",
+          "fixed inset-y-0 left-0 z-50 flex flex-col lg:hidden transition-transform duration-300 ease-out",
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
         style={{
           width: SIDEBAR_EXPANDED,
           background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--sidebar-border)',
+          boxShadow: 'var(--sidebar-shadow)',
         }}
       >
         <button
           onClick={() => setMobileOpen(false)}
           className="absolute top-4 right-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors"
-          style={{ color: 'var(--text-tertiary)' }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = 'var(--sidebar-hover)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+          style={{ color: 'var(--sidebar-text-muted)' }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--sidebar-text-muted)'; }}
           aria-label="Tutup menu"
         >
           <X size={14} />
@@ -604,7 +595,8 @@ export function Sidebar() {
           width: sidebarW,
           background: 'var(--sidebar-bg)',
           borderRight: '1px solid var(--sidebar-border)',
-          transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)',
+          boxShadow: 'var(--sidebar-shadow)',
+          transition: 'width 0.28s cubic-bezier(0.4, 0.1, 0.2, 1)',
         }}
       >
         {navContent}
@@ -613,14 +605,14 @@ export function Sidebar() {
       {/* Desktop spacer */}
       <div
         className="hidden lg:block lg:flex-shrink-0"
-        style={{ width: sidebarW, transition: 'width 0.25s cubic-bezier(0.25, 0.1, 0.25, 1)' }}
+        style={{ width: sidebarW, transition: 'width 0.28s cubic-bezier(0.4, 0.1, 0.2, 1)' }}
         aria-hidden="true"
       />
 
       {/* Modals */}
-      <ChangePasswordModal 
-        open={changePasswordOpen} 
-        onClose={() => setChangePasswordOpen(false)} 
+      <ChangePasswordModal
+        open={changePasswordOpen}
+        onClose={() => setChangePasswordOpen(false)}
       />
     </>
   );

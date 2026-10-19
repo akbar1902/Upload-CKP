@@ -168,6 +168,8 @@ export default function LoginPage() {
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
+                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                      aria-pressed={showPassword}
                     >
                       {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                     </button>
@@ -180,7 +182,7 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   loading={loading}
-                  className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-white hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[var(--primary-ring)]"
+                  className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-[var(--on-primary)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[var(--primary-ring)]"
                   style={{ backgroundColor: primaryColor }}
                 >
                   <LogIn className="h-5 w-5" />

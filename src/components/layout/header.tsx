@@ -79,6 +79,12 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Evaluasi Penilaian',
     };
   }
+  if (pathname === '/analitik') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: isPimpinan ? '/admin' : '/pimpinan' }, { label: 'Analitik' }],
+      title: 'Analitik CKP',
+    };
+  }
   if (pathname === '/admin/pegawai') {
     return {
       crumbs: [{ label: 'Dashboard', href: '/admin' }, { label: 'Kepegawaian' }],
@@ -125,9 +131,16 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Detail Rencana Kinerja',
     };
   }
+  // Fallback: ambil nama ruas terakhir sebagai judul, biar tidak
+  // menampilkan "SIKAP" (terlalu generik) di route yang belum dipetakan.
+  const lastSegment = pathname.split('/').filter(Boolean).pop() ?? 'SIKAP';
+  const fallbackTitle = lastSegment
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
   return {
     crumbs: [{ label: 'SIKAP' }],
-    title: 'SIKAP',
+    title: fallbackTitle,
   };
 }
 
@@ -177,35 +190,52 @@ export function Header({
 
   return (
     <header className="header-glass sticky top-0 z-20" role="banner">
-      <div className="flex items-center gap-4 px-6 lg:px-8" style={{ height: '64px' }}>
+      <div className="flex items-center gap-4 px-5 sm:px-6 lg:px-8" style={{ height: '64px' }}>
 
         {/* Mobile spacer for hamburger */}
         <div className="lg:hidden w-8 flex-shrink-0" aria-hidden="true" />
 
-        {/* ── Left: Title + Breadcrumb ──────────────── */}
-        <div className="min-w-0 flex-1">
-          {/* Breadcrumb */}
-          <nav className="breadcrumb mb-0.5" aria-label="Breadcrumb">
-            {crumbs.map((crumb, idx) => (
+        {/* ── Left: Breadcrumb + judul, SATU BARIS ─────────
+            Sebelumnya breadcrumb ("Dashboard") dan judul ("Dashboard
+            Pimpinan") ditumpuk dua baris dengan font berbeda, sehingga
+            terbaca sebagai dua judul yang bertabrakan. Sekarang jejak
+            navigasi dan judul menyatu satu baris: induk=redup, halaman
+            ini=tegas, satu keluarga font. */}
+        <nav className="breadcrumb min-w-0 flex-1 items-center gap-1.5" aria-label="Breadcrumb">
+          {crumbs.length > 1 &&
+            crumbs.slice(0, -1).map((crumb, idx) => (
               <React.Fragment key={idx}>
                 {idx > 0 && (
-                  <ChevronRight size={11} className="breadcrumb-sep flex-shrink-0" aria-hidden="true" />
+                  <ChevronRight size={13} className="breadcrumb-sep flex-shrink-0" aria-hidden="true" />
                 )}
                 {crumb.href ? (
-                  <Link href={crumb.href as Route} prefetch={true}>{crumb.label}</Link>
+                  <Link
+                    href={crumb.href as Route}
+                    prefetch={true}
+                    className="text-[13px] font-medium truncate transition-colors duration-200 hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)] rounded-md"
+                    style={{ color: 'var(--text-tertiary)' }}
+                  >
+                    {crumb.label}
+                  </Link>
                 ) : (
-                  <span>{crumb.label}</span>
+                  <span className="text-[13px] font-medium truncate" style={{ color: 'var(--text-tertiary)' }}>
+                    {crumb.label}
+                  </span>
                 )}
               </React.Fragment>
             ))}
-          </nav>
 
-          {/* Page Title */}
-          <h1 className="text-[17px] font-semibold leading-tight truncate tracking-tight"
-              style={{ color: 'var(--text-primary)' }}>
+          {crumbs.length > 1 && (
+            <ChevronRight size={13} className="breadcrumb-sep flex-shrink-0 mx-0.5" aria-hidden="true" />
+          )}
+
+          <h1
+            className="text-[17px] font-semibold leading-tight truncate tracking-[-0.01em] min-w-0"
+            style={{ color: 'var(--text-primary)' }}
+          >
             {title}
           </h1>
-        </div>
+        </nav>
 
         {/* ── Center: Date meta ─────────────────────── */}
         <div className="hidden xl:flex items-center gap-1.5 text-[12px] flex-shrink-0"
@@ -213,7 +243,7 @@ export function Header({
           {mounted ? (
             <>
               <span className="font-medium" style={{ color: 'var(--text-secondary)' }}>{dateStr}</span>
-              <span>·</span>
+              <span aria-hidden="true">·</span>
               <span>{timeStr} WIB</span>
             </>
           ) : (
@@ -227,17 +257,23 @@ export function Header({
           {/* Command palette trigger */}
           <button
             onClick={openCommandPalette}
-            className="group flex items-center gap-2 rounded-full transition-all duration-200"
+            className="group hidden sm:flex items-center gap-2 rounded-xl transition-[background-color,box-shadow,transform] duration-200 ease-out active:scale-[0.97]"
             style={{
               background: 'var(--neu-surface)',
               boxShadow: 'var(--neu-raised-sm)',
               color: 'var(--text-secondary)',
               padding: '8px 12px',
             }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--neu-raised)';
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLElement).style.boxShadow = 'var(--neu-raised-sm)';
+            }}
             aria-label="Buka pencarian cepat (Ctrl+K)"
             title="Pencarian cepat (Ctrl+K)"
           >
-            <Search size={15} />
+            <Search size={15} aria-hidden="true" />
             <span className="hidden md:inline text-[13px]">Cari…</span>
             <kbd
               className="hidden md:inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
@@ -245,6 +281,20 @@ export function Header({
             >
               Ctrl K
             </kbd>
+          </button>
+
+          {/* Search — hanya ikon di layar kecil */}
+          <button
+            onClick={openCommandPalette}
+            className="sm:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-transform duration-200 active:scale-95"
+            style={{
+              background: 'var(--neu-surface)',
+              boxShadow: 'var(--neu-raised-sm)',
+              color: 'var(--text-secondary)',
+            }}
+            aria-label="Buka pencarian cepat (Ctrl+K)"
+          >
+            <Search size={15} aria-hidden="true" />
           </button>
 
           {/* Export button */}
@@ -270,12 +320,12 @@ export function Header({
 
           {/* User info — pill neumorfik */}
           <div
-            className="hidden sm:flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5"
+            className="hidden sm:flex items-center gap-2.5 rounded-full pl-1.5 pr-4 py-1.5 transition-transform duration-200 hover:scale-[1.02]"
             style={{ background: 'var(--neu-surface)', boxShadow: 'var(--neu-raised-sm)' }}
           >
             <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[12px] font-semibold flex-shrink-0"
-              style={{ background: 'var(--primary)', boxShadow: 'var(--neu-inset-sm)' }}
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
+              style={{ background: 'var(--primary)', color: 'var(--on-primary)' }}
               aria-hidden="true"
             >
               {initials}
