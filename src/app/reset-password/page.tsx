@@ -3,11 +3,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Logo } from '@/components/ui/logo';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { createClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { AlertCircle, CheckCircle2, Eye, EyeOff, KeyRound, Lock } from 'lucide-react';
-import styles from '@/app/login/login.module.css';
 
 type Status = 'checking' | 'invalid' | 'ready';
 
@@ -150,165 +152,163 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <div className={styles.page} style={{ gridTemplateColumns: '1fr' }}>
-      <section className={styles.panel}>
-        <div className={styles.card}>
-          <div className={styles.cardBrand}>
-            <img src="/SIKAP-text-and-tagline.svg" alt="SIKAP" />
+    <div className="h-screen overflow-hidden flex bg-[#FAFAF5] dark:bg-[var(--bg-secondary)]">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 relative z-10">
+        <div className="w-full max-w-[440px] rounded-[32px] p-8 flex flex-col relative z-10 bg-white border border-[#EDE8DF] shadow-[0_28px_70px_-32px_rgba(45,80,60,0.30)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
+          <div className="flex-1 flex flex-col justify-center">
+            {status === 'checking' && (
+              /* ── Memeriksa tautan ──────────────────── */
+              <div className="flex flex-col items-center justify-center py-10 animate-fade-in text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)]">
+                  <div
+                    className="animate-spin w-7 h-7 border-2 border-t-transparent rounded-full"
+                    style={{ borderColor: 'var(--border)', borderTopColor: primaryColor }}
+                  />
+                </div>
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
+                  Memeriksa Tautan…
+                </h3>
+                <p className="text-[14px] max-w-sm text-[var(--text-secondary)]">
+                  Mohon tunggu sebentar, kami sedang memvalidasi tautan reset Anda.
+                </p>
+              </div>
+            )}
+
+            {status === 'invalid' && (
+              /* ── Tautan tidak valid ─────────────────── */
+              <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--danger-soft)]">
+                  <AlertCircle className="h-8 w-8 text-[var(--danger)]" />
+                </div>
+                <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
+                  Tautan Reset Tidak Valid
+                </h3>
+                <p className="text-[14px] max-w-sm mb-3 text-[var(--text-secondary)]">
+                  Tautan reset tidak valid atau sudah kedaluwarsa. Password Anda tidak berubah.
+                </p>
+                <p className="text-[13px] max-w-sm mb-8 text-[var(--text-tertiary)]">
+                  Silakan minta tautan baru melalui tombol <span className="font-semibold">Lupa Password</span> di
+                  halaman login.
+                </p>
+                <Link href="/login" className="w-full">
+                  <Button
+                    className="w-full h-12 rounded-xl font-semibold"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    Kembali ke Halaman Login
+                  </Button>
+                </Link>
+              </div>
+            )}
+
+            {status === 'ready' && (
+              /* ── Form password baru ─────────────────── */
+              <div className="animate-fade-in">
+                <div className="text-center mb-8">
+                  <div className="mx-auto flex justify-center mb-4">
+                    <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
+                  </div>
+                  <h2 className="text-[24px] font-bold text-[var(--text-primary)] tracking-tight mb-2">
+                    Buat Password Baru
+                  </h2>
+                  <p className="text-[14px] text-[var(--text-secondary)]">
+                    Akun Anda terverifikasi. Masukkan password baru untuk melanjutkan.
+                  </p>
+                </div>
+
+                {error && (
+                  <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
+                    <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  <div>
+                    <label htmlFor="new-password" className="block text-[13px] font-bold mb-2 text-[var(--text-primary)]">
+                      Password Baru
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
+                        <KeyRound className="h-5 w-5" />
+                      </div>
+                      <Input
+                        id="new-password"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder={`Minimal ${MIN_PASSWORD_LENGTH} karakter`}
+                        required
+                        autoFocus
+                        autoComplete="new-password"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="confirm-password" className="block text-[13px] font-bold mb-2 text-[var(--text-primary)]">
+                      Konfirmasi Password
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
+                        <Lock className="h-5 w-5" />
+                      </div>
+                      <Input
+                        id="confirm-password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Ulangi password baru"
+                        required
+                        autoComplete="new-password"
+                        className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button
+                      type="submit"
+                      loading={loading}
+                      className="w-full h-12 rounded-xl font-semibold hover:opacity-90 transition-opacity"
+                      style={{ backgroundColor: primaryColor }}
+                    >
+                      <CheckCircle2 className="h-5 w-5" />
+                      Simpan Password Baru
+                    </Button>
+                  </div>
+                </form>
+              </div>
+            )}
           </div>
 
-          {status === 'checking' && (
-            /* ── Memeriksa tautan ──────────────────── */
-            <div className="flex flex-col items-center justify-center py-10 animate-fade-in text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--primary-soft)]">
-                <div
-                  className="animate-spin w-7 h-7 border-2 border-t-transparent rounded-full"
-                  style={{ borderColor: 'var(--border)', borderTopColor: primaryColor }}
-                />
-              </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
-                Memeriksa Tautan…
-              </h3>
-              <p className="text-[14px] max-w-sm text-[var(--text-secondary)]">
-                Mohon tunggu sebentar, kami sedang memvalidasi tautan reset Anda.
-              </p>
-            </div>
-          )}
-
-          {status === 'invalid' && (
-            /* ── Tautan tidak valid ─────────────────── */
-            <div className="flex flex-col items-center justify-center py-4 animate-fade-in text-center">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 bg-[var(--danger-soft)]">
-                <AlertCircle className="h-8 w-8 text-[var(--danger)]" />
-              </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2 text-[var(--text-primary)]">
-                Tautan Reset Tidak Valid
-              </h3>
-              <p className="text-[14px] max-w-sm mb-3 text-[var(--text-secondary)]">
-                Tautan reset tidak valid atau sudah kedaluwarsa. Password Anda tidak berubah.
-              </p>
-              <p className="text-[13px] max-w-sm mb-8 text-[var(--text-tertiary)]">
-                Silakan minta tautan baru melalui tombol <span className="font-semibold">Lupa Password</span> di
-                halaman login.
-              </p>
-              <Link href="/login" className="w-full">
-                <button type="button" className={styles.submit}>
-                  Kembali ke Halaman Login
-                </button>
-              </Link>
-            </div>
-          )}
-
-          {status === 'ready' && (
-            /* ── Form password baru ─────────────────── */
-            <div className="animate-fade-in">
-              <span className={styles.badge}>
-                <CheckCircle2 size={13} />
-                Akun Anda terverifikasi
-              </span>
-              <h1 style={{ marginTop: 16 }}>
-                Atur password
-                <br />
-                <em>baru.</em>
-              </h1>
-              <p className={styles.cardSub}>
-                Masukkan password baru untuk melanjutkan. Minimal {MIN_PASSWORD_LENGTH} karakter dan berbeda dari
-                password lama.
-              </p>
-
-              {error && (
-                <div className={styles.error} role="alert" style={{ marginTop: 22 }}>
-                  <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className={styles.form}>
-                <div className={styles.field}>
-                  <label htmlFor="new-password">Password Baru</label>
-                  <div className={styles.inputWrap}>
-                    <span className={styles.inputIcon}>
-                      <KeyRound size={17} />
-                    </span>
-                    <input
-                      id="new-password"
-                      type={showPassword ? 'text' : 'password'}
-                      className={`${styles.input} ${styles.inputAffix}`}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder={`Minimal ${MIN_PASSWORD_LENGTH} karakter`}
-                      required
-                      autoFocus
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                      aria-pressed={showPassword}
-                      className={styles.affixBtn}
-                    >
-                      {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.field}>
-                  <label htmlFor="confirm-password">Konfirmasi Password</label>
-                  <div className={styles.inputWrap}>
-                    <span className={styles.inputIcon}>
-                      <Lock size={17} />
-                    </span>
-                    <input
-                      id="confirm-password"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      className={`${styles.input} ${styles.inputAffix}`}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Ulangi password baru"
-                      required
-                      autoComplete="new-password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      aria-label={showConfirmPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                      aria-pressed={showConfirmPassword}
-                      className={styles.affixBtn}
-                    >
-                      {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
-                    </button>
-                  </div>
-                </div>
-
-                <button type="submit" className={styles.submit} disabled={loading} style={{ marginTop: 6 }}>
-                  {loading ? (
-                    <>
-                      <span className="animate-spin">
-                        <CheckCircle2 size={18} />
-                      </span>
-                      Menyimpan…
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={18} />
-                      Simpan Password Baru
-                    </>
-                  )}
-                </button>
-              </form>
-            </div>
-          )}
-
-          <div className={styles.foot}>
-            <p>
+          <div className="mt-6 text-center border-t border-[var(--border)] pt-6">
+            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
               © {new Date().getFullYear()} BPS Kabupaten Belitung
-              <br />
-              Sistem Informasi Capaian Kinerja Pegawai (SIKAP)
+            </p>
+            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
+              Sistem Informasi Capaian Kinerja Pegawai
             </p>
           </div>
         </div>
-      </section>
+      </div>
     </div>
   );
 }
