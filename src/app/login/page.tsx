@@ -3,12 +3,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Route } from 'next';
-import { Logo } from '@/components/ui/logo';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, AlertCircle, Mail, Lock } from 'lucide-react';
+import {
+  AlertCircle,
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  LogIn,
+  Mail,
+  ShieldCheck,
+  Sparkles,
+} from 'lucide-react';
+import styles from './login.module.css';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -90,175 +99,232 @@ export default function LoginPage() {
     }
   };
 
-  const primaryColor = 'var(--primary)'; // Selaras token tema (light/dark)
-
   return (
-    <div className="h-screen overflow-hidden flex bg-[var(--bg-base)] dark:bg-[var(--bg-secondary)]">
+    <div className={styles.page}>
+      {/* ═══════════════════════════════════════════════════ */}
+      {/*  Panel ilustrasi — desktop saja                     */}
+      {/* ═══════════════════════════════════════════════════ */}
+      <section className={styles.art} aria-hidden="true">
+        <div className={styles.aurora} />
+        <div className={styles.beam} />
+        <div className={styles.vignette} />
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/*  Left — Login Form                             */}
-      {/* ═══════════════════════════════════════════════ */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 relative z-10">
+        <div className={styles.artTop}>
+          <img src="/SIKAP-text-and-tagline-beige.svg" alt="" />
+          <span className={styles.artTag}>Portal Internal</span>
+        </div>
 
-        {/* Login Card */}
-        <div className="w-full max-w-[440px] rounded-[24px] p-8 flex flex-col relative z-10 bg-white border border-[var(--border)] shadow-[0_24px_60px_-28px_rgba(16,24,40,0.18)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
+        <div className={styles.stage}>
+          {/* Orbit berputar pelan dengan dua titik */}
+          <div className={styles.orbit}>
+            <span className={`${styles.orbitDot} ${styles.orbitDotA}`} />
+            <span className={`${styles.orbitDot} ${styles.orbitDotB}`} />
+          </div>
 
-          <div className="flex-1 flex flex-col justify-center">
-            {/* ── Normal Login Form ─────────────── */}
-            <div className="animate-fade-in">
-              <div className="text-center mb-6">
-                <div className="mx-auto flex justify-center mb-4">
-                  <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
-                </div>
-                <h2 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight mb-2">
-                  Selamat Datang
-                </h2>
-                <p className="text-[14px] text-[var(--text-secondary)]">
-                  Masuk ke akun Anda untuk melanjutkan
-                </p>
-              </div>
-
-              {error && (
-                <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
-                  <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-                      <Mail className="h-5 w-5" />
-                    </div>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nama@bps.go.id"
-                      required
-                      autoFocus
-                      className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-                      <Lock className="h-5 w-5" />
-                    </div>
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      required
-                      className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
-                      aria-pressed={showPassword}
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[12px] text-[var(--text-tertiary)]">
-                    Lupa password? Hubungi Admin Kepegawaian untuk direset.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  loading={loading}
-                  className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-[var(--on-primary)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[var(--primary-ring)]"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <LogIn className="h-5 w-5" />
-                  Masuk
-                </Button>
-              </form>
+          {/* Kartu laporan: capaian kinerja */}
+          <article className={`${styles.artCard} ${styles.artCardA}`}>
+            <div className={styles.cardHead}>
+              <span className={styles.cardEyebrow}>Rekap Bulanan</span>
+              <span className={`${styles.cardPill} ${styles.cardPillOk}`}>
+                <CheckCircle2 size={11} />
+                Disetujui
+              </span>
             </div>
-          </div>
+            <h3 className={styles.cardTitle}>Capaian Kinerja</h3>
+            <div className={styles.cardRows}>
+              <div className={styles.cardRow}>
+                <span className={`${styles.cardVal} ${styles.cardValStart}`}>38 keg.</span>
+                <span className={styles.cardBar}>
+                  <span className={styles.cardFill} style={{ width: '96%' }} />
+                </span>
+              </div>
+              <div className={styles.cardRow}>
+                <span className={`${styles.cardVal} ${styles.cardValStart}`}>Nilai</span>
+                <span className={`${styles.cardBar} ${styles.cardBarGold}`}>
+                  <span className={styles.cardFill} style={{ width: '91%' }} />
+                </span>
+                <span className={styles.cardVal}>91</span>
+              </div>
+              <div className={styles.cardRow}>
+                <span className={`${styles.cardVal} ${styles.cardValStart}`}>Revisi</span>
+                <span className={`${styles.cardBar} ${styles.cardBarCoral}`}>
+                  <span className={styles.cardFill} style={{ width: '14%' }} />
+                </span>
+                <span className={styles.cardVal}>0</span>
+              </div>
+            </div>
+            <p className={styles.cardNote}>Tim Statistik Sosial · 5 Rencana Kinerja</p>
+          </article>
 
-          {/* Footer inside the card */}
-          <div className="mt-6 text-center border-t border-[var(--border)] pt-6">
-            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
-              © {new Date().getFullYear()} BPS Kabupaten Belitung
+          {/* Kartu laporan: sudah dinilai */}
+          <article className={`${styles.artCard} ${styles.artCardB}`}>
+            <div className={styles.cardHead}>
+              <span className={styles.cardEyebrow}>Sudah Dinilai</span>
+              <span className={`${styles.cardPill} ${styles.cardPillGold}`}>
+                <Sparkles size={11} />
+                Rata-rata 89,4
+              </span>
+            </div>
+            <div className={`${styles.cardRows} ${styles.cardRowsScores}`}>
+              {[92, 88, 90].map((v) => (
+                <div className={styles.cardRow} key={v}>
+                  <span className={styles.cardBar}>
+                    <span className={styles.cardFill} style={{ width: `${v}%` }} />
+                  </span>
+                  <span className={styles.cardVal}>{v}</span>
+                </div>
+              ))}
+            </div>
+            <p className={styles.cardNoteOk}>
+              <ShieldCheck size={12} />
+              Siap disetujui pimpinan
             </p>
-            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
-              Sistem Informasi Capaian Kinerja Pegawai
-            </p>
-          </div>
+          </article>
 
+          {/* Seal progres: 26 dari 32 pegawai melapor */}
+          <div className={styles.seal}>
+            <span className={styles.sealRing} />
+            <span className={styles.sealDash} />
+            <span className={styles.sealCore}>
+              <strong>
+                26<span>/32</span>
+              </strong>
+              <small>Pegawai Melapor</small>
+            </span>
+          </div>
         </div>
-      </div>
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/*  Right Panel — Illustration                    */}
-      {/* ═══════════════════════════════════════════════ */}
-      <aside
-        className="hidden xl:flex items-center shrink-0"
-        style={{ padding: '48px 60px 48px 0' }}
-      >
-        {/* Panel: rasio 728:714. Ukuran = yang lebih kecil antara 50.6% lebar layar
-            dan (tinggi layar - 96px). Jadi di layar lebar/short panel isi tinggi,
-            di layar kotak/tinggi panel dibatasi lebar & ke-center vertikal.
-            Isi pakai container query unit (cqw/cqh) supaya selalu proporsional. */}
-        <div
-          className="login-panel relative shrink-0 overflow-hidden rounded-[32px]"
-          style={{
-            width: 'min(50.6vw, calc((100vh - 96px) * 1.0196))',
-            aspectRatio: '728 / 714',
-            containerType: 'size',
-          }}
-        >
-          <div
-            aria-hidden="true"
-            className="absolute select-none pointer-events-none"
-            style={{
-              height: '61.5cqh',
-              aspectRatio: '1358 / 1920',
-              right: '9.5cqw',
-              top: '11.8cqh',
-              backgroundColor: 'var(--text-primary)',
-              WebkitMaskImage: 'url(/login-figure.png)',
-              maskImage: 'url(/login-figure.png)',
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain',
-            }}
-          />
-          <p
-            className="absolute"
-            style={{
-              left: '6.5cqw',
-              bottom: '5cqh',
-              fontSize: '4.5cqw',
-              lineHeight: 1.5,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
-            }}
-          >
-            CKP sudah diupload,<br />
-            Hati <span className="italic" style={{ fontWeight: 700 }}>Tenang</span>
+        {/* Slogan — satu kalimat */}
+        <div className={styles.quote}>
+          <span className={styles.quoteRule} />
+          <h2>
+            CKP sudah diunggah,
+            <br />
+            <em>Hati Tenang</em>
+          </h2>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════ */}
+      {/*  Panel formulir                                  */}
+      {/* ═══════════════════════════════════════════════════ */}
+      <section className={styles.panel}>
+        <div className={styles.card}>
+          {/* Slogan ringkas (hanya di layar kecil) */}
+          <div className={styles.mobileSlogan}>
+            <span className={styles.rule} />
+            <p>
+              CKP sudah diunggah, <em>Hati Tenang</em>
+            </p>
+          </div>
+
+          {/* Logo (hanya di layar kecil — di desktop ada di panel kiri) */}
+          <div className={styles.cardBrand}>
+            <img src="/SIKAP-text-and-tagline.svg" alt="SIKAP" />
+          </div>
+
+          <span className={styles.badge}>
+            <ShieldCheck size={13} />
+            Akses pegawai BPS Kabupaten Belitung
+          </span>
+
+          <h1>
+            Selamat datang
+            <br />
+            <em>kembali.</em>
+          </h1>
+          <p className={styles.cardSub}>
+            Masuk ke akun Anda untuk melanjutkan pengelolaan CKP.
           </p>
+
+          <form className={styles.form} onSubmit={handleSubmit} noValidate>
+            {error && (
+              <div className={styles.error} role="alert">
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className={styles.field}>
+              <label htmlFor="email">Email</label>
+              <div className={styles.inputWrap}>
+                <span className={styles.inputIcon}>
+                  <Mail size={17} />
+                </span>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  className={styles.input}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@bps.go.id"
+                  autoComplete="username"
+                  required
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label htmlFor="password">Password</label>
+              <div className={styles.inputWrap}>
+                <span className={styles.inputIcon}>
+                  <Lock size={17} />
+                </span>
+                <input
+                  id="password"
+                  name="password"
+                  type={showPassword ? 'text' : 'password'}
+                  className={`${styles.input} ${styles.inputAffix}`}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className={styles.affixBtn}
+                  aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+              <p className={styles.note}>
+                Lupa password? Hubungi <b>Admin Kepegawaian</b> untuk reset akun.
+              </p>
+            </div>
+
+            <button type="submit" className={styles.submit} disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="animate-spin">
+                    <LogIn size={18} />
+                  </span>
+                  Memeriksa…
+                </>
+              ) : (
+                <>
+                  <LogIn size={18} />
+                  Masuk
+                  <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className={styles.foot}>
+            <p>
+              © {new Date().getFullYear()} BPS Kabupaten Belitung
+              <br />
+              Sistem Informasi Capaian Kinerja Pegawai (SIKAP)
+            </p>
+          </div>
         </div>
-      </aside>
+      </section>
     </div>
   );
 }
