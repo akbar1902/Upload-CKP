@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata, Viewport } from "next";
-import { Poppins, DM_Serif_Display } from "next/font/google";
+import { Poppins, Lora } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
@@ -61,13 +61,13 @@ const poppins = Poppins({
  * Di sini taglinya blok berdiri sendiri: satu kalimat besar,
  * satu keluarga font, jadi mixing tidak terjadi.
  *
- * DM Serif Display (bukan Instrument Serif) karena goresannya
- * lebih berisi — pada ukuran besar, serif tipis terlihat rapuh
- * di layar low-DPI.
+ * Pindah dari DM Serif Display (terlalu kaku — kontras tinggi,
+ * ujung serifs tajam) ke Lora: bulat, hangat, organik, tapi tetap
+ * punya isi. Cocok untuk "CKP sudah diunggah, Hati Tenang" yang
+ * pesannya menenangkan, bukan luxury.
  */
-const dmSerif = DM_Serif_Display({
+const lora = Lora({
   subsets: ["latin"],
-  weight: "400",
   style: ["normal", "italic"],
   display: "swap",
   variable: "--sikap-display",
@@ -81,7 +81,7 @@ export default function RootLayout({
   return (
     <html
       lang="id"
-      className={`${poppins.variable} ${dmSerif.variable}`}
+      className={`${poppins.variable} ${lora.variable}`}
       suppressHydrationWarning
     >
       <body className="antialiased">

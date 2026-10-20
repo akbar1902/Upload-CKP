@@ -259,9 +259,9 @@ export default function LoginPage() {
               style={{
                 margin: 0,
                 fontSize: '6.4cqw',
-                lineHeight: 1.04,
-                letterSpacing: '-0.018em',
-                fontWeight: 400,
+                lineHeight: 1.06,
+                letterSpacing: '-0.015em',
+                fontWeight: 500,
                 color: 'var(--tagline-ink)',
                 textWrap: 'balance',
               }}
