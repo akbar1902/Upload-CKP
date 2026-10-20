@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, LogIn, AlertCircle, Mail, Lock } from 'lucide-react';
 
+/** 12 titik bulan untuk kalender di panel ilustrasi. */
+const MONTH_TICKS = Array.from({ length: 12 }, (_, i) => i);
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +23,15 @@ export default function LoginPage() {
   const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+
+  // Bulan berjalan ditulis langsung ke DOM (bukan state React) supaya
+  // HTML server dan client identik → tidak ada hydration mismatch.
+  // Penanda bulan yang disorot sepenuhnya ditangani CSS lewat atribut ini.
+  const calRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const el = calRef.current;
+    if (el) el.dataset.nowMonth = String(new Date().getMonth());
+  }, []);
 
   // Redirect jika sudah ada session aktif menurut useAuth
   useEffect(() => {
@@ -222,39 +234,138 @@ export default function LoginPage() {
             containerType: 'size',
           }}
         >
+          {/* Cahaya kertas di kiri-bawah: memberi "ruang baca" untuk
+              tagline, dan membuat warna aksen bisa_used tanpa
+              menurunkan kontras. */}
           <div
             aria-hidden="true"
-            className="absolute select-none pointer-events-none"
+            className="absolute inset-0 pointer-events-none"
             style={{
-              height: '61.5cqh',
-              aspectRatio: '1358 / 1920',
-              right: '9.5cqw',
-              top: '11.8cqh',
-              backgroundColor: 'var(--text-primary)',
-              WebkitMaskImage: 'url(/login-figure.png)',
-              maskImage: 'url(/login-figure.png)',
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain',
+              background:
+                'radial-gradient(52% 44% at 20% 86%, rgba(255,255,255,0.94), rgba(255,255,255,0) 72%)',
             }}
           />
-          <p
-            className="absolute"
+
+          {/* Kalender 12 bulan — abstrak, bukan grafik.
+              SIKAP bekerja per bulan, jadi lingkaran 12 titik bulan
+              (satu disorot = bulan berjalan) adalah metafora yang
+              jujur. Tipis, tenang, dan bergerak sedikit.
+              SSR & client menghasilkan DOM yang identik; bulan yang
+              disorot ditentukan CSS lewat `data-now-month`. */}
+          <div ref={calRef} className="login-cal absolute pointer-events-none"
             style={{
-              left: '6.5cqw',
-              bottom: '5cqh',
-              fontSize: '4.5cqw',
-              lineHeight: 1.5,
-              fontWeight: 500,
-              color: 'var(--text-primary)',
+              width: '78%',
+              aspectRatio: '1',
+              right: '-14%',
+              top: '-9%',
             }}
           >
-            CKP sudah diupload,<br />
-            Hati <span className="italic" style={{ fontWeight: 700 }}>Tenang</span>
-          </p>
+            <svg aria-hidden="true" viewBox="0 0 400 400" className="w-full h-full" style={{ overflow: 'visible' }}>
+              <circle
+                cx="200"
+                cy="200"
+                r="176"
+                fill="none"
+                stroke="var(--tagline-ink)"
+                strokeOpacity="0.14"
+                strokeWidth="1"
+              />
+              <circle
+                cx="200"
+                cy="200"
+                r="142"
+                fill="none"
+                stroke="var(--tagline-ink)"
+                strokeOpacity="0.08"
+                strokeWidth="1"
+                strokeDasharray="2 8"
+              />
+              {MONTH_TICKS.map((_, i) => {
+                const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+                const x = 200 + Math.cos(a) * 176;
+                const y = 200 + Math.sin(a) * 176;
+                return (
+                  <g key={i}>
+                    <circle className={`mk mk-${i}`} cx={x} cy={y} r="3" />
+                    <circle className={`mkpulse mkpulse-${i}`} cx={x} cy={y} r="13" />
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Tagline — display serif (DM Serif Display), satu blok
+              berdiri sendiri. Palet: hijau hutan pekat (teks) +
+              terakota (kata sorotan) + garis coral di atasnya. */}
+          <div
+            className="absolute"
+            style={{
+              left: '7cqw',
+              bottom: '7.5cqh',
+              fontFamily: 'var(--font-display)',
+            }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                display: 'block',
+                width: '3.2em',
+                height: '3px',
+                borderRadius: '999px',
+                marginBottom: '0.5em',
+                background: 'linear-gradient(90deg, var(--tagline-rule), transparent)',
+              }}
+            />
+            <p
+              style={{
+                margin: 0,
+                fontSize: '6.1cqw',
+                lineHeight: 1.02,
+                letterSpacing: '-0.012em',
+                fontWeight: 400,
+                color: 'var(--tagline-ink)',
+              }}
+            >
+              CKP sudah
+              <br />
+              diunggah, Hati{' '}              <span
+                style={{
+                  fontStyle: 'italic',
+                  color: 'var(--tagline-accent)',
+                }}
+              >
+                Tenang
+              </span>
+              .
+            </p>
+          </div>
+
+          {/* Alur 3 langkah — menjelaskan SIKAP dalam satu baris. */}
+          <div
+            className="absolute flex items-center"
+            style={{
+              left: '7cqw',
+              bottom: '3.4cqh',
+              gap: '1.1cqw',
+              fontSize: '1.55cqw',
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+              fontWeight: 700,
+              color: 'var(--tagline-ink)',
+              opacity: 0.52,
+            }}
+          >
+            {['Unggah', 'Dinilai', 'Disetujui'].map((step, i) => (
+              <React.Fragment key={step}>
+                {i > 0 && (
+                  <span aria-hidden="true" style={{ opacity: 0.5 }}>
+                    ·
+                  </span>
+                )}
+                <span>{step}</span>
+              </React.Fragment>
+            ))}
+          </div>
         </div>
       </aside>
     </div>

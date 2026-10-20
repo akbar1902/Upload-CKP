@@ -1,6 +1,6 @@
 import React from "react";
 import type { Metadata, Viewport } from "next";
-import { Poppins } from "next/font/google";
+import { Poppins, DM_Serif_Display } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/use-auth";
 import { Toaster } from "sonner";
@@ -52,13 +52,38 @@ const poppins = Poppins({
   variable: "--sikap-sans",
 });
 
+/**
+ * Display (hanya untuk statements besar, mis. tagline di halaman
+ * masuk). Sengaja TIDAK dipakai untuk judul halaman di header —
+ * mencampur dua typeface di area yang sama (breadcrumb + judul)
+ * terbaca sebagai dua judul yang bertabrakan, bukan hierarki.
+ *
+ * Di sini taglinya blok berdiri sendiri: satu kalimat besar,
+ * satu keluarga font, jadi mixing tidak terjadi.
+ *
+ * DM Serif Display (bukan Instrument Serif) karena goresannya
+ * lebih berisi — pada ukuran besar, serif tipis terlihat rapuh
+ * di layar low-DPI.
+ */
+const dmSerif = DM_Serif_Display({
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
+  display: "swap",
+  variable: "--sikap-display",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={poppins.variable} suppressHydrationWarning>
+    <html
+      lang="id"
+      className={`${poppins.variable} ${dmSerif.variable}`}
+      suppressHydrationWarning
+    >
       <body className="antialiased">
         <NextTopLoader
           color="#0F766E"
