@@ -290,94 +290,16 @@
   --border-soft:    #EDF1ED;
   --border-hover:   #D2DAD3;
 
-  /* ── Panel ilustrasi halaman masuk ─────────────────────────
-   Bukan gradian 3-stop yang datar. Empat lapis:
-     1. cahaya kertas di kiri-bawah  → "ruang baca" untuk tagline
-     2. cahaya putih di kiri-atas    → kesan terangi
-     3. bayangan teal di kanan-bawah → kedalaman
-     4. gradian dasar hijau muda → sage
-   Plus butiran halus supaya tidak terasa seperti PNG. */
+  /* ── Login page: panel ilustrasi kanan (ikut terang/gelap) ── */
 .login-panel {
-  background:
-    radial-gradient(52% 44% at 20% 86%, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0) 72%),
-    radial-gradient(64% 52% at 14% 10%, rgba(255, 255, 255, 0.78), rgba(255, 255, 255, 0) 66%),
-    radial-gradient(88% 78% at 94% 96%, rgba(15, 118, 110, 0.34), rgba(15, 118, 110, 0) 64%),
-    linear-gradient(152deg, #e9f6ec 0%, #c2e6cc 40%, #86c79f 100%);
-  color: #f4eedd;
+  background: linear-gradient(145deg, #E7FBEC 0%, #A7E4BC 42%, #4FB07A 100%);
+  box-shadow: 0 30px 64px -28px rgba(16, 64, 44, 0.38), 0 8px 20px -14px rgba(16, 64, 44, 0.20);
 }
-
 .dark .login-panel {
-  background:
-    radial-gradient(52% 44% at 20% 86%, rgba(120, 190, 160, 0.16), rgba(120, 190, 160, 0) 72%),
-    radial-gradient(64% 52% at 14% 10%, rgba(84, 196, 168, 0.12), rgba(84, 196, 168, 0) 66%),
-    radial-gradient(88% 78% at 94% 96%, rgba(4, 22, 18, 0.55), rgba(4, 22, 18, 0) 66%),
-    linear-gradient(152deg, #1c4433 0%, #14301f 46%, #0a1a12 100%);
+  background: linear-gradient(145deg, #234534 0%, #16321F 52%, #0D1F14 100%);
+  box-shadow: 0 30px 70px -26px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Butiran halus — memberi tekstur supaya tidak terlihat seperti gambar. */
-.login-panel::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0.32;
-  mix-blend-mode: soft-light;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-/* Denyut lembut pada titik bulan berjalan. */
-@keyframes loginPulse {
-  0%, 100% { transform: scale(1); opacity: 0.22; }
-  50%      { transform: scale(1.5); opacity: 0.06; }
-}
-
-.login-cal .mk {
-  fill: var(--tagline-ink);
-  fill-opacity: 0.22;
-  transition: fill-opacity 400ms ease, r 400ms ease;
-}
-
-.login-cal .mkpulse {
-  fill: var(--tagline-accent);
-  opacity: 0;
-  transform-box: fill-box;
-  transform-origin: center;
-  transition: opacity 400ms ease;
-  pointer-events: none;
-}
-
-/* Bulan berjalan disorot lewat atribut data — bukan state React,
-   sehingga HTML server dan client selalu identik. */
-.login-cal[data-now-month="0"]  .mk-0,  .login-cal[data-now-month="1"]  .mk-1,
-.login-cal[data-now-month="2"]  .mk-2,  .login-cal[data-now-month="3"]  .mk-3,
-.login-cal[data-now-month="4"]  .mk-4,  .login-cal[data-now-month="5"]  .mk-5,
-.login-cal[data-now-month="6"]  .mk-6,  .login-cal[data-now-month="7"]  .mk-7,
-.login-cal[data-now-month="8"]  .mk-8,  .login-cal[data-now-month="9"]  .mk-9,
-.login-cal[data-now-month="10"] .mk-10, .login-cal[data-now-month="11"] .mk-11 {
-  fill: var(--tagline-accent);
-  fill-opacity: 1;
-  r: 5.5;
-}
-
-.login-cal[data-now-month="0"]  .mkpulse-0,
-.login-cal[data-now-month="1"]  .mkpulse-1,
-.login-cal[data-now-month="2"]  .mkpulse-2,
-.login-cal[data-now-month="3"]  .mkpulse-3,
-.login-cal[data-now-month="4"]  .mkpulse-4,
-.login-cal[data-now-month="5"]  .mkpulse-5,
-.login-cal[data-now-month="6"]  .mkpulse-6,
-.login-cal[data-now-month="7"]  .mkpulse-7,
-.login-cal[data-now-month="8"]  .mkpulse-8,
-.login-cal[data-now-month="9"]  .mkpulse-9,
-.login-cal[data-now-month="10"] .mkpulse-10,
-.login-cal[data-now-month="11"] .mkpulse-11 {
-  opacity: 0.22;
-  animation: loginPulse 3.4s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .login-cal .mkpulse { animation: none !important; }
-}
 
 /* ── Tagline halaman masuk ─────────────────────────────
      Panel ilustrasi di light mode hijau muda (L ≈ 0,43) dan di
@@ -389,7 +311,7 @@
      untuk teks di atas hijau muda — jadi di sini pakai versi
      pekat. */
   --tagline-ink: #0A2A22;
-  --tagline-accent: #9C3F1C;
+  --tagline-accent: #8E3A1C;
   --tagline-rule: #C96F4F;
 
   /* Sidebar — hijau pinus gelap (sama di light & dark).
@@ -1466,14 +1388,6 @@ input, textarea, select {
   background-color: var(--neu-surface);
   border-color: var(--primary);
   box-shadow: var(--neu-inset-sm), 0 0 0 4px var(--primary-ring);
-}
-
-/* ── Login page: bayangan panel (warnanya sudah didefinisikan di atas) ── */
-.login-panel {
-  box-shadow: 0 30px 64px -28px rgba(16, 64, 44, 0.38), 0 8px 20px -14px rgba(16, 64, 44, 0.20);
-}
-.dark .login-panel {
-  box-shadow: 0 30px 70px -26px rgba(0, 0, 0, 0.75), 0 8px 20px -12px rgba(0, 0, 0, 0.5);
 }
 
 .search-input {
