@@ -10,6 +10,7 @@ import { RecoveryManager } from "@/components/providers/recovery-manager";
 import { KeepAliveManager } from "@/components/providers/keepalive-manager";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { CommandPaletteProvider } from "@/components/layout/command-palette";
+import { PageTransition } from "@/components/layout/page-transition";
 import NextTopLoader from 'nextjs-toploader';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -76,7 +77,7 @@ export default function RootLayout({
               <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
                 <CommandPaletteProvider>
                   <RecoveryManager>
-                    {children}
+                    <PageTransition>{children}</PageTransition>
                   </RecoveryManager>
                   <KeepAliveManager />
                   {/* Memantau kecepatan halaman nyata (tanpa cookie, tanpa data pribadi) */}

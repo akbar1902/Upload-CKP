@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Sidebar } from '@/components/layout/sidebar';
-import { RouteTransition } from '@/components/layout/route-transition';
 
 /**
  * Shell aplikasi yang dipakai semua halaman ber-layout (admin,
@@ -12,18 +11,14 @@ import { RouteTransition } from '@/components/layout/route-transition';
  * persis sama — 7 salinan dari 14 baris. Sekarang satu tempat,
  * sehingga perubahan shell berlaku di semua rute.
  *
- * Catatan transisi: TIDAK ada animasi halaman tambahan di sini.
- * Setiap halaman sudah punya `animate-fade-in` pada wrapper-nya, dan
- * itu otomatis berjalan tiap kali segmen baru di-mount. Menambah
- * animasi kedua (mis. WAAPI di seluruh subtree) bikin perpindahan
- * menu terasa "patah" — dua efek berebut di layar yang sama.
- * Transisi "sedang pindah" ditangani `RouteTransition` (scrim + pill).
+ * Transisi perpindahan halaman TIDAK di sini: `PageTransition`
+ * Diletakkan di root layout supaya tidak ter-unmount saat pindah
+ * segmen (kalau di sini, promise View Transitions menggantung).
  */
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex" style={{ background: 'var(--bg-base)' }}>
       <Sidebar />
-      <RouteTransition />
       <div className="flex-1 min-w-0">{children}</div>
     </div>
   );

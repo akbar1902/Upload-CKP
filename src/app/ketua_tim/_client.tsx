@@ -571,7 +571,7 @@ export default function KetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={0} />
-      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6 page-enter">
         <FetchingBar show={isFiltering} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2 flex-wrap">

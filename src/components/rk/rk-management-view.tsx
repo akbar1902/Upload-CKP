@@ -295,7 +295,7 @@ export function RkManagementView({
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-7 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-7 page-enter">
 
         {/* ===== Header ===== */}
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">

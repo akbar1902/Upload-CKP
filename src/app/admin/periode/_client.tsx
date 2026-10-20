@@ -85,7 +85,7 @@ export default function AdminPeriodeClient({ initialPeriode }: { initialPeriode:
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-6 page-enter">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             Kunci atau buka periode agar pegawai tidak bisa mengunggah / mengubah CKP.

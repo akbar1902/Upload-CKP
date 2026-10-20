@@ -332,7 +332,7 @@ export default function PegawaiDashboard() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 space-y-6 page-enter">
 
         {/* ── Page hero ─────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -288,7 +288,7 @@ export default function PimpinanQuickApprovalClient() {
   return (
     <>
       <Header />
-      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 max-w-6xl mx-auto space-y-6 page-enter">
         
         <FetchingBar show={isFiltering} />
 

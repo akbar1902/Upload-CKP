@@ -329,7 +329,7 @@ export default function AdminPegawaiClient({ initialUsers }: { initialUsers: Use
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-6 page-enter">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-2">
           <p className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>
             Kelola akun pegawai, tambah baru, hapus, atau reset password.

@@ -87,7 +87,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: AuditLog
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 space-y-6 page-enter">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <p className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             Pantau aktivitas penting yang dilakukan oleh pegawai dan pimpinan.
@@ -219,7 +219,7 @@ export default function AdminLogsClient({ initialLogs }: { initialLogs: AuditLog
               {isFiltering
                 ? `Menampilkan ${filteredLogs.length} dari ${logs.length} log yang dimuat`
                 : `Menampilkan ${logs.length} log`}{' '}
-              · server hanya memuat {LOG_LIMIT} log terbaru (limit query).
+              Â· server hanya memuat {LOG_LIMIT} log terbaru (limit query).
             </p>
           </div>
         )}

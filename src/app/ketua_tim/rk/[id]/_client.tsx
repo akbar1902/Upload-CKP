@@ -774,7 +774,7 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 max-w-5xl mx-auto space-y-6 page-enter">
         <button
           onClick={() => router.back()}
           className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold rounded-xl transition-colors w-fit border border-slate-200 shadow-sm"

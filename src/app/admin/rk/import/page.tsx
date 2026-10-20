@@ -250,7 +250,7 @@ export default function ImportRKPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 space-y-6 animate-fade-in max-w-7xl mx-auto">
+      <div className="p-4 lg:p-8 space-y-6 page-enter max-w-7xl mx-auto">
 
         <div className="flex items-center gap-4">
           <Link href="/admin/rk" className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Kembali">

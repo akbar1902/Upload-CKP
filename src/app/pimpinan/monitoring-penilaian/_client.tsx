@@ -184,7 +184,7 @@ export default function MonitoringPenilaianClient() {
   return (
     <>
       <Header />
-      <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6 animate-fade-in">
+      <div id="export-monitoring-section" className="relative p-4 lg:p-8 max-w-5xl mx-auto space-y-6 page-enter">
 
         <FetchingBar show={loading} />
         <FetchingOverlay show={loading && data.length > 0} label={`Memuat ${getBulanLabel()} ${tahun}…`} />

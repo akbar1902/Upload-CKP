@@ -331,7 +331,7 @@ export default function PimpinanKetuaTimDashboardClient() {
   return (
     <>
       <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
-      <div className="relative p-4 lg:p-8 space-y-6 animate-fade-in">
+      <div className="relative p-4 lg:p-8 space-y-6 page-enter">
 
         <FetchingBar show={isFiltering} />
 

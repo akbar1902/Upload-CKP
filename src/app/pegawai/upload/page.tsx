@@ -577,7 +577,7 @@ export default function UploadPage() {
   return (
     <>
       <Header />
-      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto space-y-6 page-enter">
         <Link href="/pegawai" prefetch={true}
           className="inline-flex items-center gap-1 text-[13px] font-medium transition-colors"
           style={{ color: 'var(--text-tertiary)' }}

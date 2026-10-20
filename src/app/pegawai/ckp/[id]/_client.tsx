@@ -536,7 +536,7 @@ export default function CKPDetailPage() {
   return (
     <>
       <Header />
-      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 animate-fade-in">
+      <div className="p-5 lg:p-8 max-w-6xl mx-auto space-y-6 page-enter">
 
         {/* ── Back ──────────────────────────────────── */}
         <Link
