@@ -11,13 +11,70 @@ export function normalizeRkName(name: string | null | undefined): string {
     .replace(/[^a-z0-9]/g, '');
 }
 
-/** Kunci grup RK: 'id:<uuid>' untuk data baru, 'legacy:<nama>' untuk data lama. */
+/** Pemisah id parent RK dan nama Sub-RK di dalam kunci grup. */
+export const RK_GROUP_NAME_SEP = '::';
+
+/**
+ * Kunci grup RK (per Sub-RK):
+ *  - data baru : `id:<uuid parent>::<nama sub-RK ternormalisasi>`
+ *  - data lama : `legacy:<nama ternormalisasi>`
+ *
+ * Nama Sub-RK WAJIB ikut di kunci. Satu parent RK (`rk_ketua_tim_mapping.id`)
+ * bisa punya beberapa Sub-RK (baris `rencana_kinerja` berbeda). Dulu kunci
+ * hanya memakai id, sehingga beberapa Sub-RK tergabung jadi satu kartu: nilai
+ * yang diketik untuk satu Sub-RK tampil sebagai rata-rata gabungan (90 -> 90,9
+ * karena satu kegiatan Sub-RK lain masih 97) dan hanya sebagian kegiatan yang
+ * benar-benar tersimpan.
+ */
 export function rkGroupKey(e: {
   rk_ketua_tim_id?: string | null;
   rencana_kinerja?: string | null;
 }): string {
-  if (e.rk_ketua_tim_id) return `id:${e.rk_ketua_tim_id}`;
-  return `legacy:${normalizeRkName(e.rencana_kinerja)}`;
+  const name = normalizeRkName(e.rencana_kinerja);
+  if (e.rk_ketua_tim_id) {
+    return `id:${e.rk_ketua_tim_id}${RK_GROUP_NAME_SEP}${name}`;
+  }
+  return `legacy:${name}`;
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export interface ParsedRkGroupKey {
+  /** Id parent RK (`rk_ketua_tim_mapping.id`) untuk data baru. */
+  rkId: string | null;
+  /** Nama ternormalisasi untuk data lama (rk_ketua_tim_id NULL). */
+  legacyNorm: string | null;
+  /** Nama Sub-RK ternormalisasi yang ikut di kunci (null bila tidak ada). */
+  nameNorm: string | null;
+}
+
+/**
+ * Baca kunci grup dari `rkGroupKey`. Menerima format baru
+ * (`id:<uuid>::<nama>`, `legacy:<nama>`) plus UUID mentah untuk kompatibilitas
+ * pemanggil lama. Selalu pakai helper ini, jangan parsing manual.
+ */
+export function parseRkGroupKey(key: string | null | undefined): ParsedRkGroupKey {
+  const k = (key ?? '').trim();
+  if (!k) return { rkId: null, legacyNorm: null, nameNorm: null };
+
+  if (k.startsWith('id:')) {
+    const body = k.slice(3);
+    const sep = body.indexOf(RK_GROUP_NAME_SEP);
+    const id = (sep === -1 ? body : body.slice(0, sep)).trim();
+    const name = sep === -1 ? '' : body.slice(sep + RK_GROUP_NAME_SEP.length).trim();
+    return { rkId: id || null, legacyNorm: null, nameNorm: name || null };
+  }
+
+  if (k.startsWith('legacy:')) {
+    const name = k.slice(7).trim();
+    return { rkId: null, legacyNorm: name || null, nameNorm: name || null };
+  }
+
+  if (UUID_RE.test(k)) return { rkId: k, legacyNorm: null, nameNorm: null };
+
+  const norm = normalizeRkName(k) || null;
+  return { rkId: null, legacyNorm: norm, nameNorm: norm };
 }
 
 /** Satu grup RK dianggap selesai hanya jika SEMUA entry-nya bernilai. */
@@ -44,6 +101,26 @@ export function rkGroupAvg<T extends { nilai: number | null }>(
 export function formatScore1(n: number | null | undefined): string {
   if (n === null || n === undefined) return '-';
   return Number(n).toFixed(1);
+}
+
+/**
+ * Rata-rata BILANGAN BULAT untuk nilai RK.
+ * Nilai RK (bulanan maupun triwulan) tidak boleh berkoma: rata-rata
+ * dibulatkan ke bilangan bulat terdekat (96.7 -> 97). Dipakai untuk nilai RK
+ * per bulan, nilai triwulan, dan rincian bulan di dalam triwulan.
+ */
+export function rkGroupAvgInt<T extends { nilai: number | null }>(
+  es: T[],
+): number | null {
+  const s = es.filter((x) => x.nilai !== null);
+  if (s.length === 0) return null;
+  return Math.round(s.reduce((a, b) => a + (b.nilai as number), 0) / s.length);
+}
+
+/** Display nilai RK sebagai bilangan bulat; '-' bila null. */
+export function formatScore0(n: number | null | undefined): string {
+  if (n === null || n === undefined) return '-';
+  return Math.round(Number(n)).toString();
 }
 
 // ─────────────────────────────────────────────────────────────

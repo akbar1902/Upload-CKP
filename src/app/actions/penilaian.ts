@@ -4,7 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/se
 import { fetchAllRows } from '@/lib/supabase/read';
 import { revalidatePath } from 'next/cache';
 import { notify, getUploadOwnerId, getUploadPeriodLabel } from '@/lib/notifications';
-import { rkGroupKey, isRkGroupScored, normalizeRkName } from '@/lib/rk-scoring';
+import { rkGroupKey, isRkGroupScored, normalizeRkName, parseRkGroupKey } from '@/lib/rk-scoring';
 
 const APPROVE_COPY: Record<string, { type: 'approved' | 'rejected' | 'revision_required' | 'reopened'; title: string }> = {
   approved: { type: 'approved', title: 'CKP disetujui' },
@@ -17,7 +17,7 @@ export async function gradeRencanaKinerjaAction(
   uploadIds: string | string[],
   rencanaKinerja: string,
   score: number | null,
-  rkGroupKeyParam?: string | null,   // Kunci grup kontrak: 'id:<uuid>' data baru, 'legacy:<nama>' data lama
+  rkGroupKeyParam?: string | null,   // Kunci grup kontrak: 'id:<uuid>::<nama>' data baru, 'legacy:<nama>' data lama
 ) {
   try {
     const supabase = await createServerSupabaseClient();
@@ -35,10 +35,13 @@ export async function gradeRencanaKinerjaAction(
       return { success: false, error: 'Upload tidak valid' };
     }
 
-    // Validasi runtime `score`: null atau number finite 0..100.
-    // Tolak NaN/string/out-of-range yang bisa dikirim pemanggil jahat.
+    // Validasi runtime `score`: null atau number finite 0..100, dan HARUS
+    // bilangan bulat — nilai RK (bulanan maupun triwulan) tidak berdesimal.
     if (score !== null && (typeof score !== 'number' || !Number.isFinite(score) || score < 0 || score > 100)) {
       return { success: false, error: 'Nilai tidak valid. Gunakan angka 0-100.' };
+    }
+    if (score !== null && !Number.isInteger(score)) {
+      return { success: false, error: 'Nilai RK harus bilangan bulat 0-100.' };
     }
 
     // Kunci triwulan: >1 upload sekaligus ditolak agar rincian bulanan tidak hancur.
@@ -68,24 +71,11 @@ export async function gradeRencanaKinerjaAction(
       }
     }
 
-    // Parse kunci grup — dukung 'id:<uuid>', 'legacy:<nama>', plus UUID mentah (kompat ketua_tim lama)
-    const keyParam = (rkGroupKeyParam ?? '').trim();
-    let rkId: string | null = null;
-    let legacyNorm: string | null = null;
-    if (keyParam) {
-      if (keyParam.startsWith('id:')) {
-        rkId = keyParam.slice(3).trim() || null;
-      } else if (keyParam.startsWith('legacy:')) {
-        legacyNorm = keyParam.slice(7).trim() || null;
-      } else {
-        const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-        if (uuidRe.test(keyParam)) {
-          rkId = keyParam;
-        } else {
-          legacyNorm = normalizeRkName(keyParam) || null;
-        }
-      }
-    }
+    // Parse kunci grup — format kontrak 'id:<uuid>::<nama>' / 'legacy:<nama>'
+    // (plus UUID mentah untuk kompatibilitas pemanggil lama).
+    const parsedKey = parseRkGroupKey(rkGroupKeyParam);
+    const rkId = parsedKey.rkId;
+    const legacyNorm = parsedKey.legacyNorm;
 
     const rkNameTrim = (rencanaKinerja ?? '').trim();
     const rkNameNorm = normalizeRkName(rencanaKinerja);
@@ -94,6 +84,12 @@ export async function gradeRencanaKinerjaAction(
     // Tolak bila keduanya kosong: tidak ada id RK dan tidak ada nama RK
     if (!rkId && (isUnknownName || !rkNameNorm)) {
       return { success: false, error: 'Rencana Kinerja kosong' };
+    }
+
+    // Kunci grup dan nama RK harus menunjuk Sub-RK yang sama — mencegah
+    // penilaian "nyasar" ke Sub-RK lain saat data klien kedaluwarsa.
+    if (parsedKey.nameNorm && rkNameNorm && parsedKey.nameNorm !== rkNameNorm) {
+      return { success: false, error: 'Kunci grup tidak cocok dengan nama RK' };
     }
 
     // Verifikasi kepemilikan RK untuk KETUA TIM:
@@ -136,26 +132,28 @@ export async function gradeRencanaKinerjaAction(
       }
     }
 
-    // Gunakan adminClient agar tidak terblokir oleh RLS pada field sub-RK
+    // Target = entry milik Sub-RK yang SAMA dengan kartu di UI: id parent RK
+    // (+ nama Sub-RK ternormalisasi). Memakai `.eq('rencana_kinerja', ...)`
+    // persis dulu membuat entry dengan nama beda tipis (spasi/huruf besar)
+    // tidak ikut tersimpan, sehingga kartu menampilkan rata-rata campuran.
+    // Tanpa `.or(...is.null)` — legacy (NULL) tidak boleh ikut ter-update.
+    let targetIds: string[] = [];
+
     if (rkId) {
-      // Data baru: filter TEGAS by rk_ketua_tim_id + rencana_kinerja (determinisme sub-RK).
-      // Tanpa .or(...is.null) — legacy (NULL) tidak boleh ikut ter-update (korupsi nilai).
-      let query = adminClient
-        .from('ckp_entries')
-        .update({
-          nilai: score,
-          dinilai_oleh: score !== null ? user.id : null
-        })
-        .in('upload_id', ids)
-        .eq('rk_ketua_tim_id', rkId);
-      if (!isUnknownName) {
-        query = query.eq('rencana_kinerja', rkNameTrim);
-      }
-      const { error } = await query;
-      if (error) {
-        console.error('[gradeRencanaKinerjaAction] Update nilai error:', error);
-        return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
-      }
+      const candidates = await fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
+        adminClient
+          .from('ckp_entries')
+          .select('id, rencana_kinerja')
+          .in('upload_id', ids)
+          .eq('rk_ketua_tim_id', rkId)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+      targetIds = isUnknownName
+        ? candidates.map((c) => c.id)
+        : candidates
+            .filter((c) => normalizeRkName(c.rencana_kinerja) === rkNameNorm)
+            .map((c) => c.id);
     } else {
       // Data lama: filter by normalized rencana_kinerja + rk_ketua_tim_id IS NULL.
       if (isUnknownName || !rkNameNorm) {
@@ -173,22 +171,25 @@ export async function gradeRencanaKinerjaAction(
           .order('id', { ascending: true })
           .range(from, to)
       );
-      const targetIds = candidates
+      targetIds = candidates
         .filter((c) => normalizeRkName(c.rencana_kinerja) === rkNameNorm)
         .map((c) => c.id);
-      if (targetIds.length > 0) {
-        const { error } = await adminClient
-          .from('ckp_entries')
-          .update({
-            nilai: score,
-            dinilai_oleh: score !== null ? user.id : null
-          })
-          .in('id', targetIds);
-        if (error) {
-          console.error('[gradeRencanaKinerjaAction] Update nilai legacy error:', error);
-          return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
-        }
-      }
+    }
+
+    if (targetIds.length === 0) {
+      return { success: false, error: 'Tidak ada kegiatan pada RK ini untuk dinilai.' };
+    }
+
+    const { error: updateError } = await adminClient
+      .from('ckp_entries')
+      .update({
+        nilai: score,
+        dinilai_oleh: score !== null ? user.id : null
+      })
+      .in('id', targetIds);
+    if (updateError) {
+      console.error('[gradeRencanaKinerjaAction] Update nilai error:', updateError);
+      return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
     }
 
     // Auto-update status to 'scored' — recheck per-RK-id (rkGroupKey), bukan per-entry.

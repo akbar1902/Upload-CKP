@@ -203,7 +203,8 @@ export async function getPendingScoringKetuaTim(
     const uploadToUser = new Map<string, MonitoringUploadRow['user']>();
     uploads.forEach((u) => uploadToUser.set(u.id, u.user));
 
-    // Grouping pending per rkGroupKey (id utk data baru, legacy-nama utk data lama)
+    // Grouping pending per rkGroupKey: satu Sub-RK (id parent + nama sub-RK)
+    // untuk data baru, nama ternormalisasi untuk data lama.
     const resultGroup = new Map<string, PendingScoringKetuaTim>();
     const seenGroup = new Set<string>();
 

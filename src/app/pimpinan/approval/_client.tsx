@@ -124,8 +124,9 @@ export default function PimpinanQuickApprovalClient() {
 
         return uploadsList.map((u: any) => {
           const entries = entriesByUpload.get(u.id) || [];
-          // Kelompokkan per RK-id (rkGroupKey): data baru via rk_ketua_tim_id,
-          // data lama via nama. Satu grup lolos hanya bila SEMUA entry-nya bernilai.
+          // Kelompokkan per Sub-RK (rkGroupKey): data baru via rk_ketua_tim_id
+          // + nama sub-RK, data lama via nama. Satu grup lolos hanya bila
+          // SEMUA entry-nya bernilai.
           const groups = new Map<string, { nilai: number | null }[]>();
           for (const e of entries) {
             const k = rkGroupKey(e);

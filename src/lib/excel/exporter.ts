@@ -5,13 +5,15 @@ interface ExportData {
   upload: CKPUpload;
   entries: CKPEntry[];
   user: User;
+  /** Rekap triwulan: nilai RK ditampilkan bilangan bulat (tanpa koma). */
+  isTriwulan?: boolean;
 }
 
 /**
  * Export CKP data to Excel file and trigger download.
  * xlsx (~400 KB) di-lazy-load agar tidak ikut bundle awal halaman.
  */
-export async function exportToExcel({ upload, entries, user }: ExportData): Promise<void> {
+export async function exportToExcel({ upload, entries, user, isTriwulan }: ExportData): Promise<void> {
   const XLSX = await import('xlsx');
   const wb = XLSX.utils.book_new();
 
@@ -66,7 +68,7 @@ export async function exportToExcel({ upload, entries, user }: ExportData): Prom
   const summaryRows = [
     [],
     ['', '', '', '', '', '', 'Rata-rata Progres:', `${avgProgres.toFixed(1)}%`],
-    ['', '', '', '', '', '', 'Rata-rata Nilai SKP:', upload.rata_rata_nilai ? upload.rata_rata_nilai.toFixed(1) : '-'],
+    ['', '', '', '', '', '', 'Rata-rata Nilai SKP:', upload.rata_rata_nilai != null ? (isTriwulan ? Math.round(upload.rata_rata_nilai).toString() : upload.rata_rata_nilai.toFixed(1)) : '-'],
     ['', '', '', '', '', '', 'Total Kegiatan:', entries.length],
   ];
 

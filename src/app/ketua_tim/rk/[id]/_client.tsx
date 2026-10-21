@@ -113,7 +113,7 @@ function RkBarisRow({
   const handleBlur = async () => {
     // Cegah submit dobel untuk baris yang sama selama request berjalan.
     if (saving) return;
-    const currentSavedStr = defaultScore?.toString() ?? '';
+    const currentSavedStr = defaultScore === null ? '' : String(defaultScore);
     if (score === currentSavedStr) return;
 
     setSaving(true);
@@ -121,9 +121,15 @@ function RkBarisRow({
       if (score === '') {
         await onSaveScore(uploadIds, null, rkName);
       } else {
-        const num = parseInt(score, 10);
-        if (isNaN(num) || num < 0 || num > 100) {
-          toast.error('Nilai harus berupa angka 0-100');
+        // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
+        // dipotong diam-diam (parseInt dulu mengubah "90.9" jadi 90).
+        const num = Number(score);
+        if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
+          toast.error('Nilai RK harus bilangan bulat 0-100');
+          setScore(currentSavedStr);
+          return;
+        }
+        if (defaultScore !== null && num === defaultScore) {
           setScore(currentSavedStr);
           return;
         }
@@ -266,11 +272,12 @@ function RkBarisRow({
               <div className="flex flex-col items-end">
                 <div className="relative w-16">
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={3}
                     value={score}
-                    onChange={e => setScore(e.target.value)}
+                    onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={saving}
@@ -278,8 +285,8 @@ function RkBarisRow({
                     className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                     style={{ borderColor: 'var(--border)' }}
                     placeholder="—"
-                    title="Tekan Enter atau klik di luar untuk menyimpan"
-                    aria-label={`Nilai ${rkName} milik ${nama}`}
+                    title="Nilai RK bilangan bulat 0-100 — tekan Enter atau klik di luar untuk menyimpan"
+                    aria-label={`Nilai ${rkName} milik ${nama} (bilangan bulat 0-100)`}
                   />
                   {saving && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">

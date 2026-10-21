@@ -26,7 +26,7 @@ import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
-import { rkGroupKey, isRkGroupScored, rkGroupAvg, formatScore1, normalizeRkName, filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
+import { rkGroupKey, isRkGroupScored, rkGroupAvg, rkGroupAvgInt, formatScore0, formatScore1, normalizeRkName, filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
 import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
@@ -131,7 +131,7 @@ function RencanaKinerjaGroup({
   const handleBlur = async () => {
     // Cegah submit dobel untuk RK yang sama selama request berjalan.
     if (saving) return;
-    const currentSavedStr = defaultScore?.toString() ?? '';
+    const currentSavedStr = defaultScore === null ? '' : String(defaultScore);
     if (score === currentSavedStr) return;
 
     setSaving(true);
@@ -139,9 +139,15 @@ function RencanaKinerjaGroup({
       if (score === '') {
         await onSaveScore(rkKey, rkName, null);
       } else {
-        const num = parseInt(score, 10);
-        if (isNaN(num) || num < 0 || num > 100) {
-          toast.error('Nilai harus berupa angka 0-100');
+        // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
+        // dipotong diam-diam (dulu "90.9" jadi 90 tanpa pemberitahuan).
+        const num = Number(score);
+        if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
+          toast.error('Nilai RK harus bilangan bulat 0-100');
+          setScore(currentSavedStr);
+          return;
+        }
+        if (defaultScore !== null && num === defaultScore) {
           setScore(currentSavedStr);
           return;
         }
@@ -194,7 +200,7 @@ function RencanaKinerjaGroup({
             {isTriwulan ? (
               <div className="flex flex-col items-end">
                 <span className="text-[17px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
-                  {hasScore ? formatScore1(defaultScore) : '-'}
+                  {hasScore ? formatScore0(defaultScore) : '-'}
                 </span>
                 <span className="text-[10px] font-medium text-slate-400">
                   Rata-rata triwulan
@@ -204,18 +210,20 @@ function RencanaKinerjaGroup({
               <div>
                 <div className="relative w-24">
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={3}
                     value={score}
-                    onChange={e => setScore(e.target.value)}
+                    onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     disabled={saving}
                     aria-busy={saving}
                     className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
                     placeholder="-"
-                    title="Tekan Enter atau klik di luar untuk menyimpan"
+                    title="Nilai RK bilangan bulat 0-100 — tekan Enter atau klik di luar untuk menyimpan"
+                    aria-label={`Nilai RK ${rkName} (bilangan bulat 0-100)`}
                   />
                   {saving && (
                     <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -238,7 +246,7 @@ function RencanaKinerjaGroup({
               </div>
             ) : (
               <span className="text-[16px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
-                {hasScore ? formatScore1(defaultScore) : '-'}
+                {hasScore ? formatScore0(defaultScore) : '-'}
               </span>
             )}
           </div>
@@ -485,8 +493,10 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const approvals: Approval[] = data?.approvals || [];
   const masterRks: any[] = data?.masterRks || [];
 
-  // Group entries by RK — kunci grup kontrak (rkGroupKey): 'id:<uuid>' data baru, 'legacy:<nama>' data lama.
-  // Key React = group key (bukan nama), label = nama sub-RK + parent bila beda.
+  // Group entries per SUB-RK — kunci grup kontrak (rkGroupKey):
+  // 'id:<uuid>::<nama sub-RK>' data baru (satu parent bisa punya beberapa
+  // Sub-RK), 'legacy:<nama>' data lama. Key React = group key, label = nama
+  // sub-RK + parent bila beda.
   const rkGroups = useMemo(() => {
     const map = new Map<string, { key: string; entries: CKPEntry[]; rkKetuaTimId: string | null; parentName: string | null }>();
     entries.forEach(e => {
@@ -518,8 +528,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         monthsInQ.forEach(m => {
           const entriesInMonth = groupEntries.filter(e => (e as any).bulan === m);
           if (entriesInMonth.length > 0) {
-            // Avg helper kontrak (1 desimal) dari SEMUA entry bulan itu — bukan find pertama.
-            const score = rkGroupAvg(entriesInMonth);
+            // Nilai per bulan pada rincian triwulan juga bilangan bulat
+            // (rata-rata kegiatan bulan itu dibulatkan, tanpa koma).
+            const score = rkGroupAvgInt(entriesInMonth);
             monthlyScores.push({
               bulan: m,
               bulanNama: getBulanName(m),
@@ -529,11 +540,12 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           }
         });
 
-        // Avg triwulan via helper kontrak dari nilai bulanan yang ada.
+        // Nilai RK triwulan = rata-rata nilai bulan yang ada, dibulatkan ke
+        // bilangan bulat (96.7 -> 97) — rekap triwulan tidak pakai koma.
         const monthlyVals = monthlyScores
           .filter(ms => ms.score !== null)
           .map(ms => ({ nilai: ms.score as number }));
-        const avgScore = rkGroupAvg(monthlyVals);
+        const avgScore = rkGroupAvgInt(monthlyVals);
 
         return {
           key,
@@ -546,8 +558,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           isTriwulan: true,
         };
       } else {
-        // defaultScore per grup = avg helper kontrak, hanya bila SEMUA entry scored.
-        const defaultScore = isRkGroupScored(groupEntries) ? rkGroupAvg(groupEntries) : null;
+        // defaultScore per grup = rata-rata BULAT entry (nilai RK bulanan
+        // tidak berdesimal). Hanya tampil bila SEMUA entry sudah dinilai.
+        const defaultScore = isRkGroupScored(groupEntries) ? rkGroupAvgInt(groupEntries) : null;
         return {
           key,
           rk,
@@ -686,7 +699,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
   const handleExport = async () => {
     if (!upload || !employee) return;
-    await exportToExcel({ upload, entries, user: employee });
+    await exportToExcel({ upload, entries, user: employee, isTriwulan });
     toast.success('File Excel berhasil diunduh');
   };
 
@@ -791,9 +804,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
   const scoredRks = rkGroups.filter(g => g.defaultScore !== null);
   const avgVals = scoredRks.map(g => ({ nilai: g.defaultScore as number }));
-  const avgRkScore = rkGroupAvg(avgVals);
+  const avgRkScore = isTriwulan ? rkGroupAvgInt(avgVals) : rkGroupAvg(avgVals);
   const displayRataRataNilai = isTriwulan
-    ? (avgRkScore !== null ? formatScore1(avgRkScore) : (upload.rata_rata_nilai != null ? formatScore1(upload.rata_rata_nilai) : '-'))
+    ? (avgRkScore !== null ? formatScore0(avgRkScore) : (upload.rata_rata_nilai != null ? formatScore0(upload.rata_rata_nilai) : '-'))
     : (upload.rata_rata_nilai != null ? formatScore1(upload.rata_rata_nilai) : '-');
 
   return (

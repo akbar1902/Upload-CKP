@@ -21,7 +21,7 @@ export interface UmpanBalikCategory {
 export interface GroupedRK {
   /** Nama tampil: Sub-RK asli (data baru) atau nama parent RK (data lama). */
   rencana_kinerja: string;
-  /** Kunci grup stabil dari kontrak rk-scoring: 'id:<uuid>' / 'legacy:<nama>'. */
+  /** Kunci grup stabil dari kontrak rk-scoring: 'id:<uuid>::<nama>' / 'legacy:<nama>'. */
   rkGroupKey: string;
   /** Nama parent RK dari rk_ketua_tim_mapping; null untuk data lama / tanpa mapping. */
   parentRkName: string | null;
@@ -170,8 +170,10 @@ export function getGroupedRkDisplayName(group: {
 }
 
 /**
- * Groups flat entries by kontrak rkGroupKey (bukan nama mentah),
- * sehingga sub-RK senama dari parent berbeda tidak tercampur.
+ * Groups flat entries by kontrak rkGroupKey (bukan nama mentah), yaitu per
+ * Sub-RK: id parent + nama sub-RK. Sub-RK senama dari parent berbeda tidak
+ * tercampur, dan beberapa Sub-RK di bawah parent yang sama juga tidak lagi
+ * tergabung jadi satu baris.
  * Preserves original order. Skor rata-rata via rkGroupAvg (1 desimal,
  * null bila belum ada nilai -> kategori Belum Dinilai).
  */
