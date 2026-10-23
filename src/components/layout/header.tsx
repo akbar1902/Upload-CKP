@@ -29,6 +29,18 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
       title: 'Upload CKP',
     };
   }
+  if (pathname.startsWith('/pegawai/integrasi/pair/')) {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Integrasi CKP App', href: '/pegawai/integrasi' }, { label: 'Hubungkan' }],
+      title: 'Hubungkan CKP App',
+    };
+  }
+  if (pathname.startsWith('/pegawai/integrasi')) {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Integrasi CKP App' }],
+      title: 'Integrasi CKP App',
+    };
+  }
   if (pathname === '/pimpinan') {
     return {
       crumbs: [{ label: 'Dashboard' }],

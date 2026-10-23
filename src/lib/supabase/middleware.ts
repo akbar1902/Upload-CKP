@@ -18,6 +18,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // API integrasi memakai Bearer token sendiri (CKP App), bukan cookie sesi.
+  // Jangan redirect ke /login dan jangan sentuh cookie sesi browser.
+  if (request.nextUrl.pathname.startsWith('/api/integrations/')) {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -59,9 +65,18 @@ export async function updateSession(request: NextRequest) {
   const hasSessionMarker = request.cookies.get('sikap-session')?.value === '1';
   if (user && !hasSessionMarker && !isResetPasswordPath) {
     const isLoginPath = pathname === '/login';
-    const res = isLoginPath
-      ? NextResponse.next({ request })
-      : NextResponse.redirect(new URL('/login', request.url));
+    if (isLoginPath) {
+      const res = NextResponse.next({ request });
+      request.cookies.getAll().forEach((c) => {
+        if (c.name.startsWith('sb-') || c.name.startsWith('ckp-role')) {
+          res.cookies.set(c.name, '', { maxAge: 0, path: '/' });
+        }
+      });
+      return res;
+    }
+    const url = new URL('/login', request.url);
+    if (pathname.startsWith('/pegawai/integrasi/pair/')) url.searchParams.set('next', pathname);
+    const res = NextResponse.redirect(url);
     request.cookies.getAll().forEach((c) => {
       if (c.name.startsWith('sb-') || c.name.startsWith('ckp-role')) {
         res.cookies.set(c.name, '', { maxAge: 0, path: '/' });
@@ -82,7 +97,9 @@ export async function updateSession(request: NextRequest) {
     }
     let response = NextResponse.next({ request });
     if (!publicRoutes.includes(pathname)) {
-      response = NextResponse.redirect(new URL('/login', request.url));
+      const url = new URL('/login', request.url);
+      if (pathname.startsWith('/pegawai/integrasi/pair/')) url.searchParams.set('next', pathname);
+      response = NextResponse.redirect(url);
     }
     response.cookies.delete('ckp-role');
     return response;

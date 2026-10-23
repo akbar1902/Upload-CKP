@@ -52,6 +52,8 @@ export interface CKPUpload {
   file_name: string | null;
   file_url: string | null;
   storage_path: string | null;
+  source?: string | null;
+  client_upload_id?: string | null;
   total_entries: number;
   avg_progres: number;
   rata_rata_nilai: number | null;

@@ -10,6 +10,19 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff, LogIn, AlertCircle, Mail, Lock } from 'lucide-react';
 
+function safeNextPath(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/login')) {
+      return next;
+    }
+  } catch {
+    /* abaikan */
+  }
+  return null;
+}
+
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +37,11 @@ export default function LoginPage() {
   // Redirect jika sudah ada session aktif menurut useAuth
   useEffect(() => {
     if (!authLoading && user) {
+      const next = safeNextPath();
+      if (next) {
+        router.replace(next as Route);
+        return;
+      }
       switch (user.role) {
         case 'admin':
           router.replace('/admin');
@@ -82,7 +100,8 @@ export default function LoginPage() {
         pegawai: '/pegawai',
         anggota: '/pegawai',
       };
-      const targetRoute = metaRole ? roleRoutes[metaRole] : undefined;
+      const next = safeNextPath();
+      const targetRoute = next ? (next as Route) : (metaRole ? roleRoutes[metaRole] : undefined);
       if (targetRoute) router.replace(targetRoute);
     } catch {
       setError('Terjadi kesalahan yang tidak terduga.');

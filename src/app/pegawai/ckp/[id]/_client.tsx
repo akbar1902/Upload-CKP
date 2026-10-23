@@ -567,6 +567,9 @@ export default function CKPDetailPage() {
               {upload.version > 1 && (
                 <span className="badge-pill badge-draft">v{upload.version}</span>
               )}
+              {upload.source === 'ckp-app' && (
+                <span className="badge-pill badge-draft" title="Dikirim dari aplikasi CKP App">CKP App</span>
+              )}
             </div>
 
             {/* Meta */}

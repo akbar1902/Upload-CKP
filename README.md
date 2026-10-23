@@ -22,6 +22,7 @@ Rute `/` selalu redirect ke `/login`; middleware yang memutuskan tujuan akhir pe
 
 ### Anggota (pegawai)
 - Login email & password
+- **Integrasi CKP App**: buat/cabut token per pegawai agar aplikasi CKP App lokal bisa mengirim Excel CKP langsung ke SIKAP (tanpa download-upload manual). Lihat bagian *Integrasi CKP App* di bawah.
 - Dashboard: sapaan + jabatan/golongan/NIP, alert CKP bulan ini & revisi, 4 KPI (Total Upload, Rata-rata Progres, Disetujui, Menunggu Review), riwayat + search/filter/sort + toggle list/grid
 - Upload Excel CKP per bulan (drag-drop `.xlsx/.xls`, maks 5MB) dengan preview tabel + preview kalender
 - Resolusi RK otomatis: exact master → sub-RK lokal → fuzzy kegiatan (>0.90) → fuzzy RK bigram (>0.95); RK tak dikenal dipetakan manual via modal tim
@@ -77,10 +78,11 @@ Reviewer memberi catatan koreksi pada entri `submitted` → otomatis `revision_r
 
 ### 2. Buat project Supabase
 1. Buat project di [supabase.com](https://supabase.com)
-2. Di **SQL Editor**, jalankan migrasi **berurutan** `supabase/migrations/001_*.sql` → `020_*.sql`
-   (bukan cuma `001`; skema final hasil 20 migrasi: users, employee_profiles,
+2. Di **SQL Editor**, jalankan migrasi **berurutan** `supabase/migrations/001_*.sql` → `037_*.sql`
+   (bukan cuma `001`; skema final hasil 37 migrasi: users, employee_profiles,
    ckp_uploads, ckp_entries, approvals, audit_logs, rk_ketua_tim_mapping,
-   user_rk_assignments, periode_ckp, master_kegiatan_anggota)
+   user_rk_assignments, periode_ckp, master_kegiatan_anggota, integration_tokens,
+   integration_pairings)
 3. (Opsional) Jalankan `supabase/seed.sql` untuk data contoh
 4. Buat Storage bucket privat bernama `ckp-files`
 5. Catat URL + keys dari **Settings > API**
@@ -137,6 +139,46 @@ src/
 supabase/migrations/        # 001-020 (skema + RLS + seed)
 scripts/                    # Util node ad-hoc (cleanup RK, seed dari Excel, cek agregat)
 ```
+
+## Integrasi CKP App
+
+SIKAP menyediakan API token untuk aplikasi **CKP App** lokal (upload bukti dukung →
+Google Drive → susun draft → kirim Excel). Tujuannya menghilangkan langkah
+download-upload Excel manual.
+
+### Alur
+
+1. Di CKP App → **Profil & rekan** → **Integrasi SIKAP** → **Hubungkan SIKAP**.
+2. Tab SIKAP terbuka; login (jika perlu), lalu klik **Setujui & hubungkan CKP App**.
+   Tidak perlu menyalin token.
+3. CKP App mengambil token lewat pairing, lalu otomatis menarik daftar RK.
+4. Di CKP App klik **Kirim ke SIKAP**. Excel dibuat lalu dikirim sebagai
+   `multipart/form-data` ke SIKAP.
+5. SIKAP mem-parse file di server, mencocokkan RK, lalu memakai pipeline upload
+   yang sama dengan web (versi, preservasi nilai, status `submitted`, audit log,
+   notifikasi).
+
+Opsi token manual tetap tersedia di halaman **Integrasi CKP App** untuk kebutuhan
+khusus. Token manual hanya ditampilkan sekali.
+
+### Endpoint
+
+| Method | Path | Keterangan |
+|---|---|---|
+| `GET` | `/api/integrations/ckp-app` | Profil + daftar RK (assigned), status periode, upload terakhir |
+| `POST` | `/api/integrations/ckp-app` | Kirim file Excel (`file`, `bulan`, `tahun`, `clientUploadId`) |
+| `POST` | `/api/integrations/ckp-app/pair` | Mulai pairing (dipanggil CKP App) |
+| `GET` | `/api/integrations/ckp-app/pair/[id]` | Polling status pairing dengan secret |
+
+Autentikasi: `Authorization: Bearer ckp_…`. Token disimpan sebagai **hash SHA-256**
+di tabel `integration_tokens` (migrasi `035_integration_tokens.sql`), hanya bisa
+diakses service role, dan dapat dicabut per token. `last_used_at` dicatat.
+Upload dari CKP App ditandai `source = 'ckp-app'` + `client_upload_id` untuk
+idempotensi retry.
+
+Catatan keamanan: jangan membagikan token; token mewakili akun pegawai. API ini
+tidak memakai cookie sesi browser, sehingga middleware melewati `/api/integrations/*`
+dan verifikasi dilakukan di route handler.
 
 ## Format Excel CKP
 
