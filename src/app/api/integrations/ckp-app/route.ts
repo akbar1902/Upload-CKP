@@ -85,9 +85,16 @@ export async function GET(request: Request) {
       (assignments.data ?? []).map((row) => String(row.rk_id || '')).filter(Boolean),
     );
     const mappingTahun = mapping.filter((rk) => rk.tahun == null || rk.tahun === tahun);
-    const rks = assignedIds.size > 0
+    const sudah = new Set();
+    const rks = (assignedIds.size > 0
       ? mappingTahun.filter((rk) => assignedIds.has(String(rk.id)))
-      : mappingTahun;
+      : mappingTahun
+    ).filter((rk) => {
+      const kunci = String(rk.rencana_kinerja || '').toLowerCase().replace(/\btahun\s*20\d{2}\b/g, '').replace(/\b20\d{2}\b/g, '').replace(/[^a-z0-9]/g, '');
+      if (!kunci || sudah.has(kunci)) return false;
+      sudah.add(kunci);
+      return true;
+    });
 
     return json({
       success: true,
