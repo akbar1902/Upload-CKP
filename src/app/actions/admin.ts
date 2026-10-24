@@ -427,6 +427,93 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
       return { success: false, error: 'Tidak ada baris RK yang valid untuk diimpor.' };
     }
 
+    // ------------------------------------------------------------
+    // GUARD DATA: impor Excel/JSON datar TIDAK boleh membuat Sub-RK menjadi
+    // RK Utama. Insiden 2026-10-23: 319 baris Sub-RK diimpor sebagai RK Utama
+    // dengan satu tim yang sama ("Diseminasi Statistik"), sehingga semua RK
+    // tampak milik satu ketua tim.
+    // ------------------------------------------------------------
+    const normalizeName = (v: unknown) =>
+      String(v ?? '')
+        .toLowerCase()
+        .replace(/\btahun\s*20\d{2}\b/g, '')
+        .replace(/\b20\d{2}\b/g, '')
+        .replace(/[^a-z0-9]/g, '');
+
+    const [knownTeamRes, knownSubRes, knownParentRes] = await Promise.all([
+      adminDb()
+        .from('rk_ketua_tim_mapping')
+        .select('tim_kerja')
+        .eq('is_active', true)
+        .not('tim_kerja', 'is', null),
+      fetchAllRows<{ kegiatan_nama: string }>((from, to) =>
+        adminDb()
+          .from('master_kegiatan_anggota')
+          .select('kegiatan_nama')
+          .order('id', { ascending: true })
+          .range(from, to)
+      ),
+      fetchAllRows<{ rencana_kinerja: string }>((from, to) =>
+        adminDb()
+          .from('rk_ketua_tim_mapping')
+          .select('rencana_kinerja')
+          .order('id', { ascending: true })
+          .range(from, to)
+      ),
+    ]);
+    if (knownTeamRes.error) {
+      console.error('[uploadRencanaKinerjaBulk] Team check error:', knownTeamRes.error);
+      return { success: false, error: 'Gagal memeriksa daftar tim kerja.' };
+    }
+
+    const knownTeams = new Set(
+      (knownTeamRes.data || [])
+        .map((r: { tim_kerja: string | null }) => r.tim_kerja?.trim())
+        .filter((v: string | undefined): v is string => !!v)
+    );
+    const knownSubNames = new Set(knownSubRes.map((r) => normalizeName(r.kegiatan_nama)).filter(Boolean));
+    const knownParentNames = new Set(knownParentRes.map((r) => normalizeName(r.rencana_kinerja)).filter(Boolean));
+
+    const unknownTeams = new Set<string>();
+    const suspectedSubRks: string[] = [];
+    const rkKeys = Object.keys(rkGroups);
+    for (const rk of rkKeys) {
+      const timKerja = rkGroups[rk][0]?.tim_kerja?.trim() || rkGroups[rk][0]?.tim?.trim() || '';
+      if (!timKerja) {
+        unknownTeams.add('(kosong)');
+        continue;
+      }
+      if (knownTeams.size > 0 && !knownTeams.has(timKerja)) {
+        unknownTeams.add(timKerja);
+      }
+      const key = normalizeName(rk);
+      if (key && knownSubNames.has(key) && !knownParentNames.has(key)) {
+        suspectedSubRks.push(rk);
+      }
+    }
+
+    if (unknownTeams.size > 0) {
+      return {
+        success: false,
+        error:
+          `Tim kerja tidak dikenali: ${Array.from(unknownTeams).slice(0, 5).join(', ')}. ` +
+          'Impor dibatalkan agar RK tidak masuk ke tim yang salah. Gunakan nama tim yang sudah ada di master RK.',
+      };
+    }
+
+    // Toleransi nol: nama parent RK yang juga terdaftar sebagai Sub-RK hampir
+    // pasti berarti file impor berisi rincian kegiatan, bukan RK Utama.
+    // Admin tetap bisa menambah satu RK manual lewat "Tambah RK".
+    if (suspectedSubRks.length > 0) {
+      return {
+        success: false,
+        error:
+          `Impor dibatalkan: ${suspectedSubRks.length} baris tampaknya adalah Sub-RK, bukan RK Utama ` +
+          `(contoh: "${suspectedSubRks[0]}"). Gunakan tab "Dataset RK (.zip)" atau pastikan kolom "RK Utama" berisi RK Ketua Tim, ` +
+          'bukan rincian kegiatan.',
+      };
+    }
+
     // Fetch all existing mappings to inherit ketua_tim_id for existing teams
     const { data: existingMappings, error: mappingErr } = await adminDb()
       .from('rk_ketua_tim_mapping')
@@ -539,6 +626,26 @@ export async function uploadRencanaKinerjaBulk(data: any[], adminId: string) {
     }
 
     revalidatePath('/admin/rk');
+    try {
+      await adminDb().from('audit_logs').insert({
+        user_id: guard.userId,
+        action: 'rk_bulk_imported',
+        entity_type: 'rencana_kinerja',
+        entity_id: null,
+        new_data: {
+          tahun: activeYear,
+          rk: processedMaster,
+          sub_rk: processedSub,
+          tim: Array.from(new Set(
+            Object.keys(rkGroups)
+              .map((rk) => rkGroups[rk][0]?.tim_kerja?.trim() || rkGroups[rk][0]?.tim?.trim())
+              .filter(Boolean)
+          )),
+        },
+      });
+    } catch (auditErr) {
+      console.warn('[uploadRencanaKinerjaBulk] Audit log warning:', auditErr);
+    }
     return { success: true, processed: processedMaster, processedSub };
   } catch (error: any) {
     console.error('[uploadRencanaKinerjaBulk] Error:', error);

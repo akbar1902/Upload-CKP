@@ -244,7 +244,6 @@ export default function KetuaTimDashboardClient() {
   const rks = data?.rks || [];
   const entries = data?.entries || [];
   const uploads = data?.uploads || [];
-  const assignments = data?.assignments || [];
   const error = queryError ? queryError.message : null;
 
   // Process data for RK Cards
@@ -256,16 +255,14 @@ export default function KetuaTimDashboardClient() {
     });
     
     return displayRks.map((rk: any) => {
-      // Pencocokan dual (pola getRkDetailAction): data lama cocok by nama parent RK,
-      // data baru cocok by UUID parent di rk_ketua_tim_id (rencana_kinerja berisi nama Sub-RK)
-      let rkEntries = entries.filter((e: any) => e.rencana_kinerja === rk.rencana_kinerja || (e.rk_ketua_tim_id && e.rk_ketua_tim_id === rk.id));
-      
-      const validKetuaTimIds = new Set(
-         rks.filter((r: any) => r.rencana_kinerja === rk.rencana_kinerja).map((r: any) => r.ketua_tim_id).filter(Boolean)
-      );
-      
-      const assignedUserIds = new Set(
-        assignments.filter((a: any) => a.rk_id === rk.id).map((a: any) => a.user_id)
+      // Pencocokan dual (pola getRkDetailAction): data baru WAJIB cocok by UUID
+      // parent di rk_ketua_tim_id. Nama parent hanya dipakai untuk data lama
+      // (rk_ketua_tim_id NULL) — jangan mencampur entri tim lain yang kebetulan
+      // punya nama RK sama.
+      let rkEntries = entries.filter((e: any) =>
+        e.rk_ketua_tim_id
+          ? e.rk_ketua_tim_id === rk.id
+          : e.rencana_kinerja === rk.rencana_kinerja
       );
 
       rkEntries = rkEntries.filter((e: any) => {

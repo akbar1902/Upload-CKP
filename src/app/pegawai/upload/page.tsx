@@ -469,9 +469,14 @@ export default function UploadPage() {
       const masterDict = latestMasterRKs || [...masterRKs];
       const mKegiatan = latestMasterKegiatan || masterKegiatan;
       const masterNames: string[] = Array.from(new Set(masterDict.map((r: any) => String(r.rencana_kinerja))));
-      // UUID mapping by nama (lower) — untuk matchedRkId yg dikirim ke server.
+      // UUID mapping by nama ternormalisasi — untuk matchedRkId yg dikirim ke server.
+      // Jangan timpa bila ada nama sama: nama ganda harus diselesaikan lewat
+      // pemetaan manual, bukan menebak entri terakhir.
       const rkIdByName = new Map<string, string>();
-      masterDict.forEach((r: any) => rkIdByName.set(String(r.rencana_kinerja).toLowerCase(), String(r.id)));
+      masterDict.forEach((r: any) => {
+        const key = normalize(String(r.rencana_kinerja));
+        if (key && !rkIdByName.has(key)) rkIdByName.set(key, String(r.id));
+      });
       const distinctMatchedRkIds = new Set<string>();
 
       setUploadStep(1);
@@ -482,7 +487,7 @@ export default function UploadPage() {
         const { rawRK, matchedRK } = resolveRK(entry, masterNames, mKegiatan);
         let finalMatchedRK = matchedRK || '';
         let matchedRkId: string | null = finalMatchedRK
-          ? (rkIdByName.get(finalMatchedRK.toLowerCase()) || null)
+          ? (rkIdByName.get(normalize(finalMatchedRK)) || null)
           : null;
 
         // Mapping manual (langkah "Petakan RK"): rkTeamMapping[teks] = { rk_id UUID }.

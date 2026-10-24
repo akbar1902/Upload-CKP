@@ -443,15 +443,20 @@ export async function getRkDetailAction(rkId: string, bulan: string | number, ta
 
     const rkName = mappingData.rencana_kinerja;
 
-    // 2. All RK IDs with same name (handle duplicates per tim_kerja)
+    // 2. RK lain dengan nama yang sama — HANYA dalam tim & tahun yang sama.
+    // Dulu semua RK bernama sama di seluruh tim digabung, sehingga entri tim lain
+    // bisa ikut terbaca di halaman penilaian ketua tim yang salah.
+    let sameNameQuery = adminClient
+      .from('rk_ketua_tim_mapping')
+      .select('id')
+      .eq('rencana_kinerja', rkName)
+      .eq('tahun', mappingData.tahun)
+      .eq('is_active', true);
+    sameNameQuery = mappingData.tim_kerja == null
+      ? sameNameQuery.is('tim_kerja', null)
+      : sameNameQuery.eq('tim_kerja', mappingData.tim_kerja);
     const sameNameRows = await fetchAllRows<{ id: string }>((from, to) =>
-      adminClient
-        .from('rk_ketua_tim_mapping')
-        .select('id')
-        .eq('rencana_kinerja', rkName)
-        .eq('is_active', true)
-        .order('id', { ascending: true })
-        .range(from, to)
+      sameNameQuery.order('id', { ascending: true }).range(from, to)
     );
     const allRkIds = Array.from(new Set([rkId, ...sameNameRows.map((r) => r.id)]));
 

@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { after } from 'next/server';
 import { notify, getReviewerIds } from '@/lib/notifications';
 import { getBulanName } from '@/lib/utils';
+import { normalizeRkName } from '@/lib/rk-scoring';
 
 export interface MasterKegiatanRow {
   kegiatan_nama: string;
@@ -140,13 +141,15 @@ export async function submitCkpUploadCore({
         .eq('bulan', bulan)
         .eq('tahun', tahun)
         .maybeSingle(),
-      // Load RK Ketua Tim mapping (id + rencana_kinerja) for resolving rk_ketua_tim_id.
+      // Load RK Ketua Tim mapping (id + nama + tahun) untuk resolusi rk_ketua_tim_id.
+      // WAJIB dibatasi ke tahun upload: RK tahun lain bisa punya nama yang sama,
+      // dan dulu nama yang sama dari tahun lain bisa "mencuri" entri CKP.
       // Paginasi penuh — jangan terpotong diam-diam di 1000 baris.
-      fetchAllRows<{ id: string; rencana_kinerja: string | null }>((from, to) =>
+      fetchAllRows<{ id: string; rencana_kinerja: string | null; tahun: number | null; is_active: boolean | null }>((from, to) =>
         supabaseAdmin
           .from('rk_ketua_tim_mapping')
-          .select('id, rencana_kinerja')
-          .eq('is_active', true)
+          .select('id, rencana_kinerja, tahun, is_active')
+          .eq('tahun', tahun)
           .order('id', { ascending: true })
           .range(from, to)
       ),
@@ -169,14 +172,32 @@ export async function submitCkpUploadCore({
 
     // Gagalkan eksplisit bila master kosong — jangan fail-open (semua rk_ketua_tim_id jadi NULL).
     if (rkMappingData.length === 0) {
-      return { success: false, error: 'Data master RK kosong. Muat ulang halaman dan coba lagi.' };
+      return { success: false, error: `Data master RK tahun ${tahun} kosong. Muat ulang halaman dan coba lagi.` };
     }
 
-    const rkNameToId = new Map<string, string>(); // nama (lower) → id
+    // Prioritaskan baris AKTIF tahun upload. Bila tidak ada yang aktif (mis. upload
+    // untuk periode arsip), pakai seluruh baris tahun tersebut agar RK lama tetap
+    // bisa dipakai tanpa mengambil RK tahun lain.
+    const activeRkRows = rkMappingData.filter((r) => r.is_active === true);
+    const rkRowsForYear = activeRkRows.length > 0 ? activeRkRows : rkMappingData;
+
+    // Nama RK tidak selalu unik antar tim. Simpan kandidat per nama ternormalisasi;
+    // resolusi by-name hanya boleh dipakai bila kandidatnya tunggal. Kandidat ganda
+    // harus diselesaikan lewat matchedRkId (UUID) dari klien.
+    const rkNameCandidates = new Map<string, string[]>();
     const rkIdSet = new Set<string>();            // UUID mapping yg valid
-    rkMappingData.forEach((r) => {
-      rkIdSet.add(String(r.id));
-      rkNameToId.set(String(r.rencana_kinerja).toLowerCase(), String(r.id));
+    rkRowsForYear.forEach((r) => {
+      const id = String(r.id);
+      rkIdSet.add(id);
+      const key = normalizeRkName(r.rencana_kinerja);
+      if (!key) return;
+      if (!rkNameCandidates.has(key)) rkNameCandidates.set(key, []);
+      const list = rkNameCandidates.get(key)!;
+      if (!list.includes(id)) list.push(id);
+    });
+    const rkNameToId = new Map<string, string>();
+    rkNameCandidates.forEach((ids, key) => {
+      if (ids.length === 1) rkNameToId.set(key, ids[0]);
     });
 
     const existingUpload = existingUploadRes.data;
@@ -371,7 +392,13 @@ export async function submitCkpUploadCore({
         }
         rkKetuaTimId = candidateUuid;
       } else if (matchedRK) {
-        rkKetuaTimId = rkNameToId.get(matchedRK.toLowerCase()) || null;
+        rkKetuaTimId = rkNameToId.get(normalizeRkName(matchedRK)) || null;
+        if (!rkKetuaTimId) {
+          throw new Error(
+            `RK "${matchedRK}" tidak ditemukan pada master RK tahun ${tahun}. ` +
+            'Kemungkinan RK ini milik tahun/tim lain atau baru saja diubah. Muat ulang halaman upload dan petakan RK-nya.'
+          );
+        }
       }
 
       return {
@@ -461,7 +488,7 @@ export async function submitCkpUploadCore({
                 assignmentsToInsert.push({ rk_id: rkStr, user_id: userId, assigned_by: userId });
               }
             } else {
-              const hitId = rkNameToId.get(rkStr.toLowerCase());
+              const hitId = rkNameToId.get(normalizeRkName(rkStr));
               if (hitId) {
                 assignmentsToInsert.push({ rk_id: hitId, user_id: userId, assigned_by: userId });
               }
@@ -525,6 +552,14 @@ export async function submitCkpUploadCore({
     return { success: true, uploadId: uploadData.id, version: newVersion, status: 'submitted' };
   } catch (error: unknown) {
     console.error('[submitCkpUploadCore] Error:', error);
+    const message = error instanceof Error ? error.message : '';
+    // Error validasi yang aman ditampilkan ke pengguna (mis. RK tidak ada di tahun tsb).
+    if (
+      message.startsWith('RK "') ||
+      message.startsWith('RK tujuan "')
+    ) {
+      return { success: false, error: message };
+    }
     return { success: false, error: 'Terjadi kesalahan saat memproses upload. Silakan coba lagi.' };
   }
 }
