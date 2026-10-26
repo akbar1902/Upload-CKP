@@ -271,6 +271,290 @@ export async function gradeRencanaKinerjaAction(
 }
 
 
+/**
+ * Nilai massal untuk banyak grup Sub-RK sekaligus di bawah satu RK Ketua Tim.
+ *
+ * Dipakai halaman Detail Penilaian RK: ketua tim mengetik satu nilai, lalu
+ * nilai itu diterapkan ke semua RK Anggota yang tampil (satu grup per
+ * pegawai × Sub-RK). Setelahnya nilai tiap pegawai tetap bisa dikoreksi
+ * manual lewat jalur `gradeRencanaKinerjaAction`.
+ *
+ * Semua grup divalidasi lebih dulu (kepemilikan RK, bukan CKP sendiri, mode
+ * bukan triwulan), baru nilai ditulis — sehingga tidak ada update separuh jalan
+ * saat ada grup yang tidak sah.
+ */
+export async function gradeRkGroupsBulkAction(
+  rkId: string,
+  groups: { uploadIds: string[]; rencanaKinerja: string }[],
+  score: number | null,
+) {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return { success: false, error: 'Sesi berakhir' };
+    }
+
+    if (score !== null && (
+      typeof score !== 'number' || !Number.isFinite(score) ||
+      !Number.isInteger(score) || score < 0 || score > 100
+    )) {
+      return { success: false, error: 'Nilai RK harus bilangan bulat 0-100.' };
+    }
+    if (!rkId) {
+      return { success: false, error: 'RK tidak valid.' };
+    }
+    if (!Array.isArray(groups) || groups.length === 0) {
+      return { success: false, error: 'Tidak ada RK yang dipilih.' };
+    }
+
+    const adminClient = createAdminClient();
+
+    // Wajib reviewer: ketua_tim/pimpinan/admin. 'anggota' DITOLAK.
+    const { data: callerRow } = await adminClient
+      .from('users')
+      .select('id, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (!callerRow || !['ketua_tim', 'pimpinan', 'admin'].includes(callerRow.role)) {
+      return { success: false, error: 'Anda tidak berwenang menilai CKP.' };
+    }
+
+    // Ketua tim hanya boleh menilai RK yang di-mapping ke dirinya.
+    const { data: mapping, error: mapErr } = await adminClient
+      .from('rk_ketua_tim_mapping')
+      .select('id, ketua_tim_id, rencana_kinerja, tahun, tim_kerja')
+      .eq('id', rkId)
+      .maybeSingle();
+    if (mapErr) {
+      console.error('[gradeRkGroupsBulkAction] Gagal verifikasi mapping:', mapErr);
+      return { success: false, error: 'Gagal memverifikasi kepemilikan RK.' };
+    }
+    if (!mapping) {
+      return { success: false, error: 'Rencana Kinerja tidak ditemukan' };
+    }
+    if (callerRow.role === 'ketua_tim' && mapping.ketua_tim_id !== user.id) {
+      return { success: false, error: 'Anda tidak berwenang menilai RK ini' };
+    }
+
+    // RK dengan nama & tim sama bisa punya lebih dari satu mapping (hasil
+    // impor ulang). Halaman detail menampilkan entry dari semua mapping itu,
+    // jadi nilai massal juga harus mencakupnya — sama seperti getRkDetailAction.
+    const rkIdSet = new Set<string>([rkId]);
+    if (mapping.rencana_kinerja) {
+      let sameNameQuery = adminClient
+        .from('rk_ketua_tim_mapping')
+        .select('id')
+        .eq('rencana_kinerja', mapping.rencana_kinerja)
+        .eq('tahun', mapping.tahun)
+        .eq('is_active', true);
+      sameNameQuery = mapping.tim_kerja == null
+        ? sameNameQuery.is('tim_kerja', null)
+        : sameNameQuery.eq('tim_kerja', mapping.tim_kerja);
+      const sameNameRows = await fetchAllRows<{ id: string }>((from, to) =>
+        sameNameQuery.order('id', { ascending: true }).range(from, to)
+      );
+      for (const row of sameNameRows) rkIdSet.add(row.id);
+    }
+
+    // Normalisasi + dedupe input: satu grup tidak boleh diproses dua kali.
+    const cleanGroups = groups
+      .map((g) => ({
+        uploadIds: Array.from(new Set((g.uploadIds || []).filter(Boolean))),
+        rencanaKinerja: (g.rencanaKinerja ?? '').trim(),
+      }))
+      .filter((g) => g.uploadIds.length > 0);
+
+    if (cleanGroups.length === 0) {
+      return { success: false, error: 'Upload tidak valid' };
+    }
+
+    // Mode triwulan: satu grup tersebar di beberapa upload (satu per bulan).
+    // Nilai massal dikunci agar rincian bulanan tidak tercampur.
+    if (cleanGroups.some((g) => g.uploadIds.length > 1)) {
+      return { success: false, error: 'Nilai massal tidak tersedia untuk mode triwulan.' };
+    }
+
+    const allUploadIds = Array.from(new Set(cleanGroups.flatMap((g) => g.uploadIds)));
+
+    // Ketua tim tidak boleh menilai CKP miliknya sendiri.
+    if (callerRow.role === 'ketua_tim') {
+      const { data: targetUploads } = await adminClient
+        .from('ckp_uploads')
+        .select('id, user_id')
+        .in('id', allUploadIds);
+      if ((targetUploads || []).some((u: { user_id: string }) => u.user_id === user.id)) {
+        return { success: false, error: 'Ketua tim tidak dapat menilai CKP milik sendiri — harus dinilai pimpinan' };
+      }
+    }
+
+    // Ambil semua entry kandidat sekali jalan, lalu cocokkan per grup dengan
+    // aturan yang sama seperti penilaian satuan (data baru: rk_ketua_tim_id,
+    // data lama: nama ternormalisasi + rk_ketua_tim_id NULL).
+    const candidates = await fetchAllRows<{
+      id: string;
+      upload_id: string;
+      rencana_kinerja: string | null;
+      rk_ketua_tim_id: string | null;
+    }>((from, to) =>
+      adminClient
+        .from('ckp_entries')
+        .select('id, upload_id, rencana_kinerja, rk_ketua_tim_id')
+        .in('upload_id', allUploadIds)
+        .order('id', { ascending: true })
+        .range(from, to)
+    );
+
+    const targetIds: string[] = [];
+    const skippedGroups: string[] = [];
+
+    // Nama yang SAH untuk data lama (rk_ketua_tim_id NULL): nama parent RK ini
+    // atau nama Sub-RK yang sudah terhubung ke mapping-nya. Tanpa batas ini,
+    // pemanggil bisa menilai entri legacy milik RK/tim lain hanya dengan
+    // mengirim nama RK tersebut.
+    const legacyNorms = new Set<string>();
+    const parentNorm = normalizeRkName(mapping.rencana_kinerja);
+    if (parentNorm) legacyNorms.add(parentNorm);
+    for (const c of candidates) {
+      if (c.rk_ketua_tim_id && rkIdSet.has(c.rk_ketua_tim_id)) {
+        const n = normalizeRkName(c.rencana_kinerja);
+        if (n) legacyNorms.add(n);
+      }
+    }
+
+    for (const g of cleanGroups) {
+      const uploadSet = new Set(g.uploadIds);
+      const nameNorm = normalizeRkName(g.rencanaKinerja);
+      const isUnknown = !g.rencanaKinerja || g.rencanaKinerja === 'Tidak Diketahui';
+      // Baris tanpa nama RK ditampilkan sebagai '(Tanpa RK)' di UI.
+      const isNoRk = g.rencanaKinerja === '(Tanpa RK)';
+
+      const matched = candidates.filter((c) => {
+        if (!uploadSet.has(c.upload_id)) return false;
+        const entryNorm = normalizeRkName(c.rencana_kinerja);
+        if (c.rk_ketua_tim_id && rkIdSet.has(c.rk_ketua_tim_id)) {
+          if (isUnknown) return true;
+          if (isNoRk) return !c.rencana_kinerja?.trim();
+          return entryNorm === nameNorm;
+        }
+        // Data lama: hanya boleh nama yang memang milik RK ini.
+        if (c.rk_ketua_tim_id === null) {
+          if (isNoRk || !entryNorm) return false;
+          return entryNorm === nameNorm && legacyNorms.has(entryNorm);
+        }
+        return false;
+      });
+
+      if (matched.length === 0) {
+        skippedGroups.push(g.rencanaKinerja || '(tanpa nama)');
+      } else {
+        targetIds.push(...matched.map((c) => c.id));
+      }
+    }
+
+    if (targetIds.length === 0) {
+      return { success: false, error: 'Tidak ada kegiatan pada RK yang dipilih untuk dinilai.' };
+    }
+
+    const uniqueTargetIds = Array.from(new Set(targetIds));
+
+    // Batch update agar URL PostgREST tidak kepanjangan saat ratusan entry.
+    const UPDATE_CHUNK = 100;
+    for (let i = 0; i < uniqueTargetIds.length; i += UPDATE_CHUNK) {
+      const chunk = uniqueTargetIds.slice(i, i + UPDATE_CHUNK);
+      const { error: updateError } = await adminClient
+        .from('ckp_entries')
+        .update({
+          nilai: score,
+          dinilai_oleh: score !== null ? user.id : null,
+        })
+        .in('id', chunk);
+      if (updateError) {
+        console.error('[gradeRkGroupsBulkAction] Update nilai error:', updateError);
+        return { success: false, error: 'Gagal menyimpan nilai. Silakan coba lagi.' };
+      }
+    }
+
+    // Auto-update status upload — dihitung sekali per upload, bukan per grup.
+    const { data: uploads } = await adminClient
+      .from('ckp_uploads')
+      .select('id, status')
+      .in('id', allUploadIds);
+
+    for (const upload of uploads || []) {
+      if (upload.status !== 'submitted' && upload.status !== 'scored') continue;
+
+      const entries = await fetchAllRows<{
+        nilai: number | null;
+        rencana_kinerja: string | null;
+        rk_ketua_tim_id: string | null;
+      }>((from, to) =>
+        adminClient
+          .from('ckp_entries')
+          .select('nilai, rencana_kinerja, rk_ketua_tim_id')
+          .eq('upload_id', upload.id)
+          .order('id', { ascending: true })
+          .range(from, to)
+      );
+
+      let allScored = false;
+      if (entries.length > 0) {
+        const scoredGroups = new Map<string, { nilai: number | null }[]>();
+        for (const e of entries) {
+          const k = rkGroupKey(e as { rk_ketua_tim_id?: string | null; rencana_kinerja?: string | null });
+          if (!scoredGroups.has(k)) scoredGroups.set(k, []);
+          scoredGroups.get(k)!.push({ nilai: e.nilai ?? null });
+        }
+        allScored = Array.from(scoredGroups.values()).every(isRkGroupScored);
+      }
+      const newStatus = allScored ? 'scored' : 'submitted';
+
+      if (upload.status !== newStatus) {
+        const { error: statusErr } = await adminClient
+          .from('ckp_uploads')
+          .update({ status: newStatus })
+          .eq('id', upload.id);
+        if (statusErr) {
+          console.error('[gradeRkGroupsBulkAction] Gagal update status upload:', statusErr);
+          return { success: false, error: 'Nilai tersimpan, tetapi status CKP gagal diperbarui. Coba simpan ulang.' };
+        }
+
+        if (newStatus === 'scored') {
+          const { data: owner } = await adminClient
+            .from('ckp_uploads')
+            .select('user_id')
+            .eq('id', upload.id)
+            .maybeSingle();
+          if (owner?.user_id) {
+            await notify({
+              userId: owner.user_id,
+              type: 'scored',
+              title: 'CKP sudah dinilai',
+              body: 'Semua kegiatan sudah dinilai — menunggu keputusan pimpinan.',
+              uploadId: upload.id,
+              actorId: user.id,
+            });
+          }
+        }
+      }
+    }
+
+    revalidatePath('/pegawai');
+    revalidatePath('/ketua_tim');
+    revalidatePath('/pimpinan');
+    revalidatePath('/', 'layout');
+
+    return {
+      success: true,
+      updatedGroups: cleanGroups.length - skippedGroups.length,
+      skippedGroups,
+    };
+  } catch (err: any) {
+    console.error('[gradeRkGroupsBulkAction] Error:', err);
+    return { success: false, error: 'Terjadi kesalahan saat menyimpan nilai. Silakan coba lagi.' };
+  }
+}
+
 export async function approveAction(uploadId: string, action: string, catatan: string) {
   try {
     const supabase = await createServerSupabaseClient();

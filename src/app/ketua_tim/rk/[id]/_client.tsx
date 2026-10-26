@@ -9,14 +9,15 @@ import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getBulanName, formatDate, getDefaultPeriod } from '@/lib/utils';
-import { gradeRencanaKinerjaAction, getRkDetailAction } from '@/app/actions/penilaian';
+import { gradeRencanaKinerjaAction, gradeRkGroupsBulkAction, getRkDetailAction } from '@/app/actions/penilaian';
 import { markEntryAction } from '@/app/actions/ckp';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import type { CKPUpload, CKPEntry, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   ArrowLeft, FileText, TrendingUp, CheckCircle2, Download,
   RefreshCw, WifiOff, Search, ChevronDown, ChevronUp, User as UserIcon,
-  XCircle, AlertTriangle, Layers, FolderOpen
+  XCircle, AlertTriangle, Layers, FolderOpen, ListChecks
 } from 'lucide-react';
 
 function KPICard({ icon, value, label, sub, iconBg }: {
@@ -83,9 +84,18 @@ function RkBarisRow({
   // Detail RK dibuka-tutup manual oleh user (search tidak memaksa expand).
   const expanded = expandedState;
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
-  const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Simpan berurutan per baris (satu antrean) supaya edit cepat tidak saling
+  // menimpa. Nilai tetap tampil instan karena cache sudah diperbarui optimistis
+  // oleh parent — tanpa spinner dan tanpa mengunci input.
+  const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const scoreRef = useRef(score);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   useEffect(() => {
     setScore(defaultScore?.toString() ?? '');
@@ -110,49 +120,49 @@ function RkBarisRow({
 
   const uploadIds = useMemo(() => Array.from(new Set(entries.map(e => e.upload_id))), [entries]);
 
-  const handleBlur = async () => {
-    // Cegah submit dobel untuk baris yang sama selama request berjalan.
-    if (saving) return;
+  const handleBlur = () => {
     const currentSavedStr = defaultScore === null ? '' : String(defaultScore);
     if (score === currentSavedStr) return;
 
-    setSaving(true);
-    try {
-      if (score === '') {
-        await onSaveScore(uploadIds, null, rkName);
-      } else {
-        // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
-        // dipotong diam-diam (parseInt dulu mengubah "90.9" jadi 90).
-        const num = Number(score);
-        if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
-          toast.error('Nilai RK harus bilangan bulat 0-100');
-          setScore(currentSavedStr);
-          return;
-        }
-        if (defaultScore !== null && num === defaultScore) {
-          setScore(currentSavedStr);
-          return;
-        }
-        await onSaveScore(uploadIds, num, rkName);
+    let payload: number | null = null;
+    if (score !== '') {
+      // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
+      // dipotong diam-diam (parseInt dulu mengubah "90.9" jadi 90).
+      const num = Number(score);
+      if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
+        toast.error('Nilai RK harus bilangan bulat 0-100');
+        setScore(currentSavedStr);
+        return;
       }
-      flashSaved();
-    } catch {
-      // Parent sudah menampilkan toast error; di sini cukup kembalikan nilai lama.
-      setScore(currentSavedStr);
-    } finally {
-      setSaving(false);
+      payload = num;
     }
+
+    const snapshot = score;
+    saveQueueRef.current = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => onSaveScore(uploadIds, payload, rkName))
+      .then(() => {
+        // Jangan tampilkan "Tersimpan" bila nilainya sudah diubah lagi.
+        if (scoreRef.current === snapshot) flashSaved();
+      })
+      .catch(() => {
+        // Parent sudah menampilkan toast error + rollback cache.
+        if (scoreRef.current === snapshot) setScore(currentSavedStr);
+      });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.currentTarget.blur();
-      const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('.score-input:not(:disabled)'));
-      const currentIndex = inputs.indexOf(e.currentTarget);
-      if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
-        inputs[currentIndex + 1].focus();
-        inputs[currentIndex + 1].select();
-      }
+    if (e.key !== 'Enter') return;
+    // Simpan (lewat blur) lalu pindah ke RK berikutnya — jangan biarkan fokus hilang.
+    e.preventDefault();
+    const input = e.currentTarget;
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input.score-input:not(:disabled)'));
+    const currentIndex = inputs.indexOf(input);
+    input.blur();
+    if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+      const next = inputs[currentIndex + 1];
+      next.focus();
+      next.select();
     }
   };
 
@@ -280,27 +290,16 @@ function RkBarisRow({
                     onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    disabled={saving}
-                    aria-busy={saving}
-                    className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
                     style={{ borderColor: 'var(--border)' }}
                     placeholder="—"
-                    title="Nilai RK bilangan bulat 0-100 — tekan Enter atau klik di luar untuk menyimpan"
+                    title="Nilai RK bilangan bulat 0-100 — Enter untuk simpan & lanjut ke RK berikutnya"
                     aria-label={`Nilai ${rkName} milik ${nama} (bilangan bulat 0-100)`}
                   />
-                  {saving && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <RefreshCw size={11} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
-                    </div>
-                  )}
                 </div>
-                {/* Umpan balik simpan per baris: menyimpan → Tersimpan (fade ±2 dtk) */}
+                {/* Umpan balik simpan per baris — tanpa status "memuat" yang mengganggu */}
                 <div className="mt-0.5 min-h-[13px]" aria-live="polite">
-                  {saving ? (
-                    <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>
-                      Menyimpan…
-                    </span>
-                  ) : justSaved ? (
+                  {justSaved ? (
                     <span className="text-[10px] font-semibold flex items-center gap-0.5 whitespace-nowrap animate-fade-in" style={{ color: 'var(--success-text)' }}>
                       <CheckCircle2 size={10} /> Tersimpan
                     </span>
@@ -419,6 +418,11 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
   const bulan: string | number = paramBulan && paramBulan.startsWith('T') ? paramBulan : (paramBulan ? parseInt(paramBulan) : currentMonth);
   const tahun = paramTahun ? parseInt(paramTahun) : currentYear;
   const [searchQuery, setSearchQuery] = useState('');
+
+  // ─── Nilai massal ──────────────────────────────────────────────────────
+  const [bulkScore, setBulkScore] = useState('');
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [bulkApplying, setBulkApplying] = useState(false);
 
   const [entryToMark, setEntryToMark] = useState<CKPEntry | null>(null);
   const [catatanKoreksi, setCatatanKoreksi] = useState<string>('');
@@ -633,6 +637,89 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
 
     return { filteredPegawaiSections: sections, totalDisplayedUsers: sections.length, totalRkAnggota, totalRkAnggotaAll, rows };
   }, [uploads, entries, searchQuery, bulan]);
+
+  // ─── Sasaran nilai massal ───────────────────────────────────────────────
+  // Hanya baris yang boleh dinilai (bukan CKP sendiri / sudah approved) dan
+  // sedang tampil — bila pencarian aktif, yang dinilai hanya hasil filter.
+  const bulkTargets = useMemo(() => {
+    // Mode triwulan: nilai terkunci, tidak ada sasaran massal.
+    if (typeof bulan === 'string' && bulan.startsWith('T')) return [];
+    return rows
+      .filter(r => r.canReview)
+      .map(r => ({
+        uploadIds: Array.from(new Set(r.entries.map(e => e.upload_id))),
+        rkName: r.rkName,
+      }))
+      // Nilai massal hanya untuk satu upload per grup (mode bulanan).
+      .filter(t => t.uploadIds.length === 1);
+  }, [rows, bulan]);
+
+  const bulkValue = bulkScore.trim();
+  const bulkValueValid = /^\d+$/.test(bulkValue) && Number(bulkValue) >= 0 && Number(bulkValue) <= 100;
+
+  const handleBulkApply = async () => {
+    if (bulkApplying) return;
+    if (!bulkValueValid) {
+      toast.error('Nilai massal harus bilangan bulat 0-100');
+      return;
+    }
+    const num = Number(bulkValue);
+    const targets = bulkTargets;
+    if (targets.length === 0) return;
+
+    setBulkConfirmOpen(false);
+    setBulkApplying(true);
+
+    const rkDetailKey = ['rk-detail', rkId, bulan, tahun];
+    await queryClient.cancelQueries({ queryKey: rkDetailKey });
+    const previousData = queryClient.getQueryData(rkDetailKey);
+
+    // Optimistic update sekali untuk semua entry sasaran.
+    const pairs = new Set<string>();
+    for (const t of targets) {
+      for (const uploadId of t.uploadIds) pairs.add(`${uploadId}::${t.rkName}`);
+    }
+    queryClient.setQueryData(rkDetailKey, (old?: { entries: CKPEntry[] }) => {
+      if (!old) return old;
+      return {
+        ...old,
+        entries: old.entries.map((e) =>
+          pairs.has(`${e.upload_id}::${e.rencana_kinerja || '(Tanpa RK)'}`)
+            ? { ...e, nilai: num, dinilai_oleh: currentUser?.id }
+            : e
+        ),
+      };
+    });
+
+    try {
+      const result = await gradeRkGroupsBulkAction(
+        rkId,
+        targets.map(t => ({ uploadIds: t.uploadIds, rencanaKinerja: t.rkName })),
+        num
+      );
+      if (!result.success) throw new Error(result.error);
+
+      void queryClient.invalidateQueries({ queryKey: ['rk-detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['ketua-tim-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['ckp-detail'] });
+      void queryClient.invalidateQueries({ queryKey: ['pegawai-uploads'] });
+      void queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });
+
+      const skipped = result.skippedGroups ?? [];
+      setBulkScore('');
+      toast.success(`Nilai ${num} diterapkan ke ${result.updatedGroups ?? targets.length} RK Anggota`);
+      if (skipped.length > 0) {
+        toast.warning(`${skipped.length} RK dilewati karena datanya berubah. Muat ulang halaman bila perlu.`);
+      }
+    } catch (err) {
+      // Rollback ke data sebelum optimistic update.
+      queryClient.setQueryData(rkDetailKey, previousData);
+      const message = err instanceof Error ? err.message : 'Error server';
+      toast.error(`Gagal menerapkan nilai massal: ${message}`);
+    } finally {
+      setBulkApplying(false);
+    }
+  };
 
   // ─── KPI calculations ───────────────────────────────────────────────────
   const uniqueUsersCount = useMemo(() => new Set(uploads.map(u => u.user_id)).size, [uploads]);
@@ -863,6 +950,65 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
             </div>
           </div>
 
+          {/* Nilai massal — satu angka untuk semua RK Anggota yang sedang tampil */}
+          {bulkTargets.length > 0 && (
+            <div
+              className="mb-3 rounded-xl border px-3.5 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
+              style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+            >
+              <div className="flex items-start gap-2.5 flex-1 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'var(--primary-soft)' }}
+                >
+                  <ListChecks size={17} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-bold leading-tight" style={{ color: 'var(--text-primary)' }}>
+                    Nilai Massal
+                  </p>
+                  <p className="text-[11.5px] mt-0.5 leading-snug" style={{ color: 'var(--text-secondary)' }}>
+                    Isi satu nilai untuk <strong>{bulkTargets.length} RK Anggota</strong>
+                    {searchQuery.trim() ? ' (sesuai filter pencarian)' : ''}. Nilai tiap pegawai tetap bisa diubah manual setelahnya.
+                  </p>
+                </div>
+              </div>
+              <form
+                className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto"
+                onSubmit={e => {
+                  e.preventDefault();
+                  if (bulkValueValid) setBulkConfirmOpen(true);
+                }}
+              >
+                <label htmlFor="bulk-score" className="sr-only">Nilai massal 0-100</label>
+                <input
+                  id="bulk-score"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={3}
+                  value={bulkScore}
+                  onChange={e => setBulkScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                  disabled={bulkApplying}
+                  placeholder="0-100"
+                  className="h-9 w-20 rounded-lg border px-2 text-[13px] font-semibold text-center outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                  aria-label="Nilai massal untuk semua RK Anggota (bilangan bulat 0-100)"
+                />
+                <button
+                  type="submit"
+                  disabled={!bulkValueValid || bulkApplying}
+                  className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-lg text-[12.5px] font-semibold text-white transition-all disabled:cursor-not-allowed disabled:opacity-50"
+                  style={{ background: 'var(--primary)' }}
+                  title={bulkValueValid ? `Terapkan nilai ${bulkValue} ke ${bulkTargets.length} RK Anggota` : 'Isi nilai bulat 0-100'}
+                >
+                  {bulkApplying ? <RefreshCw size={14} className="animate-spin" /> : <ListChecks size={14} />}
+                  {bulkApplying ? 'Menerapkan…' : `Terapkan ke ${bulkTargets.length} RK`}
+                </button>
+              </form>
+            </div>
+          )}
+
           <div>
             <div className="hidden sm:grid grid-cols-[minmax(160px,1fr)_minmax(0,2fr)_110px] gap-x-2 px-2.5 py-2 rounded-xl border bg-white" style={{ borderColor: 'var(--border)' }}>
               <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-tertiary)' }}>Nama</p>
@@ -958,6 +1104,43 @@ export default function RkDetailClient({ rkId }: { rkId: string }) {
           </div>
         </div>
       )}
+
+      {/* Konfirmasi nilai massal — menimpa nilai yang sudah ada */}
+      <Dialog
+        open={bulkConfirmOpen}
+        onClose={() => { if (!bulkApplying) setBulkConfirmOpen(false); }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Terapkan Nilai Massal?</DialogTitle>
+            <DialogDescription>
+              Nilai <strong>{bulkValue || '—'}</strong> akan diterapkan ke{' '}
+              <strong>{bulkTargets.length} RK Anggota</strong>
+              {searchQuery.trim() ? ' yang sedang tampil (sesuai filter pencarian)' : ''}.
+              Nilai yang sudah ada akan ditimpa, lalu tetap bisa diubah manual per pegawai.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <button
+              onClick={() => setBulkConfirmOpen(false)}
+              disabled={bulkApplying}
+              className="px-4 py-2 rounded-xl text-[13px] font-medium transition-colors disabled:opacity-50"
+              style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleBulkApply}
+              disabled={bulkApplying}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-all disabled:opacity-60"
+              style={{ background: 'var(--primary)' }}
+            >
+              {bulkApplying ? <RefreshCw size={14} className="animate-spin" /> : <ListChecks size={14} />}
+              {bulkApplying ? 'Menerapkan…' : 'Ya, terapkan'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

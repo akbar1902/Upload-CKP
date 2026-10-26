@@ -109,9 +109,18 @@ function RencanaKinerjaGroup({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
-  const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Simpan berurutan per grup (satu antrean) supaya edit cepat tidak saling
+  // menimpa. Nilai tampil instan lewat optimistic update di parent — tanpa
+  // spinner dan tanpa mengunci input.
+  const saveQueueRef = useRef<Promise<unknown>>(Promise.resolve());
+  const scoreRef = useRef(score);
+
+  useEffect(() => {
+    scoreRef.current = score;
+  }, [score]);
 
   useEffect(() => {
     setScore(defaultScore?.toString() ?? '');
@@ -128,42 +137,50 @@ function RencanaKinerjaGroup({
     savedTimerRef.current = setTimeout(() => setJustSaved(false), 2000);
   };
 
-  const handleBlur = async () => {
-    // Cegah submit dobel untuk RK yang sama selama request berjalan.
-    if (saving) return;
+  const handleBlur = () => {
     const currentSavedStr = defaultScore === null ? '' : String(defaultScore);
     if (score === currentSavedStr) return;
 
-    setSaving(true);
-    try {
-      if (score === '') {
-        await onSaveScore(rkKey, rkName, null);
-      } else {
-        // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
-        // dipotong diam-diam (dulu "90.9" jadi 90 tanpa pemberitahuan).
-        const num = Number(score);
-        if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
-          toast.error('Nilai RK harus bilangan bulat 0-100');
-          setScore(currentSavedStr);
-          return;
-        }
-        if (defaultScore !== null && num === defaultScore) {
-          setScore(currentSavedStr);
-          return;
-        }
-        await onSaveScore(rkKey, rkName, num);
+    let payload: number | null = null;
+    if (score !== '') {
+      // Nilai RK selalu bilangan bulat 0-100 — desimal ditolak, bukan
+      // dipotong diam-diam (dulu "90.9" jadi 90 tanpa pemberitahuan).
+      const num = Number(score);
+      if (!/^\d+$/.test(score) || !Number.isInteger(num) || num < 0 || num > 100) {
+        toast.error('Nilai RK harus bilangan bulat 0-100');
+        setScore(currentSavedStr);
+        return;
       }
-      flashSaved();
-    } catch {
-      // Parent sudah menampilkan toast error; di sini cukup kembalikan nilai lama.
-      setScore(currentSavedStr);
-    } finally {
-      setSaving(false);
+      payload = num;
     }
+
+    const snapshot = score;
+    saveQueueRef.current = saveQueueRef.current
+      .catch(() => undefined)
+      .then(() => onSaveScore(rkKey, rkName, payload))
+      .then(() => {
+        if (scoreRef.current === snapshot) flashSaved();
+      })
+      .catch(() => {
+        // Parent sudah menampilkan toast error + rollback cache.
+        if (scoreRef.current === snapshot) setScore(currentSavedStr);
+      });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') e.currentTarget.blur();
+    if (e.key !== 'Enter') return;
+    // Simpan (lewat blur) lalu pindah ke RK berikutnya — sebelumnya fokus
+    // hilang sehingga user harus klik input berikutnya secara manual.
+    e.preventDefault();
+    const input = e.currentTarget;
+    const inputs = Array.from(document.querySelectorAll<HTMLInputElement>('input.score-input:not(:disabled)'));
+    const currentIndex = inputs.indexOf(input);
+    input.blur();
+    if (currentIndex !== -1 && currentIndex < inputs.length - 1) {
+      const next = inputs[currentIndex + 1];
+      next.focus();
+      next.select();
+    }
   };
 
   const hasScore = defaultScore !== null;
@@ -218,26 +235,15 @@ function RencanaKinerjaGroup({
                     onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    disabled={saving}
-                    aria-busy={saving}
-                    className="border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow disabled:bg-[var(--bg-secondary)] disabled:text-[var(--text-tertiary)]"
+                    className="score-input border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
                     placeholder="-"
-                    title="Nilai RK bilangan bulat 0-100 — tekan Enter atau klik di luar untuk menyimpan"
+                    title="Nilai RK bilangan bulat 0-100 — tekan Enter untuk simpan & lanjut ke RK berikutnya"
                     aria-label={`Nilai RK ${rkName} (bilangan bulat 0-100)`}
                   />
-                  {saving && (
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                      <RefreshCw size={12} className="animate-spin" style={{ color: 'var(--text-secondary)' }} />
-                    </div>
-                  )}
                 </div>
-                {/* Umpan balik simpan: "Menyimpan…" saat request, badge hijau ±2 dtk saat sukses */}
+                {/* Umpan balik simpan — badge hijau ±2 dtk, tanpa status memuat */}
                 <div className="mt-1 min-h-[14px]" aria-live="polite">
-                  {saving ? (
-                    <span className="text-[10px] font-medium flex items-center justify-end gap-1" style={{ color: 'var(--text-secondary)' }}>
-                      Menyimpan…
-                    </span>
-                  ) : justSaved ? (
+                  {justSaved ? (
                     <span className="text-[10px] font-semibold flex items-center justify-end gap-1 animate-fade-in" style={{ color: 'var(--success-text)' }}>
                       <CheckCircle2 size={11} /> Tersimpan
                     </span>
