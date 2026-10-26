@@ -52,6 +52,11 @@ export function KeepAliveManager() {
       }
     };
 
+    // Ping sekali saat sesi baru tersedia. Tanpa ini, ping pertama baru
+    // berjalan 4 menit kemudian — sementara query dashboard tepat setelah
+    // login justru yang paling butuh koneksi hangat.
+    void ping();
+
     // Ping every 4 minutes (240 seconds)
     // Supabase free tier idles after ~5–10 min, so 4 min is a safe interval
     pingIntervalRef.current = setInterval(() => {

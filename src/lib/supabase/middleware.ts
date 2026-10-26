@@ -47,8 +47,35 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // IMPORTANT: getUser() validates the JWT — required for cookie refresh.
-  const { data: { user } } = await supabase.auth.getUser();
+  // Validasi JWT + refresh cookie bila perlu.
+  //
+  // `getClaims()` memverifikasi tanda tangan token secara LOKAL bila proyek
+  // memakai signing key asimetris (proyek ini: ES256). Itu menghilangkan satu
+  // round-trip ke Auth server pada setiap navigasi/prefetch — termasuk tepat
+  // setelah login, saat dashboard pertama kali dibuka. Bila proyek memakai
+  // secret simetris (HS256), Supabase otomatis fallback ke `getUser()`.
+  let user: {
+    id: string;
+    email?: string;
+    user_metadata?: Record<string, unknown>;
+  } | null = null;
+
+  try {
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+    if (claimsError) {
+      console.warn('[Middleware] getClaims gagal:', claimsError.message);
+    }
+    const claims = claimsData?.claims;
+    if (claims?.sub) {
+      user = {
+        id: claims.sub,
+        email: claims.email,
+        user_metadata: claims.user_metadata as Record<string, unknown> | undefined,
+      };
+    }
+  } catch (err) {
+    console.warn('[Middleware] getClaims error:', err);
+  }
 
   const pathname = request.nextUrl.pathname;
   const publicRoutes = ['/login', '/', '/reset-password'];

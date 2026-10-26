@@ -199,10 +199,23 @@ export function Sidebar() {
       if (document.visibilityState === 'visible') warm();
     };
 
-    const timer = setTimeout(warm, 400);
+    // Jangan rebutan bandwidth dengan data halaman yang baru dibuka.
+    // Setelah login, dashboard sedang memuat query pertamanya; prefetch
+    // semua menu 400 ms kemudian membuat beberapa render server berjalan
+    // bersamaan dan justru memperlama skeleton. Tunggu sampai main thread
+    // idle (maks. 2 dtk) supaya halaman utama selesai lebih dulu.
+    let cancelIdle: (() => void) | undefined;
+    if (typeof window.requestIdleCallback === 'function') {
+      const id = window.requestIdleCallback(warm, { timeout: 2000 });
+      cancelIdle = () => window.cancelIdleCallback(id);
+    } else {
+      const id = setTimeout(warm, 1200);
+      cancelIdle = () => clearTimeout(id);
+    }
+
     document.addEventListener('visibilitychange', onVisible);
     return () => {
-      clearTimeout(timer);
+      cancelIdle?.();
       document.removeEventListener('visibilitychange', onVisible);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

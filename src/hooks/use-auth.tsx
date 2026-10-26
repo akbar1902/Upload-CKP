@@ -5,7 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import type { User as SupabaseUser, AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { User } from '@/types/database';
 
-let globalRefreshPromise: Promise<any> | null = null;
+type AuthClient = ReturnType<typeof createClient>;
+type RefreshSessionResult = Awaited<ReturnType<AuthClient['auth']['refreshSession']>>;
+type GetSessionResult = Awaited<ReturnType<AuthClient['auth']['getSession']>>;
+
+let globalRefreshPromise: Promise<RefreshSessionResult> | null = null;
 
 interface AuthContextType {
   supabaseUser: SupabaseUser | null;
@@ -133,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!globalRefreshPromise) {
               globalRefreshPromise = Promise.race([
                 supabase.auth.refreshSession(),
-                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
+                new Promise<RefreshSessionResult>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
               ]).finally(() => {
                 globalRefreshPromise = null;
               });
@@ -229,7 +233,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // getSession() reads from local cache — instant, no network call.
         // However, we wrap it in a timeout just in case the browser storage hangs.
         const sessionPromise = supabase.auth.getSession();
-        const timeoutPromise = new Promise<{data: {session: any}}>((_, reject) => 
+        const timeoutPromise = new Promise<GetSessionResult>((_, reject) =>
           setTimeout(() => reject(new Error('getSession timeout')), 5000)
         );
         const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]);
@@ -246,7 +250,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!globalRefreshPromise) {
               globalRefreshPromise = Promise.race([
                 supabase.auth.refreshSession(),
-                new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
+                new Promise<RefreshSessionResult>((_, reject) => setTimeout(() => reject(new Error('Refresh timeout')), 8000))
               ]).finally(() => {
                 globalRefreshPromise = null;
               });
@@ -337,7 +341,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setSupabaseUser(session?.user ?? null);
         if (session?.user) {
-          await fetchUserProfile(session.user);
+          // JANGAN `await fetchUserProfile()` di listener ini.
+          // Supabase menunggu SEMUA listener `onAuthStateChange` selesai
+          // sebelum `signInWithPassword()` di halaman login dianggap selesai.
+          // Await di sini membuat tombol "Masuk" ikut menunggu dua query
+          // profil (users + employee_profiles) — persis jeda yang terasa.
+          // Pakai metadata sesi dulu (instan), lalu lengkapi profil di latar.
+          const known = currentUserRef.current;
+          if (!known || known.id !== session.user.id) {
+            // Jangan biarkan profil pengguna lama terbawa ke sesi baru.
+            if (known) {
+              currentUserRef.current = null;
+              setUser(null);
+            }
+            // Metadata role dipakai halaman login untuk memilih rute. Bila
+            // metadata tidak memuat role (akun lama), jangan menebak —
+            // biarkan profil dari DB yang menentukan setelah termuat.
+            const metaRole = session.user.user_metadata?.role as string | undefined;
+            if (metaRole) {
+              const fallback = buildFallbackUser(session.user);
+              currentUserRef.current = fallback;
+              setUser(fallback);
+            }
+            void fetchUserProfile(session.user);
+          }
         } else {
           currentUserRef.current = null;
           setUser(null);
