@@ -21,7 +21,7 @@ import {
   Zap,
   Lock,
   FileDown,
-  Plug,
+  Boxes,
   type LucideIcon,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
@@ -174,7 +174,7 @@ export function Sidebar() {
   }
 
   // Semua peran boleh menghubungkan CKP App miliknya sendiri.
-  navItems.push({ href: '/pegawai/integrasi', label: 'Integrasi CKP App', icon: Plug });
+  navItems.push({ href: '/pegawai/integrasi', label: 'All in CKP App', icon: Boxes });
 
   // Prefetch semua rute menu (saat login & saat kembali ke tab) agar pindah
   // menu tidak menunggu render server (terasa instan).

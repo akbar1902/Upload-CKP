@@ -20,6 +20,7 @@ import {
   ArrowDown,
   ArrowRight,
   ArrowUp,
+  Boxes,
   Calendar,
   CheckCircle2,
   CornerDownLeft,
@@ -345,6 +346,16 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
         { id: 'nav-rk', group: 'Navigasi', label: 'Rencana Kinerja', keywords: 'rk', icon: FileText, run: () => go('/rencana_kinerja') },
       );
     }
+
+    // Semua peran: pusat unduhan + panduan + integrasi CKP App.
+    items.push({
+      id: 'nav-ckp-app',
+      group: 'Navigasi',
+      label: 'All in CKP App',
+      keywords: 'integrasi unduh download node.js panduan hubungkan ckp app',
+      icon: Boxes,
+      run: () => go('/pegawai/integrasi'),
+    });
 
     // Aksi
     if (!isPimpinan) {

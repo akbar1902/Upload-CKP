@@ -37,6 +37,8 @@ const ROUTE_LABELS: Record<string, string> = {
   '/admin/monitoring-penilaian': 'Monitoring Penilaian',
   '/pegawai/upload': 'Upload CKP',
   '/pegawai/evaluasi-penilaian': 'Evaluasi Penilaian',
+  '/pegawai/integrasi': 'All in CKP App',
+  '/pegawai/integrasi/pair': 'Hubungkan CKP App',
   '/pegawai/ckp': 'Detail CKP',
   '/pegawai': 'Dashboard',
   '/ketua_tim/rk': 'Rincian RK',

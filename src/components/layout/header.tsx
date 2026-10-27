@@ -31,14 +31,14 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
   }
   if (pathname.startsWith('/pegawai/integrasi/pair/')) {
     return {
-      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Integrasi CKP App', href: '/pegawai/integrasi' }, { label: 'Hubungkan' }],
+      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'All in CKP App', href: '/pegawai/integrasi' }, { label: 'Hubungkan' }],
       title: 'Hubungkan CKP App',
     };
   }
   if (pathname.startsWith('/pegawai/integrasi')) {
     return {
-      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Integrasi CKP App' }],
-      title: 'Integrasi CKP App',
+      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'All in CKP App' }],
+      title: 'All in CKP App',
     };
   }
   if (pathname === '/pimpinan') {

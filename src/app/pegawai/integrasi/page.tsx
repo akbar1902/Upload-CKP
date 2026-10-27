@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createAdminClient, createServerSupabaseClient } from '@/lib/supabase/server';
 import IntegrasiClient from './_client';
 
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'All in CKP App',
+  description: 'Unduh, pasang, dan hubungkan CKP App ke SIKAP dalam satu halaman.',
+};
 
 export default async function IntegrasiCkpAppPage() {
   const supabase = await createServerSupabaseClient();

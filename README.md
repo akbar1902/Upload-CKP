@@ -22,7 +22,7 @@ Rute `/` selalu redirect ke `/login`; middleware yang memutuskan tujuan akhir pe
 
 ### Anggota (pegawai)
 - Login email & password
-- **Integrasi CKP App**: buat/cabut token per pegawai agar aplikasi CKP App lokal bisa mengirim Excel CKP langsung ke SIKAP (tanpa download-upload manual). Lihat bagian *Integrasi CKP App* di bawah.
+- **All in CKP App**: satu halaman untuk mengunduh paket CKP App + Node.js, mengikuti panduan bergambar, dan menghubungkan CKP App lokal ke SIKAP (pairing satu klik). Lihat bagian *All in CKP App* di bawah.
 - Dashboard: sapaan + jabatan/golongan/NIP, alert CKP bulan ini & revisi, 4 KPI (Total Upload, Rata-rata Progres, Disetujui, Menunggu Review), riwayat + search/filter/sort + toggle list/grid
 - Upload Excel CKP per bulan (drag-drop `.xlsx/.xls`, maks 5MB) dengan preview tabel + preview kalender
 - Resolusi RK otomatis: exact master → sub-RK lokal → fuzzy kegiatan (>0.90) → fuzzy RK bigram (>0.95); RK tak dikenal dipetakan manual via modal tim
@@ -140,11 +140,26 @@ supabase/migrations/        # 001-020 (skema + RLS + seed)
 scripts/                    # Util node ad-hoc (cleanup RK, seed dari Excel, cek agregat)
 ```
 
-## Integrasi CKP App
+## All in CKP App
 
-SIKAP menyediakan API token untuk aplikasi **CKP App** lokal (upload bukti dukung →
-Google Drive → susun draft → kirim Excel). Tujuannya menghilangkan langkah
-download-upload Excel manual.
+Halaman **All in CKP App** (`/pegawai/integrasi`) adalah pusat unduhan + panduan +
+integrasi untuk aplikasi **CKP App** lokal (upload bukti dukung → Google Drive →
+susun draft → kirim Excel). Semua kebutuhan pegawai ada di satu halaman:
+
+1. **Unduhan** — Node.js LTS (tautan resmi) dan paket `CKP-App.zip`
+   (`public/download/CKP-App.zip`, ±30 MB, sudah berisi CKP App, rclone portable,
+   extension CKP Companion, dan `BACA-DULU.txt`).
+2. **Panduan 5 langkah** — pasang Node.js, ekstrak & jalankan CKP App, hubungkan
+   Google Drive lewat rclone (`gdrive:`), hubungkan ke SIKAP, lalu kirim CKP.
+   Setiap langkah punya ilustrasi UI; panduan extension Chrome bersifat opsional.
+3. **Integrasi** — status perangkat terhubung, tombol buka CKP App, alamat SIKAP
+   yang bisa disalin, token manual opsional, dan cabut akses per perangkat.
+
+Untuk memperbarui paket unduhan, ganti `public/download/CKP-App.zip` dengan hasil
+`Buat Paket Untuk Rekan.bat` dari repo CKP App, lalu sesuaikan label versi/ukuran di
+`DownloadSection` bila berubah. ZIP tidak ikut di-precache PWA (lihat `publicExcludes`
+di `next.config.ts`). File ZIP berada di `public/`, jadi tetap dilindungi login oleh
+`src/proxy.ts` (jangan menambahkan `zip` ke pengecualian matcher).
 
 ### Alur
 
@@ -158,8 +173,8 @@ download-upload Excel manual.
    yang sama dengan web (versi, preservasi nilai, status `submitted`, audit log,
    notifikasi).
 
-Opsi token manual tetap tersedia di halaman **Integrasi CKP App** untuk kebutuhan
-khusus. Token manual hanya ditampilkan sekali.
+Opsi token manual tetap tersedia di bagian **Koneksi manual** pada halaman
+**All in CKP App** untuk kebutuhan khusus. Token manual hanya ditampilkan sekali.
 
 ### Endpoint
 
