@@ -17,6 +17,6 @@ export const config = {
      *   diproses middleware supaya tidak dialihkan ke /login (dulu
      *   manifest.webmanifest kena 307 untuk pengguna yang belum login)
      */
-    '/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|workbox-|swe-worker-|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|webmanifest)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|ckp-app/|manifest.webmanifest|sw.js|workbox-|swe-worker-|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|webmanifest)$).*)',
   ],
 };
