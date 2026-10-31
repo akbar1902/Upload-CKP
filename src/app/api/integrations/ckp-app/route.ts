@@ -3,7 +3,8 @@ import { fetchAllRows } from '@/lib/supabase/read';
 import { authenticateIntegrationRequest } from '@/lib/integration/auth';
 import {
   buildRkIndex,
-  findRkByName,
+  buildSubRkIndex,
+  resolveRkTarget,
   validateIntegrationUpload,
 } from '@/lib/integration/payload.mjs';
 import { parseExcelFile } from '@/lib/excel/parser';
@@ -18,6 +19,11 @@ interface RkRow {
   rencana_kinerja: string;
   tim_kerja: string | null;
   tahun: number | null;
+}
+
+interface SubRkRow {
+  kegiatan_nama: string | null;
+  rk_id: string | null;
 }
 
 function json(body: unknown, status = 200) {
@@ -46,7 +52,7 @@ export async function GET(request: Request) {
       return json({ success: false, error: 'Bulan/tahun tidak valid.' }, 400);
     }
 
-    const [mapping, assignments, periode, lastUpload] = await Promise.all([
+    const [mapping, assignments, periode, lastUpload, subRkRows] = await Promise.all([
       fetchAllRows<RkRow>((from, to) =>
         admin
           .from('rk_ketua_tim_mapping')
@@ -74,6 +80,16 @@ export async function GET(request: Request) {
         .order('version', { ascending: false })
         .limit(1)
         .maybeSingle(),
+      // Sub-RK (RK Anggota) milik pegawai ini — inilah yang dipakai untuk
+      // mencocokkan kolom "Rencana Kinerja" pada Excel CKP App.
+      fetchAllRows<SubRkRow>((from, to) =>
+        admin
+          .from('master_kegiatan_anggota')
+          .select('kegiatan_nama, rk_id')
+          .eq('user_id', auth.userId)
+          .order('kegiatan_nama', { ascending: true })
+          .range(from, to),
+      ),
     ]);
 
     if (assignments.error) {
@@ -96,6 +112,22 @@ export async function GET(request: Request) {
       return true;
     });
 
+    const parentTahun = new Map(mappingTahun.map((rk) => [String(rk.id), rk]));
+    const subRks = (Array.isArray(subRkRows) ? subRkRows : [])
+      .map((row) => {
+        const parent = parentTahun.get(String(row.rk_id || ''));
+        if (!parent) return null;
+        const kegiatan = String(row.kegiatan_nama || '').trim();
+        if (!kegiatan) return null;
+        return {
+          kegiatan_nama: kegiatan,
+          rk_id: String(parent.id),
+          rencana_kinerja: parent.rencana_kinerja,
+        };
+      })
+      .filter((row): row is { kegiatan_nama: string; rk_id: string; rencana_kinerja: string } => Boolean(row))
+      .sort((a, b) => a.kegiatan_nama.localeCompare(b.kegiatan_nama));
+
     return json({
       success: true,
       user: {
@@ -106,6 +138,9 @@ export async function GET(request: Request) {
         unit_kerja: auth.user.unit_kerja,
       },
       rks,
+      // Sub-RK (RK Anggota) yang harus dicocokkan dengan kolom "Rencana Kinerja"
+      // di Excel. `rks` di atas tetap dikirim untuk kompatibilitas aplikasi lama.
+      subRks,
       source: assignedIds.size > 0 ? 'assigned' : 'master',
       periode: {
         bulan,
@@ -201,28 +236,46 @@ export async function POST(request: Request) {
       );
     }
 
-    const index = buildRkIndex(mappingTahun);
+    const parentById = new Map(mappingTahun.map((rk) => [String(rk.id), rk]));
+    const parentIds = new Set(parentById.keys());
+
+    // Sub-RK (RK Anggota) — sumber pencocokan kolom "Rencana Kinerja".
+    // Sub-RK milik pegawai diprioritaskan; sub-RK pegawai lain hanya fallback
+    // (mis. nama lama yang sudah dipakai lintas tim).
+    const subRkRows = await fetchAllRows<{ kegiatan_nama: string | null; rk_id: string | null; user_id: string | null }>(
+      (from, to) =>
+        admin
+          .from('master_kegiatan_anggota')
+          .select('kegiatan_nama, rk_id, user_id')
+          .order('kegiatan_nama', { ascending: true })
+          .range(from, to),
+    );
+    const subRkSendiri = buildSubRkIndex(subRkRows, { hanyaParent: parentIds, userId: auth.userId });
+    const subRkSemua = buildSubRkIndex(subRkRows, { hanyaParent: parentIds });
+    const rkUtama = buildRkIndex(mappingTahun);
+
     const unmatchedRks = new Set<string>();
     const rkTeamMapping: Record<string, { rk_id: string }> = {};
     const validRKsToAssign = new Set<string>();
 
     const entries: UploadItem[] = parsed.entries.map((entry) => {
       const rawRK = String(entry.rencana_kinerja || '').trim();
-      const hit = findRkByName(index, rawRK);
-      if (!hit) {
+      const target = resolveRkTarget(rawRK, { subRkSendiri, subRkSemua, rkUtama });
+      const parent = target ? parentById.get(target.rkId) : null;
+      if (!parent) {
         if (rawRK) unmatchedRks.add(rawRK);
         return { entry, rawRK };
       }
 
-      validRKsToAssign.add(hit.id);
+      validRKsToAssign.add(String(parent.id));
       const kegiatan = String(entry.kegiatan || '').trim();
-      if (kegiatan) rkTeamMapping[kegiatan] = { rk_id: hit.id };
+      if (kegiatan) rkTeamMapping[kegiatan] = { rk_id: String(parent.id) };
 
       return {
         entry,
-        matchedRK: hit.rencana_kinerja,
-        rawRK: rawRK || hit.rencana_kinerja,
-        matchedRkId: hit.id,
+        matchedRK: parent.rencana_kinerja,
+        rawRK: rawRK || parent.rencana_kinerja,
+        matchedRkId: String(parent.id),
       };
     });
 
@@ -230,9 +283,9 @@ export async function POST(request: Request) {
       return json(
         {
           success: false,
-          error: 'Ada RK di file Excel yang belum terdaftar di SIKAP.',
+          error: 'Ada RK di file Excel yang tidak cocok dengan Sub-RK (RK Anggota) pegawai ini.',
           unmatchedRks: [...unmatchedRks],
-          hint: 'Buka CKP App → Profil & rekan → Tarik RK dari SIKAP, lalu susun ulang draft.',
+          hint: 'Pastikan kolom "Rencana Kinerja" berisi Sub-RK yang ditugaskan ke pegawai ini (SIKAP → Manajemen RK → Sub-RK Anggota). Di CKP App, tekan "Tarik RK dari SIKAP" lalu pilih RK yang sesuai.',
         },
         422,
       );
