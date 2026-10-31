@@ -1,6 +1,6 @@
 {
-    "versi":  "1.2.0",
-    "url":  "CKP-Update-1.2.0.zip",
-    "tanggal":  "2026-10-31",
-    "catatan":  "Perbaikan integrasi RK ke Sub-RK, peta RK per pegawai, dan pembersihan daftar RK."
+    "versi":  "1.2.1",
+    "url":  "CKP-Update-1.2.1.zip",
+    "tanggal":  "2026-11-01",
+    "catatan":  "Pembersihan otomatis daftar RK yang menumpuk (85/86) + sync mengikuti peta RK per pegawai."
 }
