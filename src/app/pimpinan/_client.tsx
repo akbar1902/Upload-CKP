@@ -17,7 +17,7 @@ import type { CKPUpload, UploadStatus, User } from '@/types/database';
 import { toast } from 'sonner';
 import {
   Users, Clock, CheckCircle2, Search, Zap,
-  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, Archive
+  RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, Archive, Lock
 } from 'lucide-react';
 
 import { KPICard } from '@/components/dashboard/kpi-card';
@@ -46,9 +46,25 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
 }
 
 // ─── Main page ─────────────────────────────────────────────
-export default function PimpinanDashboard() {
+export default function PimpinanDashboard({
+  readOnly = false,
+  viewerRole,
+}: {
+  /** Paksa mode lihat-saja (dipakai halaman /monitoring untuk non-pimpinan). */
+  readOnly?: boolean;
+  /** Peran efektif dari server; fallback ke sesi di client. */
+  viewerRole?: string;
+} = {}) {
   const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
+
+  // Hanya pimpinan yang boleh menilai & menyetujui. Admin dan peran lain
+  // (ketua_tim, anggota) melihat dashboard ini sebagai view-only.
+  const role = viewerRole ?? user?.role ?? 'anggota';
+  const canManage = !readOnly && role === 'pimpinan';
+  // Halaman pengelolaan (Data Pegawai / Monitoring Penilaian) hanya untuk
+  // pimpinan & admin — middleware menolak peran lain.
+  const canOpenManagementPages = role === 'pimpinan' || role === 'admin';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -150,6 +166,12 @@ export default function PimpinanDashboard() {
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
+  // Anggota hanya boleh melihat barisnya sendiri (RLS ckp_uploads juga
+  // membatasi data mereka ke upload miliknya).
+  const scopedUsers = useMemo(() => {
+    if (role === 'anggota' && user) return allUsers.filter((u) => u.id === user.id);
+    return allUsers;
+  }, [allUsers, role, user]);
   const error = queryError ? queryError.message : null;
 
   // Realtime
@@ -178,7 +200,7 @@ export default function PimpinanDashboard() {
 
   // Build rows
   const pegawaiRows = useMemo((): PegawaiRow[] => {
-    return allUsers.map(user => {
+    return scopedUsers.map(user => {
       const userUploads = uploads.filter(u => u.user_id === user.id);
       if (userUploads.length === 0) {
         return { user, upload: null };
@@ -226,7 +248,7 @@ export default function PimpinanDashboard() {
         upload: aggregatedUpload,
       };
     });
-  }, [allUsers, uploads, isTriwulan]);
+  }, [scopedUsers, uploads, isTriwulan]);
 
   // Filter and sort by search and status
   const filteredRows = useMemo(() => {
@@ -275,7 +297,7 @@ export default function PimpinanDashboard() {
   }, [pegawaiRows, searchQuery, statusFilter]);
 
   // Stats
-  const totalPegawai = allUsers.length;
+  const totalPegawai = scopedUsers.length;
 
   const uniqueUploads = useMemo(() => {
     return pegawaiRows.map(r => r.upload).filter((u): u is CKPUpload & { user?: User } => u !== null);
@@ -320,7 +342,7 @@ export default function PimpinanDashboard() {
   };
 
   // ── Error state ─────────────────────────────────────────
-  if (error && !loading && uploads.length === 0 && allUsers.length === 0) {
+  if (error && !loading && uploads.length === 0 && scopedUsers.length === 0) {
     return (
       <>
         <Header />
@@ -367,9 +389,15 @@ export default function PimpinanDashboard() {
                 Filter aktif
               </span>
             )}
+            {!canManage && (
+              <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium"
+                    style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}>
+                <Lock className="h-3 w-3" /> Lihat saja
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
-            {pendingCount > 0 && (
+            {canManage && pendingCount > 0 && (
               <Link
                 href={`/pimpinan/approval?bulan=${bulan}&tahun=${tahun}`}
                 className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-white bg-[var(--primary)] hover:bg-[var(--primary-hover)] shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5"
@@ -379,13 +407,15 @@ export default function PimpinanDashboard() {
                 <span className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] leading-none ml-1">{pendingCount}</span>
               </Link>
             )}
-            <Link
-              href={user?.role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
-              className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-[var(--primary)] bg-[var(--card-bg)] border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] shadow-sm transition-all duration-200"
-            >
-              <Users className="h-4 w-4 text-[var(--primary)]" />
-              Monitoring Penilaian
-            </Link>
+            {canOpenManagementPages && (
+              <Link
+                href={role === 'admin' ? `/admin/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}` : `/pimpinan/monitoring-penilaian?bulan=${bulan}&tahun=${tahun}`}
+                className="hidden sm:flex items-center gap-2 px-3.5 py-2 mr-2 rounded-xl text-[13px] font-semibold text-[var(--primary)] bg-[var(--card-bg)] border border-[var(--sand-border)] hover:bg-[var(--sand-subtle)] shadow-sm transition-all duration-200"
+              >
+                <Users className="h-4 w-4 text-[var(--primary)]" />
+                Monitoring Penilaian
+              </Link>
+            )}
             <PeriodFilter
               bulan={bulan} tahun={tahun}
               onBulanChange={setBulan} onTahunChange={setTahun}
@@ -437,14 +467,16 @@ export default function PimpinanDashboard() {
               <h3 className="text-[17px] font-semibold tracking-tight" style={{ color: 'var(--text-primary)' }}>Rekap per Pegawai</h3>
               <p className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{filteredRows.length} pegawai ditampilkan</p>
             </div>
-            <Link
-              href="/pimpinan/pegawai"
-              prefetch={true}
-              className="lihat-tabel-link text-[13px] font-medium flex items-center gap-1 transition-colors"
-              style={{ color: 'var(--primary)' }}
-            >
-              Lihat tabel lengkap <ArrowRight className="h-3 w-3" />
-            </Link>
+            {canOpenManagementPages && (
+              <Link
+                href="/pimpinan/pegawai"
+                prefetch={true}
+                className="lihat-tabel-link text-[13px] font-medium flex items-center gap-1 transition-colors"
+                style={{ color: 'var(--primary)' }}
+              >
+                Lihat tabel lengkap <ArrowRight className="h-3 w-3" />
+              </Link>
+            )}
           </div>
           {/* Controls: Search and Filter */}
           <div className="flex flex-col md:flex-row gap-3 mb-5">
@@ -517,7 +549,7 @@ export default function PimpinanDashboard() {
           ) : (
             <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => (
-                <PegawaiCard key={row.user.id} row={row} bulan={bulan} tahun={tahun} />
+                <PegawaiCard key={row.user.id} row={row} bulan={bulan} tahun={tahun} readOnly={!canManage} />
               ))}
             </div>
           )}

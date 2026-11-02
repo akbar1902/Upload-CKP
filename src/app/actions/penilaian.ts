@@ -566,14 +566,15 @@ export async function approveAction(uploadId: string, action: string, catatan: s
 
     const adminClient = createAdminClient();
 
-    // Wajib pimpinan/admin (baca DB users — jangan percaya metadata sesi).
+    // Wajib pimpinan (baca DB users — jangan percaya metadata sesi).
+    // Admin bersifat view-only: tidak boleh menyetujui/membuka kembali CKP.
     const { data: callerRow } = await adminClient
       .from('users')
       .select('role')
       .eq('id', user.id)
       .maybeSingle();
-    if (!callerRow || !['pimpinan', 'admin'].includes(callerRow.role)) {
-      return { success: false, error: 'Hanya pimpinan/admin yang dapat memproses persetujuan CKP.' };
+    if (!callerRow || callerRow.role !== 'pimpinan') {
+      return { success: false, error: 'Hanya pimpinan yang dapat memproses persetujuan CKP.' };
     }
 
     // Validasi whitelist aksi.

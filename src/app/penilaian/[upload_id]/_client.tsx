@@ -344,6 +344,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const router = useRouter();
   const searchParams = useSearchParams();
   const source = searchParams.get('source');
+  // Dibuka dari halaman Monitoring CKP oleh peran tanpa hak menilai
+  // (admin, ketua tim, anggota) → tampilan hanya-baca.
+  const readOnlyView = searchParams.get('readonly') === '1';
   const paramBulan = searchParams.get('bulan');
   const paramTahun = searchParams.get('tahun');
   const isTriwulan = typeof paramBulan === 'string' && paramBulan.startsWith('T');
@@ -796,9 +799,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   // Pimpinan harus menekan tombol 'Buka Kembali' terlebih dahulu untuk membuka kunci nilai dan menilai ulang.
   // Ketua tim tidak boleh menilai CKP miliknya sendiri (dinilai pimpinan).
   const isOwnUpload = !!currentUser && !!upload && currentUser.id === (upload as any).user_id;
-  const canReview = isKetuaTim && !isOwnUpload && (upload.status === 'submitted' || upload.status === 'scored');
-  
-  const canReopen = isPimpinan && upload.status === 'approved';
+  const canReview = isKetuaTim && !readOnlyView && !isOwnUpload && (upload.status === 'submitted' || upload.status === 'scored');
+
+  const canReopen = isPimpinan && !readOnlyView && upload.status === 'approved';
   const bulanNama = getBulanName(upload.bulan);
   const avgPct = Math.min(upload.avg_progres || 0, 100);
   
@@ -848,14 +851,14 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             <button onClick={handleExport} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm">
               <Download size={14} /> Export
             </button>
-            {isAdmin ? (
+            {isAdmin || (readOnlyView && !isPimpinan) ? (
               <button
                 disabled
                 className="btn-primary opacity-50 cursor-not-allowed h-10 px-4 text-[13px] flex items-center gap-1.5"
               >
-                <Lock size={14} className="mr-1" /> View Only (Admin)
+                <Lock size={14} className="mr-1" /> View Only{isAdmin ? ' (Admin)' : ''}
               </button>
-            ) : isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') ? (
+            ) : isPimpinan && !readOnlyView && (upload.status === 'submitted' || upload.status === 'scored') ? (
               <button
                 onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
                 className={`btn-primary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm ${!allScored ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -1094,7 +1097,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            {isPimpinan && (upload.status === 'submitted' || upload.status === 'scored') && (
+            {isPimpinan && !readOnlyView && (upload.status === 'submitted' || upload.status === 'scored') && (
               <button
                 onClick={() => { setDefaultModalAction('approved'); setShowApprovalModal(true); }}
                 className="btn-primary h-10 px-4 text-[13px] flex items-center gap-1.5"

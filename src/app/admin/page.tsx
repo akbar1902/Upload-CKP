@@ -98,7 +98,7 @@ export default async function AdminPage({
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <PimpinanDashboardClient />
+      <PimpinanDashboardClient readOnly viewerRole="admin" />
     </HydrationBoundary>
   );
 }

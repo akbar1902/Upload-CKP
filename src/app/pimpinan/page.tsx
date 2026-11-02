@@ -17,6 +17,19 @@ export default async function PimpinanPage({
 
   if (!user) redirect('/login');
 
+  // Role aplikasi: metadata JWT dulu, fallback ke tabel users. Dipakai agar
+  // dashboard tahu apakah pengguna boleh menilai (hanya pimpinan).
+  const metadataRole = user.user_metadata?.role;
+  let appRole: string | null = typeof metadataRole === 'string' ? metadataRole : null;
+  if (!appRole || appRole === 'pegawai') {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    appRole = dbUser?.role ?? appRole;
+  }
+
   const resolvedParams = await searchParams;
   const rawBulan = resolvedParams.bulan as string | undefined;
   const qTahun = resolvedParams.tahun ? parseInt(resolvedParams.tahun as string) : undefined;
@@ -85,7 +98,7 @@ export default async function PimpinanPage({
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
       <Suspense fallback={null}>
-        <PimpinanDashboardClient />
+        <PimpinanDashboardClient viewerRole={appRole ?? undefined} />
       </Suspense>
     </HydrationBoundary>
   );

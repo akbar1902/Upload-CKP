@@ -160,16 +160,19 @@ export function Sidebar() {
     navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     navItems.push({ href: '/admin/periode', label: 'Pengaturan Periode', icon: Lock });
     navItems.push({ href: '/admin/logs', label: 'Log Aktivitas', icon: Zap });
-  } else if (isPimpinan) {
-    navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
-    navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
-  }
+  } else {
+    // Monitoring CKP terbuka untuk SEMUA akun (view only), tetapi hanya
+    // pimpinan yang boleh menilai & menyetujui dari halaman detailnya.
+    navItems.push({ href: '/monitoring', label: 'Monitoring CKP', icon: LayoutDashboard });
 
-  if (!isAdmin) {
-    if (!isPimpinan) {
+    if (isPimpinan) {
+      navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
+      navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
+    } else {
       navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
       navItems.push({ href: '/pegawai/evaluasi-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     }
+
     navItems.push({ href: '/rencana_kinerja', label: 'Rencana Kinerja', icon: Users });
   }
 

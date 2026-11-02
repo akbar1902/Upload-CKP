@@ -324,6 +324,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       items.push(
         { id: 'nav-pimpinan', group: 'Navigasi', label: 'Dashboard Pimpinan', icon: LayoutDashboard, run: () => go('/pimpinan') },
         { id: 'nav-ketua', group: 'Navigasi', label: 'Dashboard Ketua Tim', icon: LayoutDashboard, run: () => go('/ketua_tim') },
+        { id: 'nav-monitoring-ckp', group: 'Navigasi', label: 'Monitoring CKP', keywords: 'monitoring ckp rekap pegawai', icon: LayoutDashboard, run: () => go('/monitoring') },
         { id: 'nav-data-pegawai', group: 'Navigasi', label: 'Data Pegawai', keywords: 'user', icon: Users, run: () => go('/pimpinan/pegawai') },
         { id: 'nav-export', group: 'Navigasi', label: 'Evaluasi Penilaian', keywords: 'export pdf', icon: FileDown, run: () => go('/admin/export-penilaian') },
         { id: 'nav-monitoring', group: 'Navigasi', label: 'Monitoring Penilaian', keywords: 'tunggakan', icon: Users, run: () => go('/pimpinan/monitoring-penilaian') },
@@ -334,6 +335,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
       items.push(
         { id: 'nav-ketua', group: 'Navigasi', label: 'Dashboard Ketua Tim', icon: LayoutDashboard, run: () => go('/ketua_tim') },
         { id: 'nav-pegawai', group: 'Navigasi', label: 'Dashboard Anggota', icon: LayoutDashboard, run: () => go('/pegawai') },
+        { id: 'nav-monitoring-ckp', group: 'Navigasi', label: 'Monitoring CKP', keywords: 'monitoring ckp rekap pegawai', icon: LayoutDashboard, run: () => go('/monitoring') },
         { id: 'nav-upload', group: 'Navigasi', label: 'Upload CKP', keywords: 'unggah excel', icon: Upload, run: () => go('/pegawai/upload') },
         { id: 'nav-evaluasi', group: 'Navigasi', label: 'Evaluasi Penilaian', keywords: 'export pdf', icon: FileDown, run: () => go('/pegawai/evaluasi-penilaian') },
         { id: 'nav-rk', group: 'Navigasi', label: 'Rencana Kinerja', keywords: 'rk', icon: FileText, run: () => go('/rencana_kinerja') },
@@ -341,6 +343,7 @@ function CommandPalette({ onClose }: { onClose: () => void }) {
     } else {
       items.push(
         { id: 'nav-pegawai', group: 'Navigasi', label: 'Dashboard Anggota', icon: LayoutDashboard, run: () => go('/pegawai') },
+        { id: 'nav-monitoring-ckp', group: 'Navigasi', label: 'Monitoring CKP', keywords: 'monitoring ckp rekap pegawai', icon: LayoutDashboard, run: () => go('/monitoring') },
         { id: 'nav-upload', group: 'Navigasi', label: 'Upload CKP', keywords: 'unggah excel', icon: Upload, run: () => go('/pegawai/upload') },
         { id: 'nav-evaluasi', group: 'Navigasi', label: 'Evaluasi Penilaian', keywords: 'export pdf', icon: FileDown, run: () => go('/pegawai/evaluasi-penilaian') },
         { id: 'nav-rk', group: 'Navigasi', label: 'Rencana Kinerja', keywords: 'rk', icon: FileText, run: () => go('/rencana_kinerja') },

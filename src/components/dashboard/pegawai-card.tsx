@@ -15,6 +15,12 @@ export interface PegawaiCardProps {
   source?: string;
   bulan?: string | number;
   tahun?: number;
+  /**
+   * Mode lihat-saja. Halaman detail dibuka dengan `readonly=1` sehingga
+   * pengguna tanpa hak menilai (admin, ketua tim, anggota) tidak bisa
+   * mengubah nilai atau menyetujui CKP.
+   */
+  readOnly?: boolean;
 }
 
 // unit_kerja yang isinya hanya nama instansi (bukan unit/tim kerja sebenarnya)
@@ -31,7 +37,7 @@ function subtitleUnit(user: User): string {
   return user.nip || '—';
 }
 
-export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
+export function PegawaiCard({ row, source, bulan, tahun, readOnly }: PegawaiCardProps) {
   const { user, upload } = row;
   const initials = user.full_name
     .split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -128,6 +134,7 @@ export function PegawaiCard({ row, source, bulan, tahun }: PegawaiCardProps) {
               if (source) q.set('source', source);
               if (bulan !== undefined && bulan !== null) q.set('bulan', String(bulan));
               if (tahun) q.set('tahun', String(tahun));
+              if (readOnly) q.set('readonly', '1');
               const s = q.toString();
               return s ? `?${s}` : '';
             })()}`}

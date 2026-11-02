@@ -16,7 +16,12 @@ interface BreadcrumbConfig {
   title: string;
 }
 
-function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbConfig {
+function getBreadcrumbConfig(pathname: string, isPimpinan: boolean, role?: string): BreadcrumbConfig {
+  const dashboardHref = role === 'admin'
+    ? '/admin'
+    : isPimpinan
+      ? '/pimpinan'
+      : (role === 'ketua_tim' ? '/ketua_tim' : '/pegawai');
   if (pathname === '/pegawai') {
     return {
       crumbs: [{ label: 'Dashboard' }],
@@ -70,6 +75,12 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean): BreadcrumbC
     return {
       crumbs: [{ label: 'Dashboard', href: '/pimpinan' }, { label: 'Data Pegawai', href: '/pimpinan/pegawai' }, { label: 'Detail Pegawai' }],
       title: 'Detail Pegawai',
+    };
+  }
+  if (pathname === '/monitoring') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: dashboardHref }, { label: 'Monitoring CKP' }],
+      title: 'Monitoring CKP',
     };
   }
   if (pathname.includes('/monitoring-penilaian')) {
@@ -182,7 +193,7 @@ export function Header({
   const { open: openCommandPalette } = useCommandPalette();
   const isPimpinan = user?.role === 'pimpinan' || user?.role === 'admin';
 
-  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan);
+  const { crumbs, title } = getBreadcrumbConfig(pathname, isPimpinan, user?.role);
 
   const initials = user?.full_name
     ?.split(' ')

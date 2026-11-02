@@ -1,0 +1,127 @@
+import { Suspense } from 'react';
+import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
+import type { CKPUpload, User } from '@/types/database';
+import { getDefaultPeriod } from '@/lib/utils';
+import PimpinanDashboardClient from '@/app/pimpinan/_client';
+
+/**
+ * Monitoring CKP untuk SEMUA peran.
+ *
+ * Halaman ini menampilkan rekap CKP per pegawai (sama seperti dashboard
+ * pimpinan/admin). Hak akses:
+ *  - pimpinan  → boleh menilai & menyetujui (lewat halaman detail).
+ *  - admin, ketua_tim, anggota → hanya melihat (view only).
+ *
+ * Data dibaca lewat client RLS seperti dashboard pimpinan, jadi cakupan
+ * baris otomatis mengikuti kebijakan RLS masing-masing peran.
+ */
+export default async function MonitoringPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  const user = session?.user;
+
+  if (!user) redirect('/login');
+
+  // Role aplikasi: metadata JWT dulu, fallback ke tabel users.
+  const metadataRole = user.user_metadata?.role;
+  let appRole: string | null = typeof metadataRole === 'string' ? metadataRole : null;
+  if (!appRole || appRole === 'pegawai') {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    appRole = dbUser?.role ?? appRole;
+  }
+  const role = appRole ?? 'anggota';
+
+  const resolvedParams = await searchParams;
+  const rawBulan = resolvedParams.bulan as string | undefined;
+  const qTahun = resolvedParams.tahun ? parseInt(resolvedParams.tahun as string) : undefined;
+
+  const defaultPeriod = getDefaultPeriod(10);
+  // Dukung mode bulan (number) dan triwulan T1–T4 (string) agar queryKey
+  // prefetch cocok dengan _client.tsx: ['pimpinan-uploads', bulan, tahun].
+  let bulan: string | number = defaultPeriod.bulan;
+  if (rawBulan && rawBulan.startsWith('T')) {
+    bulan = rawBulan;
+  } else if (rawBulan) {
+    const parsed = parseInt(rawBulan);
+    if (!Number.isNaN(parsed)) bulan = parsed;
+  }
+  const tahun = qTahun || defaultPeriod.tahun;
+
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
+  });
+
+  try {
+    await queryClient.prefetchQuery({
+      queryKey: ['pimpinan-uploads', bulan, tahun],
+      queryFn: async () => {
+        const triwulanMap: Record<string, number[]> = {
+          T1: [1, 2, 3],
+          T2: [4, 5, 6],
+          T3: [7, 8, 9],
+          T4: [10, 11, 12],
+        };
+
+        let uploadsQuery = supabase
+          .from('ckp_uploads')
+          .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
+          .eq('tahun', tahun)
+          .order('uploaded_at', { ascending: false });
+        uploadsQuery =
+          typeof bulan === 'string' && bulan.startsWith('T')
+            ? uploadsQuery.in('bulan', triwulanMap[bulan] || [])
+            : uploadsQuery.eq('bulan', bulan);
+
+        const [uploadsRes, usersRes] = await Promise.all([
+          uploadsQuery,
+          supabase
+            .from('users')
+            .select('id, email, full_name, nip, role, unit_kerja, is_active, rk_ketua_tim_mapping!rk_ketua_tim_mapping_ketua_tim_id_fkey(tim_kerja)')
+            .in('role', ['anggota', 'ketua_tim'])
+            .eq('is_active', true)
+            .order('full_name'),
+        ]);
+
+        if (uploadsRes.error) throw uploadsRes.error;
+        if (usersRes.error) throw usersRes.error;
+
+        const newUploads = (uploadsRes.data ?? []).map((u: Record<string, unknown>) => ({
+          ...u,
+          user: u.user as User | undefined,
+        })) as (CKPUpload & { user?: User })[];
+
+        type UserWithMapping = User & {
+          rk_ketua_tim_mapping?: { tim_kerja: string | null }[] | null;
+        };
+        const newUsers = ((usersRes.data as UserWithMapping[] | null) || []).map((u) => {
+          const mappings = u.rk_ketua_tim_mapping ?? [];
+          const timKerja = mappings.find((m) => m.tim_kerja)?.tim_kerja ?? null;
+          return { ...u, unit_kerja: timKerja || u.unit_kerja || null } as User;
+        });
+
+        return { uploads: newUploads, users: newUsers };
+      },
+      staleTime: 1000 * 60 * 5,
+    });
+  } catch {
+    // Prefetch bersifat optimisasi: bila gagal, client tetap memuat sendiri.
+  }
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <Suspense fallback={null}>
+        <PimpinanDashboardClient readOnly={role !== 'pimpinan'} viewerRole={role} />
+      </Suspense>
+    </HydrationBoundary>
+  );
+}
