@@ -4,7 +4,7 @@ import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { runSafeRead } from '@/lib/supabase/read';
+import { runSafeRead, withTimeoutRetry } from '@/lib/supabase/read';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { Header } from '@/components/layout/header';
@@ -26,6 +26,7 @@ import { PegawaiCard, PegawaiCardSkeleton, type PegawaiRow } from '@/components/
 import { ScreenshotButton } from '@/components/ui/screenshot-button';
 import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
 import { usePeriodParams } from '@/hooks/use-period-params';
+import { getMonitoringRekap } from '@/app/actions/monitoring';
 
 // ─── Completion Rate Widget ────────────────────────────────
 function CompletionWidget({ uploaded, total, loading }: { uploaded: number; total: number; loading: boolean }) {
@@ -49,11 +50,18 @@ function CompletionWidget({ uploaded, total, loading }: { uploaded: number; tota
 export default function PimpinanDashboard({
   readOnly = false,
   viewerRole,
+  serverData = false,
 }: {
   /** Paksa mode lihat-saja (dipakai halaman /monitoring untuk non-pimpinan). */
   readOnly?: boolean;
   /** Peran efektif dari server; fallback ke sesi di client. */
   viewerRole?: string;
+  /**
+   * Ambil data lewat server action (service-role) alih-alih query browser.
+   * Dipakai /monitoring agar semua peran melihat rekap seluruh pegawai,
+   * bukan hanya baris yang lolos RLS miliknya sendiri.
+   */
+  serverData?: boolean;
 } = {}) {
   const supabase = useMemo(() => createClient(), []);
   const { user, loading: authLoading } = useAuth();
@@ -62,6 +70,8 @@ export default function PimpinanDashboard({
   // (ketua_tim, anggota) melihat dashboard ini sebagai view-only.
   const role = viewerRole ?? user?.role ?? 'anggota';
   const canManage = !readOnly && role === 'pimpinan';
+  // Nilai (skor SKP) hanya boleh dilihat admin & pimpinan.
+  const canViewScores = role === 'pimpinan' || role === 'admin';
   // Halaman pengelolaan (Data Pegawai / Monitoring Penilaian) hanya untuk
   // pimpinan & admin — middleware menolak peran lain.
   const canOpenManagementPages = role === 'pimpinan' || role === 'admin';
@@ -96,8 +106,25 @@ export default function PimpinanDashboard({
 
   const { data, isPending: queryPending, isFetching: queryFetching, error: queryError, refetch } = useQuery({
     queryKey: ['pimpinan-uploads', bulan, tahun],
-    queryFn: () =>
-      runSafeRead(async (supabase, signal) => {
+    queryFn: () => {
+      // /monitoring: data diambil lewat server action (service-role) agar
+      // semua peran melihat rekap seluruh pegawai.
+      if (serverData) {
+        return withTimeoutRetry(() => getMonitoringRekap(bulan, tahun), {
+          attempts: 2,
+          timeoutMs: 15000,
+        }).then((res) => {
+          if (res.error || !res.data) {
+            throw new Error(res.error || 'Gagal memuat data monitoring');
+          }
+          return {
+            uploads: res.data.uploads as unknown as (CKPUpload & { user?: User })[],
+            users: res.data.users as unknown as User[],
+          };
+        });
+      }
+
+      return runSafeRead(async (supabase, signal) => {
         let uploadsQuery = supabase
           .from('ckp_uploads')
           .select('*, user:user_id(id, email, full_name, nip, role, unit_kerja, is_active)')
@@ -145,7 +172,8 @@ export default function PimpinanDashboard({
         });
 
         return { uploads: newUploads, users: newUsers };
-      }),
+      });
+    },
     enabled: !!user && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -166,12 +194,6 @@ export default function PimpinanDashboard({
 
   const uploads = data?.uploads || [];
   const allUsers = data?.users || [];
-  // Anggota hanya boleh melihat barisnya sendiri (RLS ckp_uploads juga
-  // membatasi data mereka ke upload miliknya).
-  const scopedUsers = useMemo(() => {
-    if (role === 'anggota' && user) return allUsers.filter((u) => u.id === user.id);
-    return allUsers;
-  }, [allUsers, role, user]);
   const error = queryError ? queryError.message : null;
 
   // Realtime
@@ -200,7 +222,7 @@ export default function PimpinanDashboard({
 
   // Build rows
   const pegawaiRows = useMemo((): PegawaiRow[] => {
-    return scopedUsers.map(user => {
+    return allUsers.map(user => {
       const userUploads = uploads.filter(u => u.user_id === user.id);
       if (userUploads.length === 0) {
         return { user, upload: null };
@@ -248,7 +270,7 @@ export default function PimpinanDashboard({
         upload: aggregatedUpload,
       };
     });
-  }, [scopedUsers, uploads, isTriwulan]);
+  }, [allUsers, uploads, isTriwulan]);
 
   // Filter and sort by search and status
   const filteredRows = useMemo(() => {
@@ -297,7 +319,7 @@ export default function PimpinanDashboard({
   }, [pegawaiRows, searchQuery, statusFilter]);
 
   // Stats
-  const totalPegawai = scopedUsers.length;
+  const totalPegawai = allUsers.length;
 
   const uniqueUploads = useMemo(() => {
     return pegawaiRows.map(r => r.upload).filter((u): u is CKPUpload & { user?: User } => u !== null);
@@ -342,7 +364,7 @@ export default function PimpinanDashboard({
   };
 
   // ── Error state ─────────────────────────────────────────
-  if (error && !loading && uploads.length === 0 && scopedUsers.length === 0) {
+  if (error && !loading && uploads.length === 0 && allUsers.length === 0) {
     return (
       <>
         <Header />
@@ -364,7 +386,7 @@ export default function PimpinanDashboard({
   // ── Main render ─────────────────────────────────────────
   return (
     <>
-      <Header pendingCount={pendingCount} showExport onExport={handleExportRekap} />
+      <Header pendingCount={pendingCount} showExport={canViewScores} onExport={handleExportRekap} />
       <div className="relative p-4 lg:p-8 space-y-6 page-enter">
 
         <FetchingBar show={isFiltering} />
@@ -428,23 +450,27 @@ export default function PimpinanDashboard({
             >
               <RefreshCw className={`h-4 w-4 ${queryFetching ? 'animate-spin' : ''}`} />
             </button>
-            <button
-              onClick={handleExportRekap}
-              className="filter-btn"
-              title="Export rekap ke Excel"
-              aria-label="Export rekap ke Excel"
-            >
-              <Download className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleDownloadZip}
-              disabled={isZipping || uploads.length === 0}
-              className="filter-btn"
-              title="Download semua file asli (ZIP)"
-              aria-label="Download semua file asli (ZIP)"
-            >
-              <Archive className={`h-4 w-4 ${isZipping ? 'animate-pulse opacity-50' : ''}`} />
-            </button>
+            {canViewScores && (
+              <>
+                <button
+                  onClick={handleExportRekap}
+                  className="filter-btn"
+                  title="Export rekap ke Excel"
+                  aria-label="Export rekap ke Excel"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={handleDownloadZip}
+                  disabled={isZipping || uploads.length === 0}
+                  className="filter-btn"
+                  title="Download semua file asli (ZIP)"
+                  aria-label="Download semua file asli (ZIP)"
+                >
+                  <Archive className={`h-4 w-4 ${isZipping ? 'animate-pulse opacity-50' : ''}`} />
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -549,7 +575,14 @@ export default function PimpinanDashboard({
           ) : (
             <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
               {filteredRows.map(row => (
-                <PegawaiCard key={row.user.id} row={row} bulan={bulan} tahun={tahun} readOnly={!canManage} />
+                <PegawaiCard
+                  key={row.user.id}
+                  row={row}
+                  bulan={bulan}
+                  tahun={tahun}
+                  readOnly={!canManage}
+                  hideScore={!canViewScores}
+                />
               ))}
             </div>
           )}

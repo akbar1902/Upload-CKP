@@ -95,6 +95,7 @@ function RencanaKinerjaGroup({
   onMoveEntryClick,
   isTriwulan,
   monthlyScores,
+  hideScore,
 }: {
   rkName: string;
   rkKey: string;
@@ -106,6 +107,8 @@ function RencanaKinerjaGroup({
   onMoveEntryClick?: (entry: CKPEntry) => void;
   isTriwulan?: boolean;
   monthlyScores?: { bulan: number; bulanNama: string; score: number | null; count: number }[];
+  /** Sembunyikan nilai/skor (hanya admin & pimpinan yang boleh melihat). */
+  hideScore?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
@@ -212,6 +215,7 @@ function RencanaKinerjaGroup({
 
         {/* Right: nilai + chevron */}
         <div className="flex items-center gap-3 pr-4 sm:pr-5 pb-4 sm:pb-0 w-full sm:w-auto justify-end sm:justify-start">
+          {!hideScore && (
           <div className="flex flex-col items-end">
             <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
             {isTriwulan ? (
@@ -256,6 +260,7 @@ function RencanaKinerjaGroup({
               </span>
             )}
           </div>
+          )}
 
           <button
             type="button"
@@ -274,7 +279,7 @@ function RencanaKinerjaGroup({
       {/* Expanded details */}
       {expanded && (
         <div className="border-t p-4 sm:p-5 space-y-4" style={{ borderColor: 'var(--sand-border)', background: 'var(--sand-subtle)' }}>
-          {isTriwulan && monthlyScores && monthlyScores.length > 0 && (
+          {!hideScore && isTriwulan && monthlyScores && monthlyScores.length > 0 && (
             <div className="flex items-stretch gap-2.5">
               {monthlyScores.map(m => (
                 <div key={m.bulan} className="flex-1 flex items-center gap-3 py-2.5 px-3.5 rounded-xl transition-shadow hover:shadow-md" style={{ background: 'var(--primary-soft)', borderLeft: '3px solid var(--primary)' }}>
@@ -802,6 +807,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const canReview = isKetuaTim && !readOnlyView && !isOwnUpload && (upload.status === 'submitted' || upload.status === 'scored');
 
   const canReopen = isPimpinan && !readOnlyView && upload.status === 'approved';
+  // Nilai/skor hanya boleh dilihat admin & pimpinan. Ketua tim/anggota yang
+  // membuka detail dari Monitoring CKP melihat data tanpa nilai.
+  const hideScores = readOnlyView && !isAdmin && !isPimpinan;
   const bulanNama = getBulanName(upload.bulan);
   const avgPct = Math.min(upload.avg_progres || 0, 100);
   
@@ -848,9 +856,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
-            <button onClick={handleExport} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm">
-              <Download size={14} /> Export
-            </button>
+            {!hideScores && (
+              <button onClick={handleExport} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm">
+                <Download size={14} /> Export
+              </button>
+            )}
             {isAdmin || (readOnlyView && !isPimpinan) ? (
               <button
                 disabled
@@ -919,11 +929,13 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           </div>
         )}
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className={`grid grid-cols-2 ${hideScores ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4`}>
           <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={rkGroups.length} label="Total Rencana Kinerja" iconBg="var(--primary-soft)" />
           <KPICard icon={<LayoutList size={18} style={{ color: 'var(--primary)' }} />} value={entries.length} label="Total Kegiatan" iconBg="var(--primary-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres" iconBg="var(--primary-soft)" />
-          <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={displayRataRataNilai} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
+          {!hideScores && (
+            <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={displayRataRataNilai} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
+          )}
         </div>
 
         <div>
@@ -1029,6 +1041,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                   defaultScore={group.defaultScore}
                   isTriwulan={isTriwulan}
                   monthlyScores={group.monthlyScores}
+                  hideScore={hideScores}
                   onMoveEntryClick={(entry) => {
                     setEntryToMove(entry);
                     setTargetMoveRk('');

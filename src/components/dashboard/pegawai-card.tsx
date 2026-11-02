@@ -21,6 +21,8 @@ export interface PegawaiCardProps {
    * mengubah nilai atau menyetujui CKP.
    */
   readOnly?: boolean;
+  /** Sembunyikan nilai/skor SKP (hanya admin & pimpinan yang boleh melihat). */
+  hideScore?: boolean;
 }
 
 // unit_kerja yang isinya hanya nama instansi (bukan unit/tim kerja sebenarnya)
@@ -37,7 +39,7 @@ function subtitleUnit(user: User): string {
   return user.nip || '—';
 }
 
-export function PegawaiCard({ row, source, bulan, tahun, readOnly }: PegawaiCardProps) {
+export function PegawaiCard({ row, source, bulan, tahun, readOnly, hideScore }: PegawaiCardProps) {
   const { user, upload } = row;
   const initials = user.full_name
     .split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
@@ -90,23 +92,25 @@ export function PegawaiCard({ row, source, bulan, tahun, readOnly }: PegawaiCard
 
       {/* Statistik: divider tipis, tanpa kotak beige */}
       <div className="rounded-xl sm:rounded-2xl p-2 sm:p-3.5" style={{ background: 'transparent', border: '1px solid var(--sand-border)' }}>
-        <div className="grid grid-cols-3 gap-1 sm:gap-2 text-center">
+        <div className={`grid ${hideScore ? 'grid-cols-2' : 'grid-cols-3'} gap-1 sm:gap-2 text-center`}>
           <div>
             <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Kegiatan</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>{totalEntries}</p>
           </div>
-          <div style={{ borderLeft: '1px solid var(--sand-border)', borderRight: '1px solid var(--sand-border)' }}>
+          <div style={{ borderLeft: '1px solid var(--sand-border)', borderRight: hideScore ? undefined : '1px solid var(--sand-border)' }}>
             <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Capaian</p>
             <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: hasUpload ? (avgProgres >= 80 ? 'var(--primary)' : avgProgres >= 50 ? 'var(--accent-strong)' : 'var(--text-primary)') : 'var(--text-tertiary)' }}>
               {hasUpload ? `${avgProgres.toFixed(0)}%` : '0%'}
             </p>
           </div>
-          <div>
-            <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Skor</p>
-            <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
-              {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
-            </p>
-          </div>
+          {!hideScore && (
+            <div>
+              <p className="text-[9px] sm:text-[11px] font-medium mb-0.5 sm:mb-1 truncate" style={{ color: 'var(--text-secondary)' }}>Skor</p>
+              <p className="text-[12px] sm:text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                {hasUpload && upload.rata_rata_nilai != null ? upload.rata_rata_nilai.toFixed(1) : '—'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Progress bar: track sand-border, isi primary/sukses/terracotta */}

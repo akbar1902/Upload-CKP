@@ -3,6 +3,7 @@
 import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { fetchAllRows } from '@/lib/supabase/read';
 import { rkGroupKey } from '@/lib/rk-scoring';
+import { fetchMonitoringRekap, canViewMonitoringScores, stripMonitoringScores, type MonitoringRekapData } from '@/lib/monitoring-rekap';
 
 export interface PendingRkItem {
   key: string;
@@ -277,5 +278,49 @@ export async function getPendingScoringKetuaTim(
   } catch (err: any) {
     console.error('getPendingScoringKetuaTim Error:', err);
     return { data: null, error: err.message || 'Terjadi kesalahan saat mengambil data' };
+  }
+}
+
+/**
+ * Rekap monitoring CKP untuk SEMUA peran (halaman /monitoring).
+ *
+ * Dibaca lewat klien service-role karena RLS `ckp_uploads` hanya membuka
+ * baris milik sendiri untuk anggota — tanpa ini, anggota hanya melihat
+ * satu pegawai. Nilai (skor) tetap disaring di UI: hanya admin & pimpinan
+ * yang boleh melihatnya.
+ */
+export async function getMonitoringRekap(
+  bulan: number | string,
+  tahun: number
+): Promise<{ data: MonitoringRekapData | null; error: string | null }> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Sesi berakhir' };
+
+    const admin = createAdminClient();
+
+    // Pastikan akun terdaftar (semua peran boleh melihat rekap).
+    const { data: me, error: meErr } = await admin
+      .from('users')
+      .select('id, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (meErr) throw meErr;
+    if (!me) return { data: null, error: 'Akun tidak terdaftar.' };
+
+    const data = await fetchMonitoringRekap(admin, bulan, tahun);
+
+    // Nilai hanya untuk admin & pimpinan — jangan kirim ke peran lain.
+    return {
+      data: canViewMonitoringScores(me.role) ? data : stripMonitoringScores(data),
+      error: null,
+    };
+  } catch (err) {
+    console.error('getMonitoringRekap Error:', err);
+    const message = err instanceof Error && err.message
+      ? err.message
+      : 'Terjadi kesalahan saat mengambil data monitoring';
+    return { data: null, error: message };
   }
 }
