@@ -4,7 +4,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import type { Route } from 'next';
 import { useAuth } from '@/hooks/use-auth';
-import { runSafeRead } from '@/lib/supabase/read';
+import { runSafeRead, withTimeoutRetry } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
 import { DataDukungLink } from '@/components/ckp/data-dukung-link';
@@ -26,6 +26,7 @@ import { StatusBadge as SharedStatusBadge } from '@/components/dashboard/status-
 import { getBulanName, formatDateTime, formatDate, formatTime } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel/exporter';
 import { gradeRencanaKinerjaAction, approveAction } from '@/app/actions/penilaian';
+import { getMonitoringCkpDetail } from '@/app/actions/monitoring';
 import { rkGroupKey, isRkGroupScored, rkGroupAvg, rkGroupAvgInt, formatScore0, formatScore1, normalizeRkName, filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
 import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
@@ -383,8 +384,23 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
 
   const { data, isPending: queryPending, error: queryError, refetch } = useQuery({
     queryKey: ['penilaian-ckp-detail', uploadId, paramBulan || '', paramTahun || ''],
-    queryFn: () =>
-      runSafeRead(async (supabase, signal) => {
+    queryFn: () => {
+      // Mode Monitoring CKP: ambil lewat server action (service-role) agar
+      // SEMUA RK/kegiatan pegawai tampil — RLS membatasi ketua tim ke RK
+      // miliknya dan menutup upload pegawai lain untuk anggota.
+      if (readOnlyView) {
+        return withTimeoutRetry(
+          () => getMonitoringCkpDetail(uploadId, paramBulan || undefined, paramTahun || undefined),
+          { attempts: 2, timeoutMs: 15000 }
+        ).then((res) => {
+          if (res.error || !res.data) {
+            throw new Error(res.error || 'Gagal memuat detail CKP');
+          }
+          return res.data;
+        });
+      }
+
+      return runSafeRead(async (supabase, signal) => {
       const { data: uploadData, error: uploadError } = await supabase
         .from('ckp_uploads').select('*').eq('id', uploadId).abortSignal(signal).single();
       if (uploadError) throw new Error(uploadError.message);
@@ -490,7 +506,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         masterRks: masterRkRes.data || [],
         targetUploadIds,
       };
-      }),
+      });
+    },
     enabled: !!uploadId && !authLoading,
     networkMode: 'always',
     staleTime: 1000 * 60 * 5,

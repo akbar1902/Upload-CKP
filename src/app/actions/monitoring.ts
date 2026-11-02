@@ -4,6 +4,7 @@ import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/se
 import { fetchAllRows } from '@/lib/supabase/read';
 import { rkGroupKey } from '@/lib/rk-scoring';
 import { fetchMonitoringRekap, canViewMonitoringScores, stripMonitoringScores, type MonitoringRekapData } from '@/lib/monitoring-rekap';
+import { fetchPenilaianDetail, type PenilaianDetailData } from '@/lib/penilaian-detail';
 
 export interface PendingRkItem {
   key: string;
@@ -321,6 +322,49 @@ export async function getMonitoringRekap(
     const message = err instanceof Error && err.message
       ? err.message
       : 'Terjadi kesalahan saat mengambil data monitoring';
+    return { data: null, error: message };
+  }
+}
+
+/**
+ * Detail CKP untuk halaman Monitoring CKP.
+ *
+ * Dibaca lewat klien service-role agar SEMUA RK/kegiatan pegawai tampil.
+ * Tanpa ini, ketua tim hanya melihat RK yang ia ketuai (RLS `ckp_entries`)
+ * dan anggota mendapat error saat membuka CKP pegawai lain.
+ */
+export async function getMonitoringCkpDetail(
+  uploadId: string,
+  paramBulan?: string,
+  paramTahun?: string
+): Promise<{ data: PenilaianDetailData | null; error: string | null }> {
+  try {
+    const supabase = await createServerSupabaseClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { data: null, error: 'Sesi berakhir' };
+
+    const admin = createAdminClient();
+    const { data: me, error: meErr } = await admin
+      .from('users')
+      .select('id, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (meErr) throw meErr;
+    if (!me) return { data: null, error: 'Akun tidak terdaftar.' };
+
+    const data = await fetchPenilaianDetail(admin, uploadId, {
+      paramBulan,
+      paramTahun,
+      viewer: { id: user.id, role: me.role },
+      stripScores: !canViewMonitoringScores(me.role),
+    });
+
+    return { data, error: null };
+  } catch (err) {
+    console.error('getMonitoringCkpDetail Error:', err);
+    const message = err instanceof Error && err.message
+      ? err.message
+      : 'Gagal memuat detail CKP';
     return { data: null, error: message };
   }
 }

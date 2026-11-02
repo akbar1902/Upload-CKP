@@ -1,35 +1,11 @@
 import { Suspense } from 'react';
 import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient, createAdminClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { filterEntriesByOwnRk, rkMappingOwnerFilter } from '@/lib/rk-scoring';
-import type { CKPUpload, CKPEntry, Approval, User } from '@/types/database';
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { fetchPenilaianDetail } from '@/lib/penilaian-detail';
+import { canViewMonitoringScores } from '@/lib/monitoring-rekap';
 import PenilaianCKPDetailClient from './_client';
-
-// Supabase memotong hasil query di 1000 baris per request (default limit).
-// Helper ini meloop `.range(from, from+999)` sampai semua baris terambil —
-// penting untuk triwulan yang total entri/persetujuannya bisa >1000.
-type PageableQuery<T> = {
-  range(
-    from: number,
-    to: number
-  ): PromiseLike<{ data: T[] | null; error: { message: string } | null }>;
-};
-
-async function fetchAllRows<T>(
-  buildQuery: () => PageableQuery<T>
-): Promise<{ data: T[] | null; error: { message: string } | null }> {
-  const PAGE_SIZE = 1000;
-  const rows: T[] = [];
-  for (let from = 0; ; from += PAGE_SIZE) {
-    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
-    if (error) return { data: null, error };
-    const chunk = data ?? [];
-    rows.push(...chunk);
-    if (chunk.length < PAGE_SIZE) break;
-  }
-  return { data: rows, error: null };
-}
 
 export default async function PenilaianCKPDetailPage({
   params,
@@ -41,6 +17,10 @@ export default async function PenilaianCKPDetailPage({
   const { upload_id } = await params;
   const resolvedParams = await searchParams;
   const source = resolvedParams.source as string | undefined;
+  // Dibuka dari menu Monitoring CKP → baca lewat service-role agar SEMUA RK
+  // pegawai tampil (RLS membatasi ketua tim & menutup data pegawai lain).
+  const readonly = resolvedParams.readonly === '1';
+
   const supabase = await createServerSupabaseClient();
   const { data: { session } } = await supabase.auth.getSession();
   const user = session?.user;
@@ -50,7 +30,30 @@ export default async function PenilaianCKPDetailPage({
 
   const paramBulan = resolvedParams.bulan as string | undefined;
   const paramTahun = resolvedParams.tahun as string | undefined;
-  const isTriwulan = typeof paramBulan === 'string' && paramBulan.startsWith('T');
+
+  // Role aplikasi: metadata JWT dulu, fallback ke tabel users.
+  const metadataRole = user.user_metadata?.role;
+  let appRole: string | null = typeof metadataRole === 'string' ? metadataRole : null;
+  if (!appRole || appRole === 'pegawai') {
+    const { data: dbUser } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .maybeSingle();
+    appRole = dbUser?.role ?? appRole;
+  }
+
+  let dataClient: SupabaseClient = supabase;
+  let stripScores = false;
+  if (readonly) {
+    try {
+      dataClient = createAdminClient();
+      stripScores = !canViewMonitoringScores(appRole);
+    } catch {
+      // Service role tidak tersedia → tetap pakai sesi (RLS).
+      dataClient = supabase;
+    }
+  }
 
   const queryClient = new QueryClient({
     defaultOptions: { queries: { staleTime: 1000 * 60 * 5 } },
@@ -58,126 +61,14 @@ export default async function PenilaianCKPDetailPage({
 
   await queryClient.prefetchQuery({
     queryKey: ['penilaian-ckp-detail', upload_id, paramBulan || '', paramTahun || ''],
-    queryFn: async () => {
-      const { data: uploadData, error: uploadError } = await supabase
-        .from('ckp_uploads')
-        .select('*')
-        .eq('id', upload_id)
-        .single();
-
-      if (uploadError) throw uploadError;
-      if (!uploadData) throw new Error('Upload not found');
-
-      let targetUploads: CKPUpload[] = [uploadData];
-      let targetUploadIds = [upload_id];
-      const targetYear = paramTahun ? parseInt(paramTahun, 10) : uploadData.tahun;
-
-      if (isTriwulan) {
-        const triwulanMap: Record<string, number[]> = {
-          'T1': [1, 2, 3],
-          'T2': [4, 5, 6],
-          'T3': [7, 8, 9],
-          'T4': [10, 11, 12],
-        };
-        const targetMonths = triwulanMap[paramBulan!] || [];
-
-        const { data: qUploads } = await supabase
-          .from('ckp_uploads')
-          .select('*')
-          .eq('user_id', uploadData.user_id)
-          .eq('tahun', targetYear)
-          .in('bulan', targetMonths)
-          .order('bulan', { ascending: true });
-
-        if (qUploads && qUploads.length > 0) {
-          targetUploads = qUploads;
-          targetUploadIds = qUploads.map(u => u.id);
-        }
-      }
-
-      const [employeeRes, entriesRes, approvalsRes, currentUserRes] = await Promise.all([
-        supabase.from('users').select('*').eq('id', uploadData.user_id).single(),
-        fetchAllRows<CKPEntry>(() =>
-          supabase
-            .from('ckp_entries')
-            .select('*')
-            .in('upload_id', targetUploadIds)
-            .order('row_number')
-        ),
-        fetchAllRows<Approval>(() =>
-          supabase
-            .from('approvals')
-            .select('*, reviewer:reviewer_id(id, full_name)')
-            .in('upload_id', targetUploadIds)
-            .order('created_at', { ascending: false })
-        ),
-        user ? supabase.from('users').select('role').eq('id', user.id).single() : Promise.resolve({ data: null }),
-      ]);
-
-      const uploadMonthMap = new Map(targetUploads.map(u => [u.id, u.bulan]));
-      const rawEntries = ((entriesRes.data as CKPEntry[]) ?? []).map(e => ({
-        ...e,
-        bulan: uploadMonthMap.get(e.upload_id) ?? uploadData.bulan,
-      }));
-      let entriesData = rawEntries;
-      const employeeData = employeeRes.data as User;
-      const currentUserData = currentUserRes.data;
-
-      if (source === 'ketua_tim' && currentUserData?.role === 'pimpinan' && employeeData.role === 'ketua_tim') {
-        const { data: rkMapping } = await supabase
-          .from('rk_ketua_tim_mapping')
-          .select('id, rencana_kinerja')
-          .or(rkMappingOwnerFilter(employeeData.id, user.id))
-          .eq('is_active', true);
-
-        // Logika bersama (sama persis dengan client) — lihat src/lib/rk-scoring.ts
-        entriesData = filterEntriesByOwnRk(entriesData, rkMapping);
-      }
-
-      let finalUpload = uploadData as CKPUpload;
-      if (isTriwulan) {
-        const totalEntries = entriesData.length;
-        const avgProgres = targetUploads.reduce((sum, u) => sum + (u.avg_progres || 0), 0) / targetUploads.length;
-        const scoredUploads = targetUploads.filter(u => u.rata_rata_nilai !== null && u.rata_rata_nilai !== undefined);
-        const avgScore = scoredUploads.length > 0
-          ? scoredUploads.reduce((sum, u) => sum + (u.rata_rata_nilai || 0), 0) / scoredUploads.length
-          : null;
-
-        let aggregatedStatus = targetUploads[targetUploads.length - 1].status;
-        if (targetUploads.some(u => u.status === 'revision_required')) {
-          aggregatedStatus = 'revision_required';
-        } else if (targetUploads.some(u => u.status === 'submitted')) {
-          aggregatedStatus = 'submitted';
-        } else if (targetUploads.some(u => u.status === 'scored')) {
-          aggregatedStatus = 'scored';
-        } else if (targetUploads.every(u => u.status === 'approved')) {
-          aggregatedStatus = 'approved';
-        }
-
-        finalUpload = {
-          ...targetUploads[targetUploads.length - 1],
-          id: upload_id,
-          bulan: paramBulan as any,
-          tahun: targetYear,
-          total_entries: totalEntries,
-          avg_progres: avgProgres,
-          rata_rata_nilai: avgScore,
-          status: aggregatedStatus,
-        };
-      }
-
-      return {
-        upload: finalUpload,
-        employee: employeeData,
-        entries: entriesData,
-        calendarEntries: rawEntries,
-        approvals: (approvalsRes.data ?? []).map((a) => ({
-          ...a,
-          reviewer: a.reviewer as User | undefined,
-        })) as Approval[],
-        targetUploadIds,
-      };
-    },
+    queryFn: () =>
+      fetchPenilaianDetail(dataClient, upload_id, {
+        paramBulan,
+        paramTahun,
+        source,
+        viewer: { id: user.id, role: appRole },
+        stripScores,
+      }),
     staleTime: 1000 * 60 * 5,
   });
 
