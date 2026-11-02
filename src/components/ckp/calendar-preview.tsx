@@ -28,11 +28,13 @@ interface CalendarPreviewProps {
   bulan: number | string;
   tahun: number;
   entries: Partial<CKPEntry>[];
+  /** Sembunyikan tautan bukti dukung (peran tanpa hak). */
+  hideDataDukung?: boolean;
 }
 
 const WEEK_HEADER = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
-export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps) {
+export function CalendarPreview({ bulan, tahun, entries, hideDataDukung }: CalendarPreviewProps) {
   const isTriwulan = typeof bulan === 'string' && bulan.startsWith('T');
   const triwulanMonths: Record<string, number[]> = {
     'T1': [1, 2, 3],
@@ -361,7 +363,7 @@ export function CalendarPreview({ bulan, tahun, entries }: CalendarPreviewProps)
                             {(act.jam_mulai || act.jam_selesai) && (
                               <span>Waktu: {act.jam_mulai || '-'} s.d. {act.jam_selesai || '-'}</span>
                             )}
-                            {act.data_dukung && String(act.data_dukung).startsWith('http') && (
+                            {!hideDataDukung && act.data_dukung && String(act.data_dukung).startsWith('http') && (
                               <a
                                 href={String(act.data_dukung)}
                                 target="_blank"

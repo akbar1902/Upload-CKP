@@ -357,6 +357,7 @@ export async function getMonitoringCkpDetail(
       paramTahun,
       viewer: { id: user.id, role: me.role },
       stripScores: !canViewMonitoringScores(me.role),
+      hideAttachments: !canViewMonitoringScores(me.role),
     });
 
     return { data, error: null };

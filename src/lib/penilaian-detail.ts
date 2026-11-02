@@ -43,6 +43,8 @@ export interface PenilaianDetailOptions {
   viewer?: { id: string; role: string | null | undefined };
   /** Buang nilai/skor dari payload (peran tanpa hak melihat nilai). */
   stripScores?: boolean;
+  /** Sembunyikan tautan bukti dukung (peran tanpa hak). */
+  hideAttachments?: boolean;
 }
 
 export async function fetchPenilaianDetail(
@@ -50,7 +52,7 @@ export async function fetchPenilaianDetail(
   uploadId: string,
   options: PenilaianDetailOptions = {}
 ): Promise<PenilaianDetailData> {
-  const { paramBulan, paramTahun, source, viewer, stripScores = false } = options;
+  const { paramBulan, paramTahun, source, viewer, stripScores = false, hideAttachments = false } = options;
   const isTriwulan = typeof paramBulan === 'string' && paramBulan.startsWith('T');
 
   const { data: uploadRaw, error: uploadError } = await supabase
@@ -173,13 +175,20 @@ export async function fetchPenilaianDetail(
     targetUploadIds,
   };
 
-  if (!stripScores) return result;
+  if (!stripScores && !hideAttachments) return result;
 
-  // Peran tanpa hak melihat nilai: buang dari payload, bukan hanya di UI.
+  // Peran tanpa hak: buang nilai & tautan bukti dukung dari payload, bukan
+  // hanya menyembunyikannya di tampilan.
+  const sanitizeEntry = (entry: CKPEntry): CKPEntry => ({
+    ...entry,
+    ...(stripScores ? { nilai: null, dinilai_oleh: null } : {}),
+    ...(hideAttachments ? { data_dukung: null } : {}),
+  });
+
   return {
     ...result,
-    upload: { ...result.upload, rata_rata_nilai: null },
-    entries: result.entries.map((e) => ({ ...e, nilai: null, dinilai_oleh: null })),
-    calendarEntries: result.calendarEntries.map((e) => ({ ...e, nilai: null, dinilai_oleh: null })),
+    upload: stripScores ? { ...result.upload, rata_rata_nilai: null } : result.upload,
+    entries: result.entries.map(sanitizeEntry),
+    calendarEntries: result.calendarEntries.map(sanitizeEntry),
   };
 }

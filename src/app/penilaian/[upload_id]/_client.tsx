@@ -97,6 +97,7 @@ function RencanaKinerjaGroup({
   isTriwulan,
   monthlyScores,
   hideScore,
+  hideDataDukung,
 }: {
   rkName: string;
   rkKey: string;
@@ -110,6 +111,8 @@ function RencanaKinerjaGroup({
   monthlyScores?: { bulan: number; bulanNama: string; score: number | null; count: number }[];
   /** Sembunyikan nilai/skor (hanya admin & pimpinan yang boleh melihat). */
   hideScore?: boolean;
+  /** Sembunyikan tautan bukti dukung (peran tanpa hak). */
+  hideDataDukung?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [score, setScore] = useState<string>(defaultScore?.toString() ?? '');
@@ -319,7 +322,7 @@ function RencanaKinerjaGroup({
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-right">
-                      {entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
+                      {!hideDataDukung && entry.data_dukung && <DataDukungLink value={entry.data_dukung} />}
                       {canReview && onMoveEntryClick && (
                         <button 
                           onClick={() => onMoveEntryClick(entry)} 
@@ -824,9 +827,9 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
   const canReview = isKetuaTim && !readOnlyView && !isOwnUpload && (upload.status === 'submitted' || upload.status === 'scored');
 
   const canReopen = isPimpinan && !readOnlyView && upload.status === 'approved';
-  // Nilai/skor hanya boleh dilihat admin & pimpinan. Ketua tim/anggota yang
-  // membuka detail dari Monitoring CKP melihat data tanpa nilai.
-  const hideScores = readOnlyView && !isAdmin && !isPimpinan;
+  // Ketua tim/anggota yang membuka detail dari Monitoring CKP: nilai/skor
+  // dan tautan bukti dukung tidak ditampilkan.
+  const restrictedView = readOnlyView && !isAdmin && !isPimpinan;
   const bulanNama = getBulanName(upload.bulan);
   const avgPct = Math.min(upload.avg_progres || 0, 100);
   
@@ -873,7 +876,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           </div>
 
           <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap flex-shrink-0">
-            {!hideScores && (
+            {!restrictedView && (
               <button onClick={handleExport} className="btn-secondary h-10 px-4 text-[13px] flex items-center gap-1.5 shadow-sm">
                 <Download size={14} /> Export
               </button>
@@ -946,11 +949,11 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
           </div>
         )}
 
-        <div className={`grid grid-cols-2 ${hideScores ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4`}>
+        <div className={`grid grid-cols-2 ${restrictedView ? 'lg:grid-cols-3' : 'lg:grid-cols-4'} gap-4`}>
           <KPICard icon={<FileText size={18} style={{ color: 'var(--primary)' }} />} value={rkGroups.length} label="Total Rencana Kinerja" iconBg="var(--primary-soft)" />
           <KPICard icon={<LayoutList size={18} style={{ color: 'var(--primary)' }} />} value={entries.length} label="Total Kegiatan" iconBg="var(--primary-soft)" />
           <KPICard icon={<TrendingUp size={18} style={{ color: 'var(--primary)' }} />} value={`${avgPct.toFixed(0)}%`} label="Rata-rata Progres" iconBg="var(--primary-soft)" />
-          {!hideScores && (
+          {!restrictedView && (
             <KPICard icon={<CheckCircle2 size={18} style={{ color: 'var(--primary)' }} />} value={displayRataRataNilai} label="Rata-rata Nilai SKP" iconBg="var(--primary-soft)" />
           )}
         </div>
@@ -1041,6 +1044,7 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                 bulan={upload.bulan}
                 tahun={upload.tahun}
                 entries={calendarEntries}
+                hideDataDukung={restrictedView}
               />
             </div>
           ) : (
@@ -1058,7 +1062,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
                   defaultScore={group.defaultScore}
                   isTriwulan={isTriwulan}
                   monthlyScores={group.monthlyScores}
-                  hideScore={hideScores}
+                  hideScore={restrictedView}
+                  hideDataDukung={restrictedView}
                   onMoveEntryClick={(entry) => {
                     setEntryToMove(entry);
                     setTargetMoveRk('');

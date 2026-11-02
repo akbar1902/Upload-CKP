@@ -45,10 +45,13 @@ export default async function PenilaianCKPDetailPage({
 
   let dataClient: SupabaseClient = supabase;
   let stripScores = false;
+  let hideAttachments = false;
   if (readonly) {
     try {
       dataClient = createAdminClient();
-      stripScores = !canViewMonitoringScores(appRole);
+      const canView = canViewMonitoringScores(appRole);
+      stripScores = !canView;
+      hideAttachments = !canView;
     } catch {
       // Service role tidak tersedia → tetap pakai sesi (RLS).
       dataClient = supabase;
@@ -68,6 +71,7 @@ export default async function PenilaianCKPDetailPage({
         source,
         viewer: { id: user.id, role: appRole },
         stripScores,
+        hideAttachments,
       }),
     staleTime: 1000 * 60 * 5,
   });
