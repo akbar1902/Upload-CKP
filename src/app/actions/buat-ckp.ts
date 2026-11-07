@@ -97,68 +97,18 @@ function sanitizeKeywords(input: unknown): AturanKunci[] {
     .filter((e) => e.rk && e.kunci.length);
 }
 
-/** Batas jumlah pegawai dalam satu menit impor agar dianggap impor Dataset RK. */
-const MIN_PEGAWAI_IMPOR = 5;
-
-const normal = (s: unknown) => String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
-
 /**
- * Pisahkan Sub-RK resmi dari nama kegiatan lama.
+ * Semua Sub-RK milik pegawai adalah pilihan resmi.
  *
- * `master_kegiatan_anggota` juga terisi nama kegiatan setiap kali CKP diupload
- * (DOKUMENTASI_RK.md §10.5), dan tabel itu tidak punya kolom sumber. Ciri yang
- * bisa dipakai:
- *  - Impor Dataset RK menulis Sub-RK banyak pegawai sekaligus (menit yang sama),
- *    sedangkan upload CKP hanya menulis baris satu pegawai.
- *  - Nama yang pernah dipakai di kolom "Rencana Kinerja" CKP pegawai ini juga
- *    dianggap Sub-RK sungguhan.
- * Yang tidak lolos tetap bisa dipilih manual ("Sub-RK lain"), tetapi tidak
- * dipakai untuk usulan otomatis.
+ * Dulu `master_kegiatan_anggota` ikut terisi nama KEGIATAN lewat jalur CKP App,
+ * sehingga halaman ini harus menyaringnya. Aturan itu dihapus dan datanya
+ * dibersihkan (8 Nov 2026, lihat DOKUMENTASI_RK.md §10.5), jadi kini semua baris
+ * dianggap resmi, termasuk RK yang ditambahkan manual lewat menu Rencana Kinerja.
+ * Kolom `resmi` dipertahankan agar picker tetap bisa memisahkan bila suatu saat
+ * dibutuhkan lagi.
  */
-async function tandaiSubRkResmi(
-  admin: ReturnType<typeof createAdminClient>,
-  userId: string,
-  subRks: SubRkContext['subRks'],
-): Promise<SubRkPilihan[]> {
-  if (subRks.length === 0) return [];
-
-  const [{ data: rows }, { data: uploads }] = await Promise.all([
-    admin.from('master_kegiatan_anggota').select('kegiatan_nama, created_at').eq('user_id', userId),
-    admin.from('ckp_uploads').select('id').eq('user_id', userId),
-  ]);
-
-  // Menit-menit impor massal (≥ MIN_PEGAWAI_IMPOR pegawai).
-  const menitNama = new Map<string, string[]>();
-  for (const row of rows ?? []) {
-    const menit = String(row.created_at ?? '').slice(0, 16);
-    if (!menit) continue;
-    const list = menitNama.get(menit) ?? [];
-    list.push(normal(row.kegiatan_nama));
-    menitNama.set(menit, list);
-  }
-  const resmi = new Set<string>();
-  await Promise.all(
-    [...menitNama.entries()].map(async ([menit, names]) => {
-      const mulai = new Date(`${menit}:00Z`);
-      const akhir = new Date(mulai.getTime() + 60_000);
-      const { data } = await admin
-        .from('master_kegiatan_anggota')
-        .select('user_id')
-        .gte('created_at', mulai.toISOString())
-        .lt('created_at', akhir.toISOString())
-        .limit(2000);
-      if (new Set((data ?? []).map((r) => r.user_id)).size >= MIN_PEGAWAI_IMPOR) names.forEach((n) => resmi.add(n));
-    }),
-  );
-
-  // Nama yang pernah dipakai sebagai "Rencana Kinerja" di CKP pegawai ini.
-  const uploadIds = (uploads ?? []).map((u) => u.id);
-  for (let i = 0; i < uploadIds.length; i += 100) {
-    const { data } = await admin.from('ckp_entries').select('rencana_kinerja').in('upload_id', uploadIds.slice(i, i + 100));
-    for (const e of data ?? []) if (e.rencana_kinerja) resmi.add(normal(e.rencana_kinerja));
-  }
-
-  return subRks.map((s) => ({ ...s, resmi: resmi.has(normal(s.kegiatan_nama)) }));
+function tandaiSubRkResmi(subRks: SubRkContext['subRks']): SubRkPilihan[] {
+  return subRks.map((s) => ({ ...s, resmi: true }));
 }
 
 export async function getBuatCkpContextAction(bulan: number, tahun: number): Promise<ActionResult<{ context: BuatCkpContext }>> {
@@ -178,7 +128,7 @@ export async function getBuatCkpContextAction(bulan: number, tahun: number): Pro
     if (settings.error) throw settings.error;
 
     const range = getPeriodRange(bulan, tahun);
-    const subRks = await tandaiSubRkResmi(admin, user.id, ctx.subRks);
+    const subRks = tandaiSubRkResmi(ctx.subRks);
     return {
       ok: true,
       context: {
