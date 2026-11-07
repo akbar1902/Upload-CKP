@@ -1,20 +1,20 @@
 'use client';
 
 import { useState, useSyncExternalStore } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import {
-  ArrowRight,
   CheckCircle2,
   ChevronDown,
   CircleHelp,
   Copy,
   ExternalLink,
-  HardDrive,
-  HardDriveDownload,
+  FilePlus2,
   KeyRound,
   Link2,
   MonitorSmartphone,
   Package,
+  Puzzle,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -30,7 +30,8 @@ import {
   revokeIntegrationTokenAction,
   type IntegrationTokenRow,
 } from '@/app/actions/integration';
-import { DailyFlow, DownloadSection, ExtensionGuide, FaqSection, SectionHeading, StepGuide } from './_guide';
+import { DailyFlow, DownloadSection, ExtensionGuide, SectionHeading, StepGuide } from './_guide';
+import { BuatCkpGuide, CompanionGuide, KipappGuide, PanduanFaq, alurBulanan } from './_panduan';
 
 function tanggal(value: string | null) {
   if (!value) return '—';
@@ -47,13 +48,7 @@ function tanggal(value: string | null) {
   }
 }
 
-const heroSteps = [
-  { icon: HardDriveDownload, title: 'Node.js', detail: 'pasang sekali' },
-  { icon: Package, title: 'CKP App', detail: 'unduh & jalankan' },
-  { icon: HardDrive, title: 'Google Drive', detail: 'hubungkan rclone' },
-  { icon: Link2, title: 'Hubungkan', detail: 'sekali klik ke SIKAP' },
-  { icon: Send, title: 'Kirim CKP', detail: 'langsung ke SIKAP' },
-];
+const heroSteps = alurBulanan;
 
 function HeroFlow() {
   return (
@@ -66,13 +61,13 @@ function HeroFlow() {
           className="text-[10px] font-bold uppercase tracking-[0.16em]"
           style={{ color: 'var(--text-tertiary)' }}
         >
-          Alur singkat
+          Alur tiap bulan
         </p>
         <span
           className="rounded-full px-2.5 py-1 text-[10px] font-bold"
           style={{ background: 'var(--success-soft)', color: 'var(--success-text)' }}
         >
-          ±7 menit
+          Tanpa instal aplikasi
         </span>
       </div>
 
@@ -124,7 +119,7 @@ function HeroFlow() {
         style={{ background: 'var(--sand-subtle)', color: 'var(--text-secondary)' }}
       >
         <ShieldCheck size={13} style={{ color: 'var(--primary)' }} />
-        Tanpa salin token · foto tetap di Google Drive
+        Foto tersimpan di Google Drive Anda sendiri
       </div>
     </div>
   );
@@ -162,33 +157,29 @@ function Hero() {
             }}
           >
             <Sparkles size={12} />
-            Panduan + integrasi dalam satu halaman
+            Panduan CKP bulanan
           </span>
 
           <h2
             className="mt-3 max-w-2xl text-[27px] font-extrabold leading-[1.08] tracking-tight sm:text-[34px]"
             style={{ color: 'var(--text-primary)' }}
           >
-            Semua tentang CKP App, di satu tempat.
+            Dari foto bukti dukung sampai KipApp terisi.
           </h2>
           <p
             className="mt-3 max-w-xl text-[13px] leading-relaxed sm:text-[13.5px]"
             style={{ color: 'var(--text-secondary)' }}
           >
-            Unduh Node.js dan CKP App, ikuti panduan bergambar, lalu hubungkan ke SIKAP.
-            Tidak perlu pindah halaman atau menyalin token.
+            Susun dan submit CKP langsung di SIKAP, lalu biarkan CKP Companion mengisi KipApp untuk Anda.
+            Cukup browser Chrome dan akun Google pribadi.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-2.5">
-            <a
-              href="/download/CKP-App.zip"
-              download="CKP-App.zip"
-              className={buttonVariants({ variant: 'default', size: 'default' })}
-            >
-              <Package size={16} /> Unduh CKP App
-            </a>
-            <a href="#panduan" className={buttonVariants({ variant: 'outline', size: 'default' })}>
-              Ikuti panduan <ArrowRight size={15} />
+            <Link href="/pegawai/buat-ckp" className={buttonVariants({ variant: 'default', size: 'default' })}>
+              <FilePlus2 size={16} /> Buat CKP sekarang
+            </Link>
+            <a href="#companion" className={buttonVariants({ variant: 'outline', size: 'default' })}>
+              <Puzzle size={15} /> Pasang CKP Companion
             </a>
           </div>
 
@@ -196,19 +187,17 @@ function Hero() {
             className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px]"
             style={{ color: 'var(--text-tertiary)' }}
           >
-            <span className="flex items-center gap-1.5">
-              <Package size={12} /> 2 file unduhan
-            </span>
+            <span>3 langkah</span>
             <span className="hidden h-3 w-px sm:block" style={{ background: 'var(--border)' }} aria-hidden="true" />
-            <span>±7 menit</span>
+            <span>Extension dipasang sekali</span>
             <span className="hidden h-3 w-px sm:block" style={{ background: 'var(--border)' }} aria-hidden="true" />
-            <span>Windows 10/11</span>
+            <span>Google Chrome</span>
           </div>
 
           <p className="mt-4 text-[11.5px]" style={{ color: 'var(--text-secondary)' }}>
-            Sudah pernah memasang?{' '}
-            <a href="#hubungkan" className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
-              Langsung hubungkan ke SIKAP
+            Masih memakai CKP App di laptop?{' '}
+            <a href="#cara-lama" className="font-semibold underline underline-offset-2" style={{ color: 'var(--primary)' }}>
+              Lihat panduan cara lama
             </a>
             .
           </p>
@@ -222,9 +211,10 @@ function Hero() {
 
 function QuickNav() {
   const items = [
-    { href: '#unduh', label: 'Unduhan', icon: Package },
-    { href: '#panduan', label: 'Panduan', icon: Sparkles },
-    { href: '#hubungkan', label: 'Hubungkan', icon: Link2 },
+    { href: '#buat-ckp', label: '1 · Buat CKP', icon: FilePlus2 },
+    { href: '#companion', label: '2 · Pasang Companion', icon: Puzzle },
+    { href: '#kipapp', label: '3 · Isi KipApp', icon: Send },
+    { href: '#hubungkan', label: 'Akses terhubung', icon: Link2 },
     { href: '#faq', label: 'Pertanyaan umum', icon: CircleHelp },
   ];
 
@@ -355,16 +345,15 @@ export default function IntegrasiClient({
         <Hero />
         <QuickNav />
 
-        <DownloadSection />
-        <StepGuide origin={origin} />
-        <DailyFlow />
-        <ExtensionGuide />
+        <BuatCkpGuide />
+        <CompanionGuide />
+        <KipappGuide />
 
         <section id="hubungkan" className="scroll-mt-28 space-y-4">
           <SectionHeading
-            eyebrow="Integrasi"
-            title="Hubungkan CKP App ke akun SIKAP"
-            description="Cukup sekali. Setelah terhubung, tombol Kirim ke SIKAP muncul di halaman Export CKP App."
+            eyebrow="Keamanan"
+            title="Aplikasi yang terhubung ke akun Anda"
+            description="CKP Companion dan CKP App memakai akses (token) atas nama Anda. Akses muncul di sini setelah Anda klik Setujui & hubungkan, dan bisa dicabut kapan saja."
           />
 
           {error && (
@@ -396,7 +385,7 @@ export default function IntegrasiClient({
                       className="text-[13px] font-bold"
                       style={{ color: activeTokens.length > 0 ? 'var(--success-text)' : 'var(--text-primary)' }}
                     >
-                      {activeTokens.length > 0 ? 'CKP App sudah terhubung' : 'Belum ada perangkat terhubung'}
+                      {activeTokens.length > 0 ? 'Aplikasi sudah terhubung' : 'Belum ada aplikasi terhubung'}
                     </p>
                     <p
                       className="mt-0.5 text-[11.5px] leading-relaxed"
@@ -404,7 +393,7 @@ export default function IntegrasiClient({
                     >
                       {activeTokens.length > 0
                         ? `${activeTokens.length} perangkat aktif · terakhir dipakai ${lastUsedAt ? tanggal(lastUsedAt) : 'belum pernah'}`
-                        : 'Token akan muncul otomatis di sini setelah Anda menyetujui koneksi dari CKP App.'}
+                        : 'Akses muncul otomatis di sini setelah Anda klik Hubungkan SIKAP di CKP Companion (Langkah 3) lalu menyetujuinya.'}
                     </p>
                   </div>
                 </div>
@@ -420,6 +409,23 @@ export default function IntegrasiClient({
                 </button>
               </div>
 
+              <details
+                className="group mt-4 rounded-2xl border px-3.5 py-3"
+                style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+              >
+                <summary
+                  className="flex cursor-pointer list-none items-center gap-2 rounded-md text-[12px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)]"
+                  style={{ color: 'var(--text-secondary)' }}
+                >
+                  <Package size={14} style={{ color: 'var(--text-tertiary)' }} />
+                  <span className="min-w-0 flex-1">Menghubungkan CKP App lama</span>
+                  <ChevronDown
+                    size={14}
+                    className="shrink-0 transition-transform duration-200 group-open:rotate-180"
+                    style={{ color: 'var(--text-tertiary)' }}
+                    aria-hidden="true"
+                  />
+                </summary>
               <div className="mt-4 grid gap-2.5 sm:grid-cols-3">
                 {[
                   {
@@ -513,6 +519,7 @@ export default function IntegrasiClient({
                 Kalau port diubah, buka alamat yang tercetak di jendela hitam CKP App. Jalankan{' '}
                 <strong>Jalankan CKP.bat</strong> terlebih dahulu jika CKP App belum berjalan.
               </p>
+              </details>
 
               <details
                 className="group mt-5 rounded-2xl border px-3.5 py-3"
@@ -621,7 +628,7 @@ export default function IntegrasiClient({
                         Belum ada perangkat
                       </p>
                       <p className="mt-0.5 text-[10.5px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                        Ikuti langkah 4 di panduan, lalu muat ulang halaman ini.
+                        Ikuti Langkah 3 di atas, lalu muat ulang halaman ini.
                       </p>
                     </div>
                   ) : (
@@ -707,16 +714,47 @@ export default function IntegrasiClient({
                   <ShieldCheck size={14} style={{ color: 'var(--primary)' }} /> Token mewakili akun Anda
                 </div>
                 <p className="mt-1.5">
-                  Jangan bagikan token. Jika komputer dipakai bergantian, gunakan profil CKP App masing-masing.
-                  Cabut akses di sini jika laptop hilang atau token bocor. SIKAP tidak bisa menampilkan ulang token
-                  yang sudah dibuat.
+                  Jangan bagikan token. Jika laptop dipakai bergantian, putuskan sambungan SIKAP di CKP Companion
+                  setelah selesai. Cabut akses di sini jika laptop hilang atau token bocor.
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        <FaqSection />
+        <PanduanFaq />
+
+        <details
+          id="cara-lama"
+          className="group scroll-mt-28 rounded-[22px] border px-4 py-4 sm:px-6"
+          style={{ borderColor: 'var(--border)', background: 'var(--card-bg)' }}
+        >
+          <summary
+            className="flex cursor-pointer list-none items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)]"
+          >
+            <Package size={18} style={{ color: 'var(--text-tertiary)' }} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                Cara lama: CKP App di laptop
+              </span>
+              <span className="block text-[12px]" style={{ color: 'var(--text-secondary)' }}>
+                Hanya untuk yang masih memakai CKP App selama masa transisi.
+              </span>
+            </span>
+            <ChevronDown
+              size={18}
+              className="shrink-0 transition-transform duration-200 group-open:rotate-180"
+              style={{ color: 'var(--text-tertiary)' }}
+              aria-hidden="true"
+            />
+          </summary>
+          <div className="mt-6 space-y-8">
+            <DownloadSection />
+            <StepGuide origin={origin} />
+            <DailyFlow />
+            <ExtensionGuide />
+          </div>
+        </details>
 
         <footer
           className="flex flex-col gap-1.5 border-t pt-5 text-[11px]"

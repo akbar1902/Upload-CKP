@@ -24,6 +24,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
+  // Kebijakan privasi wajib bisa dibuka publik (syarat verifikasi Google OAuth),
+  // tanpa login dan tanpa menyentuh sesi.
+  if (request.nextUrl.pathname === '/privasi') {
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
