@@ -28,6 +28,12 @@ function getBreadcrumbConfig(pathname: string, isPimpinan: boolean, role?: strin
       title: 'Dashboard',
     };
   }
+  if (pathname === '/pegawai/buat-ckp') {
+    return {
+      crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Buat CKP' }],
+      title: 'Buat CKP',
+    };
+  }
   if (pathname === '/pegawai/upload') {
     return {
       crumbs: [{ label: 'Dashboard', href: '/pegawai' }, { label: 'Upload CKP' }],

@@ -135,6 +135,10 @@ function Dialog({ open, onClose, children }: DialogProps) {
       // Hanya dialog teratas yang bereaksi (dukung dialog bersarang).
       if (openDialogs[openDialogs.length - 1] !== id) return;
 
+      // Escape yang sudah ditangani elemen di dalam dialog (mis. dropdown
+      // yang sedang terbuka) cukup menutup elemen itu, bukan dialognya.
+      if (event.key === "Escape" && event.defaultPrevented) return;
+
       if (event.key === "Escape") {
         event.preventDefault();
         onCloseRef.current();

@@ -21,6 +21,7 @@ import {
   Zap,
   Lock,
   FileDown,
+  FilePlus2,
   Boxes,
   type LucideIcon,
 } from 'lucide-react';
@@ -169,6 +170,7 @@ export function Sidebar() {
       navItems.push({ href: '/pimpinan/pegawai', label: 'Data Pegawai', icon: Users });
       navItems.push({ href: '/admin/export-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     } else {
+      navItems.push({ href: '/pegawai/buat-ckp', label: 'Buat CKP', icon: FilePlus2 });
       navItems.push({ href: '/pegawai/upload', label: 'Upload CKP', icon: Upload });
       navItems.push({ href: '/pegawai/evaluasi-penilaian', label: 'Evaluasi Penilaian', icon: FileDown });
     }
