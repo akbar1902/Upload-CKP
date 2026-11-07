@@ -43,9 +43,9 @@ export default function PairClient({
         return;
       }
       setStatus('approved');
-      toast.success(`CKP App terhubung sebagai ${res.nama || 'akun Anda'}.`);
+      toast.success(`Aplikasi CKP terhubung sebagai ${res.nama || 'akun Anda'}.`);
       router.refresh();
-      // Tab ini biasanya dibuka oleh CKP App; coba tutup otomatis.
+      // Tab ini biasanya dibuka oleh CKP App / CKP Companion; coba tutup otomatis.
       setTimeout(() => {
         try { window.close(); } catch { /* abaikan */ }
       }, 1200);
@@ -66,11 +66,11 @@ export default function PairClient({
                   <Link2 className="h-7 w-7" />
                 </span>
                 <h1 className="mt-4 text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  Hubungkan CKP App
+                  Hubungkan aplikasi CKP
                 </h1>
                 <p className="mt-2 text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  CKP App meminta izin mengirim CKP ke akun SIKAP Anda. Setujui hanya jika Anda
-                  baru saja menekan <strong>Hubungkan SIKAP</strong> di CKP App.
+                  CKP App atau extension CKP Companion meminta izin membaca dan mengirim CKP akun SIKAP Anda. Setujui hanya jika Anda
+                  baru saja menekan <strong>Hubungkan SIKAP</strong> di salah satu aplikasi itu.
                 </p>
                 <div className="mx-auto mt-5 w-fit rounded-xl px-5 py-3" style={{ background: 'var(--sand-subtle)' }}>
                   <p className="text-[10px] font-bold tracking-[0.14em] uppercase" style={{ color: 'var(--text-secondary)' }}>Kode pairing</p>
@@ -89,11 +89,11 @@ export default function PairClient({
                   </div>
                 )}
                 <Button className="mt-5 w-full" onClick={setujui} disabled={busy}>
-                  {busy ? 'Menghubungkan…' : 'Setujui & hubungkan CKP App'}
+                  {busy ? 'Menghubungkan…' : 'Setujui & hubungkan'}
                 </Button>
                 <p className="mt-3 flex items-start justify-center gap-1.5 text-[11px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                  Jangan setujui kode ini jika Anda tidak merasa memulai koneksi dari CKP App.
+                  Jangan setujui kode ini jika Anda tidak merasa memulai koneksi dari CKP App atau CKP Companion.
                 </p>
               </>
             )}
@@ -104,10 +104,10 @@ export default function PairClient({
                   <CheckCircle2 className="h-7 w-7" />
                 </span>
                 <h1 className="mt-4 text-[22px] font-bold" style={{ color: 'var(--text-primary)' }}>
-                  CKP App sudah terhubung
+                  Aplikasi CKP sudah terhubung
                 </h1>
                 <p className="mt-2 text-[13px] leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                  Kembali ke jendela CKP App. Koneksi akan selesai otomatis dalam beberapa detik.
+                  Kembali ke CKP App atau panel CKP Companion. Koneksi akan selesai otomatis dalam beberapa detik.
                 </p>
                 <Button className="mt-5" variant="outline" onClick={() => { try { window.close(); } catch { /* abaikan */ } }}>
                   Tutup tab ini
