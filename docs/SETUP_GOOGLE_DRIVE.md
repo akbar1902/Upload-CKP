@@ -37,13 +37,19 @@ ID** (bukan rahasia; aman ada di browser). Dibuat sekali oleh admin.
 Jalankan `supabase/migrations/038_buat_ckp.sql` (tabel `ckp_drafts` dan
 `user_ckp_settings`, hanya diakses server).
 
-## 4. Rilis ke semua pegawai
+## 4. Rilis ke semua pegawai (sudah dilakukan 8 Nov 2026)
 
-Selama status **Testing**, hanya akun di *Test users* yang bisa login Google
-(muncul "Akses diblokir … belum menyelesaikan proses verifikasi Google").
-Untuk semua pegawai: siapkan halaman kebijakan privasi publik, isi linknya di
-**Branding**, lalu **Audience → Publish app**. Scope `drive.file` termasuk
-non-sensitif sehingga tidak perlu verifikasi keamanan.
+Status aplikasi: **In production** — semua akun Google bisa login.
+
+- Kebijakan privasi publik: `https://sikap-ckp.vercel.app/privasi`
+  (diisi di **Branding → Application privacy policy link**; halaman ini
+  dikecualikan dari login di `src/lib/supabase/middleware.ts`).
+- Scope hanya `drive.file` (non-sensitif), jadi tidak perlu verifikasi
+  keamanan. Bila Google meminta verifikasi brand, ajukan lewat
+  **Verification Center**; selama menunggu, pegawai mungkin melihat
+  "Google belum memverifikasi aplikasi ini" dan bisa lanjut lewat **Lanjutan**.
+- Jangan menambah scope lain tanpa meninjau ulang dampaknya: scope sensitif
+  memicu verifikasi keamanan dan bisa memblokir login semua pegawai.
 
 ## Catatan
 

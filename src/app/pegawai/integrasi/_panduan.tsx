@@ -296,8 +296,14 @@ export function KipappGuide() {
 
 const faqs: Array<{ q: string; a: ReactNode }> = [
   {
-    q: 'Muncul “Akses diblokir: SIKAP belum menyelesaikan proses verifikasi Google”.',
-    a: 'Akun Google Anda belum didaftarkan sebagai pengguna uji coba. Hubungi admin SIKAP dan sebutkan email Google pribadi Anda.',
+    q: 'Muncul peringatan Google saat Hubungkan Google Drive.',
+    a: (
+      <>
+        Bila tertulis <em>“Google belum memverifikasi aplikasi ini”</em>, klik <strong>Lanjutan</strong> lalu{' '}
+        <strong>Buka SIKAP</strong>. SIKAP hanya bisa mengakses file yang ia buat sendiri. Bila tertulis{' '}
+        <em>“Akses diblokir”</em>, hubungi admin SIKAP dan kirim tangkapan layarnya.
+      </>
+    ),
   },
   {
     q: 'Foto bukti dukung saya disimpan di mana?',
