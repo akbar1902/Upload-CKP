@@ -10,6 +10,8 @@
   --muted: #5d6a64;
   --line: #ddd6c8;
   --field-bg: #ffffff;
+  /* versi solid dari --field-bg (untuk menutup latar autofill Chrome) */
+  --field-solid: #ffffff;
   --field-border: #d6cfc0;
   --focus: #2f6e5a;
   --focus-ring: rgba(47, 110, 90, 0.18);
@@ -39,6 +41,7 @@
   --muted: rgba(241, 235, 221, 0.66);
   --line: rgba(241, 235, 221, 0.12);
   --field-bg: rgba(241, 235, 221, 0.05);
+  --field-solid: #1f2a26; /* = --card-bg + 5% krem, tanpa transparansi */
   --field-border: rgba(241, 235, 221, 0.18);
   --focus: #8fd0bf;
   --focus-ring: rgba(143, 208, 191, 0.2);
@@ -67,7 +70,7 @@
   left: 50%;
   height: 100%;
   min-width: 100%;
-  aspect-ratio: 1600 / 1000;
+  aspect-ratio: 2000 / 1250;
   transform: translateX(-50%);
   display: block;
 }
@@ -181,20 +184,27 @@
   padding-right: 48px;
 }
 
-/* autofill Chrome: jangan biru muda — ikut warna field */
+/* autofill Chrome: tutup latar bawaannya (biru muda / putih) dengan warna
+   field yang SOLID — warna semi-transparan akan tembus dan teks krem jadi
+   tak terbaca di mode gelap. */
 .input:-webkit-autofill,
 .input:-webkit-autofill:hover,
 .input:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--ink);
   caret-color: var(--ink);
-  box-shadow: 0 0 0 1000px var(--field-bg) inset;
+  box-shadow: 0 0 0 1000px var(--field-solid) inset;
   transition: background-color 9999s ease-out 0s;
 }
 
 .input:-webkit-autofill:focus {
   box-shadow:
-    0 0 0 1000px var(--field-bg) inset,
+    0 0 0 1000px var(--field-solid) inset,
     0 0 0 4px var(--focus-ring);
+}
+
+/* mode gelap: pastikan isian biasa juga terbaca */
+:global(.dark) .input {
+  color-scheme: dark;
 }
 
 .input::placeholder {
@@ -363,9 +373,17 @@
     min-height: 0;
   }
 
-  /* fokus crop ke fasad + papan nama (x≈600 dari 1600) */
+  /* fokus crop: antara kata BELITUNG (x≈440) dan fasad (x≈600) →
+     sekitar x≈460 → (460+200)/2000 ≈ 33% */
   .scene > svg {
-    transform: translateX(-37.5%);
+    transform: translateX(-33%);
+  }
+
+  /* tagline di langit sedikit dikecilkan agar tidak terpotong di tepi layar HP */
+  .tagline {
+    transform-box: view-box;
+    transform-origin: 465px 60px;
+    transform: scale(0.88);
   }
 
   .card {

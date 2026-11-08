@@ -9,9 +9,21 @@
 import { WORDMARK_PATHS, WORDMARK_TRANSFORM, WORDMARK_VIEWBOX } from './wordmark';
 import s from './login.module.css';
 
-function Wordmark({ fill }: { fill: string }) {
+function Wordmark({
+  fill,
+  x = 499,
+  y = 624,
+  width = 162,
+  height = 41,
+}: {
+  fill: string;
+  x?: number;
+  y?: number;
+  width?: number;
+  height?: number;
+}) {
   return (
-    <svg x="499" y="624" width="162" height="41" viewBox={WORDMARK_VIEWBOX}>
+    <svg x={x} y={y} width={width} height={height} viewBox={WORDMARK_VIEWBOX}>
       <g transform={WORDMARK_TRANSFORM} fill={fill}>
         {WORDMARK_PATHS.map((d, i) => (
           <path key={i} d={d} />
@@ -27,7 +39,63 @@ const STARS: ReadonlyArray<readonly [number, number, number]> = [
   [610, 28, 1.2], [700, 128, 1.8], [780, 60, 1.2], [860, 176, 1.4], [960, 40, 1.6],
   [1100, 66, 1.2], [1170, 150, 1.8], [1240, 28, 1.3], [1320, 112, 1.2], [1400, 58, 1.7],
   [1470, 190, 1.2], [1540, 40, 1.4], [1585, 150, 1.6], [300, 200, 1], [1060, 220, 1.1],
+  [-160, -200, 1.6], [-60, -90, 1.2], [80, -180, 1.8], [240, -60, 1.2], [380, -210, 1.4],
+  [520, -120, 1.7], [660, -220, 1.2], [800, -80, 1.5], [940, -190, 1.2], [1220, -150, 1.8],
+  [1360, -60, 1.2], [1500, -200, 1.6], [1650, -110, 1.3], [1760, -30, 1.7], [-120, 60, 1.2],
 ];
+
+/**
+ * Tagline raksasa di langit, di belakang bangunan.
+ *   baris 1 "Organized Your" — kabut putih (siang) / cahaya bulan (malam)
+ *   baris 2 "Work."          — rata kanan, lebih tebal, kuning matahari;
+ *                               malam hari menyala hangat seperti jendela.
+ * Lebar baris 1 dikunci (textLength) supaya baris 2 bisa rata kanan
+ * tepat di ujungnya (TAG_RIGHT).
+ */
+const TAG_LEFT = -90;
+const TAG_WIDTH = 1110;
+const TAG_RIGHT = TAG_LEFT + TAG_WIDTH;
+const TAG_FONT = 'var(--font-sans, Poppins, Arial, sans-serif)';
+
+function SkyTagline({ night = false }: { night?: boolean }) {
+  return (
+    <g className={s.tagline}>
+      <text
+        x={TAG_LEFT}
+        y={24}
+        textLength={TAG_WIDTH}
+        lengthAdjust="spacing"
+        fill={night ? 'url(#ls-skyword-night)' : 'url(#ls-skyword)'}
+        style={{ fontFamily: TAG_FONT, fontWeight: 600, fontSize: 147, letterSpacing: -3 }}
+      >
+        Organized Your
+      </text>
+      {/* "Work." (opacity 90%) — bayangan flat (siang) / pendar redup (malam) */}
+      <g opacity={night ? 0.86 : 0.9}>
+        <text
+          x={TAG_RIGHT + (night ? 0 : 6)}
+          y={196 + (night ? 0 : 6)}
+          textAnchor="end"
+          fill={night ? '#E8B45E' : '#C98410'}
+          opacity={night ? 0.3 : 1}
+          filter={night ? 'url(#ls-soft)' : undefined}
+          style={{ fontFamily: TAG_FONT, fontWeight: 700, fontSize: 190, letterSpacing: -4 }}
+        >
+          Work.
+        </text>
+        <text
+          x={TAG_RIGHT}
+          y={196}
+          textAnchor="end"
+          fill={night ? '#F0D49A' : '#FFC93C'}
+          style={{ fontFamily: TAG_FONT, fontWeight: 700, fontSize: 190, letterSpacing: -4 }}
+        >
+          Work.
+        </text>
+      </g>
+    </g>
+  );
+}
 
 /** Kaca yang menyala hangat (dipakai di lapisan malam). */
 function LitGlass({ x, y, w, h, dim = false }: { x: number; y: number; w: number; h: number; dim?: boolean }) {
@@ -69,14 +137,15 @@ export function LoginScene({ className }: { className?: string }) {
   return (
     <svg
       className={className}
-      viewBox="0 0 1600 1000"
+      viewBox="-200 -250 2000 1250"
       preserveAspectRatio="xMidYMax slice"
       role="img"
       aria-label="Ilustrasi deretan ruko dengan papan nama SIKAP"
     >
       <defs>
         <linearGradient id="ls-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#8DD2EE" />
+          <stop offset="0" stopColor="#6FC2E8" />
+          <stop offset="0.22" stopColor="#8DD2EE" />
           <stop offset="0.55" stopColor="#C9EDF7" />
           <stop offset="1" stopColor="#E8F6F9" />
         </linearGradient>
@@ -121,6 +190,23 @@ export function LoginScene({ className }: { className?: string }) {
           <stop offset="0" stopColor="#FFD98A" stopOpacity="0.55" />
           <stop offset="1" stopColor="#FFD98A" stopOpacity="0" />
         </radialGradient>
+        {/* kata raksasa: putih pekat di atas, larut ke kabut langit di bawah */}
+        <linearGradient id="ls-skyword" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.96" />
+          <stop offset="0.65" stopColor="#FFFFFF" stopOpacity="0.7" />
+          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0.36" />
+        </linearGradient>
+        <filter id="ls-soft" x="-20%" y="-40%" width="140%" height="180%">
+          <feGaussianBlur stdDeviation="14" />
+        </filter>
+        <linearGradient id="ls-skyword-night" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#E6EAFF" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#E6EAFF" stopOpacity="0.2" />
+        </linearGradient>
+        {/* area langit di atas bangunan kuning (atas y=150) & atap utama */}
+        <clipPath id="ls-sky-only">
+          <polygon points="-200,-250 1800,-250 1800,256 1430,256 1392,280 1392,330 972,214 934,210 220,304 220,330 260,330 260,150 -210,150" />
+        </clipPath>
         <linearGradient id="ls-spill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F5BE66" stopOpacity="0.32" />
           <stop offset="1" stopColor="#F5BE66" stopOpacity="0" />
@@ -129,16 +215,16 @@ export function LoginScene({ className }: { className?: string }) {
           <stop offset="0" stopColor="#FFF4D6" stopOpacity="0.22" />
           <stop offset="1" stopColor="#FFF4D6" stopOpacity="0" />
         </radialGradient>
-        <filter id="ls-blur" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="7" />
-        </filter>
         {/* bercak plester: noise frekuensi rendah → hanya titik terang yang tersisa */}
         <filter id="ls-stucco" x="0" y="0" width="100%" height="100%">
           <feTurbulence type="fractalNoise" baseFrequency="0.018 0.045" numOctaves="4" seed="7" />
           <feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  3 0 0 0 -1.55" />
         </filter>
         <clipPath id="ls-wall-yellow">
-          <rect x="-10" y="150" width="270" height="710" />
+          <rect x="-210" y="150" width="470" height="710" />
+        </clipPath>
+        <clipPath id="ls-wall-teal">
+          <rect x="1404" y="246" width="400" height="614" />
         </clipPath>
         <clipPath id="ls-wall-main">
           <polygon points="250,318 910,232 910,860 250,860" />
@@ -150,54 +236,109 @@ export function LoginScene({ className }: { className?: string }) {
       </defs>
 
       {/* ── Langit ── */}
-      <rect width="1600" height="1000" fill="url(#ls-sky)" />
-      <path d="M0 130 C 120 70 250 150 380 96 C 470 58 560 126 640 112 L 640 0 L 0 0 Z" fill="#fff" opacity="0.28" />
-      <path d="M1040 0 C 1110 76 1250 40 1330 96 C 1420 156 1520 86 1600 112 L 1600 0 Z" fill="#fff" opacity="0.3" />
-      <polygon className={s.dayOnly} points="1150,0 1600,0 1600,430" fill="#fff" opacity="0.08" />
+      <rect x="-200" y="-250" width="2000" height="1250" fill="url(#ls-sky)" />
+      {/* awan lembut berlapis (gaya poster) */}
+      <path d="M-200 -120 C -60 -190 120 -100 300 -160 C 420 -200 560 -130 700 -170 L 700 -250 L -200 -250 Z" fill="#fff" opacity="0.22" />
+      <path d="M-200 130 C -60 60 120 150 380 96 C 470 58 560 126 640 112 C 700 104 760 60 800 30 L 800 -40 C 600 -10 300 20 -200 0 Z" fill="#fff" opacity="0.18" />
+      <path d="M1040 -40 C 1110 36 1250 0 1330 56 C 1420 116 1560 46 1800 92 L 1800 -110 C 1600 -60 1300 -120 1040 -40 Z" fill="#fff" opacity="0.26" />
+      <polygon className={s.dayOnly} points="1150,-250 1800,-250 1800,430" fill="#fff" opacity="0.08" />
 
-      {/* ── Bangunan putih jauh di kanan ── */}
-      <polygon points="1392,280 1430,256 1430,860 1392,860" fill="#CBC8C2" />
-      <rect x="1430" y="256" width="170" height="604" fill="#E6E4E0" />
-      {[320, 450, 580].map((wy) => (
-        <g key={wy}>
-          <rect x="1462" y={wy} width="64" height="84" fill="#2F3D3C" />
-          <polygon points={`${1470},${wy + 76} ${1500},${wy + 8} ${1508},${wy + 8} ${1478},${wy + 76}`} fill="#fff" opacity="0.1" />
-          <rect x="1456" y={wy + 84} width="76" height="7" fill="#F4F3F0" />
+      {/* ── Kata raksasa melayang di langit, di belakang bangunan ──
+          Bawah hurufnya tertutup atap & bangunan kuning; kabel dan tiang
+          lewat di depannya → terasa berlapis seperti poster wisata. */}
+      <SkyTagline />
+
+      {/* ── Rumah kolonial toska di kanan (balkon + jendela putih) ── */}
+      <polygon points="1372,262 1404,246 1404,860 1372,860" fill="#15514E" />
+      <rect x="1404" y="246" width="400" height="614" fill="#1E6B67" />
+      <g clipPath="url(#ls-wall-teal)">
+        <rect x="1404" y="246" width="400" height="614" filter="url(#ls-stucco)" opacity="0.12" />
+      </g>
+      {/* lis atap & pemisah lantai */}
+      <rect x="1392" y="232" width="420" height="18" fill="#F3F0E8" />
+      <rect x="1392" y="250" width="420" height="8" fill="#000" opacity="0.1" />
+      <rect x="1404" y="540" width="400" height="12" fill="#F3F0E8" />
+      {/* jendela lantai atas */}
+      {[1440, 1560, 1680].map((wx) => (
+        <g key={wx}>
+          <rect x={wx} y="296" width="80" height="150" fill="#F3F0E8" />
+          <rect x={wx + 8} y="304" width="64" height="134" fill="#123230" />
+          <rect x={wx + 38} y="304" width="4" height="134" fill="#F3F0E8" />
+          <rect x={wx + 8} y="364" width="64" height="4" fill="#F3F0E8" />
+          <polygon points={`${wx + 14},430 ${wx + 34},312 ${wx + 38},312 ${wx + 18},430`} fill="#fff" opacity="0.12" />
         </g>
       ))}
+      {/* balkon berpagar */}
+      <rect x="1418" y="496" width="386" height="10" fill="#F3F0E8" />
+      {Array.from({ length: 24 }, (_, i) => (
+        <rect key={i} x={1424 + i * 16} y="506" width="5" height="30" fill="#F3F0E8" />
+      ))}
+      <rect x="1412" y="536" width="392" height="8" fill="#E2DED4" />
+      <rect x="1412" y="552" width="392" height="10" fill="#000" opacity="0.1" />
+      {/* lantai dasar: pintu melengkung + jendela */}
+      <path d="M1460 860 L 1460 690 A 44 44 0 0 1 1548 690 L 1548 860 Z" fill="#F3F0E8" />
+      <path d="M1468 860 L 1468 692 A 36 36 0 0 1 1540 692 L 1540 860 Z" fill="#123230" />
+      <rect x="1502" y="700" width="4" height="160" fill="#2C5452" />
+      <rect x="1610" y="640" width="140" height="120" fill="#F3F0E8" />
+      <rect x="1618" y="648" width="124" height="104" fill="#123230" />
+      <rect x="1678" y="648" width="4" height="104" fill="#F3F0E8" />
+      <polygon points="1628,744 1660,656 1666,656 1634,744" fill="#fff" opacity="0.1" />
+      <rect x="1604" y="760" width="152" height="10" fill="#F3F0E8" />
 
-      {/* ── Pohon di belakang (blur = kedalaman) ── */}
-      <g filter="url(#ls-blur)">
-        <path d="M1150 720 C 1146 640 1160 590 1150 540" stroke="#8A4B32" strokeWidth="20" fill="none" />
-        <path d="M1150 600 C 1120 570 1090 560 1070 540" stroke="#8A4B32" strokeWidth="10" fill="none" />
-        <circle cx="1060" cy="470" r="105" fill="#8CBF5E" />
-        <circle cx="1180" cy="420" r="120" fill="#93C463" />
-        <circle cx="1290" cy="480" r="98" fill="#86B856" />
-        <circle cx="1150" cy="540" r="96" fill="#7AAE4C" />
+      {/* ── Taman kecil di antara bangunan ── */}
+      {/* pohon ketapang: batang + tajuk berlapis tiga nada */}
+      <path d="M1186 700 C 1180 630 1192 580 1182 520" stroke="#7A4630" strokeWidth="22" fill="none" strokeLinecap="round" />
+      <path d="M1184 590 C 1150 566 1118 556 1092 528" stroke="#7A4630" strokeWidth="10" fill="none" strokeLinecap="round" />
+      <path d="M1186 560 C 1220 536 1250 530 1278 508" stroke="#7A4630" strokeWidth="9" fill="none" strokeLinecap="round" />
+      <g>
+        <ellipse cx="1180" cy="470" rx="190" ry="78" fill="#4E8C43" />
+        <ellipse cx="1090" cy="500" rx="96" ry="48" fill="#4E8C43" />
+        <ellipse cx="1280" cy="496" rx="100" ry="46" fill="#4E8C43" />
+        <ellipse cx="1170" cy="430" rx="150" ry="64" fill="#62A552" />
+        <ellipse cx="1260" cy="452" rx="90" ry="44" fill="#62A552" />
+        <ellipse cx="1150" cy="396" rx="104" ry="44" fill="#7DBE62" />
+        <ellipse cx="1110" cy="410" rx="44" ry="18" fill="#9BD07A" opacity="0.8" />
+        <ellipse cx="1200" cy="384" rx="40" ry="14" fill="#9BD07A" opacity="0.7" />
+        <ellipse cx="1180" cy="516" rx="170" ry="16" fill="#000" opacity="0.08" />
       </g>
+      {/* lampu taman */}
+      <rect x="1046" y="566" width="7" height="134" fill="#2F3537" />
+      <rect x="1040" y="696" width="19" height="8" fill="#2F3537" />
+      <polygon points="1038,542 1062,542 1066,566 1034,566" fill="#3A4244" />
+      <rect x="1040" y="546" width="20" height="18" fill="#FFF3D2" />
+      <rect x="1036" y="536" width="28" height="7" fill="#2F3537" />
 
-      {/* ── Tembok pagar ── */}
-      <rect x="940" y="700" width="660" height="160" fill="#DCC9B0" />
-      <rect x="940" y="692" width="660" height="10" fill="#CBB698" />
-      <rect x="940" y="828" width="660" height="32" fill="#8F9474" />
+      {/* ── Tembok taman + pagar semak ── */}
+      {[1000, 1062, 1122, 1186, 1250, 1312, 1366].map((bx, i) => (
+        <g key={bx}>
+          <circle cx={bx} cy={690} r={i % 2 ? 40 : 46} fill="#4F8F43" />
+          <circle cx={bx - 12} cy={680} r={i % 2 ? 24 : 28} fill="#6AAE55" />
+        </g>
+      ))}
+      <rect x="962" y="700" width="442" height="160" fill="#DCC9B0" />
+      <rect x="962" y="692" width="442" height="10" fill="#CBB698" />
+      <rect x="962" y="828" width="442" height="32" fill="#8F9474" />
+      {[1030, 1150, 1270].map((px) => (
+        <rect key={px} x={px} y="702" width="10" height="126" fill="#CDB89C" />
+      ))}
 
       {/* ── Bangunan kuning di kiri ── */}
-      <rect x="-10" y="150" width="270" height="710" fill="url(#ls-yellow)" />
+      <rect x="-210" y="150" width="470" height="710" fill="url(#ls-yellow)" />
       <g clipPath="url(#ls-wall-yellow)">
-        <rect x="-10" y="150" width="270" height="710" filter="url(#ls-stucco)" opacity="0.3" />
+        <rect x="-210" y="150" width="470" height="710" filter="url(#ls-stucco)" opacity="0.3" />
       </g>
-      <rect x="-10" y="150" width="270" height="20" fill="#D69D16" />
-      <rect x="-10" y="176" width="270" height="6" fill="#D69D16" opacity="0.6" />
-      <rect x="-10" y="470" width="270" height="12" fill="#D9A11F" />
+      <rect x="-210" y="150" width="470" height="20" fill="#D69D16" />
+      <rect x="-210" y="176" width="470" height="6" fill="#D69D16" opacity="0.6" />
+      <rect x="-210" y="470" width="470" height="12" fill="#D9A11F" />
       <rect x="226" y="150" width="34" height="710" fill="#D69D16" opacity="0.55" />
-      {[230, 560].map((wy) => (
-        <g key={wy}>
-          <rect x="34" y={wy} width="100" height="140" fill="#F7F2E6" />
-          <rect x="42" y={wy + 8} width="84" height="124" fill="#163130" />
-          <polygon points={`${52},${wy + 120} ${88},${wy + 16} ${96},${wy + 16} ${60},${wy + 120}`} fill="#fff" opacity="0.1" />
-          <rect x="26" y={wy + 140} width="116" height="10" fill="#D69D16" />
+      {[-150, 34].flatMap((wx) => [230, 560].map((wy) => (
+        <g key={`${wx}-${wy}`}>
+          <rect x={wx} y={wy} width="100" height="140" fill="#F7F2E6" />
+          <rect x={wx + 8} y={wy + 8} width="84" height="124" fill="#163130" />
+          <polygon points={`${wx + 18},${wy + 120} ${wx + 54},${wy + 16} ${wx + 62},${wy + 16} ${wx + 26},${wy + 120}`} fill="#fff" opacity="0.1" />
+          <rect x={wx - 8} y={wy + 140} width="116" height="10" fill="#D69D16" />
         </g>
-      ))}
+      )))}
 
       {/* ── Bangunan utama: lantai atas ── */}
       <polygon points="250,318 910,232 910,640 250,640" fill="url(#ls-wall)" />
@@ -286,26 +427,32 @@ export function LoginScene({ className }: { className?: string }) {
       </g>
 
       {/* ── Trotoar & jalan ── */}
-      <rect x="0" y="860" width="1600" height="46" fill="#C4C1BA" />
-      <rect x="0" y="860" width="1600" height="3" fill="#A9A69F" />
+      <rect x="-200" y="860" width="2000" height="46" fill="#C4C1BA" />
+      <rect x="-200" y="860" width="2000" height="3" fill="#A9A69F" />
       <rect x="250" y="863" width="712" height="8" fill="#000" opacity="0.07" />
-      <rect x="0" y="906" width="1600" height="8" fill="#9C9992" />
-      <rect x="0" y="914" width="1600" height="86" fill="#8D8C87" />
-      <rect x="0" y="952" width="1600" height="5" fill="#A6A49E" opacity="0.7" />
+      <rect x="-200" y="906" width="2000" height="8" fill="#9C9992" />
+      <rect x="-200" y="914" width="2000" height="86" fill="#8D8C87" />
+      <rect x="-200" y="952" width="2000" height="5" fill="#A6A49E" opacity="0.7" />
 
       {/* ── Lapisan malam (hanya mode gelap) ── */}
       <g className={s.nightOnly}>
         {/* seluruh adegan digelapkan ke biru malam */}
-        <rect width="1600" height="1000" fill="#2A3863" style={{ mixBlendMode: 'multiply' }} />
+        <rect x="-200" y="-250" width="2000" height="1250" fill="#2A3863" style={{ mixBlendMode: 'multiply' }} />
 
         {/* bulan & bintang */}
-        <circle cx="1010" cy="118" r="120" fill="url(#ls-moonglow)" />
-        <circle cx="1010" cy="118" r="30" fill="#FFF3D4" />
-        <circle cx="1000" cy="110" r="6" fill="#EFE0BC" opacity="0.6" />
-        <circle cx="1020" cy="128" r="4" fill="#EFE0BC" opacity="0.5" />
+        <circle cx="1060" cy="-110" r="150" fill="url(#ls-moonglow)" />
+        <circle cx="1060" cy="-110" r="36" fill="#FFF3D4" />
+        <circle cx="1048" cy="-120" r="7" fill="#EFE0BC" opacity="0.6" />
+        <circle cx="1072" cy="-98" r="5" fill="#EFE0BC" opacity="0.5" />
         {STARS.map(([x, y, r]) => (
           <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#FFF7E0" opacity="0.85" />
         ))}
+
+        {/* kata raksasa diterangi bulan — dipotong mengikuti siluet bangunan
+            supaya tetap terasa "di belakang rumah" */}
+        <g clipPath="url(#ls-sky-only)">
+          <SkyTagline night />
+        </g>
 
         {/* jendela lantai atas menyala */}
         <LitGlass x={430} y={420} w={110} h={130} dim />
@@ -330,7 +477,16 @@ export function LoginScene({ className }: { className?: string }) {
 
         {/* jendela tetangga */}
         <LitGlass x={42} y={238} w={84} h={124} dim />
-        <LitGlass x={1462} y={450} w={64} h={84} dim />
+        {/* rumah toska: satu jendela atas & pintu menyala */}
+        <LitGlass x={1568} y={304} w={64} h={134} dim />
+        <rect x="1598" y="304" width="4" height="134" fill="#C9C2B0" />
+        <rect x="1568" y="364" width="64" height="4" fill="#C9C2B0" />
+        <path d="M1468 860 L 1468 692 A 36 36 0 0 1 1540 692 L 1540 860 Z" fill="url(#ls-lit)" opacity="0.7" />
+        <rect x="1502" y="700" width="4" height="160" fill="#7A5A3A" />
+
+        {/* lampu taman */}
+        <circle cx="1050" cy="556" r="80" fill="url(#ls-glow)" />
+        <rect x="1040" y="546" width="20" height="18" fill="#FFE9A8" />
 
         {/* papan nama tersorot dari atas */}
         <ellipse cx="580" cy="640" rx="170" ry="34" fill="url(#ls-glow)" opacity="0.7" />
@@ -369,18 +525,18 @@ export function LoginScene({ className }: { className?: string }) {
           <rect x={ix - 4} y="34" width="8" height="10" fill="#7F7771" />
         </g>
       ))}
-      <rect x="112" y="-20" width="38" height="1020" fill="url(#ls-pole)" />
-      <rect x="112" y="-20" width="38" height="1020" fill="none" stroke="#7B736D" strokeWidth="2" />
+      <rect x="112" y="-260" width="38" height="1260" fill="url(#ls-pole)" />
+      <rect x="112" y="-260" width="38" height="1260" fill="none" stroke="#7B736D" strokeWidth="2" />
       <circle cx="131" cy="82" r="4" fill="#E2DCD6" />
 
       {/* kabel */}
-      <path d="M16 36 C 520 250 1080 200 1600 60" stroke="#4E544F" strokeWidth="2.4" fill="none" />
-      <path d="M196 36 C 640 200 1180 150 1600 4" stroke="#4E544F" strokeWidth="2.2" fill="none" />
-      <path d="M306 36 C 760 150 1220 100 1620 -30" stroke="#4E544F" strokeWidth="2" fill="none" />
+      <path d="M16 36 C 560 260 1200 210 1800 40" stroke="#4E544F" strokeWidth="2.4" fill="none" />
+      <path d="M196 36 C 680 210 1280 150 1800 -20" stroke="#4E544F" strokeWidth="2.2" fill="none" />
+      <path d="M306 36 C 800 160 1320 100 1820 -70" stroke="#4E544F" strokeWidth="2" fill="none" />
       </g>
 
       {/* butir tekstur halus ala cetak */}
-      <rect width="1600" height="1000" filter="url(#ls-grain)" opacity="0.09" style={{ mixBlendMode: 'multiply' }} />
+      <rect x="-200" y="-250" width="2000" height="1250" filter="url(#ls-grain)" opacity="0.09" style={{ mixBlendMode: 'multiply' }} />
     </svg>
   );
 }
