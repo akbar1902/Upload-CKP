@@ -717,6 +717,25 @@ body {
   animation: var(--duration-slow) var(--ease-emphasized) var(--duration-fast) both fade;
 }
 
+/* Ganti tema (ThemeToggle): tanpa fade — tema baru dibuka sebagai
+   lingkaran (clip-path dianimasikan lewat JS). */
+html.theme-vt::view-transition-old(root),
+html.theme-vt::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+html.theme-vt::view-transition-group(root) {
+  animation: none;
+}
+/* Selama lingkaran berjalan, matikan transisi warna CSS di seluruh halaman:
+   kalau tidak, tombol/input ikut "berpindah warna" di dalam snapshot baru
+   dan memaksa repaint tiap frame → animasi patah-patah. */
+html.theme-vt *,
+html.theme-vt *::before,
+html.theme-vt *::after {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sikap-fade-in, .sikap-fade-out, .sikap-pop-in, .sikap-pop-out {
     animation-duration: 0.01s;

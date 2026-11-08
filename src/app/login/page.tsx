@@ -10,7 +10,8 @@ import { warmSupabaseConnection } from '@/lib/supabase/warm-connection';
 import { useAuth } from '@/hooks/use-auth';
 import { Eye, EyeOff, AlertCircle, ArrowBigUp } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
-import { LoginScene } from './scene';
+import { LoginScene, LoginSceneFx } from './scene';
+import { FallingLeaves } from './leaves';
 import s from './login.module.css';
 
 const ROLE_ROUTES: Record<string, Route> = {
@@ -146,6 +147,8 @@ export default function LoginPage() {
     <div className={s.root}>
       <div className={s.scene} aria-hidden="true">
         <LoginScene />
+        <LoginSceneFx />
+        <FallingLeaves />
       </div>
 
       <div className={s.themeToggle}>

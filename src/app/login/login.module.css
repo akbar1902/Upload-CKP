@@ -61,17 +61,26 @@
   inset: 0;
   z-index: 0;
   overflow: hidden;
+  /* paint containment: klip keras (andal juga di WebKit/iOS) */
+  contain: paint;
+  /* ukuran adegan jadi acuan unit cqw/cqh untuk SVG di bawah */
+  container-type: size;
+  /* titik fokus crop horizontal (0 = kiri, 1 = kanan kanvas) */
+  --focus: 0.5;
 }
 
-/* `>`: hanya SVG adegan, bukan <svg> bersarang (wordmark papan nama) */
-.scene > svg {
+/* `>`: hanya SVG adegan, bukan <svg> bersarang (wordmark papan nama).
+   Lebar dihitung eksplisit (bukan aspect-ratio — WebKit/iOS menghitungnya
+   berbeda): selebar adegan, atau setinggi adegan × 1,6 bila lebih lebar.
+   Posisi kiri di-clamp supaya gambar SELALU menutup tepi kiri & kanan. */
+.scene > svg,
+.fx {
+  --w: max(100cqw, 100cqh * 1.6);
   position: absolute;
   top: 0;
-  left: 50%;
   height: 100%;
-  min-width: 100%;
-  aspect-ratio: 2000 / 1250;
-  transform: translateX(-50%);
+  width: var(--w);
+  left: clamp(calc(100cqw - var(--w)), calc(50cqw - var(--focus) * var(--w)), 0px);
   display: block;
 }
 
@@ -96,6 +105,145 @@
 
 :global(.dark) .root {
   background: #101a33;
+}
+
+/* ── Gerak ambien ──
+   Aturan performa: SVG adegan utama TIDAK boleh beranimasi (filter teksturnya
+   mahal untuk digambar ulang). Semua gerak memakai elemen HTML yang hanya
+   dianimasikan lewat transform/opacity → dijalankan compositor (GPU),
+   tanpa layout/paint:
+   - LoginSceneFx (.fx): bintang berkelip & pendar lampu — malam saja
+   - FallingLeaves: daun gugur */
+.fx {
+  pointer-events: none;
+  display: none;
+}
+
+:global(.dark) .fx {
+  display: block;
+}
+
+.star,
+.flicker {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  will-change: opacity;
+}
+
+.star {
+  background: #fff7e0;
+  animation: twinkle 3.8s ease-in-out infinite;
+}
+
+.flicker {
+  aspect-ratio: 1;
+  background: radial-gradient(circle closest-side, rgba(255, 217, 138, 0.55), rgba(255, 217, 138, 0));
+  animation: flicker 6s ease-in-out infinite;
+}
+
+/* ── Daun gugur ── */
+.leaves {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  container-type: size;
+  --leaf-1: #6aae55;
+  --leaf-2: #9bd07a;
+  --leaf-3: #e39a3b;
+  --leaf-4: #c8643a;
+}
+
+:global(.dark) .leaves {
+  --leaf-1: #2f5a3a;
+  --leaf-2: #46704a;
+  --leaf-3: #8a5a2e;
+  --leaf-4: #74402a;
+}
+
+.leafPath {
+  position: absolute;
+  left: 0;
+  top: 0;
+  opacity: 0;
+  will-change: transform, opacity;
+  animation: leafFall var(--dur) linear var(--delay) infinite;
+}
+
+.leafSpin {
+  display: block;
+  will-change: transform;
+  animation: leafSway var(--sway) ease-in-out infinite alternate;
+}
+
+.leafSpin svg {
+  display: block;
+}
+
+.leafTone1 { color: var(--leaf-1); }
+.leafTone2 { color: var(--leaf-2); }
+.leafTone3 { color: var(--leaf-3); }
+.leafTone4 { color: var(--leaf-4); }
+
+@keyframes leafFall {
+  0% {
+    opacity: 0;
+    transform: translate3d(calc(var(--x0) * 1cqw), calc(var(--y0) * 1cqh), 0);
+  }
+  8% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(calc(var(--xm) * 1cqw), calc(var(--ym) * 1cqh), 0);
+  }
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--x1) * 1cqw), calc(var(--y1) * 1cqh), 0);
+  }
+}
+
+/* ayunan + "membalik" (rotate3d) seperti daun ditiup angin */
+@keyframes leafSway {
+  from { transform: translate3d(-14px, 0, 0) rotate3d(0.4, 0.2, 1, -40deg); }
+  to { transform: translate3d(14px, 6px, 0) rotate3d(0.6, -0.3, 1, 55deg); }
+}
+
+/* saat lingkaran ganti tema berjalan, bekukan gerak agar animasi
+   transisinya mendapat seluruh anggaran frame */
+:global(html.theme-vt) .leafPath,
+:global(html.theme-vt) .leafSpin,
+:global(html.theme-vt) .star,
+:global(html.theme-vt) .flicker {
+  animation-play-state: paused;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.2; }
+}
+
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  42% { opacity: 0.86; }
+  48% { opacity: 0.97; }
+  54% { opacity: 0.82; }
+  60% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star,
+  .flicker {
+    animation: none;
+  }
+
+  .leaves {
+    display: none;
+  }
 }
 
 /* ── Kartu ── */
@@ -175,7 +323,9 @@
   background: var(--field-bg);
   color: var(--ink);
   font: inherit;
-  font-size: 15px;
+  /* ≥16px WAJIB: di bawah itu iOS Safari otomatis zoom saat input fokus
+     (termasuk autoFocus saat halaman dibuka) dan tidak zoom-out kembali. */
+  font-size: 16px;
   outline: none;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
@@ -373,16 +523,16 @@
     min-height: 0;
   }
 
-  /* fokus crop: antara kata BELITUNG (x≈440) dan fasad (x≈600) →
+  /* fokus crop: antara tagline (x≈465) dan fasad (x≈600) →
      sekitar x≈460 → (460+200)/2000 ≈ 33% */
-  .scene > svg {
-    transform: translateX(-33%);
+  .scene {
+    --focus: 0.33;
   }
 
   /* tagline di langit sedikit dikecilkan agar tidak terpotong di tepi layar HP */
   .tagline {
     transform-box: view-box;
-    transform-origin: 465px 60px;
+    transform-origin: 465px 183px;
     transform: scale(0.88);
   }
 

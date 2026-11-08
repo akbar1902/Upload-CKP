@@ -47,22 +47,34 @@ const STARS: ReadonlyArray<readonly [number, number, number]> = [
 /**
  * Tagline raksasa di langit, di belakang bangunan.
  *   baris 1 "Organized Your" — kabut putih (siang) / cahaya bulan (malam)
- *   baris 2 "Work."          — rata kanan, lebih tebal, kuning matahari;
+ *   baris 2 "Work."          — lebih tebal, kuning matahari, miring sejajar
+ *                               genteng & berakhir di ujung kanan rumah;
  *                               malam hari menyala hangat seperti jendela.
- * Lebar baris 1 dikunci (textLength) supaya baris 2 bisa rata kanan
- * tepat di ujungnya (TAG_RIGHT).
+ * Lebar baris 1 dikunci (textLength) agar tak bergantung metrik font.
  */
 const TAG_LEFT = -90;
 const TAG_WIDTH = 1110;
-const TAG_RIGHT = TAG_LEFT + TAG_WIDTH;
+// "Work." dimiringkan sejajar genteng ruko. Garis atap: (220,304) → (934,210),
+// kemiringan 94/714 → ±7,5°. Baseline diletakkan ROOF_GAP unit di atas atap,
+// jadi jaraknya sama sepanjang kata dan tak ada yang tertimpa.
+const ROOF_SLOPE = 94 / 714;
+const ROOF_ANGLE = (Math.atan(ROOF_SLOPE) * 180) / Math.PI;
+const ROOF_GAP = 16;
+const roofY = (x: number) => 304 - (x - 220) * ROOF_SLOPE;
+// Ujung kanan "Work." (titiknya) sejajar ujung kanan rumah = tepi tutup atap.
+const WORK_RIGHT = 972;
+// Baseline di poros kanan, dihitung dari puncak genteng (x=934) supaya celah
+// ROOF_GAP berlaku di sepanjang genteng.
+const WORK_BASELINE = roofY(934) - ROOF_GAP - (WORK_RIGHT - 934) * ROOF_SLOPE;
 const TAG_FONT = 'var(--font-sans, Poppins, Arial, sans-serif)';
 
 function SkyTagline({ night = false }: { night?: boolean }) {
   return (
     <g className={s.tagline}>
+    <g>
       <text
         x={TAG_LEFT}
-        y={24}
+        y={46}
         textLength={TAG_WIDTH}
         lengthAdjust="spacing"
         fill={night ? 'url(#ls-skyword-night)' : 'url(#ls-skyword)'}
@@ -70,11 +82,15 @@ function SkyTagline({ night = false }: { night?: boolean }) {
       >
         Organized Your
       </text>
-      {/* "Work." (opacity 90%) — bayangan flat (siang) / pendar redup (malam) */}
-      <g opacity={night ? 0.86 : 0.9}>
+      {/* "Work." (opacity 90%) — miring sejajar genteng, berporos di ujung kanan.
+          Bayangan flat (siang) / pendar redup (malam). */}
+      <g
+        opacity={night ? 0.86 : 0.9}
+        transform={`rotate(${-ROOF_ANGLE} ${WORK_RIGHT} ${WORK_BASELINE})`}
+      >
         <text
-          x={TAG_RIGHT + (night ? 0 : 6)}
-          y={196 + (night ? 0 : 6)}
+          x={WORK_RIGHT + (night ? 0 : 6)}
+          y={WORK_BASELINE + (night ? 0 : 6)}
           textAnchor="end"
           fill={night ? '#E8B45E' : '#C98410'}
           opacity={night ? 0.3 : 1}
@@ -84,8 +100,8 @@ function SkyTagline({ night = false }: { night?: boolean }) {
           Work.
         </text>
         <text
-          x={TAG_RIGHT}
-          y={196}
+          x={WORK_RIGHT}
+          y={WORK_BASELINE}
           textAnchor="end"
           fill={night ? '#F0D49A' : '#FFC93C'}
           style={{ fontFamily: TAG_FONT, fontWeight: 700, fontSize: 190, letterSpacing: -4 }}
@@ -93,6 +109,7 @@ function SkyTagline({ night = false }: { night?: boolean }) {
           Work.
         </text>
       </g>
+    </g>
     </g>
   );
 }
@@ -205,7 +222,7 @@ export function LoginScene({ className }: { className?: string }) {
         </linearGradient>
         {/* area langit di atas bangunan kuning (atas y=150) & atap utama */}
         <clipPath id="ls-sky-only">
-          <polygon points="-200,-250 1800,-250 1800,256 1430,256 1392,280 1392,330 972,214 934,210 220,304 220,330 260,330 260,150 -210,150" />
+          <polygon points="-200,-250 1800,-250 1800,232 1392,232 1392,340 972,340 972,214 934,210 220,304 220,330 260,330 260,150 -210,150" />
         </clipPath>
         <linearGradient id="ls-spill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#F5BE66" stopOpacity="0.32" />
@@ -237,10 +254,12 @@ export function LoginScene({ className }: { className?: string }) {
 
       {/* ── Langit ── */}
       <rect x="-200" y="-250" width="2000" height="1250" fill="url(#ls-sky)" />
-      {/* awan lembut berlapis (gaya poster) */}
+      {/* awan lembut berlapis (gaya poster), bergeser pelan */}
+      <g>
       <path d="M-200 -120 C -60 -190 120 -100 300 -160 C 420 -200 560 -130 700 -170 L 700 -250 L -200 -250 Z" fill="#fff" opacity="0.22" />
       <path d="M-200 130 C -60 60 120 150 380 96 C 470 58 560 126 640 112 C 700 104 760 60 800 30 L 800 -40 C 600 -10 300 20 -200 0 Z" fill="#fff" opacity="0.18" />
       <path d="M1040 -40 C 1110 36 1250 0 1330 56 C 1420 116 1560 46 1800 92 L 1800 -110 C 1600 -60 1300 -120 1040 -40 Z" fill="#fff" opacity="0.26" />
+      </g>
       <polygon className={s.dayOnly} points="1150,-250 1800,-250 1800,430" fill="#fff" opacity="0.08" />
 
       {/* ── Kata raksasa melayang di langit, di belakang bangunan ──
@@ -444,9 +463,7 @@ export function LoginScene({ className }: { className?: string }) {
         <circle cx="1060" cy="-110" r="36" fill="#FFF3D4" />
         <circle cx="1048" cy="-120" r="7" fill="#EFE0BC" opacity="0.6" />
         <circle cx="1072" cy="-98" r="5" fill="#EFE0BC" opacity="0.5" />
-        {STARS.map(([x, y, r]) => (
-          <circle key={`${x}-${y}`} cx={x} cy={y} r={r} fill="#FFF7E0" opacity="0.85" />
-        ))}
+        {/* bintang berkelip ada di LoginSceneFx (lapisan terpisah) */}
 
         {/* kata raksasa diterangi bulan — dipotong mengikuti siluet bangunan
             supaya tetap terasa "di belakang rumah" */}
@@ -469,7 +486,6 @@ export function LoginScene({ className }: { className?: string }) {
         {/* lampu gantung di etalase */}
         <path d="M535 712 L 535 748" stroke="#5A3A2E" strokeWidth="2" />
         <polygon points="522,748 548,748 556,764 514,764" fill="#5A3A2E" />
-        <circle cx="535" cy="772" r="40" fill="url(#ls-glow)" />
         {/* meja di balik etalase */}
         <rect x="446" y="816" width="178" height="10" fill="#7A4A30" opacity="0.75" />
         <rect x="458" y="826" width="8" height="34" fill="#7A4A30" opacity="0.75" />
@@ -485,7 +501,6 @@ export function LoginScene({ className }: { className?: string }) {
         <rect x="1502" y="700" width="4" height="160" fill="#7A5A3A" />
 
         {/* lampu taman */}
-        <circle cx="1050" cy="556" r="80" fill="url(#ls-glow)" />
         <rect x="1040" y="546" width="20" height="18" fill="#FFE9A8" />
 
         {/* papan nama tersorot dari atas */}
@@ -497,7 +512,6 @@ export function LoginScene({ className }: { className?: string }) {
         <Wordmark fill="#F6E7C6" />
 
         {/* lampu dinding */}
-        <circle cx="318" cy="562" r="95" fill="url(#ls-glow)" />
         <rect x="303" y="544" width="30" height="36" fill="#FFE9A8" />
         <rect x="303" y="544" width="30" height="36" fill="none" stroke="#1F2427" strokeWidth="4" />
 
@@ -538,5 +552,55 @@ export function LoginScene({ className }: { className?: string }) {
       {/* butir tekstur halus ala cetak */}
       <rect x="-200" y="-250" width="2000" height="1250" filter="url(#ls-grain)" opacity="0.09" style={{ mixBlendMode: 'multiply' }} />
     </svg>
+  );
+}
+
+/** Posisi titik kanvas (viewBox -200 -250 2000 1250) dalam % lapisan efek. */
+const px = (x: number) => `${((x + 200) / 2000) * 100}%`;
+const py = (y: number) => `${((y + 250) / 1250) * 100}%`;
+
+/** Pendar lampu: [x, y, radius] dalam unit kanvas. */
+const GLOWS: ReadonlyArray<readonly [number, number, number]> = [
+  [318, 562, 95],
+  [1050, 556, 80],
+  [535, 772, 40],
+];
+
+/**
+ * Lapisan efek malam — bintang berkelip & pendar lampu.
+ * Elemen HTML biasa (bukan SVG) yang HANYA dianimasikan lewat opacity,
+ * sehingga dijalankan compositor/GPU tanpa repaint. Lapisan ini memakai
+ * ukuran & posisi yang sama persis dengan SVG adegan (lihat .fx di CSS),
+ * dan SVG adegan sendiri 100% statis.
+ */
+export function LoginSceneFx() {
+  return (
+    <div className={s.fx} aria-hidden="true">
+      {STARS.map(([x, y, r]) => (
+        <span
+          key={`${x}-${y}`}
+          className={s.star}
+          style={{
+            left: px(x),
+            top: py(y),
+            width: `${r * 2}px`,
+            height: `${r * 2}px`,
+            animationDelay: `-${((x * 7 + y * 3 + 4000) % 40) / 10}s`,
+          }}
+        />
+      ))}
+      {GLOWS.map(([x, y, r], i) => (
+        <span
+          key={`g${i}`}
+          className={s.flicker}
+          style={{
+            left: px(x),
+            top: py(y),
+            width: `${((r * 2) / 2000) * 100}%`,
+            animationDelay: `-${i * 2.1}s`,
+          }}
+        />
+      ))}
+    </div>
   );
 }
