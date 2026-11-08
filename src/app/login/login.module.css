@@ -1,0 +1,444 @@
+/* ════════════════════════════════════════════════════════════════
+   Halaman Masuk — ilustrasi penuh + kartu form.
+   Latar: <LoginScene /> (SVG) memenuhi layar.
+   Kartu: kertas krem di kanan (desktop) / lembar bawah (mobile).
+   ════════════════════════════════════════════════════════════════ */
+
+.root {
+  --card-bg: #fbf8f1;
+  --ink: #12261f;
+  --muted: #5d6a64;
+  --line: #ddd6c8;
+  --field-bg: #ffffff;
+  --field-border: #d6cfc0;
+  --focus: #2f6e5a;
+  --focus-ring: rgba(47, 110, 90, 0.18);
+  --btn-bg: #1f4d3f;
+  --btn-hover: #245a4a;
+  --btn-text: #fbf8f1;
+  --danger-bg: #fbe9e3;
+  --danger-border: #f0c4b3;
+  --danger-text: #8a2f12;
+  --accent: #9a4a2c;
+
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 32px clamp(20px, 6vw, 104px);
+  overflow: hidden;
+  background: #c9edf7;
+  font-family: var(--font-sans, ui-sans-serif, system-ui, sans-serif);
+  color: var(--ink);
+}
+
+:global(.dark) .root {
+  --card-bg: #14201c;
+  --ink: #f1ebdd;
+  --muted: rgba(241, 235, 221, 0.66);
+  --line: rgba(241, 235, 221, 0.12);
+  --field-bg: rgba(241, 235, 221, 0.05);
+  --field-border: rgba(241, 235, 221, 0.18);
+  --focus: #8fd0bf;
+  --focus-ring: rgba(143, 208, 191, 0.2);
+  --btn-bg: #f1ebdd;
+  --btn-hover: #fffaf0;
+  --btn-text: #12261f;
+  --danger-bg: rgba(208, 117, 79, 0.14);
+  --danger-border: rgba(208, 117, 79, 0.45);
+  --danger-text: #f2c4ae;
+  --accent: #e9a17a;
+}
+
+/* ── Ilustrasi ── */
+
+.scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* `>`: hanya SVG adegan, bukan <svg> bersarang (wordmark papan nama) */
+.scene > svg {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  min-width: 100%;
+  aspect-ratio: 1600 / 1000;
+  transform: translateX(-50%);
+  display: block;
+}
+
+/* Siang ⇄ malam: ilustrasi yang sama, lapisan berbeda.
+   Mode gelap → tint biru malam + jendela/lampu menyala (lihat scene.tsx). */
+.nightOnly {
+  display: none;
+}
+
+:global(.dark) .nightOnly {
+  display: inline;
+}
+
+:global(.dark) .dayOnly {
+  display: none;
+}
+
+/* tiang & kabel di latar depan: siluet gelap di malam hari */
+:global(.dark) .pole {
+  filter: brightness(0.3) saturate(0.6);
+}
+
+:global(.dark) .root {
+  background: #101a33;
+}
+
+/* ── Kartu ── */
+
+.card {
+  position: relative;
+  z-index: 2;
+  width: min(420px, 100%);
+  padding: 60px 36px 42px;
+  border-radius: 22px;
+  background: var(--card-bg);
+  box-shadow:
+    0 40px 70px -30px rgba(20, 40, 35, 0.45),
+    0 2px 0 rgba(255, 255, 255, 0.6) inset;
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+:global(.dark) .card {
+  box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.7);
+}
+
+.title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+.alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 11px 13px;
+  border-radius: 12px;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.form {
+  margin-top: 34px;
+  display: grid;
+  gap: 22px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input {
+  width: 100%;
+  height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.inputWithAction {
+  padding-right: 48px;
+}
+
+/* autofill Chrome: jangan biru muda — ikut warna field */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ink);
+  caret-color: var(--ink);
+  box-shadow: 0 0 0 1000px var(--field-bg) inset;
+  transition: background-color 9999s ease-out 0s;
+}
+
+.input:-webkit-autofill:focus {
+  box-shadow:
+    0 0 0 1000px var(--field-bg) inset,
+    0 0 0 4px var(--focus-ring);
+}
+
+.input::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.input:focus {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 4px var(--focus-ring);
+}
+
+.eye {
+  position: absolute;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.eye:hover {
+  color: var(--ink);
+  background: var(--line);
+}
+
+.eye:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.caps {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.hint {
+  margin-top: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.submit {
+  margin-top: 10px;
+  height: 52px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s, transform 0.1s;
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--btn-hover);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.submit:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.submit:disabled {
+  cursor: progress;
+  opacity: 0.85;
+}
+
+.spinner {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--btn-text) 30%, transparent);
+  border-top-color: var(--btn-text);
+  animation: spin 0.7s linear infinite;
+}
+
+.foot {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.foot a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--line);
+}
+
+.foot a:hover {
+  color: var(--ink);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card { animation: none; }
+  .spinner { animation-duration: 1.6s; }
+}
+
+/* ── Tombol tema (matahari/bulan) ── */
+.themeToggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--card-bg);
+  box-shadow: 0 6px 18px -8px rgba(20, 40, 35, 0.45);
+}
+
+/* ── Mobile: tepat satu layar, tanpa scroll ──
+   Kartu memakai tinggi alaminya; ilustrasi mengisi sisa layar di atasnya. */
+@media (max-width: 760px) {
+  .root {
+    height: 100dvh;
+    min-height: 0;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .scene {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  /* fokus crop ke fasad + papan nama (x≈600 dari 1600) */
+  .scene > svg {
+    transform: translateX(-37.5%);
+  }
+
+  .card {
+    flex: none;
+    width: 100%;
+    margin-top: -22px;
+    border-radius: 22px 22px 0 0;
+    padding: 26px 22px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .title {
+    font-size: 24px;
+  }
+
+  .form {
+    margin-top: 20px;
+    gap: 14px;
+  }
+
+  .submit {
+    margin-top: 4px;
+  }
+
+  .foot {
+    margin-top: 16px;
+    padding-top: 12px;
+  }
+
+  .themeToggle {
+    top: 12px;
+    right: 12px;
+  }
+}
+
+/* HP pendek (mis. iPhone SE, layar dengan keyboard virtual): rapatkan lagi */
+@media (max-width: 760px) and (max-height: 700px) {
+  .card {
+    padding-top: 20px;
+  }
+
+  .title {
+    font-size: 22px;
+  }
+
+  .subtitle {
+    margin-top: 2px;
+    font-size: 13px;
+  }
+
+  .form {
+    margin-top: 14px;
+    gap: 10px;
+  }
+
+  .label {
+    margin-bottom: 5px;
+  }
+
+  .input {
+    height: 44px;
+  }
+
+  .hint {
+    margin-top: 5px;
+    font-size: 12px;
+  }
+
+  .submit {
+    height: 46px;
+  }
+
+  .foot {
+    margin-top: 10px;
+    padding-top: 8px;
+  }
+}

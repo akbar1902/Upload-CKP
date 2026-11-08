@@ -2,15 +2,16 @@
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import type { Route } from 'next';
-import { Logo } from '@/components/ui/logo';
 import { LoginHandoff } from '@/components/auth/login-handoff';
 import { createClient } from '@/lib/supabase/client';
 import { warmSupabaseConnection } from '@/lib/supabase/warm-connection';
 import { useAuth } from '@/hooks/use-auth';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Eye, EyeOff, LogIn, AlertCircle, Mail, Lock } from 'lucide-react';
+import { Eye, EyeOff, AlertCircle, ArrowBigUp } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme-toggle';
+import { LoginScene } from './scene';
+import s from './login.module.css';
 
 const ROLE_ROUTES: Record<string, Route> = {
   admin: '/admin',
@@ -41,6 +42,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [capsLock, setCapsLock] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
@@ -107,7 +109,7 @@ export default function LoginPage() {
       if (signInError || !data.user) {
         setError(
           signInError?.message.includes('Invalid')
-            ? 'Email atau password salah. Silakan coba lagi.'
+            ? 'Email atau kata sandi salah. Silakan coba lagi.'
             : (signInError?.message ?? 'Login gagal. Silakan coba lagi.')
         );
         setLoading(false);
@@ -122,8 +124,7 @@ export default function LoginPage() {
 
       // Navigasi SEGERA memakai role dari metadata sesi (sudah diverifikasi
       // konsisten dengan role di database) supaya tidak perlu menunggu
-      // pengambilan profil dari DB sebelum halaman tujuan dibuka — ini yang
-      // membuat tombol "Masuk" terasa lama berputar.
+      // pengambilan profil dari DB sebelum halaman tujuan dibuka.
       // Middleware tetap memvalidasi dan mengoreksi bila role ternyata berbeda.
       // Bila role tidak dikenali, effect di atas yang mengarahkan setelah
       // profil dari database termuat.
@@ -137,203 +138,102 @@ export default function LoginPage() {
     }
   };
 
-  const primaryColor = 'var(--primary)'; // Selaras token tema (light/dark)
+  const onPasswordKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    setCapsLock(e.getModifierState?.('CapsLock') ?? false);
+  };
 
   return (
-    <div className="h-screen overflow-hidden flex bg-[var(--bg-base)] dark:bg-[var(--bg-secondary)]">
-
-      {/* ═══════════════════════════════════════════════ */}
-      {/*  Left — Login Form                             */}
-      {/* ═══════════════════════════════════════════════ */}
-      <div
-        className="flex-1 flex items-center justify-center p-6 sm:p-8 relative z-10"
-        inert={redirecting}
-      >
-
-        {/* Login Card */}
-        <div className="w-full max-w-[440px] rounded-[24px] p-8 flex flex-col relative z-10 bg-white border border-[var(--border)] shadow-[0_24px_60px_-28px_rgba(16,24,40,0.18)] dark:bg-[var(--card-bg)] dark:border-[var(--border)]">
-
-          <div className="flex-1 flex flex-col justify-center">
-            {/* ── Normal Login Form ─────────────── */}
-            <div className="animate-fade-in">
-              <div className="text-center mb-6">
-                <div className="mx-auto flex justify-center mb-4">
-                  <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
-                </div>
-                <h2 className="text-[26px] font-extrabold text-[var(--text-primary)] tracking-tight mb-2">
-                  Selamat Datang
-                </h2>
-                <p className="text-[14px] text-[var(--text-secondary)]">
-                  Masuk ke akun Anda untuk melanjutkan
-                </p>
-              </div>
-
-              {error && (
-                <div className="mb-6 flex items-start gap-3 p-3.5 rounded-xl animate-fade-in bg-[var(--danger-soft)] border border-[var(--danger-soft)]">
-                  <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-[var(--danger)]" />
-                  <p className="text-[13px] font-medium text-[var(--danger-text)]">{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
-                    Email
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-                      <Mail className="h-5 w-5" />
-                    </div>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="nama@bps.go.id"
-                      required
-                      autoFocus
-                      className="login-input pl-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label htmlFor="password" className="block text-[13px] font-bold mb-2 text-[var(--text-secondary)]">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-tertiary)]">
-                      <Lock className="h-5 w-5" />
-                    </div>
-                    <Input
-                      id="password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      onFocus={() => { void warmSupabaseConnection(); }}
-                      placeholder="••••••••"
-                      required
-                      className="login-input pl-12 pr-12 h-12 py-2 border border-[var(--border)] focus:border-[var(--primary)] rounded-xl text-[14px] font-medium shadow-sm placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)] transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-[var(--text-tertiary)] hover:text-[var(--text-secondary)] transition-colors"
-                    >
-                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                    </button>
-                  </div>
-                  <p className="mt-2 text-[12px] text-[var(--text-tertiary)]">
-                    Lupa password? Hubungi Admin Kepegawaian untuk direset.
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
-                  loading={loading}
-                  className="w-full h-12 py-2 mt-2 rounded-xl font-bold text-[15px] text-[var(--on-primary)] hover:opacity-90 transition-opacity flex items-center justify-center gap-2 shadow-md shadow-[var(--primary-ring)]"
-                  style={{ backgroundColor: primaryColor }}
-                >
-                  <LogIn className="h-5 w-5" />
-                  Masuk
-                </Button>
-              </form>
-            </div>
-          </div>
-
-          {/* Footer inside the card */}
-          <div className="mt-6 text-center border-t border-[var(--border)] pt-6">
-            <p className="text-[11px] text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
-              © {new Date().getFullYear()} BPS Kabupaten Belitung
-            </p>
-            <p className="text-[11px] mt-1 text-[var(--text-tertiary)] dark:text-[var(--text-tertiary)] font-medium">
-              Sistem Informasi Capaian Kinerja Pegawai
-            </p>
-          </div>
-
-        </div>
+    <div className={s.root}>
+      <div className={s.scene} aria-hidden="true">
+        <LoginScene />
       </div>
 
-      {/* ═══════════════════════════════════════════════ */}
-      {/*  Right Panel — Illustration                    */}
-      {/* ═══════════════════════════════════════════════ */}
-      <aside
-        className="hidden xl:flex items-center shrink-0"
-        style={{ padding: '48px 60px 48px 0' }}
-        inert={redirecting}
-      >
-        {/* Panel: rasio 728:714. Ukuran = yang lebih kecil antara 50.6% lebar layar
-            dan (tinggi layar - 96px). Jadi di layar lebar/short panel isi tinggi,
-            di layar kotak/tinggi panel dibatasi lebar & ke-center vertikal.
-            Isi pakai container query unit (cqw/cqh) supaya selalu proporsional. */}
-        <div
-          className="login-panel relative shrink-0 overflow-hidden rounded-[32px]"
-          style={{
-            width: 'min(50.6vw, calc((100vh - 96px) * 1.0196))',
-            aspectRatio: '728 / 714',
-            containerType: 'size',
-          }}
-        >
-          <div
-            aria-hidden="true"
-            className="absolute select-none pointer-events-none"
-            style={{
-              height: '61.5cqh',
-              aspectRatio: '1358 / 1920',
-              right: '9.5cqw',
-              top: '11.8cqh',
-              backgroundColor: 'var(--text-primary)',
-              WebkitMaskImage: 'url(/login-figure.png)',
-              maskImage: 'url(/login-figure.png)',
-              WebkitMaskRepeat: 'no-repeat',
-              maskRepeat: 'no-repeat',
-              WebkitMaskPosition: 'center',
-              maskPosition: 'center',
-              WebkitMaskSize: 'contain',
-              maskSize: 'contain',
-            }}
-          />
+      <div className={s.themeToggle}>
+        <ThemeToggle />
+      </div>
 
-          {/* Tagline — ini satu-satunya bagian yang diubah dari
-              desain awal. DM Serif Display (goresannya lebih berisi
-              dari serif tipis), ukuran jauh lebih besar, dan warna:
-              hijau hutan pekat untuk teks + terakota untuk kata
-              yang disorot. */}
-          <div
-            className="absolute"
-            style={{
-              left: '6.5cqw',
-              bottom: '5.5cqh',
-              fontFamily: 'var(--font-display)',
-            }}
-          >
-            <p
-              style={{
-                margin: 0,
-                fontSize: '6.4cqw',
-                lineHeight: 1.06,
-                letterSpacing: '-0.015em',
-                fontWeight: 500,
-                color: 'var(--tagline-ink)',
-                textWrap: 'balance',
-              }}
-            >
-              CKP sudah diunggah,
-              <br />
-              Hati{' '}
-              <span
-                style={{
-                  fontStyle: 'italic',
-                  color: 'var(--tagline-accent)',
-                }}
+      <main className={s.card} inert={redirecting}>
+        <h1 className={s.title}>Masuk ke SIKAP</h1>
+        <p className={s.subtitle}>Gunakan email dan kata sandi akun Anda.</p>
+
+        {error && (
+          <div className={s.alert} role="alert">
+            <AlertCircle size={17} style={{ flex: 'none', marginTop: 1 }} aria-hidden="true" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className={s.form}>
+          <div>
+            <label htmlFor="email" className={s.label}>Email</label>
+            <input
+              id="email"
+              type="email"
+              className={s.input}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="nama@bps.go.id"
+              autoComplete="username"
+              inputMode="email"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className={s.label}>Kata sandi</label>
+            <div className={s.control}>
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                className={`${s.input} ${s.inputWithAction}`}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onFocus={() => { void warmSupabaseConnection(); }}
+                onKeyDown={onPasswordKey}
+                onKeyUp={onPasswordKey}
+                onBlur={() => setCapsLock(false)}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                aria-describedby="password-hint"
+                required
+              />
+              <button
+                type="button"
+                className={s.eye}
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                aria-pressed={showPassword}
               >
-                Tenang
-              </span>
-              .
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {capsLock && (
+              <p className={s.caps} role="status">
+                <ArrowBigUp size={14} aria-hidden="true" /> Caps Lock aktif
+              </p>
+            )}
+            <p id="password-hint" className={s.hint}>
+              Lupa kata sandi? Hubungi Admin Kepegawaian.
             </p>
           </div>
+
+          <button type="submit" className={s.submit} disabled={loading} aria-busy={loading}>
+            {loading ? (
+              <>
+                <span className={s.spinner} aria-hidden="true" />
+                Memeriksa…
+              </>
+            ) : (
+              'Masuk'
+            )}
+          </button>
+        </form>
+
+        <div className={s.foot}>
+          <Link href="/privasi">Kebijakan privasi</Link>
         </div>
-      </aside>
+      </main>
 
       {redirecting && <LoginHandoff name={user?.full_name} />}
     </div>
