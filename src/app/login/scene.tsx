@@ -150,12 +150,29 @@ function UpperWindow({ x }: { x: number }) {
   );
 }
 
-export function LoginScene({ className }: { className?: string }) {
+/** viewBox kanvas penuh (dipakai halaman login). */
+export const SCENE_VIEWBOX = "-200 -250 2000 1250";
+
+/**
+ * Adegan ruko. Bisa dipakai ulang di tempat lain dengan potongan berbeda
+ * (mis. hero dashboard memotong bagian fasad saja, tanpa tagline).
+ */
+export function LoginScene({
+  className,
+  viewBox = SCENE_VIEWBOX,
+  preserveAspectRatio = "xMidYMax slice",
+  showTagline = true,
+}: {
+  className?: string;
+  viewBox?: string;
+  preserveAspectRatio?: string;
+  showTagline?: boolean;
+}) {
   return (
     <svg
       className={className}
-      viewBox="-200 -250 2000 1250"
-      preserveAspectRatio="xMidYMax slice"
+      viewBox={viewBox}
+      preserveAspectRatio={preserveAspectRatio}
       role="img"
       aria-label="Ilustrasi deretan ruko dengan papan nama SIKAP"
     >
@@ -265,7 +282,7 @@ export function LoginScene({ className }: { className?: string }) {
       {/* ── Kata raksasa melayang di langit, di belakang bangunan ──
           Bawah hurufnya tertutup atap & bangunan kuning; kabel dan tiang
           lewat di depannya → terasa berlapis seperti poster wisata. */}
-      <SkyTagline />
+      {showTagline && <SkyTagline />}
 
       {/* ── Rumah kolonial toska di kanan (balkon + jendela putih) ── */}
       <polygon points="1372,262 1404,246 1404,860 1372,860" fill="#15514E" />
@@ -468,7 +485,7 @@ export function LoginScene({ className }: { className?: string }) {
         {/* kata raksasa diterangi bulan — dipotong mengikuti siluet bangunan
             supaya tetap terasa "di belakang rumah" */}
         <g clipPath="url(#ls-sky-only)">
-          <SkyTagline night />
+          {showTagline && <SkyTagline night />}
         </g>
 
         {/* jendela lantai atas menyala */}

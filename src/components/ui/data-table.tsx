@@ -64,7 +64,7 @@ export function DataTable({
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
     <table
-      className={cn("w-full text-left text-[13px] border-collapse", className)}
+      className={cn("w-full text-left text-[13px] border-collapse tabular-nums", className)}
       {...props}
     />
   );
@@ -73,7 +73,7 @@ export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableEle
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
     <thead
-      className={cn("text-[12px]", className)}
+      className={cn("text-[12px] sticky top-0 z-[1]", className)}
       style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
       {...props}
     />

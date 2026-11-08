@@ -42,16 +42,16 @@ export function KPICard({
   const numericValue = typeof value === 'number' ? value : Number.NaN;
 
   return (
-    <div className={cn('kpi-card p-6 sm:p-7 flex flex-col gap-4 min-w-0 overflow-hidden', className)}>
+    <div className={cn('kpi-card p-5 flex flex-col gap-3 min-w-0 overflow-hidden', className)}>
       <div className="flex items-start justify-between gap-2.5">
         <p
-          className="flex-1 min-w-0 text-[11px] font-semibold uppercase leading-snug"
-          style={{ color: 'var(--text-secondary)', letterSpacing: '0.05em', textWrap: 'balance' }}
+          className="flex-1 min-w-0 text-[13.5px] font-medium leading-snug"
+          style={{ color: 'var(--text-secondary)', textWrap: 'balance' }}
         >
           {label}
         </p>
         <div
-          className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 ease-out group-hover:scale-110"
+          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 ease-out group-hover:scale-110"
           style={{ background: unifiedIconBg }}
         >
           {unifiedIcon}
@@ -62,7 +62,7 @@ export function KPICard({
       ) : (
         <div
           className="font-bold tracking-[-0.03em] leading-none tabular-nums break-words"
-          style={{ color: 'var(--text-primary)', fontSize: 'clamp(30px, 4.4vw, 44px)' }}
+          style={{ color: 'var(--text-primary)', fontSize: 'clamp(28px, 3.2vw, 38px)' }}
         >
           {isNumeric && Number.isFinite(numericValue) ? (
             <AnimatedNumber value={numericValue} />

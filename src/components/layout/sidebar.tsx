@@ -26,7 +26,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/dashboard/change-password-modal';
-import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 
 interface NavItem {
   href: Route;
@@ -474,8 +473,37 @@ export function Sidebar() {
       </nav>
 
       {/* ── Bottom Actions ────────────────────────────── */}
-      <div className="px-3 pb-5 pt-3 space-y-1 flex-shrink-0"
+      <div className="relative px-3 pb-5 pt-3 space-y-1 flex-shrink-0 [&>button]:relative"
            style={{ borderTop: '1px solid var(--sidebar-border)' }}>
+        {/* Siluet deretan ruko — latar area bawah (absolute: tak memakan tinggi) */}
+        {!collapsed && (
+          <svg
+            className="absolute inset-x-0 bottom-0 w-full pointer-events-none"
+            viewBox="0 0 240 56"
+            height="56"
+            preserveAspectRatio="xMidYMax slice"
+            aria-hidden="true"
+            style={{ color: 'var(--sidebar-text)', opacity: 0.07 }}
+          >
+            <g fill="currentColor">
+              {/* bangunan kuning (atap datar) */}
+              <rect x="0" y="22" width="44" height="34" />
+              {/* ruko utama, atap miring */}
+              <polygon points="46,30 132,18 132,56 46,56" />
+              <polygon points="42,29 134,16 135,19 43,32" />
+              {/* pohon ketapang */}
+              <ellipse cx="160" cy="30" rx="24" ry="9" />
+              <ellipse cx="152" cy="24" rx="15" ry="6" />
+              <rect x="158" y="34" width="4" height="22" />
+              {/* rumah toska + lis atap */}
+              <rect x="188" y="20" width="52" height="36" />
+              <rect x="185" y="17" width="58" height="4" />
+              {/* tiang lampu */}
+              <rect x="140" y="30" width="2" height="26" />
+            </g>
+          </svg>
+        )}
+
 
         {/* Collapse toggle — desktop only */}
         <button
@@ -498,8 +526,6 @@ export function Sidebar() {
           }
         </button>
 
-        {/* Install sebagai aplikasi (muncul hanya bila browser mendukung) */}
-        <PwaInstallButton collapsed={collapsed} />
 
         {/* Change Password */}
         <button

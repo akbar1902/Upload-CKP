@@ -31,6 +31,7 @@ import { rkGroupKey, isRkGroupScored, rkGroupAvg, rkGroupAvgInt, formatScore0, f
 import { moveEntriesAction } from '@/app/actions/ckp';
 import type { CKPUpload, CKPEntry, Approval, User, ApprovalAction } from '@/types/database';
 import { toast } from 'sonner';
+import { toastSuccessMoment } from '@/components/ui/success-moment';
 import {
   ArrowLeft, Download, FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, XCircle,
   RefreshCw, MessageSquare, Unlock, User as UserIcon, WifiOff, Lock, Calendar,
@@ -129,9 +130,13 @@ function RencanaKinerjaGroup({
     scoreRef.current = score;
   }, [score]);
 
-  useEffect(() => {
+  // Sinkronkan input bila nilai dari server berubah (pola "adjust state
+  // during render" — tanpa efek, jadi tidak ada render berantai).
+  const [prevDefaultScore, setPrevDefaultScore] = useState(defaultScore);
+  if (prevDefaultScore !== defaultScore) {
+    setPrevDefaultScore(defaultScore);
     setScore(defaultScore?.toString() ?? '');
-  }, [defaultScore]);
+  }
 
   // Bersihkan timer badge "Tersimpan" saat komponen unmount.
   useEffect(() => () => {
@@ -221,7 +226,7 @@ function RencanaKinerjaGroup({
         <div className="flex items-center gap-3 pr-4 sm:pr-5 pb-4 sm:pb-0 w-full sm:w-auto justify-end sm:justify-start">
           {!hideScore && (
           <div className="flex flex-col items-end">
-            <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Nilai RK</p>
+            <p className="text-[12.5px] font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>Nilai RK</p>
             {isTriwulan ? (
               <div className="flex flex-col items-end">
                 <span className="text-[17px] font-bold" style={{ color: hasScore ? 'var(--success-text)' : 'var(--text-tertiary)' }}>
@@ -243,7 +248,7 @@ function RencanaKinerjaGroup({
                     onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="score-input border rounded-lg px-3 py-1.5 text-[14px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
+                    className="score-input border rounded-lg px-3 py-1.5 text-[16px] font-semibold tabular-nums text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
                     placeholder="-"
                     title="Nilai RK bilangan bulat 0-100 — tekan Enter untuk simpan & lanjut ke RK berikutnya"
                     aria-label={`Nilai RK ${rkName} (bilangan bulat 0-100)`}
@@ -252,7 +257,7 @@ function RencanaKinerjaGroup({
                 {/* Umpan balik simpan — badge hijau ±2 dtk, tanpa status memuat */}
                 <div className="mt-1 min-h-[14px]" aria-live="polite">
                   {justSaved ? (
-                    <span className="text-[10px] font-semibold flex items-center justify-end gap-1 animate-fade-in" style={{ color: 'var(--success-text)' }}>
+                    <span className="text-[10px] font-semibold flex items-center justify-end gap-1 animate-scale-in" style={{ color: 'var(--success-text)' }}>
                       <CheckCircle2 size={11} /> Tersimpan
                     </span>
                   ) : null}
@@ -650,7 +655,8 @@ export default function PenilaianCKPDetailClient({ uploadId }: { uploadId: strin
         const result = await approveAction(id, action, catatan || '');
         if (!result.success) throw new Error(result.error);
       }
-      toast.success(isReopened ? 'CKP berhasil dibuka kembali. Anda sekarang dapat mengubah nilai.' : 'Berhasil! CKP diperbarui.');
+      if (isReopened) toast.success('CKP berhasil dibuka kembali. Anda sekarang dapat mengubah nilai.');
+      else toastSuccessMoment('CKP berhasil diperbarui');
       await queryClient.invalidateQueries({ queryKey: ['penilaian-ckp-detail'] });
       await queryClient.invalidateQueries({ queryKey: ['ckp-detail'] });
       await queryClient.invalidateQueries({ queryKey: ['pimpinan-uploads'] });

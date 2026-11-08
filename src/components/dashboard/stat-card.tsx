@@ -34,8 +34,8 @@ export function StatCard({ title, value, subtitle, icon: Icon, color, trend, loa
     <div className="kpi-card p-6 min-w-0 overflow-hidden">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-2.5 flex-1 min-w-0">
-          <p className="text-[13px] font-semibold uppercase leading-snug"
-             style={{ color: 'var(--text-tertiary)', letterSpacing: '0.04em', textWrap: 'balance' }}>{title}</p>
+          <p className="text-[13.5px] font-medium leading-snug"
+             style={{ color: 'var(--text-secondary)', textWrap: 'balance' }}>{title}</p>
           {loading ? (
             <div className="skeleton h-8 w-20 rounded-xl" />
           ) : (

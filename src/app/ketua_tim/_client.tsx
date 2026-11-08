@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { runSafeRead } from '@/lib/supabase/read';
@@ -15,6 +15,7 @@ import {
   Users, Clock, CheckCircle2, Search,
   RefreshCw, Download, WifiOff, ArrowRight, TrendingUp, FileText, CheckCircle
 } from 'lucide-react';
+import { EmptyState } from '@/components/ui/empty-state';
 import { KPICard } from '@/components/dashboard/kpi-card';
 import { FetchingBar, FetchingOverlay } from '@/components/dashboard/filter-loading';
 import { usePeriodParams } from '@/hooks/use-period-params';
@@ -41,13 +42,13 @@ export default function KetuaTimDashboardClient() {
   const isCurrentPeriod = bulan === currentMonth && tahun === currentYear;
 
   // Prefetch RK detail page on card hover — makes navigation feel instant
-  const prefetchedRks = useMemo(() => new Set<string>(), []);
+  const prefetchedRks = useRef(new Set<string>());
   const prefetchRkDetail = useCallback((rkId: string) => {
-    if (prefetchedRks.has(rkId)) return;
-    prefetchedRks.add(rkId);
+    if (prefetchedRks.current.has(rkId)) return;
+    prefetchedRks.current.add(rkId);
     // router.prefetch triggers Next.js to prefetch server components + JS bundle
     router.prefetch(`/ketua_tim/rk/${rkId}?bulan=${bulan}&tahun=${tahun}`);
-  }, [router, bulan, tahun, prefetchedRks]);
+  }, [router, bulan, tahun]);
 
   const setPeriod = usePeriodParams();
 
@@ -335,7 +336,7 @@ export default function KetuaTimDashboardClient() {
         entries: rkEntries
       };
     }).filter(Boolean);
-  }, [rks, entries, uploads, user?.id, user?.role]);
+  }, [rks, entries, uploads, user]);
 
   const applyFilters = (list: any[]) => {
     let result = list;
@@ -508,7 +509,7 @@ export default function KetuaTimDashboardClient() {
 
       <div className="flex justify-between items-start mb-3 pl-2 gap-2">
         <span
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider"
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold"
           style={{ background: 'var(--neu-surface-2)', color: 'var(--text-secondary)', boxShadow: 'var(--neu-inset-sm)' }}
         >
           <Users size={12} /> {rk.tim_kerja || 'Tim Kerja'}
@@ -536,19 +537,19 @@ export default function KetuaTimDashboardClient() {
       <div className="flex items-center justify-between mt-auto pt-4 pl-2" style={{ borderTop: '1px solid var(--border-soft)' }}>
         <div className="flex gap-4 sm:gap-6">
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Pegawai</span>
+            <span className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Pegawai</span>
             <span className="text-[15px] font-black flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
               {rk.totalPegawai} <Users size={12} style={{ color: 'var(--text-tertiary)' }} />
             </span>
           </div>
           <div className="w-px" style={{ background: 'var(--border-soft)' }} />
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</span>
+            <span className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Kegiatan</span>
             <span className="text-[15px] font-black" style={{ color: 'var(--text-primary)' }}>{rk.totalEntries}</span>
           </div>
           <div className="w-px" style={{ background: 'var(--border-soft)' }} />
           <div className="flex flex-col">
-            <span className="text-[10px] font-semibold uppercase tracking-wider mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Rata2 Nilai</span>
+            <span className="text-[12px] font-medium mb-0.5" style={{ color: 'var(--text-tertiary)' }}>Rata2 Nilai</span>
             <span className="text-[15px] font-black" style={{ color: rk.avgScore !== null ? 'var(--primary)' : 'var(--text-tertiary)' }}>
               {rk.avgScore !== null ? (typeof bulan === 'string' && bulan.startsWith('T') ? Math.round(rk.avgScore) : rk.avgScore.toFixed(1)) : '-'}
             </span>
@@ -572,7 +573,7 @@ export default function KetuaTimDashboardClient() {
         <FetchingBar show={isFiltering} />
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-[0.12em]"
+            <span className="text-[13px] font-semibold"
                   style={{ color: 'var(--text-tertiary)' }}>
               Periode
             </span>
@@ -667,16 +668,17 @@ export default function KetuaTimDashboardClient() {
               {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-40 rounded-2xl" />)}
             </div>
           ) : allRKStats.length === 0 ? (
-            <div className="text-center py-20 neu-raised rounded-3xl">
-              <FileText className="h-12 w-12 mx-auto mb-4" style={{ color: 'var(--text-tertiary)' }} />
-              <p className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Tidak ada Rencana Kinerja ditemukan</p>
-              <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Coba ubah filter atau kata kunci pencarian Anda.</p>
-            </div>
+            <EmptyState
+              className="rounded-[22px] py-16"
+              illustration="search"
+              title="Tidak ada Rencana Kinerja ditemukan"
+              description="Coba ubah filter atau kata kunci pencarian Anda."
+            />
           ) : (
             <div className="space-y-8">
               {filteredRKs.length > 0 && (
                 <div>
-                  <h4 className="text-sm font-bold uppercase tracking-wider mb-4 pb-2" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-soft)' }}>Rencana Kinerja</h4>
+                  <h4 className="text-[15px] font-semibold mb-4 pb-2" style={{ color: 'var(--text-secondary)', borderBottom: '1px solid var(--border-soft)' }}>Rencana Kinerja</h4>
                   <div key={`${bulan}-${tahun}`} className="card-list grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredRKs.map(renderRkCard)}
                   </div>

@@ -6,12 +6,12 @@ import { useAuth } from '@/hooks/use-auth';
 import { runSafeRead } from '@/lib/supabase/read';
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import { Header } from '@/components/layout/header';
-import { getBulanName, formatDateTime, getDefaultPeriod } from '@/lib/utils';
+import { getBulanName, getDefaultPeriod } from '@/lib/utils';
 import type { CKPUpload } from '@/types/database';
 import {
-  FileText, TrendingUp, CheckCircle2, Folder, Clock, Users, Plus, AlertTriangle, XCircle, Search,
+  FileText, TrendingUp, CheckCircle2, Folder, Clock, Search,
   ArrowUpDown, LayoutList, LayoutGrid, ChevronDown,
-  ChevronUp, ArrowRight, Upload, FileCheck, WifiOff, RefreshCw, Trash2, Info, Briefcase
+  ArrowRight, WifiOff, RefreshCw, Trash2,
 } from 'lucide-react';
 
 // ── Helpers ────────────────────────────────────────────────
@@ -29,6 +29,9 @@ function getProgressClass(pct: number): string {
 }
 
 import { KPICard } from '@/components/dashboard/kpi-card';
+import { StatusHero, type HeroStatus } from '@/components/dashboard/status-hero';
+import { EmptyState } from '@/components/ui/empty-state';
+import type { Route } from 'next';
 import { StatusBadge } from '@/components/dashboard/status-badge';
 import { ActivityCard, ActivityCardSkeleton, type ActivityCardProps } from '@/components/dashboard/activity-card';
 import { deleteCkpUploadAction } from '@/app/actions/ckp';
@@ -298,6 +301,50 @@ export default function PegawaiDashboard() {
     });
   }, [uploadsArr, searchQuery, sortOrder, statusFilter]);
 
+  // Hero: status CKP bulan berjalan → kata sorotan + ajakan yang relevan
+  const hero = useMemo((): {
+    status: HeroStatus;
+    description: string;
+    note?: string;
+    cta: { href: Route; label: string };
+  } => {
+    const periode = `${getBulanName(currentMonth)} ${currentYear}`;
+    const otherRevisions = uniqueUploads.filter(
+      u => (u.status === 'rejected' || u.status === 'revision_required') && u !== currentMonthUpload
+    ).length;
+    const note = otherRevisions > 0 ? `${otherRevisions} CKP bulan lain perlu revisi` : undefined;
+
+    if (!currentMonthUpload) {
+      return {
+        status: 'missing',
+        description: `Periode ${periode}.`,
+        note,
+        cta: { href: '/pegawai/upload', label: 'Upload CKP' },
+      };
+    }
+
+    const u = currentMonthUpload;
+    const detail = `/pegawai/ckp/${u.id}` as Route;
+    const ringkas = [
+      u.total_entries ? `${u.total_entries} kegiatan` : null,
+      u.avg_progres != null ? `progres ${Math.round(u.avg_progres)}%` : null,
+    ].filter(Boolean).join(' · ');
+
+    switch (u.status) {
+      case 'approved':
+        return { status: 'done', description: ringkas, note, cta: { href: detail, label: 'Lihat CKP' } };
+      case 'scored':
+        return { status: 'scored', description: `${ringkas} · menunggu persetujuan`, note, cta: { href: detail, label: 'Lihat nilai' } };
+      case 'submitted':
+        return { status: 'waiting', description: ringkas, note, cta: { href: detail, label: 'Lihat CKP' } };
+      case 'rejected':
+      case 'revision_required':
+        return { status: 'revision', description: `${ringkas} · ada catatan penilai`, note, cta: { href: detail, label: 'Perbaiki CKP' } };
+      default:
+        return { status: 'draft', description: ringkas, note, cta: { href: detail, label: 'Lanjutkan' } };
+    }
+  }, [currentMonthUpload, uniqueUploads, currentMonth, currentYear]);
+
   // KPI cards config
   const kpiCards = [
     { icon: <FileText size={18} style={{ color: 'var(--primary)' }} />, value: stats.total, label: 'Total Upload', sub: 'semua periode', iconBg: 'var(--primary-soft)' },
@@ -334,77 +381,15 @@ export default function PegawaiDashboard() {
       <Header />
       <div className="p-5 lg:p-8 space-y-6 page-enter">
 
-        {/* ── Page hero ─────────────────────────────── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-[28px] font-semibold tracking-tight"
-                  style={{ color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                Halo, {user?.full_name || 'Pegawai'}
-              </h2>
-              {user?.jabatan && (
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-[12px] font-medium bg-[var(--primary-soft)] text-[var(--primary)] border border-[var(--primary-ring)] shadow-sm">
-                  <Briefcase size={12} className="mr-1.5 opacity-80" />
-                  {user.jabatan}
-                </span>
-              )}
-              {user?.golongan && (
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                  {user.golongan}
-                </span>
-              )}
-            </div>
-            <p className="text-[14px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              {user?.nip ? ` • NIP: ${user.nip}` : ''}
-            </p>
-          </div>
-          <Link href="/pegawai/upload" prefetch={true}>
-            <button className="btn-primary">
-              <Plus size={15} />
-              Upload CKP
-            </button>
-          </Link>
-        </div>
-
-        {/* ── Alerts ────────────────────────────────── */}
-        {!isLoading && !currentMonthUpload && (
-          <div
-            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
-            style={{ background: 'var(--primary-soft)', border: '1px solid var(--primary-ring)' }}
-            role="alert"
-          >
-            <div className="flex-shrink-0 p-2 rounded-xl"
-                 style={{ background: 'var(--card-bg)' }}>
-              <Info size={16} style={{ color: 'var(--primary)' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px]" style={{ color: 'var(--primary)' }}>
-                <span className="font-semibold">CKP {getBulanName(currentMonth)} {currentYear} Belum Diupload</span>
-                <span className="hidden sm:inline"> — Silakan lengkapi laporan Anda bulan ini.</span>
-              </p>
-            </div>
-          </div>
-        )}
-
-        {!isLoading && stats.rejected > 0 && (
-          <div
-            className="flex items-center gap-3 p-4 rounded-2xl animate-fade-in"
-            style={{ background: 'var(--danger-soft)', border: '1px solid rgba(255,59,48,0.06)' }}
-            role="alert"
-          >
-            <div className="flex-shrink-0 p-2 rounded-xl"
-                 style={{ background: 'var(--card-bg)' }}>
-              <AlertTriangle size={16} style={{ color: 'var(--danger)' }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px]" style={{ color: 'var(--danger)' }}>
-                <span className="font-semibold">{stats.rejected} CKP Perlu Revisi</span>
-                <span className="hidden sm:inline"> — Terdapat CKP yang ditolak atau perlu perbaikan.</span>
-              </p>
-            </div>
-          </div>
-        )}
+        {/* ── Hero status CKP bulan ini ─────────────── */}
+        <StatusHero
+          title={`CKP ${getBulanName(currentMonth)}`}
+          status={hero.status}
+          description={hero.description}
+          note={hero.note}
+          cta={hero.cta}
+          loading={isLoading}
+        />
 
         {/* ── KPI Cards ─────────────────────────────── */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 stagger">
@@ -498,32 +483,23 @@ export default function PegawaiDashboard() {
             </div>
           ) : filteredUploads.length === 0 ? (
             /* Empty state */
-            <div
-              className="flex flex-col items-center justify-center py-20 text-center rounded-2xl"
-              style={{ background: 'var(--card-bg)', border: '1px dashed var(--border)' }}
-            >
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-5"
-                style={{ background: 'var(--sand-subtle)' }}
-              >
-                <Folder size={28} style={{ color: 'var(--text-tertiary)' }} />
-              </div>
-              <p className="text-[16px] font-semibold" style={{ color: 'var(--text-primary)' }}>
-                {searchQuery ? 'Tidak ada hasil' : 'Belum ada upload'}
-              </p>
-              <p className="text-[13px] mt-1 mb-6" style={{ color: 'var(--text-secondary)' }}>
-                {searchQuery
-                  ? 'Coba kata kunci lain.'
-                  : 'Upload CKP bulanan pertama Anda untuk mulai.'}
-              </p>
-              {!searchQuery && (
-                <Link href="/pegawai/upload" prefetch={true}>
-                  <button className="px-5 py-2.5 rounded-full bg-[var(--primary)] text-white text-[13px] font-medium shadow-sm hover:shadow transition-all duration-200">
-                    Upload CKP Baru
-                  </button>
-                </Link>
-              )}
-            </div>
+            <EmptyState
+              className="rounded-[22px] py-14"
+              illustration={searchQuery || statusFilter !== 'all' ? 'search' : 'empty'}
+              title={searchQuery || statusFilter !== 'all' ? 'Tidak ada yang cocok' : 'Belum ada CKP'}
+              description={
+                searchQuery || statusFilter !== 'all'
+                  ? 'Coba kata kunci atau filter status lain.'
+                  : 'Unggah CKP bulanan pertama Anda untuk mulai dinilai.'
+              }
+              action={
+                !searchQuery && statusFilter === 'all' ? (
+                  <Link href="/pegawai/upload" prefetch={true} className="btn-primary">
+                    Upload CKP
+                  </Link>
+                ) : undefined
+              }
+            />
           ) : viewMode === 'list' ? (
             /* `key` memaksa remount saat mode berubah → animasi stagger
                ikut diputar ulang, jadi perpindahan list ⇄ grid terasa

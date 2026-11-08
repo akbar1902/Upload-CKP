@@ -166,28 +166,28 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-5">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+              <p className="text-[12.5px] font-medium mb-1.5"
                  style={{ color: 'var(--text-tertiary)' }}>Periode</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {MONTH_FULL[upload.bulan]} {upload.tahun}
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+              <p className="text-[12.5px] font-medium mb-1.5"
                  style={{ color: 'var(--text-tertiary)' }}>Total Kegiatan</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {upload.total_entries} kegiatan
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+              <p className="text-[12.5px] font-medium mb-1.5"
                  style={{ color: 'var(--text-tertiary)' }}>Rata-rata Progres</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {pct.toFixed(0)}%
               </p>
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+              <p className="text-[12.5px] font-medium mb-1.5"
                  style={{ color: 'var(--text-tertiary)' }}>Diupload</p>
               <p className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>
                 {formatDateTime(upload.uploaded_at)}
@@ -210,7 +210,7 @@ export function ActivityCard({ upload, onDeleteSuccess }: ActivityCardProps) {
           {upload.catatan_pimpinan && (
             <div className="mb-5 p-3.5 rounded-2xl"
                  style={{ background: 'var(--warning-soft)', border: '1px solid rgba(255,149,0,0.08)' }}>
-              <p className="text-[11px] font-semibold uppercase tracking-wider mb-1.5"
+              <p className="text-[12.5px] font-medium mb-1.5"
                  style={{ color: 'var(--warning)' }}>Catatan Pimpinan</p>
               <p className="text-[13px]" style={{ color: 'var(--text-primary)' }}>
                 {upload.catatan_pimpinan}

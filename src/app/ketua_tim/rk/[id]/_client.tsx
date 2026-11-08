@@ -97,9 +97,13 @@ function RkBarisRow({
     scoreRef.current = score;
   }, [score]);
 
-  useEffect(() => {
+  // Sinkronkan input bila nilai dari server berubah (pola "adjust state
+  // during render" — tanpa efek, jadi tidak ada render berantai).
+  const [prevDefaultScore, setPrevDefaultScore] = useState(defaultScore);
+  if (prevDefaultScore !== defaultScore) {
+    setPrevDefaultScore(defaultScore);
     setScore(defaultScore?.toString() ?? '');
-  }, [defaultScore]);
+  }
 
   // Bersihkan timer badge "Tersimpan" saat baris unmount.
   useEffect(() => () => {
@@ -290,7 +294,7 @@ function RkBarisRow({
                     onChange={e => setScore(e.target.value.replace(/\D/g, '').slice(0, 3))}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
+                    className="score-input border rounded-lg px-1.5 py-0.5 text-[13px] font-semibold tabular-nums text-center w-full outline-none focus:ring-2 focus:ring-[var(--primary-ring)] transition-shadow"
                     style={{ borderColor: 'var(--border)' }}
                     placeholder="—"
                     title="Nilai RK bilangan bulat 0-100 — Enter untuk simpan & lanjut ke RK berikutnya"

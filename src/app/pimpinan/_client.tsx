@@ -397,7 +397,7 @@ export default function PimpinanDashboard({
             menulis hal sama. */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[11px] font-bold uppercase tracking-[0.12em]"
+            <span className="text-[13px] font-semibold"
                   style={{ color: 'var(--text-tertiary)' }}>
               Periode
             </span>

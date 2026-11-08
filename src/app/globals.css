@@ -219,8 +219,8 @@
   --neu-raised:        0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 14px -4px rgba(16, 24, 40, 0.10);
   --neu-raised-sm:     0 1px 2px rgba(16, 24, 40, 0.05), 0 2px 6px -2px rgba(16, 24, 40, 0.08);
   --neu-raised-lg:     0 2px 4px rgba(16, 24, 40, 0.04), 0 12px 28px -8px rgba(16, 24, 40, 0.14);
-  --neu-inset:         inset 0 1px 2px rgba(16, 24, 40, 0.06);
-  --neu-inset-sm:      inset 0 1px 2px rgba(16, 24, 40, 0.05);
+  --neu-inset:         inset 0 0 0 0 transparent; /* neumorphism dimatikan — tampilan rata */
+  --neu-inset-sm:      inset 0 0 0 0 transparent;
   --neu-pressed:       inset 0 1px 3px rgba(16, 24, 40, 0.12);
 
   /* Surface — kanvasAbu-hijau muda, kartu putih bersih (kontras lebih tegas). */
@@ -386,8 +386,8 @@
   --neu-raised:        0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 14px -4px rgba(0, 0, 0, 0.50);
   --neu-raised-sm:     0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.40);
   --neu-raised-lg:     0 2px 4px rgba(0, 0, 0, 0.40), 0 12px 28px -8px rgba(0, 0, 0, 0.60);
-  --neu-inset:         inset 0 1px 2px rgba(0, 0, 0, 0.50);
-  --neu-inset-sm:      inset 0 1px 2px rgba(0, 0, 0, 0.45);
+  --neu-inset:         inset 0 0 0 0 transparent;
+  --neu-inset-sm:      inset 0 0 0 0 transparent;
   --neu-pressed:       inset 0 1px 3px rgba(0, 0, 0, 0.60);
 
   /* Kanvas → kartu → hover, satu keluarga warna, naik perlahan. */
@@ -534,6 +534,11 @@ body {
 @keyframes scaleInSoft {
   from { opacity: 0; transform: scale(0.98); }
   to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
 }
 
 @keyframes shimmer {
@@ -698,10 +703,12 @@ body {
   animation-delay: var(--sweep-delay, 0ms);
 }
 
+/* tumbuh lewat transform (bukan width) → tanpa layout ulang per frame */
 @keyframes sikapGrowBar {
-  from { width: 0; }
+  from { transform: scaleX(0); }
 }
 .sikap-bar-grow {
+  transform-origin: left center;
   animation: sikapGrowBar 800ms var(--ease-emphasized) both;
   animation-delay: var(--grow-delay, 0ms);
 }
@@ -1124,15 +1131,13 @@ input, textarea, select {
    berada di luar layer sehingga semua rounded-* pada skeleton
    diabaikan dan tampil kaku 10px. */
 @layer components {
+  /* Denyut opacity (compositor/GPU) — bukan kilau geser background-position
+     yang memaksa repaint tiap frame di setiap skeleton. */
   .skeleton {
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(16,24,40,0.04) 50%, var(--bg-secondary) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.8s var(--ease-apple) infinite;
+    background: var(--bg-secondary);
+    animation: skeletonPulse 1.6s ease-in-out infinite;
     border-radius: 10px;
-  }
-  .dark .skeleton {
-    background: linear-gradient(90deg, var(--bg-secondary) 25%, rgba(255,255,255,0.06) 50%, var(--bg-secondary) 75%);
-    background-size: 200% 100%;
+    will-change: opacity;
   }
 }
 
@@ -1540,3 +1545,14 @@ input, textarea, select {
   }
 }
 
+
+/* ─── iOS: cegah zoom otomatis saat input fokus ─────────────
+   Safari/WebKit memperbesar halaman bila input yang difokus memakai font
+   < 16px, dan tidak zoom-out kembali. Di perangkat sentuh, paksa minimal 16px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

@@ -1,0 +1,62 @@
+/* Palet ilustrasi empty state — siang (terang) / malam (gelap). */
+.art {
+  --ei-wall: #eeebe5;
+  --ei-roof: #8d5c50;
+  --ei-frame: #7a4d43;
+  --ei-glass: #2b3332;
+  --ei-green: #7dba99;
+  --ei-sign: #6e4a40;
+  --ei-check: #f3e7cf;
+  --ei-shutter: #9aa29d;
+  --ei-shutter-line: #858d88;
+  --ei-lit: #ffd98a;
+  --ei-pot: #24474d;
+  --ei-leaf: #6aae55;
+  --ei-leaf-dark: #4f8f43;
+  --ei-leaf-warm: #e39a3b;
+  --ei-ground: #d8d1c2;
+  --ei-post: #3a4244;
+  --ei-beam: rgba(255, 217, 138, 0.28);
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+:global(.dark) .art {
+  --ei-wall: #2c3550;
+  --ei-roof: #3b2c35;
+  --ei-frame: #2a2230;
+  --ei-glass: #121828;
+  --ei-green: #2e4a52;
+  --ei-sign: #2a2230;
+  --ei-check: #f0d49a;
+  --ei-shutter: #3c4458;
+  --ei-shutter-line: #323a4c;
+  --ei-lit: #f0c36b;
+  --ei-pot: #1a2a32;
+  --ei-leaf: #2f5a3a;
+  --ei-leaf-dark: #244a30;
+  --ei-leaf-warm: #8a5a2e;
+  --ei-ground: #2a3346;
+  --ei-post: #11151f;
+  --ei-beam: rgba(240, 195, 107, 0.2);
+}
+
+.wall { fill: var(--ei-wall); }
+.roof { fill: var(--ei-roof); }
+.frame { fill: var(--ei-frame); }
+.glass { fill: var(--ei-glass); }
+.green { fill: var(--ei-green); }
+.sign { fill: var(--ei-sign); }
+.check { stroke: var(--ei-check); }
+.shutter { fill: var(--ei-shutter); }
+.shutterLine { fill: var(--ei-shutter-line); }
+.lit { fill: var(--ei-lit); }
+.pot { fill: var(--ei-pot); }
+.leaf { fill: var(--ei-leaf); }
+.leafDark { fill: var(--ei-leaf-dark); }
+.leafWarm { fill: var(--ei-leaf-warm); }
+.ground { fill: var(--ei-ground); }
+.post { fill: var(--ei-post); }
+.lampHead { fill: var(--ei-post); }
+.beam { fill: var(--ei-beam); }

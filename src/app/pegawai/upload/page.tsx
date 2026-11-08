@@ -16,6 +16,7 @@ import { Select } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { BULAN_NAMES, getBulanName } from '@/lib/utils';
 import { toast } from 'sonner';
+import { toastSuccessMoment } from '@/components/ui/success-moment';
 import { Check, CheckCircle2, ChevronDown, ChevronUp, FileSpreadsheet, Loader2, UploadCloud, X, LayoutDashboard, Upload, AlertTriangle, ArrowLeft, ArrowRight, Send, Info, Link as LinkIcon, CalendarDays } from 'lucide-react';
 import { saveKegiatanAnggotaMapping, getMasterKegiatanAnggota, checkPeriodStatusAction, submitCkpUploadAction } from '@/app/actions/ckp';
 import { fetchUploadMasterData, uploadMasterDataQueryKey } from '@/lib/upload-master-data';
@@ -38,8 +39,8 @@ export default function UploadPage() {
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
-  let defaultMonth = currentDate.getMonth() + 1; // 1-12 (Bulan saat ini)
-  let defaultYear = currentDate.getFullYear();
+  const defaultMonth = currentDate.getMonth() + 1; // 1-12 (Bulan saat ini)
+  const defaultYear = currentDate.getFullYear();
 
   const [bulan, setBulan] = useState(defaultMonth);
   const [tahun, setTahun] = useState(defaultYear);
@@ -65,8 +66,6 @@ export default function UploadPage() {
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
   const [unmatchedRKs, setUnmatchedRKs] = useState<string[]>([]);
   const [rkTeamMapping, setRkTeamMapping] = useState<Record<string, { tim_kerja: string, rk_id: string }>>({});
-  const [teamToKetuaMap, setTeamToKetuaMap] = React.useState<Map<string, string>>(new Map());
-  const [timKerjaList, setTimKerjaList] = useState<string[]>([]);
   const [parsing, setParsing] = useState(false);
   const uploadAbortRef = useRef<AbortController | null>(null);
 
@@ -100,13 +99,11 @@ export default function UploadPage() {
     return teams;
   }, [masterRKs]);
 
-  React.useEffect(() => {
-    const activeTeams = Array.from(new Set(ketuaTims.map((k: any) => k.unit_kerja).filter(Boolean))) as string[];
-    const teamsMap = new Map<string, string>();
-    masterRKs.forEach((rk: any) => { if (rk.tim_kerja) teamsMap.set(rk.tim_kerja, rk.ketua_tim_id || ''); });
-    const allTeams = Array.from(new Set([...activeTeams, ...Array.from(teamsMap.keys())]));
-    setTimKerjaList(allTeams);
-    setTeamToKetuaMap(teamsMap);
+  // Daftar tim = turunan langsung dari ketuaTims + masterRKs (bukan state).
+  const timKerjaList = useMemo(() => {
+    const activeTeams = ketuaTims.map((k: any) => k.unit_kerja).filter(Boolean) as string[];
+    const rkTeams = masterRKs.map((rk: any) => rk.tim_kerja).filter(Boolean) as string[];
+    return Array.from(new Set([...activeTeams, ...rkTeams]));
   }, [ketuaTims, masterRKs]);
 
   const bulanOptions = BULAN_NAMES.map((name, index) => ({
@@ -131,6 +128,8 @@ export default function UploadPage() {
   }, [user]);
 
   React.useEffect(() => {
+    // setState di sini terjadi setelah await (async), bukan sinkron.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- TODO: pindah ke useQuery
     checkExistingUpload(bulan, tahun);
   }, [bulan, tahun, checkExistingUpload]);
 
@@ -192,12 +191,12 @@ export default function UploadPage() {
     if (!s1 || !s2) return 0;
     if (s1 === s2) return 1;
     if (s1.length < 2 || s2.length < 2) return 0;
-    let bg1 = new Set();
+    const bg1 = new Set();
     for(let i=0; i<s1.length-1; i++) bg1.add(s1.substring(i, i+2));
-    let bg2 = new Set();
+    const bg2 = new Set();
     for(let i=0; i<s2.length-1; i++) bg2.add(s2.substring(i, i+2));
     let intersection = 0;
-    for(let item of bg1) if (bg2.has(item)) intersection++;
+    for(const item of bg1) if (bg2.has(item)) intersection++;
     return (2.0 * intersection) / (bg1.size + bg2.size);
   };
 
@@ -554,7 +553,7 @@ export default function UploadPage() {
       uploadAbortRef.current = null;
       setUploadStep(4);
       setUploadProgress(100);
-      toast.success('Upload berhasil! CKP Anda telah disubmit untuk review.');
+      toastSuccessMoment('CKP berhasil diunggah', 'Sudah dikirim ke ketua tim untuk dinilai.');
 
       queryClient.invalidateQueries({ queryKey: ['pegawai-uploads', user.id] });
       queryClient.invalidateQueries({ queryKey: ['upload-master-data'] });
@@ -961,7 +960,7 @@ export default function UploadPage() {
                   
                   return (
                     <div key={idx} className="p-5 rounded-xl shadow-sm" style={{ background: 'var(--card-bg)', border: '1px solid var(--border)' }}>
-                      <p className="font-semibold mb-4 text-sm" style={{ color: 'var(--text-primary)' }}>Teks yang tidak dikenali: "{rk}"</p>
+                      <p className="font-semibold mb-4 text-sm" style={{ color: 'var(--text-primary)' }}>Teks yang tidak dikenali: &ldquo;{rk}&rdquo;</p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--text-secondary)' }}>1. Pilih Tim Kerja</label>

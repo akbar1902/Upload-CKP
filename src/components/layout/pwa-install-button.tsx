@@ -16,7 +16,14 @@ interface BeforeInstallPromptEvent extends Event {
  * memasang aplikasi tidak melihat tombol ini sama sekali. Ini menjadikan SIKAP
  * bisa dipasang seperti aplikasi desktop/HP dengan sekali klik.
  */
-export function PwaInstallButton({ collapsed = false }: { collapsed?: boolean }) {
+export function PwaInstallButton({
+  collapsed = false,
+  variant = 'sidebar',
+}: {
+  collapsed?: boolean;
+  /** 'header' = tombol ringkas di bilah atas (default tampilan sekarang). */
+  variant?: 'sidebar' | 'header';
+}) {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [installed, setInstalled] = useState(false);
 
@@ -63,6 +70,21 @@ export function PwaInstallButton({ collapsed = false }: { collapsed?: boolean })
       setDeferred(null);
     }
   };
+
+  if (variant === 'header') {
+    return (
+      <button
+        onClick={handleInstall}
+        title="Pasang aplikasi SIKAP di perangkat ini"
+        aria-label="Pasang aplikasi SIKAP"
+        className="hidden sm:inline-flex items-center gap-2 h-9 px-3 rounded-xl text-[13px] font-medium transition-[background-color,border-color] duration-200 hover:bg-[var(--bg-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary-ring)]"
+        style={{ color: 'var(--text-primary)', border: '1px solid var(--border)', background: 'var(--card-bg)' }}
+      >
+        <Download size={15} style={{ color: 'var(--primary)' }} aria-hidden="true" />
+        Pasang aplikasi
+      </button>
+    );
+  }
 
   return (
     <button

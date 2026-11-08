@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Download, ChevronRight, Search } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { NotificationBell } from '@/components/layout/notification-bell';
+import { PwaInstallButton } from '@/components/layout/pwa-install-button';
 import { useCommandPalette } from '@/components/layout/command-palette';
 
 // ── Breadcrumb configuration ───────────────────────────────
@@ -337,6 +338,9 @@ export function Header({
               Export Excel
             </button>
           )}
+
+          {/* Pasang sebagai aplikasi (muncul hanya bila browser mendukung) */}
+          <PwaInstallButton variant="header" />
 
           {/* Riwayat notifikasi + realtime */}
           <NotificationBell />
