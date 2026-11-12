@@ -370,107 +370,106 @@
 }
 
 .dark {
-  /* ── Elevation modern (dark) ──────────────────────────────
-     Palet "hijau arang": netral gelap diberi tint hijau sejati,
-     bukan abu-cokelat. Alasannya: sidebar memakai hijau pinus
-     (#081512) di light maupun dark. Kalau kanvasnya abu hangat,
-     kedua warna itu saling bertabrakan dan seluruh aplikasi terasa
-     seperti dua aplikasi yang dijahit. Dengan satu temperature
-     warna, sidebar terbaca sebagai bingkai navigasi yang sengaja,
-     dan konten jadi "kertas" yang tenang di dalamnya. */
-  --neu-bg:            #101714;
-  --neu-surface:       #182120;
-  --neu-surface-2:     #1F2A27;
-  --neu-shadow-dark:   rgba(0, 0, 0, 0.55);
+  /* ── Dark mode = "Malam Belitung" ─────────────────────────
+     Bukan versi digelapkan dari mode terang, tapi versi malam:
+     kanvas biru tinta seperti langit malam di ilustrasi login,
+     teks krem hangat seperti lampu jendela, aksen mint dari logo.
+     Satu suhu warna dari login → sidebar → konten. */
+  --neu-bg:            #0E1428;
+  --neu-surface:       #161D36;
+  --neu-surface-2:     #1C2440;
+  --neu-shadow-dark:   rgba(2, 5, 16, 0.6);
   --neu-shadow-light:  rgba(255, 255, 255, 0);
-  --neu-raised:        0 1px 2px rgba(0, 0, 0, 0.40), 0 4px 14px -4px rgba(0, 0, 0, 0.50);
-  --neu-raised-sm:     0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 6px -2px rgba(0, 0, 0, 0.40);
-  --neu-raised-lg:     0 2px 4px rgba(0, 0, 0, 0.40), 0 12px 28px -8px rgba(0, 0, 0, 0.60);
+  --neu-raised:        0 1px 2px rgba(2, 5, 16, 0.45), 0 4px 14px -4px rgba(2, 5, 16, 0.55);
+  --neu-raised-sm:     0 1px 2px rgba(2, 5, 16, 0.40), 0 2px 6px -2px rgba(2, 5, 16, 0.45);
+  --neu-raised-lg:     0 2px 4px rgba(2, 5, 16, 0.45), 0 12px 28px -8px rgba(2, 5, 16, 0.65);
   --neu-inset:         inset 0 0 0 0 transparent;
   --neu-inset-sm:      inset 0 0 0 0 transparent;
-  --neu-pressed:       inset 0 1px 3px rgba(0, 0, 0, 0.60);
+  --neu-pressed:       inset 0 1px 3px rgba(2, 5, 16, 0.6);
 
-  /* Kanvas → kartu → hover, satu keluarga warna, naik perlahan. */
-  --bg-base:        #101714;
-  --bg-secondary:   #1A2320;
-  --card-bg:        #182120;
-  --bg-hover:       #1F2A27;
-  --bg-active:      #26332F;
-  --sand-subtle:    #1C2623;
-  --overlay-scrim:  rgba(16, 23, 20, 0.66);
-  --sand-border:    #26312E;
-  --sand-strong:    #26312E;
+  /* Kanvas → kartu → hover, satu keluarga biru tinta. */
+  --bg-base:        #0E1428;
+  --bg-secondary:   #131A31;
+  --card-bg:        #161D36;
+  --bg-hover:       #1C2440;
+  --bg-active:      #232C4C;
+  --sand-subtle:    #1A2139;
+  --overlay-scrim:  rgba(14, 20, 40, 0.66);
+  --sand-border:    #262F4F;
+  --sand-strong:    #262F4F;
 
-  /* Primary dark = TEAL TERANG, bukan teal dalam.
-     Di dark, kanvasnya sudah gelap; teal gelap (#1F8A7D) hanya
-     achieve 3.9:1 sebagai TEKS di atas kartu — di bawah ambang
-     WCAG AA. Teal terang (#3FB3A0) achieve 6.2:1, dan tombol
-     primary jadi mencolok dengan tinta gelap (--on-primary),
-     bukan putih. */
-  --primary:        #3FB3A0;
-  --primary-hover:  #4FC6B2;
-  --primary-bright: #5FC9B6;
-  --primary-soft:   rgba(63, 179, 160, 0.18);
-  --primary-ring:   rgba(63, 179, 160, 0.34);
-  --on-primary:     #08211D; /* tinta gelap di atas teal terang */
+  /* Skala abu bawaan (dipakai kelas dark:bg-slate-800 dsb.)
+     ikut digeser ke biru tinta supaya tak ada sisa hijau-arang. */
+  --color-slate-300: #B4B9CB; --color-gray-300: #B4B9CB;
+  --color-slate-400: #8A91A8; --color-gray-400: #8A91A8;
+  --color-slate-500: #5D6684; --color-gray-500: #5D6684;
+  --color-slate-600: #3A4363; --color-gray-600: #3A4363;
+  --color-slate-700: #262F4F; --color-gray-700: #262F4F;
+  --color-slate-800: #161D36; --color-gray-800: #161D36;
+  --color-slate-900: #0E1428; --color-gray-900: #0E1428;
+  --color-slate-950: #080C1A; --color-gray-950: #080C1A;
 
-  --secondary:        #8FA883;
-  --secondary-soft:   rgba(169, 194, 154, 0.16);
+  /* Primary = mint logo. Tinta gelap di atasnya. */
+  --primary:        #7CCFB8;
+  --primary-hover:  #92DCC7;
+  --primary-bright: #8FD8C4;
+  --primary-soft:   rgba(124, 207, 184, 0.14);
+  --primary-ring:   rgba(124, 207, 184, 0.34);
+  --on-primary:     #0B1A22;
+
+  --secondary:        #A9C29A;
+  --secondary-soft:   rgba(169, 194, 154, 0.14);
   --secondary-ring:   rgba(169, 194, 154, 0.3);
   --secondary-text:   #DCE5D2;
   --secondary-strong: #A9C29A;
 
-  --tertiary:        #26312E;
-  --tertiary-soft:   rgba(255, 255, 255, 0.05);
-  --tertiary-text:   #D3DED8;
+  --tertiary:        #262F4F;
+  --tertiary-soft:   rgba(241, 235, 221, 0.05);
+  --tertiary-text:   #D6D3CB;
 
-  --accent:          #E09A73;
-  --accent-soft:     rgba(224, 154, 115, 0.16);
-  --accent-ring:     rgba(224, 154, 115, 0.32);
-  --accent-strong:   #E09A73;
+  --accent:          #E9A17A;
+  --accent-soft:     rgba(233, 161, 122, 0.15);
+  --accent-ring:     rgba(233, 161, 122, 0.32);
+  --accent-strong:   #E9A17A;
 
   --success:        #A9C29A;
   --success-text:   #DCE5D2;
-  --success-soft:   rgba(169, 194, 154, 0.14);
-  --warning:        #D9B978;
+  --success-soft:   rgba(169, 194, 154, 0.13);
+  --warning:        #E8C278;
   --warning-text:   #F5E8C8;
-  --warning-soft:   rgba(217, 185, 120, 0.14);
-  --danger:         #D89A82;
+  --warning-soft:   rgba(232, 194, 120, 0.13);
+  --danger:         #E29A84;
   --danger-text:    #F5D9CD;
-  --danger-soft:    rgba(216, 154, 130, 0.14);
+  --danger-soft:    rgba(226, 154, 132, 0.14);
 
-  /* Teks — diberi tint hijau tipis supaya nyambung dengan kanvas,
-     dan cukup terang untuk lolos WCAG AA di atas kartu (#182120). */
-  --text-primary:   #EDF2EE;
-  --text-secondary: #A6B3AC;
-  --text-tertiary:  #8A968F;
+  /* Teks krem hangat (lampu jendela di malam hari). */
+  --text-primary:   #F1EBDD;
+  --text-secondary: #B4B5BF;
+  --text-tertiary:  #8F93A6;
 
-  /* Teks "ink" utk permukaan solid yang terang di dark mode
-     (danger, accent-strong, warning, success, secondary-strong) */
-  --on-solid:       #2B1A12;
+  --on-solid:       #1A1410;
 
-  --border:         #26312E;
-  --border-soft:    #1E2825;
-  --border-hover:   #36443E;
+  --border:         #262F4F;
+  --border-soft:    #1C2440;
+  --border-hover:   #364066;
 
   --tagline-ink: #F2EBDA;
-  --tagline-accent: #E09A73;
+  --tagline-accent: #E9A17A;
   --tagline-rule: #E0926C;
-  --sidebar-bg:     #081512;
-  --sidebar-bg-2:   #0D211C;
-  --sidebar-hover:  rgba(255, 255, 255, 0.07);
-  --sidebar-active: rgba(255, 255, 255, 0.11);
-  --sidebar-text:   #F7F1E2;
-  --sidebar-text-muted: rgba(247, 241, 226, 0.58);
-  --sidebar-border: rgba(247, 241, 226, 0.08);
-  --sidebar-accent: #8FD0BF;
-  --sidebar-indicator: #E0926C;
+  --sidebar-bg:     #0A0F20;
+  --sidebar-bg-2:   #10172C;
+  --sidebar-hover:  rgba(241, 235, 221, 0.06);
+  --sidebar-active: rgba(241, 235, 221, 0.10);
+  --sidebar-text:   #F1EBDD;
+  --sidebar-text-muted: rgba(241, 235, 221, 0.58);
+  --sidebar-border: rgba(241, 235, 221, 0.08);
+  --sidebar-accent: #8FD8C4;
+  --sidebar-indicator: #E9C46A;
   --sidebar-shadow: 0 0 44px -14px rgba(0, 0, 0, 0.8);
 
   --shadow-card:    var(--neu-raised);
   --shadow-hover:   var(--neu-raised-lg);
-  /* Drop shadow gelap untuk elemen mengambang */
-  --shadow-elevated:0 24px 60px -16px rgba(0, 0, 0, 0.72), 0 6px 16px -8px rgba(0, 0, 0, 0.5);
+  --shadow-elevated:0 24px 60px -16px rgba(2, 5, 16, 0.75), 0 6px 16px -8px rgba(2, 5, 16, 0.5);
 }
 
 /* ─── Base ───────────────────────────────────────────────── */
@@ -498,7 +497,7 @@ body {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 100px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.2); }
-.dark ::-webkit-scrollbar-thumb { background: rgba(214,201,180,0.2); }
+.dark ::-webkit-scrollbar-thumb { background: rgba(180,185,203,0.22); }
 .dark ::-webkit-scrollbar-thumb:hover { background: rgba(214,201,180,0.32); }
 
 /* ─── Keyframe Animations ──────────────────────────────────

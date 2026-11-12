@@ -1,22 +1,25 @@
 import React from 'react';
 
 interface LogoProps extends React.HTMLAttributes<HTMLDivElement> {
+  /** Tinggi logo (px). Lebar mengikuti rasio lockup ikon + caption. */
   size?: number;
-  /** Sumber logo untuk mode terang */
+  /** Sumber logo untuk latar terang (ikon hijau). */
   src?: string;
-  /** Sumber logo untuk mode gelap. Jika diisi, logo diganti otomatis saat tema gelap. */
+  /** Sumber logo untuk latar gelap (ikon krem). Diganti otomatis saat tema gelap. */
   darkSrc?: string;
 }
+
+/** Rasio lockup /sikap-logo.svg (ikon + caption): 1264 × 313. */
+const RATIO = 1264 / 313;
 
 export function Logo({
   size = 40,
   className = '',
-  src = '/logo-sikap.svg?v=2',
-  darkSrc,
+  src = '/sikap-logo.svg',
+  darkSrc = '/sikap-logo-dark.svg',
   ...props
 }: LogoProps) {
-  // SVG new viewBox is exactly 2.5:1 ratio.
-  const w = size * 2.5;
+  const w = size * RATIO;
   const h = size;
 
   return (
@@ -27,14 +30,14 @@ export function Logo({
     >
       <img
         src={src}
-        alt="SIKAP Logo"
+        alt="SIKAP — Sistem Informasi Rekap CKP"
         className={darkSrc ? 'dark:hidden' : ''}
         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
       />
       {darkSrc && (
         <img
           src={darkSrc}
-          alt="SIKAP Logo"
+          alt="SIKAP — Sistem Informasi Rekap CKP"
           className="hidden dark:block"
           style={{ width: '100%', height: '100%', objectFit: 'contain' }}
         />

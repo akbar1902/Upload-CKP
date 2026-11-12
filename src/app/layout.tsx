@@ -41,7 +41,7 @@ export const viewport: Viewport = {
   // Selaras dengan --bg-base di globals.css (light) dan --sidebar-bg (dark).
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#F6F6F4" },
-    { media: "(prefers-color-scheme: dark)", color: "#0B2A24" },
+    { media: "(prefers-color-scheme: dark)", color: "#0E1428" },
   ],
 };
 

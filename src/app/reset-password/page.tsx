@@ -206,7 +206,7 @@ export default function ResetPasswordPage() {
               <div className="animate-fade-in">
                 <div className="text-center mb-8">
                   <div className="mx-auto flex justify-center mb-4">
-                    <Logo size={110} className="drop-shadow-sm" darkSrc="/SIKAP-text-and-tagline-beige.svg" />
+                    <Logo size={64} />
                   </div>
                   <h2 className="text-[24px] font-bold text-[var(--text-primary)] tracking-tight mb-2">
                     Buat Password Baru

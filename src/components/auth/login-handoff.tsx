@@ -20,11 +20,7 @@ export function LoginHandoff({ name }: { name?: string | null }) {
       aria-live="polite"
       aria-busy="true"
     >
-      <Logo
-        size={96}
-        className="drop-shadow-sm"
-        darkSrc="/SIKAP-text-and-tagline-beige.svg"
-      />
+      <Logo size={56} />
 
       <div className="flex flex-col items-center gap-3">
         <div className="flex items-center gap-2.5">

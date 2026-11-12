@@ -36,18 +36,19 @@
 }
 
 :global(.dark) .root {
-  --card-bg: #14201c;
+  /* malam: kartu biru tinta, senada langit ilustrasi & dark mode aplikasi */
+  --card-bg: #141B33;
   --ink: #f1ebdd;
   --muted: rgba(241, 235, 221, 0.66);
   --line: rgba(241, 235, 221, 0.12);
   --field-bg: rgba(241, 235, 221, 0.05);
-  --field-solid: #1f2a26; /* = --card-bg + 5% krem, tanpa transparansi */
+  --field-solid: #1f263d; /* = --card-bg + 5% krem, tanpa transparansi */
   --field-border: rgba(241, 235, 221, 0.18);
-  --focus: #8fd0bf;
-  --focus-ring: rgba(143, 208, 191, 0.2);
+  --focus: #8fd8c4;
+  --focus-ring: rgba(143, 216, 196, 0.2);
   --btn-bg: #f1ebdd;
   --btn-hover: #fffaf0;
-  --btn-text: #12261f;
+  --btn-text: #141B33;
   --danger-bg: rgba(208, 117, 79, 0.14);
   --danger-border: rgba(208, 117, 79, 0.45);
   --danger-text: #f2c4ae;
@@ -263,7 +264,7 @@
   position: relative;
   z-index: 2;
   width: min(420px, 100%);
-  padding: 60px 36px 42px;
+  padding: 44px 36px 42px;
   border-radius: 22px;
   background: var(--card-bg);
   box-shadow:
@@ -276,6 +277,23 @@
   box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.7);
 }
 
+/* Kepala kartu: ikon logo sejajar judul + subjudul */
+.head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mark {
+  flex: none;
+  width: 58px;
+  height: 58px;
+}
+
+.markNight { display: none; }
+:global(.dark) .markDay { display: none; }
+:global(.dark) .markNight { display: block; }
+
 .title {
   margin: 0;
   font-size: 28px;
@@ -285,7 +303,7 @@
 }
 
 .subtitle {
-  margin-top: 6px;
+  margin: 2px 0 0;
   font-size: 14px;
   line-height: 1.6;
   color: var(--muted);
@@ -515,6 +533,7 @@
   }
 
   .title { font-size: 25px; }
+  .mark { width: 52px; height: 52px; }
   .form { margin-top: 22px; gap: 14px; }
   .submit { margin-top: 4px; height: 48px; }
   .foot { margin-top: 20px; padding-top: 14px; }
@@ -522,6 +541,7 @@
 
 @media (min-width: 761px) and (max-height: 560px) {
   .subtitle { display: none; }
+  .mark { width: 36px; height: 36px; }
   .hint { display: none; }
   .form { margin-top: 16px; gap: 12px; }
   .input { height: 44px; }
@@ -578,11 +598,16 @@
     width: 100%;
     margin-top: -22px;
     border-radius: 22px 22px 0 0;
-    padding: 26px 22px calc(16px + env(safe-area-inset-bottom));
+    padding: 22px 22px calc(16px + env(safe-area-inset-bottom));
   }
 
   .title {
     font-size: 24px;
+  }
+
+  .mark {
+    width: 50px;
+    height: 50px;
   }
 
   .form {

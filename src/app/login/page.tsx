@@ -156,8 +156,16 @@ export default function LoginPage() {
       </div>
 
       <main className={s.card} inert={redirecting}>
-        <h1 className={s.title}>Masuk ke SIKAP</h1>
-        <p className={s.subtitle}>Gunakan email dan kata sandi akun Anda.</p>
+        <div className={s.head}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/sikap-icon.svg" alt="" className={`${s.mark} ${s.markDay}`} />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/sikap-icon-dark.svg" alt="" className={`${s.mark} ${s.markNight}`} />
+          <div>
+            <h1 className={s.title}>Masuk ke SIKAP</h1>
+            <p className={s.subtitle}>Gunakan email BPS Anda.</p>
+          </div>
+        </div>
 
         {error && (
           <div className={s.alert} role="alert">

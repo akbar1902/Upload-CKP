@@ -287,14 +287,14 @@ export function Sidebar() {
       )}>
         {collapsed ? (
           <img
-            src="/SIKAP-logo-only-beige.svg"
+            src="/sikap-icon-dark.svg"
             alt="SIKAP"
-            className="h-8 w-auto max-w-full object-contain"
+            className="h-9 w-9 object-contain"
           />
         ) : (
           <img
-            src="/SIKAP-text-and-tagline-beige.svg"
-            alt="SIKAP — Sistem Informasi Rekap Capaian Kinerja Pegawai"
+            src="/sikap-logo-dark.svg"
+            alt="SIKAP — Sistem Informasi Rekap CKP"
             className="w-full h-auto max-w-full object-contain"
           />
         )}
